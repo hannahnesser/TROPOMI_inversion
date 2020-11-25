@@ -5,5 +5,7 @@ prior/wetlands/*.nc
 prior/wetlands/*.csv
 observations/*.nc
 observations/*.csv 
+plots/*.png
+plots/*.gif
 python/.DS_Store
 *sublime*
