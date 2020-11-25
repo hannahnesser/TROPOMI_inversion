@@ -1,15 +1,13 @@
-import copy
+# import copy
 import os
 from os.path import join
-import sys
 import math
-import itertools
+# import itertools
 import pickle
 
-sys.path.append('/n/home04/hnesser/reduced_rank_jacobian/python/')
+import sys
+sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
 import inversion as inv
-import format_plots as fp
-import config
 
 import xarray as xr
 import numpy as np
@@ -39,7 +37,7 @@ def load_obj(name):
 data_dir='/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ'
 
 # Jacobian
-k = load_obj(join(data_dir, 'kA.pkl')).T
+k = load_obj(join(data_dir, 'k.pkl')).T
 
 # Native-resolution prior and prior error
 xa = load_obj(join(data_dir, 'xa.pkl'))

@@ -1,17 +1,12 @@
-import glob
 import numpy as np
 import xarray as xr
-import re
 import pickle
 import os
 import pandas as pd
-import datetime
 import math
-from numpy.linalg import inv
-from netCDF4 import Dataset
 import numpy as np
-import os
 from os.path import join
+
 
 ## -------------------------------------------------------------------------##
 ## Define save and load functions
@@ -42,11 +37,11 @@ gc_idx = np.isfinite(gc).all(axis=1)
 
 # Apply
 k = k[k_idx & gc_idx]
-gc = gc[kA_idx & gc_idx]
+gc = gc[k_idx & gc_idx]
 
 # Reshape error by applying indices from gc
 so_vec = (rrsd[gc['J'] - 1, gc['I'] - 1]*gc['GOSAT']*1e9)**2
-so_vec[so_vec < 0] = gc['model'][so_vec < 0]*1e18
+so_vec[~(so_vec < 0)] = gc['model'][~(so_vec < 0)]*1e18
 so_vec = so_vec.values
 
 # Now save out some quantities
@@ -56,12 +51,9 @@ xa = np.ones(k.shape[1])
 sa_vec = np.ones(k.shape[1])*0.5**2
 
 # save out
+save_obj(k, join(data_dir, 'k.pkl'))
 save_obj(so_vec, join(data_dir, 'so_vec.pkl'))
 save_obj(y_base, join(data_dir, 'y_base.pkl'))
 save_obj(y, join(data_dir, 'y.pkl'))
 save_obj(xa, join(data_dir, 'xa.pkl'))
 save_obj(sa_vec, join(data_dir, 'sa_vec.pkl'))
-
-
-
-

@@ -2,10 +2,10 @@ import xarray as xr
 import numpy as np
 # from numpy import diag as diags
 # from numpy import identity
-from numpy.linalg import inv, norm, eigh
+from numpy.linalg import inv, norm #, eigh
 from scipy.sparse import diags, identity
 from scipy.stats import linregress
-# from scipy.linalg import eigh
+from scipy.linalg import eigh
 import pandas as pd
 import copy
 
@@ -437,7 +437,7 @@ class ReducedRankInversion(Inversion):
         print('Calculated PPH.')
         return pph_m
 
-    def edecomp(self):
+    def edecomp(self, eval_threshold=None, number_of_evals=None):
         print('... Calculating eigendecomposition ...')
         # Calculate pph and require that it be symmetric
         pph = self.pph()
@@ -449,7 +449,14 @@ class ReducedRankInversion(Inversion):
         # We return the evals of the projection, not of the
         # prior pre-conditioned Hessian.
 
-        evals, evecs = eigh(pph)
+        if (eval_threshold is None) and (number_of_evals is None):
+             evals, evecs = eigh(pph)
+        elif (eval_threshold is None):
+            n = pph.shape[0]
+            evals, evecs = eigh(pph, subset_by_index=[n - number_of_evals,
+                                                      n - 1])
+        else:
+            evals, evecs = eigh(pph, subset_by_value=[eval_threshold, np.inf])
         print('Eigendecomposition complete.')
 
         # Sort evals and evecs by eval
