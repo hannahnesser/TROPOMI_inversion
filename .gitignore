@@ -1,0 +1,9 @@
+python/__pycache__
+jacobian/*.csv
+jacobian/*.nc
+prior/wetlands/*.nc
+prior/wetlands/*.csv
+observations/*.nc
+observations/*.csv 
+python/.DS_Store
+*sublime*
