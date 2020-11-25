@@ -3,11 +3,15 @@ import numpy as np
 import pandas as pd
 import math
 from numpy.linalg import eigh
+import datetime
+import imageio
 
 # Plotting
 import matplotlib.pyplot as plt
 
 # Import other modules
+from os import listdir
+from os.path import join
 import sys
 sys.path.append('.')
 import plots as p
@@ -17,7 +21,7 @@ import config
 ## -------------------------------------------------------------------------##
 ## Open wetlands file
 ## -------------------------------------------------------------------------##
-w_loc = '../Prior/Wetlands/WetCHARTs_Highest_performance_Ensemble_v1.3.1_2010_2019.nc'
+w_loc = '../prior/wetlands/WetCHARTs_Highest_performance_Ensemble_v1.3.1_2010_2019.nc'
 w = xr.open_dataset(w_loc, decode_times=False)
 
 print('Wetlands file opened.')
@@ -152,45 +156,61 @@ print('Calculated the covariance matrix.\n')
 ## -------------------------------------------------------------------------##
 ## Eigendecomposition
 ## -------------------------------------------------------------------------##
-# Do the eignedecomposition
-for i in range(cov.shape[0]):
-    # Calculate eigenvalues and eigenvectors
-    evals, evecs = eigh(cov[i, :, :])
+# # Do the eignedecomposition
+# for i in range(cov.shape[0]):
+#     # Calculate eigenvalues and eigenvectors
+#     evals, evecs = eigh(cov[i, :, :])
 
-    # Sort by the eigenvalues
-    idx = np.argsort(evals)[::-1]
-    evals = evals[idx]
-    evecs = evecs[:, idx]
+#     # Sort by the eigenvalues
+#     idx = np.argsort(evals)[::-1]
+#     evals = evals[idx]
+#     evecs = evecs[:, idx]
 
-    # Check for imaginary eigenvector components
-    if np.any(np.iscomplex(evecs)):
-        imag_idx = np.where(np.iscomplex(evecs))
-        print('Imaginary eigenvectors exist at index %d of %d.'
-              % (imag_idx[1][0], len(evecs)))
-        print('The maximum absolute imaginary component is %.2e'
-              % np.max(np.abs(np.imag(evecs[imag_idx]))))
-        print('and occurs at ',
-              np.where(np.imag(evecs) ==
-                       np.max(np.abs(np.imag(evecs[imag_idx])))), '.')
-        print('Forcing eigenvectors to real component alone.')
+#     # Check for imaginary eigenvector components
+#     if np.any(np.iscomplex(evecs)):
+#         imag_idx = np.where(np.iscomplex(evecs))
+#         print('Imaginary eigenvectors exist at index %d of %d.'
+#               % (imag_idx[1][0], len(evecs)))
+#         print('The maximum absolute imaginary component is %.2e'
+#               % np.max(np.abs(np.imag(evecs[imag_idx]))))
+#         print('and occurs at ',
+#               np.where(np.imag(evecs) ==
+#                        np.max(np.abs(np.imag(evecs[imag_idx])))), '.')
+#         print('Forcing eigenvectors to real component alone.')
 
-        # Force real
-        evecs = np.real(evecs)
+#         # Force real
+#         evecs = np.real(evecs)
 
-    # Save out evecs
-    np.savetxt('../Prior/Wetlands/EOFs_m%02d.csv' % int(i+1), evecs,
-               delimiter=',')
-    np.savetxt('../Prior/Wetlands/EOFs_eval_m%02d.csv' % int(i+1), evals,
-               delimiter=',')
-    print('Eigendecomposition of month %d complete.' % (i+1))
+#     # Save out evecs
+#     np.savetxt('../Prior/Wetlands/EOFs_m%02d.csv' % int(i+1), evecs,
+#                delimiter=',')
+#     np.savetxt('../Prior/Wetlands/EOFs_eval_m%02d.csv' % int(i+1), evals,
+#                delimiter=',')
+#     print('Eigendecomposition of month %d complete.' % (i+1))
 
 ## -------------------------------------------------------------------------##
 ## Plot the first few eigenvectors
 ## -------------------------------------------------------------------------##
-# evecs = np.loadtxt('../Prior/Wetlands/EOFS_m01.csv', delimiter=',')
-# fig, ax, c = p.plot_state(evecs[:, 0], clusters, cmap='RdBu_r',
-#                           vmin=-0.1, vmax=0.1)
-# plt.show()
+
+# for i in range(1, 13):
+#     month = datetime.date(1900, i, 1).strftime('%B')
+#     evecs = np.loadtxt('../prior/wetlands/EOFS_m%02d.csv' % i, delimiter=',')
+#     fig, ax, c = p.plot_state_grid(evecs[:, :3], 1, 3,
+#                                    clusters, cmap='RdBu_r',
+#                                    vmin=-0.1, vmax=0.1,
+#                                    titles=['1', '2', '3'])
+#     fig.suptitle(month, y=1.2, fontsize=config.TITLE_FONTSIZE*config.SCALE)
+#     fp.save_fig(fig, '../plots', 'EOFs_m%02d' % i)
+# # plt.show()
+
+# Create a gif
+images = []
+filenames = listdir('../plots/')
+filenames = [f for f in filenames if f[:3] == 'EOF']
+filenames.sort()
+for f in filenames:
+    images.append(imageio.imread(join('../plots', f)))
+imageio.mimsave('../plots/EOFs.gif', images, duration=2)
 
 
 ## -------------------------------------------------------------------------##

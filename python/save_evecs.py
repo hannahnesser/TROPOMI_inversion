@@ -37,7 +37,7 @@ def load_obj(name):
 data_dir='/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ'
 
 # Jacobian
-k = load_obj(join(data_dir, 'k.pkl')).T
+k = load_obj(join(data_dir, 'k.pkl'))
 
 # Native-resolution prior and prior error
 xa = load_obj(join(data_dir, 'xa.pkl'))
@@ -62,9 +62,13 @@ RF = 0.001
 inv_zq = inv.ReducedRankJacobian(k, xa, sa_vec, y, y_base, so_vec)
 inv_zq.rf = RF
 
+# Save out the PPH
+pph = inv_zq.pph()
+save_obj(pph, join(data_dir, 'pph.pkl'))
+
 # Complete an eigendecomposition of the prior pre-
 # conditioned Hessian, filling in the eigenvalue
 # and eigenvector attributes of true.
-inv_zq.edecomp()
+inv_zq.edecomp(number_of_evals=10)
 
 

@@ -101,3 +101,49 @@ def plot_state_format(data, default_value=0, cbar=True, **kw):
         return fig, ax, cb
     else:
         return fig, ax, c
+
+def plot_state_grid(data, rows, cols, clusters_plot,
+                    cbar=True, **kw):
+    assert rows*cols == data.shape[1], \
+           'Dimension mismatch: Data does not match number of plots.'
+
+    try:
+        kw.get('vmin')
+        kw.get('vmax')
+    except KeyError:
+        print('vmin and vmax not supplied. Plots may have inconsistent\
+               colorbars.')
+
+    try:
+        titles = kw.pop('titles')
+        vmins = kw.pop('vmins')
+        vmaxs = kw.pop('vmaxs')
+    except KeyError:
+        pass
+
+    fig_kwargs = kw.pop('fig_kwargs', {})
+    fig, ax = fp.get_figax(rows, cols, maps=True,
+                           lats=clusters_plot.lat, lons=clusters_plot.lon,
+                            **fig_kwargs)
+
+    if cbar:
+        cax = fp.add_cax(fig, ax)
+        cbar_kwargs = kw.pop('cbar_kwargs', {})
+
+    for i, axis in enumerate(ax.flatten()):
+        kw['fig_kwargs'] = {'figax' : [fig, axis]}
+        try:
+            kw['title'] = titles[i]
+            kw['vmin'] = vmins[i]
+            kw['vmax'] = vmaxs[i]
+        except NameError:
+            pass
+
+        fig, axis, c = plot_state(data[:,i], clusters_plot,
+                                  cbar=False, **kw)
+    if cbar:
+        cbar_title = cbar_kwargs.pop('title', '')
+        c = fig.colorbar(c, cax=cax, **cbar_kwargs)
+        c = fp.format_cbar(c, cbar_title)
+
+    return fig, ax, c

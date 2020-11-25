@@ -136,9 +136,9 @@ class Inversion:
         self.so_vec = so_vec
 
         # Force k to be positive
-        if np.any(self.k < 0):
-            print('Forcing negative values of the Jacobian to 0.')
-            self.k[self.k < 0] = 0
+        # if np.any(self.k < 0):
+        #     print('Forcing negative values of the Jacobian to 0.')
+        #     self.k[self.k < 0] = 0
 
         # Solve for the constant c.
         self.calculate_c()

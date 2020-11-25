@@ -28,7 +28,7 @@ data_dir='/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ'
 rrsd = load_obj(join(data_dir, 'rrsd.pkl'))
 gc = pd.read_csv(join(data_dir, 'gc_output'), delim_whitespace=True, header=0,
                  usecols=['I', 'J', 'GOSAT', 'model', 'S_OBS'])
-k = load_obj(join(data_dir, 'kA.pkl')).T
+k = load_obj(join(data_dir, 'kA.pkl'))
 
 # Now we will filter
 # Define filters
