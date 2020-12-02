@@ -429,9 +429,12 @@ class ReducedRankInversion(Inversion):
         return rank
 
     def pph(self):
-        # Calculate the prior pre-conditioned Hessian
-        sa_sqrt = diags(self.sa_vec**0.5)
-        so_inv = diags(self.rf/self.so_vec)
+        # Calculate the prior pre-conditioned Hessian assuming
+        # that the errors are diagonal
+        sa_sqrt = self.sa_vec**0.5
+        so_inv = self.rf/self.so_vec
+        pph = sa_sqrt*self.
+
         pph_m  = sa_sqrt @ self.k.T \
                  @ so_inv @ self.k @ sa_sqrt
         print('Calculated PPH.')
