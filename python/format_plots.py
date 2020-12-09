@@ -102,6 +102,7 @@ def make_axes(rows=1, cols=1, aspect=None,
               **fig_kwargs):
     aspect = get_aspect(rows, cols, aspect, maps, lats, lons)
     figsize = get_figsize(aspect, rows, cols, **fig_kwargs)
+    print(figsize)
     kw = {}
     if maps:
         kw['subplot_kw'] = {'projection' : ccrs.PlateCarree()}
