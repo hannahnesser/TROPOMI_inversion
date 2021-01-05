@@ -306,6 +306,7 @@ while [ $x -le $stop ];do
    ### Set up HEMCO_Config.rc
    echo "=== Modifying HEMCO_Config.rc"
    ### Use monthly emissions diagnostic output for now
+   echo "Checkpoint 1"
    sed -e "s:End:Monthly:g" \
        -e "s:{VERBOSE}:0:g" \
        -e "s:{WARNINGS}:1:g" \
@@ -316,22 +317,25 @@ while [ $x -le $stop ];do
        -e "s:\$ROOT/SAMPLE_BCs/v2019-05/CH4/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_\$HH\$MNz.nc4:${BC_FILES}:g" \
        HEMCO_Config.template > HEMCO_Config.rc
    rm HEMCO_Config.template
+   echo "Checkpoint 2"
    if [ ! -z "$REGION" ]; then
        sed -i -e "s:\$RES:\$RES.${REGION}:g" HEMCO_Config.rc
    fi
 
    # adding in CanMexTia
+   echo "Checkpoint 3"
    sed -i '61 a \ \ \ \ --> CanMexTia              :       true' HEMCO_Config.rc
    sed -i '/)))GFEI/ r ${RUN_SCRIPTS}/CanMexTia_text.txt' HEMCO_Config.rc
    sed -i '904r ${RUN_SCRIPTS}/CanMexTiaMASK_text.txt' HEMCO_Config.rc
 
-
    # removing EDGARv432 oil and gas
+   echo "Checkpoint 4"
    OLD="0 CH4_OILGAS"
    NEW="#0 CH4_OILGAS"
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
    # using same JPL_WETCHARTS as xlu
+   echo "Checkpoint 5"
    OLD="v2020-04\/JPL_WetCharts\/JPL_WetCharts_\$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2009-2017"
    NEW="v2020-09\/JPL_WetCharts\/HEensemble\/products\/JPL_WetCharts_\$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019"
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
