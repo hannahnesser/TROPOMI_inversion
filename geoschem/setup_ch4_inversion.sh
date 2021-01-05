@@ -103,11 +103,11 @@ cd ${MY_PATH}
 # HON 2020/07/15 - Add an if statement that copies the code if the
 # code directory is not specified and creates a symbolic link to the
 # existing code directory otherwise.
-if [[ -d "$GC_NAME" ]]
+if [[ -d "${CODE_PATH}/${GC_NAME}" ]]
 then
     echo "Code directory already exists."
     echo "Did you check that your directory is up to date?"
-    ln -s ${CODE_PATH}/${GC_NAME} ./Code.CH4_Inv
+    ln -s -f ${CODE_PATH}/${GC_NAME} ./Code.CH4_Inv
 else
     echo "Cloning seasasfs02 code directory."
     cp -r /n/seasasfs02/CH4_inversion/Code.CH4_Inv ${CODE_PATH}
@@ -122,17 +122,17 @@ fi
 # HON 2020/07/15 - Add an if statement that copies the UT if the
 # UT directory is not specified and creates a symbolic link to the
 # existing UT directory otherwise.
-if [[ -d "$UT_NAME" ]]
+if [[ -d "${CODE_PATH}/${UT_NAME}" ]]
 then
     echo "Unit tester already exists."
-    ln -s ${CODE_PATH}/${UT_NAME} ./UnitTester.CH4_Inv
+    ln -s -f ${CODE_PATH}/${UT_NAME} ./UnitTester.CH4_Inv
 else
     echo "Cloning seasasfs02 unit tester."
     cp -r /n/seasasfs02/CH4_inversion/UnitTester.CH4_Inv ${CODE_PATH}
     cd ${CODE_PATH}/UnitTester.CH4_Inv
     git checkout CH4_Analytical_Inversion
     cd ${MY_PATH}
-    ln -s ${CODE_PATH}/UnitTester.CH4_Inv
+    ln -s -f ${CODE_PATH}/UnitTester.CH4_Inv
 fi
 
 ##=======================================================================
