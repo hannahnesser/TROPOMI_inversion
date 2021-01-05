@@ -314,8 +314,8 @@ while [ $x -le $stop ];do
 
    # adding in CanMexTia
    sed -i '61 a \ \ \ \ --> CanMexTia              :       true' HEMCO_Config.rc
-   sed -i '/)))GFEI/ r /n/holyscratch01/jacob_lab/mwinter/CH4_inversion/CanMexTia_text.txt' HEMCO_Config.rc
-   sed -i '904r /n/holyscratch01/jacob_lab/mwinter/CH4_inversion/CanMexTiaMASK_text.txt' HEMCO_Config.rc
+   sed -i '/)))GFEI/ r ${RUN_SCRIPTS}/CanMexTia_text.txt' HEMCO_Config.rc
+   sed -i '904r ${RUN_SCRIPTS}/CanMexTiaMASK_text.txt' HEMCO_Config.rc
 
 
    # removing EDGARv432 oil and gas
