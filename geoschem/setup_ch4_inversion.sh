@@ -156,6 +156,8 @@ else
 fi
 
 # Set up template run directory
+echo "========================================="
+echo "=== Setting up template run directory ==="
 cd $RUN_TEMPLATE
 cp ${MY_PATH}/UnitTester.CH4_Inv/runs/shared_inputs/Makefiles/Makefile .
 cp ${MY_PATH}/UnitTester.CH4_Inv/perl/getRunInfo .
@@ -163,6 +165,7 @@ cp ${RUN_SCRIPTS}/run.template .
 ln -s -f $RESTART_FILE .
 mkdir -p OutputDir
 cd ..
+echo "========================================="
 
 # Define met and grid fields for HEMCO_Config.rc
 if [ "$MET" == "geosfp" ]; then
@@ -187,9 +190,11 @@ fi
 
 ##=======================================================================
 ##  Create run directories
-
+echo "================================"
+echo "=== Creating run directories ==="
 while [ $x -le $stop ];do
 
+   # All of this will be moot when I use eigenvector perturbations
    ### Positive or negative perturbation
    if [ $x -eq -1 ]; then
       PERT="1.0"
@@ -214,6 +219,7 @@ while [ $x -le $stop ];do
    name="${RUN_NAME}_${xstr}"
 
    ### Make the directory
+   echo "=== Creating run directory ${x}"
    runDir="./run_dirs/${name}"
    mkdir -p ${runDir}
    mkdir -p ${runDir}/Plane_Logs
@@ -224,6 +230,7 @@ while [ $x -le $stop ];do
    cd $runDir
 
    ### Create input.geos file from template
+   echo "=== Modifying input.geos"
    InputFile="input.geos.template"
    sed -e "s:{DATE1}:${START_DATE}:g" \
        -e "s:{DATE2}:${END_DATE}:g" \
@@ -297,6 +304,7 @@ while [ $x -le $stop ];do
    sed -i "s/$OLD/$NEW/g" input.geos
 
    ### Set up HEMCO_Config.rc
+   echo "=== Modifying HEMCO_Config.rc"
    ### Use monthly emissions diagnostic output for now
    sed -e "s:End:Monthly:g" \
        -e "s:{VERBOSE}:0:g" \
@@ -339,6 +347,7 @@ while [ $x -le $stop ];do
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
    ### Set up HISTORY.rc
+   echo "=== Modifying HISTORY.rc"
    ### use monthly output for now
    sed -e "s:{FREQUENCY}:00000000 010000:g" \
        -e "s:{DURATION}:00000001 000000:g" \
