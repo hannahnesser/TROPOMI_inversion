@@ -160,7 +160,7 @@ cd $RUN_TEMPLATE
 cp ${MY_PATH}/UnitTester.CH4_Inv/runs/shared_inputs/Makefiles/Makefile .
 cp ${MY_PATH}/UnitTester.CH4_Inv/perl/getRunInfo .
 cp ${RUN_SCRIPTS}/run.template .
-ln -s $RESTART_FILE .
+ln -s -f $RESTART_FILE .
 mkdir OutputDir
 cd ..
 
@@ -383,7 +383,7 @@ while [ $x -le $stop ];do
        make -j4 build BPCH_DIAG=y CODE_PATH=$MY_PATH/Code.CH4_Inv
        cp -av geos ../../bin/
    else
-       ln -s ../../bin/geos .
+       ln -s -f ../../bin/geos .
    fi
 
    ### Navigate back to top-level directory
