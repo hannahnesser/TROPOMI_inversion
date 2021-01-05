@@ -111,4 +111,22 @@ np.savetxt(join(data_dir, 'evals_q.csv'), evals/(1+evals), delimiter=',')
 print('... Complete ...\n')
 
 
+#
+#         # temp = ev.where(ev.perturbation == p, drop=True).drop('perturbation').squeeze('perturbation')
+
+# d.to_netcdf('/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ/evec_perturbations_0001.nc',
+#                encoding={'evec_perturbations' : {'_FillValue' : None,
+#                                                  'dtype' : 'float32'},
+#                          'time' : {'_FillValue' : None,
+#                                    'dtype' : 'float32'},
+#                          'lat' : {'_FillValue' : None,
+#                                    'dtype' : 'float32'},
+#                          'lon' : {'_FillValue' : None,
+#                                    'dtype' : 'float32'}})
+
+# # need to set attribute dictionaries for lat
+# # lon, time, and the evec_pertuurbations, complete
+# # with units
+
+# d.time.attrs = {'long_name' : 'Time', 'units' : 'hours since 2009-01-01 00:00:00', 'calendar' : 'standard'}
 
