@@ -22,7 +22,7 @@ MY_PATH="/n/holyscratch01/jacob_lab/hnesser/CH4_inversion"
 DATA_PATH="/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/data/ExtData"
 
 # Path to run scripts
-RUN_SCRIPTS="${HOME}/CH4_inversion_workflow/RunDirScripts"
+RUN_SCRIPTS="${HOME}/TROPOMI_inversion/geoschem"
 #RUN_SCRIPTS="/n/seasasfs02/CH4_inversion/RunDirScripts"
 
 # Start and end date fo the simulations
@@ -90,9 +90,13 @@ x=$start
 #    cd ..
 #fi
 
+# HON 2020/01/05: Note: this should be written so that we could run it from within my
+# TROPOMI_inversion directory
+
+# Copy
+
 # Conduct all this work from within my_path
 cd ${MY_PATH}
-
 
 # Copy source code with CH4 analytical inversion updates to your space
 # Make sure branch with latest CH4 inversion updates is checked out
