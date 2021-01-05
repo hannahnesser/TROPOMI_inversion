@@ -16,7 +16,7 @@ UT_NAME="UnitTester.CH4_Inv"
 GC_VERSION=12.7.1
 
 # Path where you want to set up CH4 inversion code and run directories
-MY_PATH="/n/holyscratch01/jacob_lab/mwinter/CH4_inversion"
+MY_PATH="/n/holyscratch01/jacob_lab/hnesser/CH4_inversion"
 
 # Path to find non-emissions input data
 DATA_PATH="/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/data/ExtData"
@@ -25,16 +25,16 @@ DATA_PATH="/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/data/ExtData"
 RUN_SCRIPTS="${HOME}/CH4_inversion_workflow/RunDirScripts"
 #RUN_SCRIPTS="/n/seasasfs02/CH4_inversion/RunDirScripts"
 
+# Start and end date fo the simulations
+START_DATE=20190101
+END_DATE=20180601
+
 # Path to initial restart file
-RESTART_FILE="/n/seasasfs02/hnesser/GC_TROPOMI_bias/restarts/GEOSChem.Restart.20180301_0000z.nc4"
+RESTART_FILE="/n/seasasfs02/hnesser/GC_TROPOMI_bias/restarts/GEOSChem.Restart.${START_DATE}_0000z.nc4"
 
 # Path to boundary condition files (for nested grid simulations)
 # Must put backslash before $ in $YYYY$MM$DD to properly work in sed command
 BC_FILES="/n/seasasfs02/hnesser/GC_TROPOMI_bias/BCs/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
-
-# Start and end date fo the simulations
-START_DATE=20180301
-END_DATE=20180601
 
 # Grid settings
 RES="0.25x0.3125"
@@ -89,6 +89,10 @@ x=$start
 #    git checkout CH4_Analytical_Inversion
 #    cd ..
 #fi
+
+# Conduct all this work from within my_path
+cd ${MY_PATH}
+
 
 # Copy source code with CH4 analytical inversion updates to your space
 # Make sure branch with latest CH4 inversion updates is checked out
@@ -240,12 +244,12 @@ while [ $x -le $stop ];do
    # For CH4 inversions always turn analytical inversion on
    OLD="Do analytical inversion?: F"
    NEW="Do analytical inversion?: T"
-   sed -i "s/$OLD/$NEW/g" input.geos 
+   sed -i "s/$OLD/$NEW/g" input.geos
 
    OLD="L (ND65) diag?: T"
    NEW="L (ND65) diag?: F"
    sed -i "s/$OLD/$NEW/g" input.geos
- 
+
    if "$GOSAT"; then
        OLD="Use GOSAT obs operator? : F"
        NEW="Use GOSAT obs operator? : T"
@@ -303,18 +307,18 @@ while [ $x -le $stop ];do
    if [ ! -z "$REGION" ]; then
        sed -i -e "s:\$RES:\$RES.${REGION}:g" HEMCO_Config.rc
    fi
-   
+
    # adding in CanMexTia
-   sed -i '61 a \ \ \ \ --> CanMexTia              :       true' HEMCO_Config.rc     
+   sed -i '61 a \ \ \ \ --> CanMexTia              :       true' HEMCO_Config.rc
    sed -i '/)))GFEI/ r /n/holyscratch01/jacob_lab/mwinter/CH4_inversion/CanMexTia_text.txt' HEMCO_Config.rc
    sed -i '904r /n/holyscratch01/jacob_lab/mwinter/CH4_inversion/CanMexTiaMASK_text.txt' HEMCO_Config.rc
 
-   
+
    # removing EDGARv432 oil and gas
    OLD="0 CH4_OILGAS"
    NEW="#0 CH4_OILGAS"
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
-   
+
    # using same JPL_WETCHARTS as xlu
    OLD="v2020-04\/JPL_WetCharts\/JPL_WetCharts_\$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2009-2017"
    NEW="v2020-09\/JPL_WetCharts\/HEensemble\/products\/JPL_WetCharts_\$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019"
@@ -329,7 +333,7 @@ while [ $x -le $stop ];do
    OLD='SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1'
    NEW='SPC_           ./restarts_2018/GEOSChem_restart.$YYYY$MM$DD$HH$MN.nc SPC_?ALL?           $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1'
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
-   
+
    ### Set up HISTORY.rc
    ### use monthly output for now
    sed -e "s:{FREQUENCY}:00000000 010000:g" \
@@ -354,7 +358,7 @@ while [ $x -le $stop ];do
    OLD="#'StateMet',"
    NEW="'StateMet',"
    sed -i "s/$OLD/$NEW/g" HISTORY.rc
-   
+
    OLD="'%y4%m2%d2_%h2%n2z.nc4'"
    NEW="'%y4%m2%d2.%h2%n2z.nc4'"
    sed -i "s/$OLD/$NEW/g" HISTORY.rc
@@ -362,7 +366,7 @@ while [ $x -le $stop ];do
    OLD="time-averaged"
    NEW="instantaneous"
    sed -i "s/$OLD/$NEW/g" HISTORY.rc
-   
+
    ### Create run script from template
    sed -e "s:namename:${name}:g" \
        run.template > ${name}.run
