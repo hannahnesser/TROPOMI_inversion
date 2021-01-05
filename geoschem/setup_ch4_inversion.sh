@@ -161,7 +161,7 @@ cp ${MY_PATH}/UnitTester.CH4_Inv/runs/shared_inputs/Makefiles/Makefile .
 cp ${MY_PATH}/UnitTester.CH4_Inv/perl/getRunInfo .
 cp ${RUN_SCRIPTS}/run.template .
 ln -s -f $RESTART_FILE .
-mkdir OutputDir
+mkdir -p OutputDir
 cd ..
 
 # Define met and grid fields for HEMCO_Config.rc
