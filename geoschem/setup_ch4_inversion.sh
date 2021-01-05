@@ -348,8 +348,8 @@ while [ $x -le $stop ];do
 
    # getting restart data
    echo "Checkpoint A7"
-   OLD='SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1'
-   NEW='SPC_           ./restarts_2018/GEOSChem_restart.$YYYY$MM$DD$HH$MN.nc SPC_?ALL?           $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1'
+   OLD='SPC_           .\/GEOSChem.Restart.\$YYYY\$MM\$DD_\$HH\$MNz.nc4 SpeciesRst_?ALL?    \$YYYY\/\$MM\/\$DD\/\$HH EY  xyz 1 * - 1 1'
+   NEW='SPC_           .\/restarts_\$YYYY\/GEOSChem_restart.\$YYYY\$MM\$DD\$HH\$MN.nc SPC_?ALL?           \$YYYY\/\$MM\/\$DD\/\$HH EY  xyz 1 * - 1 1'
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
    ### Set up HISTORY.rc
@@ -402,6 +402,8 @@ while [ $x -le $stop ];do
    echo "Checkpoint B7"
    if [ $x -eq $START_I ]; then
        echo "=== Compiling GEOS-Chem"
+       pwd
+       ls .
        make realclean CODE_PATH=$MY_PATH/Code.CH4_Inv
        make -j4 build BPCH_DIAG=y CODE_PATH=$MY_PATH/Code.CH4_Inv
        cp -av geos ../../bin/
