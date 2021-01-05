@@ -306,7 +306,7 @@ while [ $x -le $stop ];do
    ### Set up HEMCO_Config.rc
    echo "=== Modifying HEMCO_Config.rc"
    ### Use monthly emissions diagnostic output for now
-   echo "Checkpoint 1"
+   echo "Checkpoint A1"
    sed -e "s:End:Monthly:g" \
        -e "s:{VERBOSE}:0:g" \
        -e "s:{WARNINGS}:1:g" \
@@ -317,41 +317,44 @@ while [ $x -le $stop ];do
        -e "s:\$ROOT/SAMPLE_BCs/v2019-05/CH4/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_\$HH\$MNz.nc4:${BC_FILES}:g" \
        HEMCO_Config.template > HEMCO_Config.rc
    rm HEMCO_Config.template
-   echo "Checkpoint 2"
+   echo "Checkpoint A2"
    if [ ! -z "$REGION" ]; then
        sed -i -e "s:\$RES:\$RES.${REGION}:g" HEMCO_Config.rc
    fi
 
    # adding in CanMexTia
-   echo "Checkpoint 3"
+   echo "Checkpoint A3"
    sed -i '61 a \ \ \ \ --> CanMexTia              :       true' HEMCO_Config.rc
    sed -i '/)))GFEI/ r ${RUN_SCRIPTS}/CanMexTia_text.txt' HEMCO_Config.rc
    sed -i '904r ${RUN_SCRIPTS}/CanMexTiaMASK_text.txt' HEMCO_Config.rc
 
    # removing EDGARv432 oil and gas
-   echo "Checkpoint 4"
+   echo "Checkpoint A4"
    OLD="0 CH4_OILGAS"
    NEW="#0 CH4_OILGAS"
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
    # using same JPL_WETCHARTS as xlu
-   echo "Checkpoint 5"
+   echo "Checkpoint A5"
    OLD="v2020-04\/JPL_WetCharts\/JPL_WetCharts_\$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2009-2017"
    NEW="v2020-09\/JPL_WetCharts\/HEensemble\/products\/JPL_WetCharts_\$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019"
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
    # using same QFED2 as xlu
+   echo "Checkpoint A6"
    OLD="v2020-04\/GFED"
    NEW="v2020-09\/GFED"
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
    # getting restart data
+   echo "Checkpoint A7"
    OLD='SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1'
    NEW='SPC_           ./restarts_2018/GEOSChem_restart.$YYYY$MM$DD$HH$MN.nc SPC_?ALL?           $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1'
    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
    ### Set up HISTORY.rc
    echo "=== Modifying HISTORY.rc"
+   echo "Checkpoint B1"
    ### use monthly output for now
    sed -e "s:{FREQUENCY}:00000000 010000:g" \
        -e "s:{DURATION}:00000001 000000:g" \
@@ -361,6 +364,7 @@ while [ $x -le $stop ];do
 
    # If turned on, save out hourly CH4 concentrations and pressure fields to
    # daily files
+   echo "Checkpoint B2"
    if "$HourlyCH4"; then
        sed -e 's/SpeciesConc.frequency:      00000100 000000/SpeciesConc.frequency:      00000000 010000/g' \
 	   -e 's/SpeciesConc.duration:       00000100 000000/SpeciesConc.duration:       00000001 000000/g' \
@@ -372,26 +376,32 @@ while [ $x -le $stop ];do
        mv HISTORY.temp HISTORY.rc
    fi
 
+   echo "Checkpoint B3"
    OLD="#'StateMet',"
    NEW="'StateMet',"
    sed -i "s/$OLD/$NEW/g" HISTORY.rc
 
+   echo "Checkpoint B4"
    OLD="'%y4%m2%d2_%h2%n2z.nc4'"
    NEW="'%y4%m2%d2.%h2%n2z.nc4'"
    sed -i "s/$OLD/$NEW/g" HISTORY.rc
 
+   echo "Checkpoint B5"
    OLD="time-averaged"
    NEW="instantaneous"
    sed -i "s/$OLD/$NEW/g" HISTORY.rc
 
    ### Create run script from template
+   echo "Checkpoint B6"
    sed -e "s:namename:${name}:g" \
        run.template > ${name}.run
    rm run.template
    chmod 755 ${name}.run
 
    ### Compile code when creating first run directory
+   echo "Checkpoint B7"
    if [ $x -eq $START_I ]; then
+       echo "=== Compiling GEOS-Chem"
        make realclean CODE_PATH=$MY_PATH/Code.CH4_Inv
        make -j4 build BPCH_DIAG=y CODE_PATH=$MY_PATH/Code.CH4_Inv
        cp -av geos ../../bin/
@@ -406,7 +416,8 @@ while [ $x -le $stop ];do
    x=$[$x+1]
 
    ### Print diagnostics
-   echo "CREATED: ${runDir}"
+   echo "=== CREATED: ${runDir}"
+   echo "================================"
 
 done
 
