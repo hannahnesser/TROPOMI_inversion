@@ -16,7 +16,7 @@ UT_NAME="UnitTester.CH4_Inv"
 GC_VERSION=12.7.1
 
 # Path where you want to set up CH4 inversion code and run directories
-SCRATCH_PATH="/n/holyscratch01/jacob_lab/hnesser/CH4_inversion"
+SCRATCH_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion"
 
 # Path to find non-emissions input data
 DATA_PATH="/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/data/ExtData"
