@@ -388,7 +388,7 @@ while [ $x -le $stop ];do
    ### Compile code when creating first run directory
    if [ $x -eq $START_I ]; then
        echo "======= Compiling GEOS-Chem"
-       echo ${CODE_PATH}/${GC_NAME}
+       load_if17
        make realclean CODE_DIR=${CODE_PATH}/${GC_NAME}
        make -j${OMP_NUM_THREADS} build BPCH_DIAG=y CODE_DIR=${CODE_PATH}/${GC_NAME}
        cp -av geos ../../bin/
