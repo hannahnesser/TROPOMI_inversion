@@ -16,7 +16,7 @@ UT_NAME="UnitTester.CH4_Inv"
 GC_VERSION=12.7.1
 
 # Path where you want to set up CH4 inversion code and run directories
-MY_PATH="/n/holyscratch01/jacob_lab/hnesser/CH4_inversion"
+SCRATCH_PATH="/n/holyscratch01/jacob_lab/hnesser/CH4_inversion"
 
 # Path to find non-emissions input data
 DATA_PATH="/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/data/ExtData"
@@ -95,8 +95,8 @@ x=$start
 
 # Copy
 
-# Conduct all this work from within my_path
-cd ${MY_PATH}
+# Conduct all this work from within SCRATCH_PATH
+cd ${SCRATCH_PATH}
 
 # Copy source code with CH4 analytical inversion updates to your space
 # Make sure branch with latest CH4 inversion updates is checked out
@@ -107,13 +107,13 @@ if [[ -d "${CODE_PATH}/${GC_NAME}" ]]
 then
     echo "Code directory already exists."
     echo "Did you check that your directory is up to date?"
-    #ln -s -f ${CODE_PATH}/${GC_NAME} ./Code.CH4_Inv
+    ln -s -f ${CODE_PATH}/${GC_NAME} ./Code.CH4_Inv
 else
     echo "Cloning seasasfs02 code directory."
     cp -r /n/seasasfs02/CH4_inversion/Code.CH4_Inv ${CODE_PATH}
     cd ${CODE_PATH}/Code.CH4_Inv
     git checkout CH4_Analytical_Inversion
-    cd ${MY_PATH}
+    cd ${SCRATCH_PATH}
     ln -s ${CODE_PATH}/Code.CH4_Inv ./Code.CH4_Inv
 fi
 
@@ -125,13 +125,13 @@ fi
 if [[ -d "${CODE_PATH}/${UT_NAME}" ]]
 then
     echo "Unit tester already exists."
-    #ln -s -f ${CODE_PATH}/${UT_NAME} ./UnitTester.CH4_Inv
+    ln -s -f ${CODE_PATH}/${UT_NAME} ./UnitTester.CH4_Inv
 else
     echo "Cloning seasasfs02 unit tester."
     cp -r /n/seasasfs02/CH4_inversion/UnitTester.CH4_Inv ${CODE_PATH}
     cd ${CODE_PATH}/UnitTester.CH4_Inv
     git checkout CH4_Analytical_Inversion
-    cd ${MY_PATH}
+    cd ${SCRATCH_PATH}
     ln -s -f ${CODE_PATH}/UnitTester.CH4_Inv
 fi
 
@@ -150,17 +150,17 @@ sed -i -e "s:{START}:${START_I}:g" -e "s:{END}:${END_I}:g" run_dirs/run_array_jo
 cp ${RUN_SCRIPTS}/rundir_check.sh run_dirs/
 mkdir -p bin
 if [ "$NEST" == "T" ]; then
-  cp -rLv ${MY_PATH}/UnitTester.CH4_Inv/runs/${MET}_*_CH4_na $RUN_TEMPLATE
+  cp -rLv ${SCRATCH_PATH}/UnitTester.CH4_Inv/runs/${MET}_*_CH4_na $RUN_TEMPLATE
 else
-  cp -rLv ${MY_PATH}/UnitTester.CH4_Inv/runs/${RES}_CH4 $RUN_TEMPLATE
+  cp -rLv ${SCRATCH_PATH}/UnitTester.CH4_Inv/runs/${RES}_CH4 $RUN_TEMPLATE
 fi
 
 # Set up template run directory
 echo "========================================="
 echo "=== Setting up template run directory ==="
 cd $RUN_TEMPLATE
-cp ${MY_PATH}/UnitTester.CH4_Inv/runs/shared_inputs/Makefiles/Makefile .
-cp ${MY_PATH}/UnitTester.CH4_Inv/perl/getRunInfo .
+cp ${SCRATCH_PATH}/UnitTester.CH4_Inv/runs/shared_inputs/Makefiles/Makefile .
+cp ${SCRATCH_PATH}/UnitTester.CH4_Inv/perl/getRunInfo .
 cp ${RUN_SCRIPTS}/run.template .
 ln -s -f $RESTART_FILE .
 mkdir -p OutputDir
