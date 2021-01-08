@@ -389,8 +389,8 @@ while [ $x -le $stop ];do
    if [ $x -eq $START_I ]; then
        echo "======= Compiling GEOS-Chem"
        echo ${CODE_PATH}/${GC_NAME}
-       make realclean CODE_PATH=${CODE_PATH}/${GC_NAME}
-       make -j${OMP_NUM_THREADS} build BPCH_DIAG=y CODE_PATH=${CODE_PATH}/${GC_NAME}
+       make realclean CODE_DIR=${CODE_PATH}/${GC_NAME}
+       make -j${OMP_NUM_THREADS} build BPCH_DIAG=y CODE_DIR=${CODE_PATH}/${GC_NAME}
        cp -av geos ../../bin/
    else
        ln -s -f ../../bin/geos .
