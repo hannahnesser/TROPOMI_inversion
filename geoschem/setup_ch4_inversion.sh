@@ -107,7 +107,7 @@ if [[ -d "${CODE_PATH}/${GC_NAME}" ]]
 then
     echo "Code directory already exists."
     echo "Did you check that your directory is up to date?"
-    ln -s -f ${CODE_PATH}/${GC_NAME} ./Code.CH4_Inv
+    #ln -s -f ${CODE_PATH}/${GC_NAME} ./Code.CH4_Inv
 else
     echo "Cloning seasasfs02 code directory."
     cp -r /n/seasasfs02/CH4_inversion/Code.CH4_Inv ${CODE_PATH}
@@ -125,7 +125,7 @@ fi
 if [[ -d "${CODE_PATH}/${UT_NAME}" ]]
 then
     echo "Unit tester already exists."
-    ln -s -f ${CODE_PATH}/${UT_NAME} ./UnitTester.CH4_Inv
+    #ln -s -f ${CODE_PATH}/${UT_NAME} ./UnitTester.CH4_Inv
 else
     echo "Cloning seasasfs02 unit tester."
     cp -r /n/seasasfs02/CH4_inversion/UnitTester.CH4_Inv ${CODE_PATH}
@@ -388,11 +388,8 @@ while [ $x -le $stop ];do
    ### Compile code when creating first run directory
    if [ $x -eq $START_I ]; then
        echo "=== Compiling GEOS-Chem"
-       pwd
-       ls .
-       echo ${MY_PATH}/${GC_NAME}
-       make realclean CODE_PATH=${MY_PATH}/${GC_NAME}
-       make -j${OMP_NUM_THREADS} build BPCH_DIAG=y CODE_PATH=${MY_PATH}/${GC_NAME}
+       make realclean CODE_PATH=${CODE_PATH}/${GC_NAME}
+       make -j${OMP_NUM_THREADS} build BPCH_DIAG=y CODE_PATH=${CODE_PATH}/${GC_NAME}
        cp -av geos ../../bin/
    else
        ln -s -f ../../bin/geos .
