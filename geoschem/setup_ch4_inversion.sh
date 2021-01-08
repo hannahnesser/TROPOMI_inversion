@@ -27,7 +27,7 @@ RUN_SCRIPTS="${HOME}/TROPOMI_inversion/geoschem"
 
 # Start and end date fo the simulations
 START_DATE=20190101
-END_DATE=20180601
+END_DATE=20200101
 
 # Path to initial restart file
 RESTART_FILE="/n/seasasfs02/hnesser/GC_TROPOMI_bias/restarts/GEOSChem.Restart.${START_DATE}_0000z.nc4"
