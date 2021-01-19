@@ -4,7 +4,6 @@ from numpy.linalg import inv, norm, eigh
 from scipy.sparse import diags, identity
 from scipy.stats import linregress
 import pandas as pd
-from tqdm import tqdm
 import copy
 from os.path import join
 
