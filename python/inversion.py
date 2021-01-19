@@ -433,12 +433,10 @@ class ReducedRankInversion(Inversion):
         # that the errors are diagonal
         sa_sqrt = self.sa_vec**0.5
         so_inv = self.rf/self.so_vec
-        pph = sa_sqrt*self.
-
-        pph_m  = sa_sqrt @ self.k.T \
-                 @ so_inv @ self.k @ sa_sqrt
+        pph = (self.sa_vec**0.5)*self.k.T
+        pph = np.dot(pph, ((self.rf/self.so_vec)*pph.T))
         print('Calculated PPH.')
-        return pph_m
+        return pph
 
     def edecomp(self, eval_threshold=None, number_of_evals=None):
         print('... Calculating eigendecomposition ...')

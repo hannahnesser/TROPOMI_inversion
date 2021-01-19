@@ -4,12 +4,10 @@
 
 from os.path import join
 import os
-os.environ['OMP_NUM_THREADS'] = str(int(int(os.environ['OMP_NUM_THREADS'])/2))
-print('Using %s threads.' % os.environ['OMP_NUM_THREADS'])
+os.environ['OMP_NUM_THREADS'] = '1'
 
 import numpy as np
 import xarray as xr
-import xbpch as xb
 import pickle
 import os
 import pandas as pd
@@ -137,12 +135,18 @@ if np.any(np.iscomplex(evecs)):
           % ((np.where(np.iscomplex(evecs))[1][0] - 1), len(evecs)))
     evecs = np.real(evecs)
 
+# Calculate the prolongation and reduction operators
+prolongation = (evecs * inv_zq.sa_vec**0.5).T
+reduction = (1/self.sa_vec**0.5) * evecs.T
+
 # Saving result to our instance.
 print('Saving eigenvalues and eigenvectors.')
 # self.evals = evals/(1 + evals)
 np.savetxt(join(data_dir, 'evecs.csv'), evecs, delimiter=',')
 np.savetxt(join(data_dir, 'evals_h.csv'), evals, delimiter=',')
 np.savetxt(join(data_dir, 'evals_q.csv'), evals/(1+evals), delimiter=',')
+np.savetxt(join(data_dir, 'gamma_star.csv'), prolongation, delimiter=',')
+np.savetxt(join(data_dir, 'gamma.csv'), reduction, delimiter=',')
 print('... Complete ...\n')
 
 
@@ -173,15 +177,49 @@ print('... Complete ...\n')
 ## -------------------------------------------------------------------------##
 ## Calculate Jacobian column from K and eigenvectors
 ## -------------------------------------------------------------------------##
+root_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ'
+k_file = 'kA.pkl'
+evec_file = 'evecs.csv'
+
+# Load Jacobian and eigenvectors
+k_true = load_obj(join(root_dir, k_file)).astype('float32')
+evec = pd.read_csv(join(root_dir, evec_file), header=None, usecols=[0])
+
+# Multiply the two
+kw_true = np.dot(k_true, evec.values)
+
 
 ## -------------------------------------------------------------------------##
 ## Calculate Jacobian column from forward model
 ## -------------------------------------------------------------------------##
 
-test_run_dir = '/n/holyscratch01/jacob_lab/hnesser/CH4_inversion_test/prior_GOSAT_r3'
-kw_gc = pd.read_csv(join(test_run_dir, 'sat_obs.gosat.00.m'),
-                    delim_whitespace=True,
-                    header=0,
-                    usecols=['GOSAT', 'model'],
+# First, try the scaled summed - prior
+
+# Save the scale factor
+beta = 1e-8
+
+# Read in each file individually
+root_dir = '/n/holyscratch01/jacob_lab/hnesser/eigenvector_perturbation_test/'
+test_prior_dir = join(root_dir, 'test_prior')
+test_pert_dir = join(root_dir, 'test_summed')
+
+prior = pd.read_csv(join(test_prior_dir, 'sat_obs.gosat.00.m'),
+                    delim_whitespace=True, header=0, usecols=['model'],
                     low_memory=True)
-kw_gc *= 1e9
+pert = pd.read_csv(join(test_pert_dir, 'sat_obs.gosat.00.m'),
+                   delim_whitespace=True,header=0, usecols=['model'],
+                   low_memory=True)
+kw_gc = (pert - prior)/beta
+
+## -------------------------------------------------------------------------##
+## Compare the two
+## -------------------------------------------------------------------------##
+
+fig, ax = plt.subplots(figsize=(10, 10))
+ax.scatter(kw_true, kw_gc.values)
+ax.set_xlabel('Linear Algebra')
+ax.set_ylabel('Forward Model')
+ax.set_xlim(-30, 1)
+ax.set_ylim(-30, 1)
+plt.show()
+

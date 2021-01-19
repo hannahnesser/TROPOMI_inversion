@@ -1,11 +1,24 @@
 #!/bin/bash
 
-# ------------------------------------------------------------------
-### Set up GEOS-Chem for Jacobian run (mps, 2/20/2020)
-# ------------------------------------------------------------------
+# This script will set up CH4 analytical inversions with GEOS-Chem. See
+# setup_ch4_inversion_instructions.txt for details (mps, 2/20/2020)
 
 ##=======================================================================
-## Set variables
+## User settings **MODIFY AS NEEDED**
+##=======================================================================
+
+# Turn on/off different steps. This will allow you to come back to this
+# script and set up different stages later.
+SetupTemplateRundir=true
+SetupSpinupRun=false
+SetupJacobianRuns=true
+SetupInversion=true
+SetupPosteriorRun=true
+
+RUN_NAME="TROPOMI_2019"
+
+# Path where you want to set up CH4 inversion code and run directories
+JAC_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion"
 
 # HON 2020/07/15 - Add variables for UT and code directory
 CODE_PATH="${HOME}/CH4_GC"
@@ -15,9 +28,6 @@ UT_NAME="UnitTester.CH4_Inv"
 #MREW 2020/11/11
 GC_VERSION=12.7.1
 
-# Path where you want to set up CH4 inversion code and run directories
-SCRATCH_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion"
-
 # Path to find non-emissions input data
 DATA_PATH="/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/data/ExtData"
 
@@ -25,16 +35,21 @@ DATA_PATH="/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/data/ExtData"
 RUN_SCRIPTS="${HOME}/TROPOMI_inversion/geoschem"
 #RUN_SCRIPTS="/n/seasasfs02/CH4_inversion/RunDirScripts"
 
-# Start and end date fo the simulations
-START_DATE=20190101
-END_DATE=20200101
-
 # Path to initial restart file
 RESTART_FILE="/n/seasasfs02/hnesser/GC_TROPOMI_bias/restarts/GEOSChem.Restart.${START_DATE}_0000z.nc4"
 
 # Path to boundary condition files (for nested grid simulations)
 # Must put backslash before $ in $YYYY$MM$DD to properly work in sed command
 BC_FILES="/n/seasasfs02/hnesser/GC_TROPOMI_bias/BCs/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
+
+# Start and end date for the spinup simulation
+DO_SPINUP=false
+SPINUP_START=20180401
+SPINUP_END=20180501
+
+# Start and end date for the simulations
+START_DATE=20190101
+END_DATE=20200101
 
 # Grid settings
 RES="0.25x0.3125"
@@ -48,17 +63,12 @@ REGION="NA"  # Nested grid region (NA,AS,CH,EU); Leave blank for global or custo
 BUFFER="3 3 3 3"
 
 # Jacobian settings
-START_I=0
-END_I=0
+nPerts=0
 pPERT="1.0" #1.5
-RUN_NAME="CH4_Jacobian"
 RUN_TEMPLATE="${RES}_template"
 
-# Copy clean UT and Code directory? Only needed on first setup
-CopyDirs=true
-
 # Turn on observation operators and planeflight diagnostics?
-GOSAT=true
+GOSAT=false
 TCCON=false
 UseEmisSF=false
 UseSeparateWetlandSF=false
@@ -67,107 +77,9 @@ PLANEFLIGHT=true
 PLANEFLIGHT_FILES="\/n\/seasasfs02\/hnesser\/GC_TROPOMI_bias\/PFs\/planeflight_combined_YYYYMMDD"
 HourlyCH4=true
 
-### Number of Clusters
-start=$START_I
-stop=$END_I
-x=$start
-
 ##=======================================================================
-## Get source code and run directories
-#if "$CopyDirs"; then
-#    # Copy source code with CH4 analytical inversion updates to your space
-#    # Make sure branch with latest CH4 inversion updates is checked out
-#    cp -r /n/seasasfs02/CH4_inversion/Code.CH4_Inv .
-#    cd Code.CH4_Inv
-#    git checkout CH4_Analytical_Inversion
-#    cd ..
-#
-#    # Copy Unit Tester to create run directory to your space
-#    # Make sure branch with latest CH4 inversion updates is checked out
-#    cp -r /n/seasasfs02/CH4_inversion/UnitTester.CH4_Inv .
-#    cd UnitTester.CH4_Inv
-#    git checkout CH4_Analytical_Inversion
-#    cd ..
-#fi
-
-# HON 2020/01/05: Note: this should be written so that we could run it from within my
-# TROPOMI_inversion directory
-
-# Copy
-
-# Conduct all this work from within SCRATCH_PATH
-cd ${SCRATCH_PATH}
-
-# Copy source code with CH4 analytical inversion updates to your space
-# Make sure branch with latest CH4 inversion updates is checked out
-# HON 2020/07/15 - Add an if statement that copies the code if the
-# code directory is not specified and creates a symbolic link to the
-# existing code directory otherwise.
-if [[ -d "${CODE_PATH}/${GC_NAME}" ]]
-then
-    echo "Code directory already exists."
-    echo "Did you check that your directory is up to date?"
-    ln -s -f ${CODE_PATH}/${GC_NAME} ./Code.CH4_Inv
-else
-    echo "Cloning seasasfs02 code directory."
-    cp -r /n/seasasfs02/CH4_inversion/Code.CH4_Inv ${CODE_PATH}
-    cd ${CODE_PATH}/Code.CH4_Inv
-    git checkout CH4_Analytical_Inversion
-    cd ${SCRATCH_PATH}
-    ln -s ${CODE_PATH}/Code.CH4_Inv ./Code.CH4_Inv
-fi
-
-# Copy Unit Tester to create run directory to your space
-# Make sure branch with latest CH4 inversion updates is checked out
-# HON 2020/07/15 - Add an if statement that copies the UT if the
-# UT directory is not specified and creates a symbolic link to the
-# existing UT directory otherwise.
-if [[ -d "${CODE_PATH}/${UT_NAME}" ]]
-then
-    echo "Unit tester already exists."
-    ln -s -f ${CODE_PATH}/${UT_NAME} ./UnitTester.CH4_Inv
-else
-    echo "Cloning seasasfs02 unit tester."
-    cp -r /n/seasasfs02/CH4_inversion/UnitTester.CH4_Inv ${CODE_PATH}
-    cd ${CODE_PATH}/UnitTester.CH4_Inv
-    git checkout CH4_Analytical_Inversion
-    cd ${SCRATCH_PATH}
-    ln -s -f ${CODE_PATH}/UnitTester.CH4_Inv
-fi
-
+## Define met and grid fields for HEMCO_Config.rc
 ##=======================================================================
-## Copy run directory with template files directly from unit tester
-
-# Create run directory folder and copy bash scripts that run
-# the Jacobian construction
-mkdir -p $RUN_NAME
-cd $RUN_NAME
-mkdir -p run_dirs
-cp ${RUN_SCRIPTS}/submit_array_jobs run_dirs/
-sed -i -e "s:{RunName}:${RUN_NAME}:g" run_dirs/submit_array_jobs
-cp ${RUN_SCRIPTS}/run_array_job run_dirs/
-sed -i -e "s:{START}:${START_I}:g" -e "s:{END}:${END_I}:g" run_dirs/run_array_job
-cp ${RUN_SCRIPTS}/rundir_check.sh run_dirs/
-mkdir -p bin
-if [ "$NEST" == "T" ]; then
-  cp -rLv ${SCRATCH_PATH}/UnitTester.CH4_Inv/runs/${MET}_*_CH4_na $RUN_TEMPLATE
-else
-  cp -rLv ${SCRATCH_PATH}/UnitTester.CH4_Inv/runs/${RES}_CH4 $RUN_TEMPLATE
-fi
-
-# Set up template run directory
-echo "========================================="
-echo "=== Setting up template run directory ==="
-cd $RUN_TEMPLATE
-cp ${SCRATCH_PATH}/UnitTester.CH4_Inv/runs/shared_inputs/Makefiles/Makefile .
-cp ${SCRATCH_PATH}/UnitTester.CH4_Inv/perl/getRunInfo .
-cp ${RUN_SCRIPTS}/run.template .
-ln -s -f $RESTART_FILE .
-mkdir -p OutputDir
-cd ..
-echo "========================================="
-
-# Define met and grid fields for HEMCO_Config.rc
 if [ "$MET" == "geosfp" ]; then
   metDir="GEOS_FP"
   native="0.25x0.3125"
@@ -187,6 +99,84 @@ if [ -z "$REGION" ]; then
 else
     gridDir="${RES}_${REGION}"
 fi
+
+##=======================================================================
+## Set up Jacobian run directory space
+##=======================================================================
+mkdir -p ${JAC_PATH}/jacobian_runs
+cd ${JAC_PATH}
+
+##=======================================================================
+## Get source code and run directories
+##=======================================================================
+
+cd ${CODE_PATH}
+
+# Copy source code with CH4 analytical inversion updates to your space
+# Make sure branch with latest CH4 inversion updates is checked out
+if [[ -d "${GC_NAME}" ]]
+then
+    echo "Code directory already exists."
+    echo "Did you check that your directory is up to date?"
+    ln -s -f ${CODE_PATH}/${GC_NAME} ${JAC_PATH}/Code.CH4_Inv
+else
+    echo "Cloning seasasfs02 code directory."
+    cp -r /n/seasasfs02/CH4_inversion/Code.CH4_Inv ${CODE_PATH}
+    cd ${CODE_PATH}/Code.CH4_Inv
+    git checkout CH4_Analytical_Inversion
+    cd ${JAC_PATH}
+    ln -s ${CODE_PATH}/Code.CH4_Inv ./Code.CH4_Inv
+fi
+
+# Copy Unit Tester to create run directory to your space
+# Make sure branch with latest CH4 inversion updates is checked out
+# HON 2020/07/15 - Add an if statement that copies the UT if the
+# UT directory is not specified and creates a symbolic link to the
+# existing UT directory otherwise.
+if [[ -d "${UT_NAME}" ]]
+then
+    echo "Unit tester already exists."
+    ln -s -f ${CODE_PATH}/${UT_NAME} ./UnitTester.CH4_Inv
+else
+    echo "Cloning seasasfs02 unit tester."
+    cp -r /n/seasasfs02/CH4_inversion/UnitTester.CH4_Inv ${CODE_PATH}
+    cd ${CODE_PATH}/UnitTester.CH4_Inv
+    git checkout CH4_Analytical_Inversion
+    cd ${JAC_PATH}
+    ln -s -f ${CODE_PATH}/UnitTester.CH4_Inv
+fi
+
+##=======================================================================
+## Copy run directory with template files directly from unit tester
+
+# Create run directory folder and copy bash scripts that run
+# the Jacobian construction
+mkdir -p $RUN_NAME
+cd $RUN_NAME
+mkdir -p run_dirs
+cp ${RUN_SCRIPTS}/submit_array_jobs run_dirs/
+sed -i -e "s:{RunName}:${RUN_NAME}:g" run_dirs/submit_array_jobs
+cp ${RUN_SCRIPTS}/run_array_job run_dirs/
+sed -i -e "s:{START}:${START_I}:g" -e "s:{END}:${END_I}:g" run_dirs/run_array_job
+cp ${RUN_SCRIPTS}/rundir_check.sh run_dirs/
+mkdir -p bin
+if [ "$NEST" == "T" ]; then
+  cp -rLv ${JAC_PATH}/UnitTester.CH4_Inv/runs/${MET}_*_CH4_na $RUN_TEMPLATE
+else
+  cp -rLv ${JAC_PATH}/UnitTester.CH4_Inv/runs/${RES}_CH4 $RUN_TEMPLATE
+fi
+
+# Set up template run directory
+echo "========================================="
+echo "=== Setting up template run directory ==="
+cd $RUN_TEMPLATE
+cp ${JAC_PATH}/UnitTester.CH4_Inv/runs/shared_inputs/Makefiles/Makefile .
+cp ${JAC_PATH}/UnitTester.CH4_Inv/perl/getRunInfo .
+cp ${RUN_SCRIPTS}/run.template .
+ln -s -f $RESTART_FILE .
+mkdir -p OutputDir
+cd ..
+echo "========================================="
 
 ##=======================================================================
 ##  Create run directories
