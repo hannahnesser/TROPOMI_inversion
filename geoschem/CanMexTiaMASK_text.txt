@@ -1,8 +1,0 @@
-(((CanMexTia
-1001 MEXICO_MASK     $ROOT/MASKS/v2018-09/Mexico_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
-1010 MEX_MASK_MIRROR $ROOT/MASKS/v2018-09/Mexico_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/25
-#1018 MEX_MASK_MIRROR2 /net/seasasfs02/srv/export/seasasfs02/share_root/xlu123/methane_inputdata/HEMCO/CH4/CanMexTia/Mexico_Mask_Mirror.001x001_updated.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
-1002 CANADA_MASK     $ROOT/MASKS/v2018-09/Canada_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
-1011 CAN_MASK_MIRROR $ROOT/MASKS/v2018-09/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
-)))CanMexTia
-
