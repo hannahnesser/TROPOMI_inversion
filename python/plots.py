@@ -7,7 +7,6 @@ from scipy.sparse import diags, identity
 from scipy.stats import linregress
 # from scipy.linalg import eigh
 import pandas as pd
-from tqdm import tqdm
 import copy
 
 # clustering

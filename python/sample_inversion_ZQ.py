@@ -14,6 +14,10 @@ import pandas as pd
 import math
 import numpy as np
 
+import sys
+sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
+import inversion as inv
+
 ## -------------------------------------------------------------------------##
 ## Define save and load functions
 ## -------------------------------------------------------------------------##
