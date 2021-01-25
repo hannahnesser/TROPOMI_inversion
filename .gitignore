@@ -3,6 +3,8 @@ jacobian/*.csv
 jacobian/*.nc
 prior/wetlands/*.nc
 prior/wetlands/*.csv
+prior/canada/new/*.nc
+prior/canada/old/*.nc
 observations/*.nc
 observations/*.csv 
 plots/*.png
