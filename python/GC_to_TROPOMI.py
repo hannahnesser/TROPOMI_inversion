@@ -132,7 +132,7 @@ def get_diagnostic(diag_name, date):
     short_date = date[:8]
     #hour = int(date[-2:])
     filename = os.path.join(GC_datadir,
-                            'GEOSChem.'+diag_name+'.'+short_date+'.0000z.nc4')
+                            'GEOSChem.'+diag_name+'.'+short_date+'_0000z.nc4')
     data = xr.open_dataset(filename)
     #data = data.where(data.time.dt.hour == hour, drop=True).squeeze()
     return data
