@@ -6,9 +6,13 @@ prior/wetlands/*.csv
 prior/canada/*.nc
 prior/canada/new/*.nc
 prior/canada/old/*.nc
+prior/total_emissions/*.nc
 observations/*.nc
-observations/*.csv 
+observations/*.csv
+gc_inputs/*.nc4
 plots/*.png
 plots/*.gif
 python/.DS_Store
+prior/.DS_Store
+prior/canada/.DS_Store
 *sublime*
