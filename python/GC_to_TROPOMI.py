@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+## -------------------------------------------------------------------------##
+## Load packages and set environment defaults
+## -------------------------------------------------------------------------##
 import glob
 import numpy as np
 import xarray as xr
@@ -12,14 +16,34 @@ import copy
 #import scipy.integrate as integrate
 #from scipy.integrate import quad
 
-LON_MIN = -140
-LON_MAX = -40
-LON_DELTA = 0.625
-LAT_MIN = 10
-LAT_MAX = 70
-LAT_DELTA = 0.5
+## -------------------------------------------------------------------------##
+## Set user preferences
+## -------------------------------------------------------------------------##
+#Sat_datadir="/n/seasasfs02/hnesser/TROPOMI/downloads_201910/"
+#Sat_datadir="/n/holyscratch01/jacob_lab/mwinter/newTROPOMI/"
+Sat_datadir="/n/seasasfs02/hnesser/TROPOMI/downloads_14_14/"
+GC_datadir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/OutputDir/"
+outputdir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/ProcessedDir/"
 
-#----- define function -------
+LON_MIN = -130
+LON_MAX = -60
+LON_DELTA = 0.25
+LAT_MIN = 9.75
+LAT_MAX = 60
+LAT_DELTA = 0.3125
+BUFFER = [3, 3, 3, 3] # [N S E W]
+
+## -------------------------------------------------------------------------##
+## Remove buffer boxes
+## -------------------------------------------------------------------------##
+LAT_MAX -= LAT_DELTA*BUFFER[0]
+LAT_MIN += LAT_DELTA*BUFFER[1]
+LON_MAX -= LON_DELTA*BUFFER[2]
+LON_MIN += LON_DELTA*BUFFER[3]
+
+## -------------------------------------------------------------------------##
+## Define functions
+## -------------------------------------------------------------------------##
 def save_obj(obj, name):
     with open(name , 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -59,7 +83,8 @@ def read_tropomi(data, date, lon_min, lon_max, lon_delta,
     data = data.assign(utctime=dates)
 
     # Albedo and AOD have two columns [NIR, SWIR]. We select SWIR.
-    data = data.where(data.nwin == 1, drop=True).squeeze()
+    # Both of these are needed for the albedo filter
+    #data = data.where(data.nwin == 1, drop=True).squeeze()
 
     # Correct units from molecules/cm2 to mol/m2
     data['ch4_profile_apriori'] *= 1e4/6.02214e23
@@ -99,7 +124,7 @@ def read_tropomi(data, date, lon_min, lon_max, lon_delta,
                         'ch4_profile_apriori' : 'methane_profile_apriori'})
 
     # Transpose
-    data = data.transpose('nobs', 'nlayer', 'ilayer')
+    data = data.transpose('nobs', 'nwin', 'nlayer', 'ilayer')
 
     return data
 
@@ -295,16 +320,9 @@ def get_newmap(intmap, Sat_p, GC_p, gc_ch4_native, dryair):
 
 #     return Sat_CH4
 
-#==============================================================================
-#===========================Define functions ==================================
-#==============================================================================
-#Sat_datadir="/n/seasasfs02/hnesser/TROPOMI/downloads_201910/"
-#Sat_datadir="/n/holyscratch01/jacob_lab/mwinter/newTROPOMI/"
-Sat_datadir="/n/seasasfs02/hnesser/TROPOMI/downloads_14_14/"
-GC_datadir="/n/holyscratch01/jacob_lab/mwinter/Nested_NA/run_dirs/Hannah_NA_0000/OutputDir_2018/"
-outputdir="/net/seasasfs02/srv/export/seasasfs02/share_root/mwinter/TROPOMI_processed/data_2018/"
-biasdir="/net/seasasfs02/srv/export/seasasfs02/share_root/mwinter/TROPOMI_processed/bias/"
-#Sensi_datadir="/n/holyscratch01/jacob_lab/zhenqu/aggregate/data/"
+## -------------------------------------------------------------------------##
+## TROPOMI operator
+## -------------------------------------------------------------------------##
 
 # #==== read lat_ratio ===
 # df=pd.read_csv("./lat_ratio.csv",index_col=0)
@@ -388,7 +406,7 @@ for date, filenames in Sat_files.items():
 
     # create an empty matrix to store TROPOMI CH4, GC CH4,
     # lon, lat, II, and JJ (GC indices)
-    temp_obs_GC=np.zeros([NN, 10],dtype=np.float32)
+    temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
 
     #================================
     #--- now compute sensitivity ---
@@ -459,9 +477,10 @@ for date, filenames in Sat_files.items():
     temp_obs_GC[:, 4] = iGC
     temp_obs_GC[:, 5] = jGC
     temp_obs_GC[:, 6] = TROPOMI['precision']
-    temp_obs_GC[:, 7] = TROPOMI['albedo']
-    temp_obs_GC[:, 8] = TROPOMI['aerosol_optical_depth']
-    temp_obs_GC[:, 9] = GC_COL
+    temp_obs_GC[:, 7] = TROPOMI['albedo'][:,1]
+    temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
+    temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
+    temp_obs_GC[:, 10] = GC_COL
 
         # Total error (unclear why not abs) in each grid cell
         #b[jGC, iGC] += GC_base_posteri - TROPOMI['methane'][iSat,jSat]
