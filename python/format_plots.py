@@ -101,7 +101,6 @@ def make_axes(rows=1, cols=1, aspect=None,
               **fig_kwargs):
     aspect = get_aspect(rows, cols, aspect, maps, lats, lons)
     figsize = get_figsize(aspect, rows, cols, **fig_kwargs)
-    print(figsize)
     kw = {}
     if maps:
         kw['subplot_kw'] = {'projection' : ccrs.PlateCarree()}
@@ -112,7 +111,7 @@ def make_axes(rows=1, cols=1, aspect=None,
     # plt.subplots_adjust(right=1)
     return fig, ax
 
-def add_cax(fig, ax):
+def add_cax(fig, ax, cbar_pad_inches=0.25):
     # should be updated to infer cbar width and cbar_pad_inches
     try:
         axis = ax[-1, -1]
@@ -126,7 +125,6 @@ def add_cax(fig, ax):
         height = ax.get_position().height
 
     # x0
-    cbar_pad_inches = 0.25
     fig_width = fig.get_size_inches()[0]
     x0_init = axis.get_position().x1
     x0 = (fig_width*x0_init + cbar_pad_inches)/fig_width
