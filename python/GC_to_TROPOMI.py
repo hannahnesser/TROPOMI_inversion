@@ -76,6 +76,10 @@ def process_tropomi(data, date, lon_min, lon_max, lon_delta,
                        & (data['time'][:, 1] == int(date[4:6]))
                        & (data['time'][:, 2] == int(date[6:]))), drop=True)
 
+    # Stop if the length of the data is 0
+    if len(data.nobs) == 0:
+        return
+
     # Do other processing
     # Add date variable
     dates = pd.DataFrame(data['time'].values[:, :-1],
@@ -379,7 +383,7 @@ print('Number of dates: ', len(Sat_files))
 
 # Iterate throught the Sat_files we created
 for date, filenames in Sat_files.items():
-    print('========================')
+    print('=========== %s ===========' % date)
     TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
                                 combine='nested')
     process = lambda d: process_tropomi(d, date,
@@ -392,14 +396,15 @@ for date, filenames in Sat_files.items():
     # if os.path.isfile(outputdir+date+'_GCtoTROPOMI.pkl'):
     #     continue
 
+    if TROPOMI is None:
+        print('0 Observations. Skipping this day.')
+        continue
+
     # Get observation dimension (number of good observations in that single
     # observation file)
     NN = TROPOMI.nobs.shape[0]
-    print('========================')
-    print('========================')
     print('Processing %d Observations' % NN)
-    if NN == 0:
-        continue
+    print('================================')
 
     # state vector dimension (we will need to change this)
     # MM=1009
