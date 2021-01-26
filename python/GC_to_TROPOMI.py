@@ -386,18 +386,11 @@ for date, filenames in Sat_files.items():
     print('=========== %s ===========' % date)
     TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
                                 combine='nested')
-    process = lambda d: process_tropomi(d, date,
-                                        LON_MIN, LON_MAX, LON_DELTA,
-                                        LAT_MIN, LAT_MAX, LAT_DELTA)
-    TROPOMI = process(TROPOMI)
-
-    # If already processed, skip the rest of the processing
-    # within this loop
-    # if os.path.isfile(outputdir+date+'_GCtoTROPOMI.pkl'):
-    #     continue
-
+    TROPOMI = process_tropomi(TROPOMI, date,
+                              LON_MIN, LON_MAX, LON_DELTA,
+                              LAT_MIN, LAT_MAX, LAT_DELTA)
     if TROPOMI is None:
-        print('0 Observations. Skipping this day.')
+        print('No observations remain.')
         continue
 
     # Get observation dimension (number of good observations in that single
