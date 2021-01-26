@@ -33,6 +33,9 @@ LAT_MAX = 60
 LAT_DELTA = 0.3125
 BUFFER = [3, 3, 3, 3] # [N S E W]
 
+YEAR = 2018
+MONTH = 5
+
 ## -------------------------------------------------------------------------##
 ## Remove buffer boxes
 ## -------------------------------------------------------------------------##
@@ -52,7 +55,7 @@ def load_obj(name):
     with open( name, 'rb') as f:
         return pickle.load(f)
 
-def read_tropomi(data, date, lon_min, lon_max, lon_delta,
+def process_tropomi(data, date, lon_min, lon_max, lon_delta,
                  lat_min, lat_max, lat_delta):
     # Filter on qa_value
     data = data.where(data['qa_value'] > 0.5, drop=True)
@@ -348,9 +351,9 @@ for index in range(len(allfiles)):
     strdate = re.split('_+|T', shortname)
     start_date = strdate[4]
     end_date = strdate[6]
-    year = (int(start_date[:4]) == 2018)
-    month = ((int(start_date[4:6]) == 5)
-              or (int(end_date[4:6]) == 5))
+    year = (int(start_date[:4]) == YEAR)
+    month = ((int(start_date[4:6]) == MONTH)
+              or (int(end_date[4:6]) == MONTH))
 
     # Skip observations not in range
     if not (year and month):
@@ -371,18 +374,18 @@ for index in range(len(allfiles)):
 print('Number of dates: ', len(Sat_files))
 
 # Create an array that corresponds to the state vector
-b = np.zeros((46,72))
-bcount = np.zeros((46,72))
+# b = np.zeros((46,72))
+# bcount = np.zeros((46,72))
 
 # Iterate throught the Sat_files we created
 for date, filenames in Sat_files.items():
     print('========================')
-    process = lambda d: read_tropomi(d, date,
-                                     LON_MIN, LON_MAX, LON_DELTA,
-                                     LAT_MIN, LAT_MAX, LAT_DELTA)
     TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
-                                combine='nested',
-                                preprocess=process)
+                                combine='nested')
+    process = lambda d: process_tropomi(d, date,
+                                        LON_MIN, LON_MAX, LON_DELTA,
+                                        LAT_MIN, LAT_MAX, LAT_DELTA)
+    TROPOMI = process(TROPOMI)
 
     # If already processed, skip the rest of the processing
     # within this loop

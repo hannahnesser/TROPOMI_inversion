@@ -11,7 +11,6 @@ repetition.
 ## -------------------------------------------------------------------------##
 ## Load packages and set environment defaults
 ## -------------------------------------------------------------------------##
-
 from os.path import join
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
@@ -25,8 +24,6 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-os.environ['QT_QPA_PLATFORM'] = 'offscreen'
-rcParams['text.usetex'] = False
 
 import sys
 sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
@@ -34,13 +31,16 @@ import inversion as inv
 import plots as p
 import format_plots as fp
 
+# os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+rcParams['text.usetex'] = False
+
 ## -------------------------------------------------------------------------##
 ## User preferences
 ## -------------------------------------------------------------------------##
 CalculateInversionQuantities = False
 CalculateEigenvectors = False
 ScaleEigenvectors = False
-ScaleFactor = 0.5*1e-8
+ScaleFactor = 5e-8
 CompareResults = True
 
 data_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ'
@@ -62,7 +62,8 @@ def load_obj(name):
 ## -------------------------------------------------------------------------##
 if CalculateInversionQuantities:
     rrsd = load_obj(join(data_dir, 'rrsd.pkl'))
-    gc = pd.read_csv(join(data_dir, 'gc_output'), delim_whitespace=True, header=0,
+    gc = pd.read_csv(join(data_dir, 'gc_output'),
+                     delim_whitespace=True, header=0,
                      usecols=['I', 'J', 'GOSAT', 'model', 'S_OBS'])
     k = load_obj(join(data_dir, 'kA.pkl')).T
 
@@ -227,14 +228,19 @@ if CompareResults:
     ## Calculate Jacobian column from K and eigenvectors
     ## ---------------------------------------------------------------------##
     k_file = 'kA.pkl'
-    prolongation = 'gamma_star.csv'
+    prolongation_file = 'gamma_star.csv'
 
     # Load Jacobian and eigenvectors
     k_true = load_obj(join(data_dir, k_file)).astype('float32').T
-    evec = pd.read_csv(join(data_dir, evec_file), header=None, usecols=[1])
+    evec = pd.read_csv(join(data_dir, prolongation_file),
+                       header=None, usecols=[0])
 
     # Multiply the two
     kw_true = np.dot(k_true, evec.values)
+
+    # Clear up memory
+    del(k_true)
+    del(evec)
 
     ## ---------------------------------------------------------------------##
     ## Calculate Jacobian column from forward model
@@ -246,6 +252,7 @@ if CompareResults:
     run_dir = '/n/holyscratch01/jacob_lab/hnesser/eigenvector_perturbation_test/'
     test_prior_dir = join(run_dir, 'test_prior')
     test_pert_dir = join(run_dir, 'test_summed_scaled')
+    ScaleFactor = 0.5*1e-8
 
     prior = pd.read_csv(join(test_prior_dir, 'sat_obs.gosat.00.m'),
                         delim_whitespace=True, header=0, usecols=['model'],
@@ -269,8 +276,8 @@ if CompareResults:
 
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.scatter(kw_true, kw_gc.values)
-    ax.set_xlabel(r'Linear Algebra')
-    ax.set_ylabel(r'Forward Model')
+    ax.set_xlabel('Linear Algebra')
+    ax.set_ylabel('Forward Model')
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     plt.show()
