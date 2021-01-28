@@ -22,18 +22,19 @@ sat_data_dir = sys.argv[1]
 GC_data_dir = sys.argv[2]
 output_dir = sys.argv[3]
 
-LON_MIN = sys.argv[4]
-LON_MAX = sys.argv[5]
-LON_DELTA = sys.argv[6]
+LON_MIN = float(sys.argv[4])
+LON_MAX = float(sys.argv[5])
+LON_DELTA = float(sys.argv[6])
 
-LAT_MIN = sys.argv[7]
-LAT_MAX = sys.argv[8]
-LAT_DELTA = sys.argv[9]
+LAT_MIN = float(sys.argv[7])
+LAT_MAX = float(sys.argv[8])
+LAT_DELTA = float(sys.argv[9])
 
 BUFFER = sys.argv[10:14]
+BUFFER = [int(b) for b in BUFFER]
 
-YEAR = sys.argv[14]
-MONTH = sys.argv[15]
+YEAR = int(sys.argv[14])
+MONTH = int(sys.argv[15])
 
 ## -------------------------------------------------------------------------##
 ## Remove buffer boxes
