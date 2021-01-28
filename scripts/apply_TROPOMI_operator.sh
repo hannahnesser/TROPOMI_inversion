@@ -40,4 +40,6 @@ echo "======================================================================="
 ## -------------------------------------------------------------------------##
 ## Run the script
 ## -------------------------------------------------------------------------##
-python ../python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
+python_dir=$(dirname `pwd`)
+cd $GC_DATA_DIR
+python ${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
