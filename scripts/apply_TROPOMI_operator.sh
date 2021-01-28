@@ -42,4 +42,5 @@ echo "======================================================================="
 ## -------------------------------------------------------------------------##
 python_dir=$(dirname `pwd`)
 cd $GC_DATA_DIR
+mkdir -p $OUTPUT_DIR
 python ${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
