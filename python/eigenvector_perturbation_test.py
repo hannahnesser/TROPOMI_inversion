@@ -40,7 +40,8 @@ rcParams['text.usetex'] = False
 CalculateInversionQuantities = False
 CalculateEigenvectors = False
 ScaleEigenvectors = False
-ScaleFactor = 5e-8
+# ScaleFactor = 5e-8
+# ScaleFactor = 100
 CompareResults = True
 
 data_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ'
@@ -209,16 +210,20 @@ if ScaleEigenvectors:
     for i in range(10):
         pert = xr.open_dataset(join(data_dir, 'evec_pert_%04d.nc' % i),
                                decode_times=False)
-        pert['evec_pert'] *= ScaleFactor
-        pert.to_netcdf(join(data_dir, 'evec_pert_%04d_scale.nc' % i),
-                       encoding={'evec_pert' : {'_FillValue' : None,
-                                                'dtype' : 'float32'},
-                                 'time' : {'_FillValue' : None,
-                                           'dtype' : 'float32'},
-                                 'lat' : {'_FillValue' : None,
-                                          'dtype' : 'float32'},
-                                 'lon' : {'_FillValue' : None,
-                                          'dtype' : 'float32'}})
+        for j in range(1, 4):
+            ScaleFactor = 10**j
+            pert['evec_pert'] *= ScaleFactor
+            pert.attrs['Scale Factor'] = ScaleFactor
+            pert.to_netcdf(join(data_dir,
+                                'evec_pert_%04d_scale_%d.nc' % (i, ScaleFactor)),
+                           encoding={'evec_pert' : {'_FillValue' : None,
+                                                    'dtype' : 'float32'},
+                                     'time' : {'_FillValue' : None,
+                                               'dtype' : 'float32'},
+                                    'lat' : {'_FillValue' : None,
+                                             'dtype' : 'float32'},
+                                    'lon' : {'_FillValue' : None,
+                                             'dtype' : 'float32'}})
 
 ## -------------------------------------------------------------------------##
 ## Check that eigenvector perturbations worked
@@ -252,7 +257,7 @@ if CompareResults:
     run_dir = '/n/holyscratch01/jacob_lab/hnesser/eigenvector_perturbation_test/'
     test_prior_dir = join(run_dir, 'test_prior')
     test_pert_dir = join(run_dir, 'test_summed_scaled')
-    ScaleFactor = 0.5*1e-8
+    ScaleFactor = 5e-8
 
     prior = pd.read_csv(join(test_prior_dir, 'sat_obs.gosat.00.m'),
                         delim_whitespace=True, header=0, usecols=['model'],

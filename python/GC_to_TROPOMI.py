@@ -10,31 +10,30 @@ import xarray as xr
 import re
 import pickle
 import os
+import sys
 import pandas as pd
 import datetime
 import copy
-#import scipy.integrate as integrate
-#from scipy.integrate import quad
 
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
-#Sat_datadir="/n/seasasfs02/hnesser/TROPOMI/downloads_201910/"
-#Sat_datadir="/n/holyscratch01/jacob_lab/mwinter/newTROPOMI/"
-Sat_datadir="/n/seasasfs02/hnesser/TROPOMI/downloads_14_14/"
-GC_datadir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/OutputDir/"
-outputdir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/ProcessedDir/"
+sat_data_dir = sys.argv[1]
+GC_data_dir = sys.argv[2]
+output_dir = sys.argv[3]
 
-LON_MIN = -130
-LON_MAX = -60
-LON_DELTA = 0.25
-LAT_MIN = 9.75
-LAT_MAX = 60
-LAT_DELTA = 0.3125
-BUFFER = [3, 3, 3, 3] # [N S E W]
+LON_MIN = sys.argv[4]
+LON_MAX = sys.argv[5]
+LON_DELTA = sys.argv[6]
 
-YEAR = 2018
-MONTH = 5
+LAT_MIN = sys.argv[7]
+LAT_MAX = sys.argv[8]
+LAT_DELTA = sys.argv[9]
+
+BUFFER = sys.argv[10:14]
+
+YEAR = sys.argv[14]
+MONTH = sys.argv[15]
 
 ## -------------------------------------------------------------------------##
 ## Remove buffer boxes
@@ -137,11 +136,9 @@ def process_tropomi(data, date, lon_min, lon_max, lon_delta,
 
 def get_diagnostic(diag_name, date):
     short_date = date[:8]
-    #hour = int(date[-2:])
-    filename = os.path.join(GC_datadir,
+    filename = os.path.join(GC_data_dir,
                             'GEOSChem.'+diag_name+'.'+short_date+'_0000z.nc4')
     data = xr.open_dataset(filename)
-    #data = data.where(data.time.dt.hour == hour, drop=True).squeeze()
     return data
 
 def read_GC(date):
@@ -180,6 +177,8 @@ def read_GC(date):
 
 # quzhen 2020/2/13
 def get_intmap(Sat_p, GC_p):
+    '''I think this is equivalent to the cal_weights function, at least
+    a little bit.'''
     nobs = Sat_p.shape[0]
     ngc = GC_p.shape[1] - 1
     ntrop = Sat_p.shape[1]
@@ -286,215 +285,149 @@ def get_newmap(intmap, Sat_p, GC_p, gc_ch4_native, dryair):
 
     return met
 
-# def newmap2(intmap,lgos, GC_p, Sat_p,gc_sens,dryair):
-#     gc_ch4 = np.zeros((lgos-1,1009))
-#     count = 0e0
-#     for ll in range(lgos-1):
-#       temp_gc = 0e0
-#       temp_dry = 0e0
-#       for l in range(len(GC_p)-1):
-#         temp_gc += abs(intmap[l,ll]) * gc_sens[l,:] * dryair[l]
-#         temp_dry += abs(intmap[l,ll]) * dryair[l]
-#         count += abs(intmap[l,ll]) * dryair[l]
-#       gc_ch4[ll,:] = temp_gc / temp_dry
-#     met={}
-#     met['Sens']=gc_ch4
+def apply_avker(avker, prior, dryair, sat_ch4, gc_weight):
+    rat = prior / dryair * 1e9
+    temp = (gc_weight * (rat + avker * (sat_ch4 - rat))).sum(axis=1)
+    return temp
 
-#     return met
+def nearest_loc(GC, TROPOMI):
+    # Find the grid box and time indices corresponding to TROPOMI obs
+    # i index
+    iGC = np.abs(GC.lon.values.reshape((-1, 1))
+                 - TROPOMI['longitude'].values.reshape((1, -1)))
+    iGC = iGC.argmin(axis=0)
 
-# def remap2(Sensi, data_type, Com_p, location, first_2):
-#     MM=Sensi.shape[1]
-#     conc=np.zeros((len(Com_p)-1,MM))
-#     conc.fill(np.nan)
-#     k=0
-#     for i in range(first_2,len(Com_p)-1):
-#         conc[i,:]=Sensi[k,:]
-#         if data_type[i+1]==2:
-#             k=k+1
-#     if first_2>0:
-#         conc[:first_2,:]=conc[first_2,:]
+    # j index
+    jGC = np.abs(GC.lat.values.reshape((-1, 1))
+                 - TROPOMI['latitude'].values.reshape((1, -1)))
+    jGC = jGC.argmin(axis=0)
 
-#     Sat_CH4=np.zeros((12,MM));Sat_CH4.fill(np.nan)
+    # Time index
+    tGC = np.where(TROPOMI['utctime'].dt.hour == GC.time.dt.hour)[1]
 
-#     delta_p=Com_p[:-1]-Com_p[1:]
-#     delta_ps=np.transpose(np.tile(delta_p,(MM,1)))
-#     for i in range(len(location)-1):
-#         start=location[i]
-#         end=location[i+1]
-#         fenzi=np.sum(conc[start:end,:]*delta_ps[start:end,:],0)
-#         fenmu=np.sum(delta_p[start:end])
-#         Sat_CH4[i,:]=fenzi/fenmu
-
-#     return Sat_CH4
+    return iGC, jGC, tGC
 
 ## -------------------------------------------------------------------------##
 ## TROPOMI operator
 ## -------------------------------------------------------------------------##
+if __name__ == '__main__':
 
-# #==== read lat_ratio ===
-# df=pd.read_csv("./lat_ratio.csv",index_col=0)
-# lat_mid=df.index
-# lat_ratio=df.values
+    ## -------------------------------------------------------------------------##
+    ## List all satellite files for the year and date defined
+    ## -------------------------------------------------------------------------##
+    # List all raw netcdf TROPOMI files
+    allfiles=glob.glob(sat_data_dir+'*.nc')
+    allfiles.sort()
 
-#==== read Satellite ===
+    # Create empty list
+    Sat_files = {}
 
-# List all raw netcdf TROPOMI files
-allfiles=glob.glob(Sat_datadir+'*.nc')
-allfiles.sort()
+    # Iterate through the raw TROPOMI data
+    for index in range(len(allfiles)):
+        filename = allfiles[index]
 
-# Create empty list
-Sat_files = {}
-#Sat_dates = []
+        # Get the date (YYYY, MM, and DD) of the raw TROPOMI file
+        shortname = re.split('\/|\.', filename)[-2]
+        strdate = re.split('_+|T', shortname)
+        start_date = strdate[4]
+        end_date = strdate[6]
+        year = (int(start_date[:4]) == YEAR)
+        month = ((int(start_date[4:6]) == MONTH)
+                  or (int(end_date[4:6]) == MONTH))
 
-# Iterate through the raw TROPOMI data
-for index in range(len(allfiles)):
-    filename = allfiles[index]
+        # Skip observations not in range
+        if not (year and month):
+            continue
 
-    # Get the date (YYYY, MM, and DD) of the raw TROPOMI file
-    shortname = re.split('\/|\.', filename)[-2]
-    strdate = re.split('_+|T', shortname)
-    start_date = strdate[4]
-    end_date = strdate[6]
-    year = (int(start_date[:4]) == YEAR)
-    month = ((int(start_date[4:6]) == MONTH)
-              or (int(end_date[4:6]) == MONTH))
-
-    # Skip observations not in range
-    if not (year and month):
-        continue
-
-    # Add the file to the list of Sat_files
-    if start_date in Sat_files.keys():
-        Sat_files[start_date].append(filename)
-    else:
-        Sat_files[start_date] = [filename]
-
-    if start_date != end_date:
-        if end_date in Sat_files.keys():
-            Sat_files[end_date].append(filename)
+        # Add the file to the list of Sat_files
+        if start_date in Sat_files.keys():
+            Sat_files[start_date].append(filename)
         else:
-            Sat_files[end_date] = [filename]
+            Sat_files[start_date] = [filename]
 
-print('Number of dates: ', len(Sat_files))
+        if start_date != end_date:
+            if end_date in Sat_files.keys():
+                Sat_files[end_date].append(filename)
+            else:
+                Sat_files[end_date] = [filename]
 
-# Create an array that corresponds to the state vector
-# b = np.zeros((46,72))
-# bcount = np.zeros((46,72))
+    print('Number of dates: ', len(Sat_files))
 
-# Iterate throught the Sat_files we created
-for date, filenames in Sat_files.items():
-    print('=========== %s ===========' % date)
-    TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
-                                combine='nested')
-    TROPOMI = process_tropomi(TROPOMI, date,
-                              LON_MIN, LON_MAX, LON_DELTA,
-                              LAT_MIN, LAT_MAX, LAT_DELTA)
-    if TROPOMI is None:
-        print('No observations remain.')
-        continue
+    ## -------------------------------------------------------------------------##
+    ## Iterate throught the Sat_files we created
+    ## -------------------------------------------------------------------------##
+    for date, filenames in Sat_files.items():
+        print('=========== %s ===========' % date)
+        TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
+                                    combine='nested')
+        TROPOMI = process_tropomi(TROPOMI, date,
+                                  LON_MIN, LON_MAX, LON_DELTA,
+                                  LAT_MIN, LAT_MAX, LAT_DELTA)
+        if TROPOMI is None:
+            print('No observations remain.')
+            print('================================')
+            continue
 
-    # Get observation dimension (number of good observations in that single
-    # observation file)
-    NN = TROPOMI.nobs.shape[0]
-    print('Processing %d Observations' % NN)
-    print('================================')
+        # Get observation dimension (number of good observations in that single
+        # observation file)
+        NN = TROPOMI.nobs.shape[0]
+        print('Processing %d Observations' % NN)
+        print('================================')
 
-    # state vector dimension (we will need to change this)
-    # MM=1009
+        # create an empty matrix to store TROPOMI CH4, GC CH4,
+        # lon, lat, II, and JJ (GC indices)
+        temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
 
-    # create an empty matrix for the Jacobian
-    # temp_KK=np.zeros([NN,MM],dtype=np.float32)#Store the K
+        #================================
+        #--- now compute sensitivity ---
+        #================================
 
-    # create an empty matrix to store TROPOMI CH4, GC CH4,
-    # lon, lat, II, and JJ (GC indices)
-    temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
+        # Then, read in the GC data for these dates. This works by
+        # reading the lon, lat, pressure edge, xch4, xch4_adjusted
+        # (which I believe is the stratospheric corrected data), TROPP
+        # (which is the planetary boundary layer info), and dry air.
+        GC = read_GC(date)
 
-    #================================
-    #--- now compute sensitivity ---
-    #================================
+        # Find the grid box and time indices corresponding to TROPOMI obs
+        iGC, jGC, tGC = nearest_loc(GC, TROPOMI)
 
-    # Then, read in the GC data for these dates. This works by
-    # reading the lon, lat, pressure edge, xch4, xch4_adjusted
-    # (which I believe is the stratospheric corrected data), TROPP
-    # (which is the planetary boundary layer info), and dry air.
-    GC = read_GC(date)
+        # Then select GC accordingly
+        GC_P = GC['PEDGE'].values[tGC, iGC, jGC, :]
+        GC_DA = GC['DRYAIR'].values[tGC, iGC, jGC, :]
+        GC_CH4 = GC['CH4'].values[tGC, iGC, jGC, :]
+        GC_COL = GC['GCCOL'].values[tGC, iGC, jGC]
 
-    # Find the grid box and time indices corresponding to TROPOMI obs
-    iGC = np.abs(GC.lon.values.reshape((-1, 1))
-                 - TROPOMI['longitude'].values.reshape((1, -1)))
-    iGC = iGC.argmin(axis=0)
-    jGC = np.abs(GC.lat.values.reshape((-1, 1))
-                 - TROPOMI['latitude'].values.reshape((1, -1)))
-    jGC = jGC.argmin(axis=0)
-    tGC = np.where(TROPOMI['utctime'].dt.hour == GC.time.dt.hour)[1]
+        # Create mapping between GC and TROPOMI pressure levels
+        intmap = get_intmap(TROPOMI['pressures'].values, GC_P)
+        newmap = get_newmap(intmap, TROPOMI['pressures'].values, GC_P,
+                            GC_CH4, GC_DA)
 
-    # # Then select GC accordingly
-    GC_p = GC['PEDGE'].values[tGC, iGC, jGC, :]
-    dryair = GC['DRYAIR'].values[tGC, iGC, jGC, :]
-    GC_CH4 = GC['CH4'].values[tGC, iGC, jGC, :]
-    GC_COL = GC['GCCOL'].values[tGC, iGC, jGC]
-
-    # Create mapping between GC and TROPOMI pressure levels
-    intmap = get_intmap(TROPOMI['pressures'].values, GC_p)
-    newmap = get_newmap(intmap, TROPOMI['pressures'].values, GC_p,
-                        GC_CH4, dryair)
-    Sat_CH4 = newmap['GC_CH4']
-    GC_WEIGHT = newmap['GC_WEIGHT']
-
-    # Finally, apply the averaging kernel
-    def apply_avker(avker, prior, dryair, sat_ch4, gc_weight):
-        rat = prior / dryair * 1e9
-        temp = (gc_weight * (rat + avker * (sat_ch4 - rat))).sum(axis=1)
-        return temp
-
-    GC_base_posteri = apply_avker(TROPOMI['column_AK'].values,
+        # Finally, apply the averaging kernel
+        GC_base_posteri = apply_avker(TROPOMI['column_AK'].values,
+                                      TROPOMI['methane_profile_apriori'].values,
+                                      TROPOMI['dry_air_subcolumns'].values,
+                                      newmap['GC_CH4'], newmap['GC_WEIGHT'])
+        GC_base_pri = apply_avker(np.ones(TROPOMI['column_AK'].shape),
                                   TROPOMI['methane_profile_apriori'].values,
                                   TROPOMI['dry_air_subcolumns'].values,
-                                  Sat_CH4, GC_WEIGHT)
-    GC_base_pri = apply_avker(np.ones(TROPOMI['column_AK'].shape),
-                              TROPOMI['methane_profile_apriori'].values,
-                              TROPOMI['dry_air_subcolumns'].values,
-                              Sat_CH4, GC_WEIGHT)
+                                  newmap['GC_CH4'], newmap['GC_WEIGHT'])
 
-        #Sensi=GC['Sensi'][iGC,jGC,:,:]
-        #temp = newmap2(intmap, len(Sat_p), GC_p, Sat_p, Sensi, dryair)
-        #Sens = temp['Sens']
-        #print(Sens.shape)
-        #temp_gcsens = np.zeros(1009)
-        #for ll in range(12):
-        #    temp_gcsens[:] += GC_WEIGHT[ll]*AK[ll]*Sens[ll,:]
+        # Save out values
+        temp_obs_GC[:, 0] = TROPOMI['methane']
+        temp_obs_GC[:, 1] = GC_base_posteri
+        temp_obs_GC[:, 2] = TROPOMI['longitude']
+        temp_obs_GC[:, 3] = TROPOMI['latitude']
+        temp_obs_GC[:, 4] = iGC
+        temp_obs_GC[:, 5] = jGC
+        temp_obs_GC[:, 6] = TROPOMI['precision']
+        temp_obs_GC[:, 7] = TROPOMI['albedo'][:,1]
+        temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
+        temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
+        temp_obs_GC[:, 10] = GC_COL
 
-            # perturbation = temp_gcsens-temp_gc
-            # pert[iGC,jGC,isens] += (temp_gcsens-temp_gc)/0.5 # for grid aggregate
-        #pert[iNN,:] = temp_gcsens/0.5 # for observation individual
+        result={}
+        result['obs_GC'] = temp_obs_GC
 
-        #print('GC_pos', GC_base_posteri)
-        #print('GC_pri', GC_base_pri)
+        save_obj(result, output_dir + date + '_GCtoTROPOMI.pkl')
 
-    temp_obs_GC[:, 0] = TROPOMI['methane']
-    temp_obs_GC[:, 1] = GC_base_posteri
-    temp_obs_GC[:, 2] = TROPOMI['longitude']
-    temp_obs_GC[:, 3] = TROPOMI['latitude']
-    temp_obs_GC[:, 4] = iGC
-    temp_obs_GC[:, 5] = jGC
-    temp_obs_GC[:, 6] = TROPOMI['precision']
-    temp_obs_GC[:, 7] = TROPOMI['albedo'][:,1]
-    temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
-    temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
-    temp_obs_GC[:, 10] = GC_COL
-
-        # Total error (unclear why not abs) in each grid cell
-        #b[jGC, iGC] += GC_base_posteri - TROPOMI['methane'][iSat,jSat]
-
-        # Number of observations in each grid cell
-        #bcount[jGC, iGC] += 1
-
-    result={}
-    result['obs_GC'] = temp_obs_GC
-    # result['KK']=pert
-
-
-    save_obj(result, outputdir + date + '_GCtoTROPOMI.pkl')
-#b[bcount>0] = b[bcount>0]/bcount[bcount>0]
-#save_obj(b,biasdir+'1.pkl')
-print('CODE FINISHED')
+    print('CODE FINISHED')
