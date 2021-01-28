@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # SBATCH -J TROPOMI_operator
-# SBATCH -c 2
+# SBATCH -c 6
 # SBATCH -N 1
 # SBATCH -p huce_intel
-# SBATCH --mem 7000
+# SBATCH --mem 20000
 # SBATCH -t 0-02:00
 
 ## -------------------------------------------------------------------------##
