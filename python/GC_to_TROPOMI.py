@@ -347,7 +347,6 @@ if __name__ == '__main__':
     # List all raw netcdf TROPOMI files
     allfiles=glob.glob(sat_data_dir+'*.nc')
     allfiles.sort()
-    print(allfiles)
 
     # Create empty list
     Sat_files = {}
