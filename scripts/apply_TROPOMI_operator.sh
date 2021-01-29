@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # SBATCH -J TROPOMI_operator
-# SBATCH -c 6
+# SBATCH -c 1
 # SBATCH -N 1
 # SBATCH -p huce_intel
-# SBATCH --mem 20000
-# SBATCH -t 0-02:00
+# SBATCH --mem 2000
+# SBATCH -t 0-00:10
 # SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
@@ -42,9 +42,9 @@ echo "======================================================================="
 ## Load the environment
 ## -------------------------------------------------------------------------##
 echo "Activating python environment"
-# eval "$(conda shell.bash hook)"
+
 module load Anaconda3/5.0.1-fasrc01
-source activate TROPOMI_inversion
+source activate ~/python/miniconda/envs/TROPOMI_inversion
 
 ## -------------------------------------------------------------------------##
 ## Run the script
@@ -54,4 +54,4 @@ cd $GC_DATA_DIR
 mkdir -p $OUTPUT_DIR
 
 echo "Initiating script"
-python ${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
+# python ${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
