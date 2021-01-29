@@ -2,4 +2,4 @@
 
 # Edit apply_TROPOMI_operator.sh to change settings.
 
-sbatch --array=2 apply_TROPOMI_operator.sh
+sbatch --array=3-4 apply_TROPOMI_operator.sh
