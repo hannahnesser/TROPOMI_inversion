@@ -44,7 +44,7 @@ echo "======================================================================="
 echo "Activating python environment"
 # eval "$(conda shell.bash hook)"
 module load Anaconda3/5.0.1-fasrc01
-conda activate TROPOMI_inversion
+source activate TROPOMI_inversion
 
 ## -------------------------------------------------------------------------##
 ## Run the script
