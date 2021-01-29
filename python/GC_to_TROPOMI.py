@@ -315,7 +315,7 @@ if __name__ == '__main__':
     ## Remove buffer boxes
     ## ---------------------------------------------------------------------##
     # Decrease threads
-    os.environ['OMP_NUM_THREADS'] = 2
+    os.environ['OMP_NUM_THREADS'] = '2'
 
     ## ---------------------------------------------------------------------##
     ## Read in user preferences
