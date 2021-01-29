@@ -5,7 +5,7 @@
 # SBATCH -N 1
 # SBATCH -p huce_intel
 # SBATCH --mem 10000
-# SBATCH -t 0-00:10
+# SBATCH -t 0-00:40
 # SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
@@ -23,7 +23,8 @@ BUFFER="3 3 3 3"
 
 # time range
 YEAR="2019"
-MONTH="${SLURM_ARRAY_TASK_ID}"
+MONTH="3"
+#"${SLURM_ARRAY_TASK_ID}"
 
 ## -------------------------------------------------------------------------##
 ## Print out user preferences
@@ -46,6 +47,8 @@ echo "Activating python environment"
 module load Anaconda3/5.0.1-fasrc01
 source activate ~/python/miniconda/envs/TROPOMI_inversion
 
+echo "Activated ${CONDA_PREFIX}"
+
 ## -------------------------------------------------------------------------##
 ## Run the script
 ## -------------------------------------------------------------------------##
@@ -54,4 +57,4 @@ cd $GC_DATA_DIR
 mkdir -p $OUTPUT_DIR
 
 echo "Initiating script"
-python ${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
+${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
