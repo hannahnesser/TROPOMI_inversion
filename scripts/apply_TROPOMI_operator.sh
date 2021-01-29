@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # SBATCH -J TROPOMI_operator
-# SBATCH -c 1
+# SBATCH -c 3
 # SBATCH -N 1
 # SBATCH -p huce_intel
-# SBATCH --mem 2000
+# SBATCH --mem 10000
 # SBATCH -t 0-00:10
 # SBATCH --mail-type=END
 
@@ -54,4 +54,4 @@ cd $GC_DATA_DIR
 mkdir -p $OUTPUT_DIR
 
 echo "Initiating script"
-# python ${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
+python ${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
