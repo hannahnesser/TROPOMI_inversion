@@ -338,6 +338,8 @@ if __name__ == '__main__':
     YEAR = int(sys.argv[14])
     MONTH = int(sys.argv[15])
 
+    print('Applying TROPOMI operator for %d-%02d' % (YEAR, MONTH))
+
     ## ---------------------------------------------------------------------##
     ## Remove buffer boxes
     ## ---------------------------------------------------------------------##
