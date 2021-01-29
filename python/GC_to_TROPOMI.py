@@ -397,6 +397,7 @@ if __name__ == '__main__':
                                               LAT_MIN, LAT_MAX, LAT_DELTA)
         TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
                                     combine='nested',
+                                    chunks=10000,
                                     preprocess=preprocess)
         TROPOMI = process_tropomi(TROPOMI, date)
 
