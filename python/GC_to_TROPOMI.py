@@ -452,10 +452,10 @@ if __name__ == '__main__':
                                       TROPOMI['methane_profile_apriori'].values,
                                       TROPOMI['dry_air_subcolumns'].values,
                                       newmap['GC_CH4'], newmap['GC_WEIGHT'])
-        GC_base_pri = apply_avker(np.ones(TROPOMI['column_AK'].shape),
-                                  TROPOMI['methane_profile_apriori'].values,
-                                  TROPOMI['dry_air_subcolumns'].values,
-                                  newmap['GC_CH4'], newmap['GC_WEIGHT'])
+        # GC_base_pri = apply_avker(np.ones(TROPOMI['column_AK'].shape),
+        #                           TROPOMI['methane_profile_apriori'].values,
+        #                           TROPOMI['dry_air_subcolumns'].values,
+        #                           newmap['GC_CH4'], newmap['GC_WEIGHT'])
 
         # Save out values
         temp_obs_GC[:, 0] = TROPOMI['methane']

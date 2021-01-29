@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # SBATCH -J TROPOMI_operator
-# SBATCH -c 7
+# SBATCH -c 6
 # SBATCH -N 1
 # SBATCH -p huce_intel
-# SBATCH --mem 26000
+# SBATCH --mem 20000
 # SBATCH -t 0-02:00
 
 ## -------------------------------------------------------------------------##
@@ -40,6 +40,7 @@ echo "======================================================================="
 ## -------------------------------------------------------------------------##
 ## Load the environment
 ## -------------------------------------------------------------------------##
+echo "Activating python environment"
 eval "$(conda shell.bash hook)"
 conda activate TROPOMI_inversion
 
@@ -49,4 +50,5 @@ conda activate TROPOMI_inversion
 python_dir=$(dirname `pwd`)
 cd $GC_DATA_DIR
 mkdir -p $OUTPUT_DIR
+
 python ${python_dir}/python/GC_to_TROPOMI.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
