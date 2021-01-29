@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # SBATCH -J TROPOMI_operator
-# SBATCH -c 3
+# SBATCH -c 6
 # SBATCH -N 1
 # SBATCH -p huce_intel
-# SBATCH --mem 10000
-# SBATCH -t 0-00:10
+# SBATCH --mem 20000
+# SBATCH -t 0-00:40
 # SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
