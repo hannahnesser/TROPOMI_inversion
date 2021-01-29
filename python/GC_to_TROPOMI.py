@@ -386,12 +386,12 @@ if __name__ == '__main__':
     ## -------------------------------------------------------------------------##
     for date, filenames in Sat_files.items():
         print('=========== %s ===========' % date)
-        preprocess =lambda d: filter_tropomi(d, date,
-                                             LON_MIN, LON_MAX, LON_DELTA,
-                                             LAT_MIN, LAT_MAX, LAT_DELTA)
+        preprocess = lambda d: filter_tropomi(d, date,
+                                              LON_MIN, LON_MAX, LON_DELTA,
+                                              LAT_MIN, LAT_MAX, LAT_DELTA)
         TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
                                     combine='nested',
-                                    preprocess=filter)
+                                    preprocess=preprocess)
         TROPOMI = process_tropomi(TROPOMI, date)
 
         if TROPOMI is None:
