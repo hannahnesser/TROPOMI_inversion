@@ -365,12 +365,19 @@ if __name__ == '__main__':
         strdate = re.split('_+|T', shortname)
         start_date = strdate[4]
         end_date = strdate[6]
-        year = (int(start_date[:4]) == YEAR)
-        month = ((int(start_date[4:6]) == MONTH)
-                  or (int(end_date[4:6]) == MONTH))
+
+        # start condition
+        start = ((int(start_date[:4]) == YEAR)
+                 and (int(start_date[4:6]) == MONTH))
+        end = ((int(end_date[:4]) == YEAR)
+               and (int(end_date[4:6]) == MONTH))
+        # year = (int(start_date[:4]) == YEAR)
+        # month = ((int(start_date[4:6]) == MONTH)
+        #           or (int(end_date[4:6]) == MONTH))
 
         # Skip observations not in range
-        if not (year and month):
+        # if not (year and month):
+        if not (start or end):
             continue
 
         # Add the file to the list of Sat_files
