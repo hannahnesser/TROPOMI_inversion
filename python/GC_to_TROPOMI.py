@@ -383,12 +383,12 @@ if __name__ == '__main__':
             continue
 
         # Add the file to the list of Sat_files
-        if start_date in Sat_files.keys():
-            Sat_files[start_date].append(filename)
-        else:
-            Sat_files[start_date] = [filename]
-
-        if start_date != end_date:
+        if start:
+            if start_date in Sat_files.keys():
+                Sat_files[start_date].append(filename)
+            else:
+                Sat_files[start_date] = [filename]
+        elif end:
             if end_date in Sat_files.keys():
                 Sat_files[end_date].append(filename)
             else:

@@ -256,8 +256,8 @@ if CompareResults:
     # Read in each file individually
     run_dir = '/n/holyscratch01/jacob_lab/hnesser/eigenvector_perturbation_test/'
     test_prior_dir = join(run_dir, 'test_prior')
-    test_pert_dir = join(run_dir, 'test_summed_scaled')
-    ScaleFactor = 5e-8
+    test_pert_dir = join(run_dir, 'test_summed')
+    ScaleFactor = 1
 
     prior = pd.read_csv(join(test_prior_dir, 'sat_obs.gosat.00.m'),
                         delim_whitespace=True, header=0, usecols=['model'],

@@ -40,3 +40,5 @@ for y in years:
             file = file.replace('DD', '%02d' % d)
             if file in listdir(data_dir):
                 data = load_obj(d)
+                diff = data[] - data[]
+
