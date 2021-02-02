@@ -447,18 +447,20 @@ if __name__ == '__main__':
                             GC_CH4, GC_DA)
 
         # Finally, apply the averaging kernel
-        GC_base_posteri = apply_avker(TROPOMI['column_AK'].values,
-                                      TROPOMI['methane_profile_apriori'].values,
-                                      TROPOMI['dry_air_subcolumns'].values,
-                                      newmap['GC_CH4'], newmap['GC_WEIGHT'])
+        GC_base_post = apply_avker(TROPOMI['column_AK'].values,
+                                   TROPOMI['methane_profile_apriori'].values,
+                                   TROPOMI['dry_air_subcolumns'].values,
+                                   newmap['GC_CH4'], newmap['GC_WEIGHT'])
         # GC_base_pri = apply_avker(np.ones(TROPOMI['column_AK'].shape),
         #                           TROPOMI['methane_profile_apriori'].values,
         #                           TROPOMI['dry_air_subcolumns'].values,
         #                           newmap['GC_CH4'], newmap['GC_WEIGHT'])
 
         # Save out values
+        # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
+        # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
         temp_obs_GC[:, 0] = TROPOMI['methane']
-        temp_obs_GC[:, 1] = GC_base_posteri
+        temp_obs_GC[:, 1] = GC_base_post
         temp_obs_GC[:, 2] = TROPOMI['longitude']
         temp_obs_GC[:, 3] = TROPOMI['latitude']
         temp_obs_GC[:, 4] = iGC

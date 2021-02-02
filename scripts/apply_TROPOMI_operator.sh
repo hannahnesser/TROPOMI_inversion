@@ -17,8 +17,8 @@ GC_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/
 OUTPUT_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
 
 # Latitude and longitude range
-LONS="-130 -60 0.25"
-LATS="9.75 60 0.3125"
+LONS="-130 -60 0.3125"
+LATS="9.75 60 0.25"
 BUFFER="3 3 3 3"
 
 # time range
