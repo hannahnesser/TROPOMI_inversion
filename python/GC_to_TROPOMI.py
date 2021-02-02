@@ -168,10 +168,10 @@ def read_GC(data_dir, date):
     data = data.transpose('time', 'lon', 'lat', 'lev', 'ilev')
 
     # Check that the data has all 24 hours
-    if len(data.time) != 24:
-        print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
-        print('Filling data with the first hour.')
-        data = fill_GC_first_day(data)
+    # if len(data.time) != 24:
+    #     print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
+    #     print('Filling data with the first hour.')
+    #     data = fill_GC_first_day(data)
 
     return data
 
@@ -183,7 +183,7 @@ def fill_GC_first_day(data):
     data0.time.values[0] = t
 
     # Merge the datasets
-    data = xr.merge([data, data0])
+    data = xr.concat([data0, data], dim='time')
 
     return data
 

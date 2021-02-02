@@ -147,7 +147,7 @@ temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
 # reading the lon, lat, pressure edge, xch4, xch4_adjusted
 # (which I believe is the stratospheric corrected data), TROPP
 # (which is the planetary boundary layer info), and dry air.
-GC = read_GC(GC_data_dir, date)
+GC = oper.read_GC(GC_data_dir, date)
 
 # Find the grid box and time indices corresponding to TROPOMI obs
 iGC, jGC, tGC = oper.nearest_loc(GC, TROPOMI)
