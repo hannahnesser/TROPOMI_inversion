@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #SBATCH -J TROPOMI_operator
+#SBATCH -o %x_%j_%a.out
 #SBATCH -c 4
 #SBATCH -N 1
 #SBATCH -p huce_intel
@@ -23,7 +24,7 @@ BUFFER="3 3 3 3"
 
 # time range
 YEAR="2019"
-#MONTH="${SLURM_ARRAY_TASK_ID}"
+MONTH="${SLURM_ARRAY_TASK_ID}"
 
 ## -------------------------------------------------------------------------##
 ## Print out user preferences
