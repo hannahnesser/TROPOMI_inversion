@@ -167,11 +167,11 @@ def read_GC(data_dir, date):
     # Flip order
     data = data.transpose('time', 'lon', 'lat', 'lev', 'ilev')
 
-    # # Check that the data has all 24 hours
-    # if len(data.time) != 24:
-    #     print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
-    #     print('Filling data with the first hour.')
-    #     data = fill_GC_first_day(data)
+    # Check that the data has all 24 hours
+    if len(data.time) != 24:
+        print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
+        print('Filling data with the first hour.')
+        data = fill_GC_first_day(data)
 
     return data
 
