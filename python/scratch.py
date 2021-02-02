@@ -42,8 +42,8 @@ sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
 import GC_to_TROPOMI as oper
 
 sat_data_dir = "/n/seasasfs02/hnesser/TROPOMI/downloads_14_14/"
-GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/OutputDir/"
-output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/ProcessedDir/"
+GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir/"
+output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
 
 LON_MIN = -130
 LON_MAX = -60
@@ -147,7 +147,7 @@ temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
 # reading the lon, lat, pressure edge, xch4, xch4_adjusted
 # (which I believe is the stratospheric corrected data), TROPP
 # (which is the planetary boundary layer info), and dry air.
-GC = oper.read_GC(date)
+GC = oper.read_GC(GC_data_dir, date)
 
 # Find the grid box and time indices corresponding to TROPOMI obs
 iGC, jGC, tGC = oper.nearest_loc(GC, TROPOMI)
