@@ -1,7 +1,6 @@
 # -------------------------------------------------------------------------##
 ## Load packages and set environment defaults
 ## -------------------------------------------------------------------------##
-import glob
 import numpy as np
 import xarray as xr
 import re
@@ -12,26 +11,23 @@ import pandas as pd
 import datetime
 import copy
 
-# ## -------------------------------------------------------------------------##
-# ## Set user preferences
-# ## -------------------------------------------------------------------------##
-# sat_data_dir = sys.argv[1]
-# GC_data_dir = sys.argv[2]
-# output_dir = sys.argv[3]
+## -------------------------------------------------------------------------##
+## Set user preferences
+## -------------------------------------------------------------------------##
+# sat_data_dir = "/n/seasasfs02/hnesser/TROPOMI/downloads_14_14/"
+# GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/OutputDir/"
+# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/ProcessedDir/"
 
-# LON_MIN = float(sys.argv[4])
-# LON_MAX = float(sys.argv[5])
-# LON_DELTA = float(sys.argv[6])
+# LON_MIN = -130
+# LON_MAX = -60
+# LON_DELTA = 0.3125
+# LAT_MIN = 9.75
+# LAT_MAX = 60
+# LAT_DELTA = 0.25
+# BUFFER = [3, 3, 3, 3] # [N S E W]
 
-# LAT_MIN = float(sys.argv[7])
-# LAT_MAX = float(sys.argv[8])
-# LAT_DELTA = float(sys.argv[9])
-
-# BUFFER = sys.argv[10:14]
-# BUFFER = [int(b) for b in BUFFER]
-
-# YEAR = int(sys.argv[14])
-# MONTH = int(sys.argv[15])
+# YEAR = 2019
+# MONTH = 1
 
 # ## -------------------------------------------------------------------------##
 # ## Remove buffer boxes
@@ -131,19 +127,20 @@ def process_tropomi(data, date):
 
     return data
 
-def get_diagnostic(diag_name, date):
+def get_diagnostic(data_dir, diag_name, date):
     short_date = date[:8]
-    filename = os.path.join(GC_data_dir,
+    filename = os.path.join(data_dir,
                             'GEOSChem.'+diag_name+'.'+short_date+'_0000z.nc4')
     data = xr.open_dataset(filename)
     return data
 
-def read_GC(date):
+def read_GC(data_dir, date):
     # Start by downloading methane data (ppb)
-    data = get_diagnostic('SpeciesConc', date)[['SpeciesConc_CH4']]*1e9
+    data = get_diagnostic(data_dir, 'SpeciesConc', date)
+    data = data[['SpeciesConc_CH4']]*1e9
 
     # Now get the other variables
-    met = get_diagnostic('StateMet', date)
+    met = get_diagnostic(data_dir, 'StateMet', date)
     met = met[['Met_PBLH', 'Met_AIRDEN', 'Met_BXHEIGHT', 'Met_AD']]
     met = met.assign(DRYAIR=met['Met_AIRDEN']*met['Met_BXHEIGHT'])
     data = xr.merge([data, met])
@@ -158,7 +155,7 @@ def read_GC(date):
     data = data.drop(['Met_AIRDEN', 'Met_BXHEIGHT', 'Met_AD'])
 
     # Get pressure information (hPa)
-    pres = get_diagnostic('LevelEdgeDiags', date)[['Met_PEDGE']]
+    pres = get_diagnostic(data_dir, 'LevelEdgeDiags', date)[['Met_PEDGE']]
     data = xr.merge([data, pres])
     pres.close()
 
@@ -171,6 +168,9 @@ def read_GC(date):
     data = data.transpose('time', 'lon', 'lat', 'lev', 'ilev')
 
     return data
+
+# def fill_GC_first_day(data):
+
 
 # quzhen 2020/2/13
 def get_intmap(Sat_p, GC_p):
@@ -309,10 +309,11 @@ def nearest_loc(GC, TROPOMI):
 ## -------------------------------------------------------------------------##
 if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
-    ## Remove buffer boxes
+    ## Set user settings
     ## ---------------------------------------------------------------------##
     # Decrease threads
     # os.environ['OMP_NUM_THREADS'] = '2'
+    import glob as glob
 
     ## ---------------------------------------------------------------------##
     ## Read in user preferences
@@ -430,7 +431,7 @@ if __name__ == '__main__':
         # reading the lon, lat, pressure edge, xch4, xch4_adjusted
         # (which I believe is the stratospheric corrected data), TROPP
         # (which is the planetary boundary layer info), and dry air.
-        GC = read_GC(date)
+        GC = read_GC(GC_data_dir, date)
 
         # Find the grid box and time indices corresponding to TROPOMI obs
         iGC, jGC, tGC = nearest_loc(GC, TROPOMI)
