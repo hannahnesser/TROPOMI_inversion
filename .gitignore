@@ -1,19 +1,24 @@
 python/__pycache__
-jacobian/*.csv
-jacobian/*.nc
-prior/wetlands/*.nc
-prior/wetlands/*.csv
-prior/canada/*.nc
-prior/canada/new/*.nc
-prior/canada/old/*.nc
-prior/total_emissions/*.nc
-observations/*.nc
-observations/*.csv
-gc_inputs/*.nc4
-plots/*.png
-plots/*.gif
-python/.DS_Store
-prior/.DS_Store
-prior/canada/.DS_Store
+
+# sublme settings
 *sublime*
-*/slurm*
+
+# slurm files
+**slurm*
+
+# log files
+**.log
+
+# Netcdf files
+**.nc
+**.nc4
+
+# csvs
+**.csv
+
+# images
+**.png
+**.gif
+
+# DS store
+**.DS_Store
