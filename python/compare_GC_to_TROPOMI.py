@@ -5,24 +5,35 @@
 import pickle
 from os.path import join
 from os import listdir
+import sys
 
 import numpy as np
 import pandas as pd
 # import datetime
 # import copy
 
+sys.path.append('.')
+import gcpy as gc
+
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir'
 years = [2019]
-# months = [] # Eventually replace this with sys.argv so that we can
-# run it simultaneously for all of the months
-months = np.arange(1, 13, 1)
+# Excluding December for now because of the bug in the prior run
+months = np.arange(1, 12, 1)
 days = np.arange(1, 32, 1)
 files = 'YYYYMMDD_GCtoTROPOMI.pkl'
 
-lat_bins = np.arange(0, 100, 10)
+# Information on the grid
+lat_bins = np.arange(10, 70, 10)
+lat_min = 9.75
+lat_max = 60
+lat_delta = 0.25
+lon_min = -130
+lon_max = -60
+lon_delta = 0.3125
+buffers = [3, 3, 3, 3]
 
 ## -------------------------------------------------------------------------##
 ## Define functions
@@ -38,23 +49,6 @@ def load_obj(name):
 
 def rmse(diff):
     return np.sqrt(np.mean(diff**2))
-
-def cum_mean(old_count, old_mean,
-             new_count, new_mean):
-    return (old_count*old_mean + new_count*new_mean)/(old_count + new_count)
-
-def cum_std(old_count, old_mean, old_std,
-            new_count, new_mean, new_std,
-            tot_mean):
-    old = old_count*(old_std**2 + (old_mean - tot_mean)**2)
-    new = new_count*(new_std**2 + (new_mean - tot_mean)**2)
-    return np.sqrt((old + new)/(old_count + new_count))
-
-def cum_rmse(old_count, old_rmse,
-             new_count, new_rmse):
-    new_rmse = (old_count*old_rmse**2 + new_count*new_rmse**2)
-    new_rmse /= (old_count + new_count)
-    return np.sqrt(new_rmse)
 
 def cum_stats(d1, d2):
     # Count
@@ -77,10 +71,30 @@ def cum_stats(d1, d2):
                          'std' : std, 'rmse' : rmse})
 
 ## -------------------------------------------------------------------------##
-## Read files
+## Analysis
 ## -------------------------------------------------------------------------##
+# Get information on the lats and lons (edges of the domain)
+lat_edges, lon_edges = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
+                                             lon_min, lon_max, lon_delta,
+                                             buffers)
+
+# Generate a grid on which to save out average difference
+diff_grid = gc.create_gc_grid(*lat_edges, lat_delta, *lon_edges, lon_delta,
+                              centers=False)
+
+## THIS IS WHERE I LEFT OFF
+
 for y in years:
+    #  Create a dataframe filled with 0s to store summary yearly data
+    lat_intervals = pd.cut(lat_bins, lat_bins)[1:]
+    year_summ = pd.DataFrame(index=lat_intervals,
+                             columns=['count', 'mean',
+                                      'std', 'rmse'])
+    year_summ = year_summ.reset_index()
+    year_summ = year_summ.append({'index' : 'Total'}, ignore_index=True)
+    year_summ = year_summ.replace(np.nan, 0)
     for m in months:
+        print('Analyzing data for month %d' % m)
         # Iterate through the days in the month, beginning by initializing
         # on day 1
         data = np.array([]).reshape(0, 11)
@@ -100,10 +114,9 @@ for y in years:
             # The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
             # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR,
             # 8 ALBEDO_NIR, 9 AOD, 10 MOD_COL
+            new_data = load_obj(join(data_dir, file))['obs_GC']
             data = np.concatenate((data,
                                    load_obj(join(data_dir, file))['obs_GC']))
-            print(m, d, data[data[:,1] == data[:,1].max()][:,[4,5]])
-
 
         # Create a dataframe
         data = pd.DataFrame(data, columns=['OBS', 'MOD', 'LON', 'LAT',
@@ -114,17 +127,22 @@ for y in years:
         data['DIFF'] = data['MOD'] - data['OBS']
 
         # Subset data
-        data = data[['LAT', 'DIFF']]
+        data = data[['LON', 'LAT', 'DIFF']]
+
+        # Take the difference and apply it to a grid.
+        lat_idx = gc.nearest_loc(data['LAT'], lats)
+        lon_idx = gc.nearest_loc(data['LON'], lons)
+        ##### THIS IS WHERE I LEFT OFF
 
         # Group the difference between model and observation
         # by latitude bin
         data['LAT_BIN'] = pd.cut(data['LAT'], lat_bins)
-        summ = data.groupby('LAT_BIN').agg({'DIFF' : ['count', 'mean',
+        month_summ = data.groupby('LAT_BIN').agg({'DIFF' : ['count', 'mean',
                                                       'std', rmse]})
-        summ = summ['DIFF'].reset_index()
+        month_summ = month_summ['DIFF'].reset_index()
 
         # Add in a total summary for that day
-        summ = summ.append({'LAT_BIN' : 'Total',
+        month_summ = month_summ.append({'LAT_BIN' : 'Total',
                             'count' : data['DIFF'].shape[0],
                             'mean' : data['DIFF'].mean(),
                             'std' : data['DIFF'].std(),
@@ -133,24 +151,13 @@ for y in years:
 
         # Save out monthly summary
         file_name = '%04d%02d_summary.csv' % (y, m)
-        summ.to_csv(join(data_dir, file_name))
+        month_summ.to_csv(join(data_dir, file_name))
 
-    # Now need to consolidate yearly (mainly for the latitudinal bands)
+        # Add monthly summary to yearly summary
+        year_summ = cum_stats(year_summ, month_summ)
 
-
-
-
-            # Fill nans with 0
-            day_tot = day_tot.replace(np.nan, 0)
-
-            # Save to monthly summary
-            month_tot = cum_stats(month_tot, day_tot)
-
-        #  Create a dataframe filled with 0s to store summary month data
-        lat_intervals = pd.cut(lat_bins, lat_bins)[1:]
-        month_tot = pd.DataFrame(index=lat_intervals,
-                                 columns=['count', 'mean',
-                                          'std', 'rmse'])
-        month_tot = month_tot.reset_index()
-        month_tot = month_tot.append({'index' : 'Total'}, ignore_index=True)
-        month_tot = month_tot.replace(np.nan, 0)
+    # Now save out yearly summary
+    print('Code Complete.')
+    print(year_summ)
+    file_name = '%04d_summary.csv' % y
+    year_summ.to_csv(join(data_dir, file_name))

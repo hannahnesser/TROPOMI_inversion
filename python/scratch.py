@@ -55,7 +55,7 @@ BUFFER = [3, 3, 3, 3] # [N S E W]
 
 YEAR = 2019
 MONTH = 1
-DAY = 1
+DAY = 2
 
 ## ---------------------------------------------------------------------##
 ## Remove buffer boxes
@@ -159,15 +159,15 @@ GC_CH4 = GC['CH4'].values[tGC, iGC, jGC, :]
 GC_COL = GC['GCCOL'].values[tGC, iGC, jGC]
 
 # Create mapping between GC and TROPOMI pressure levels
-intmap = get_intmap(TROPOMI['pressures'].values, GC_P)
-newmap = get_newmap(intmap, TROPOMI['pressures'].values, GC_P,
-                    GC_CH4, GC_DA)
+intmap = oper.get_intmap(TROPOMI['pressures'].values, GC_P)
+newmap = oper.get_newmap(intmap, TROPOMI['pressures'].values, GC_P,
+                         GC_CH4, GC_DA)
 
 # Finally, apply the averaging kernel
-GC_base_post = apply_avker(TROPOMI['column_AK'].values,
-                           TROPOMI['methane_profile_apriori'].values,
-                           TROPOMI['dry_air_subcolumns'].values,
-                           newmap['GC_CH4'], newmap['GC_WEIGHT'])
+GC_base_post2 = oper.apply_avker(TROPOMI['column_AK'].values,
+                                TROPOMI['methane_profile_apriori'].values,
+                                TROPOMI['dry_air_subcolumns'].values,
+                                newmap['GC_CH4'], newmap['GC_WEIGHT'])
 # GC_base_pri = apply_avker(np.ones(TROPOMI['column_AK'].shape),
 #                           TROPOMI['methane_profile_apriori'].values,
 #                           TROPOMI['dry_air_subcolumns'].values,

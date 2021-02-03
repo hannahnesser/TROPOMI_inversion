@@ -11,6 +11,9 @@ import pandas as pd
 import datetime
 import copy
 
+sys.path.append('.')
+import gcpy as gc
+
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
@@ -171,19 +174,7 @@ def read_GC(data_dir, date):
     if len(data.time) != 24:
         print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
         print('Filling data with the first hour.')
-        data = fill_GC_first_day(data)
-
-    return data
-
-def fill_GC_first_day(data):
-    data0 = data.where(data.time == data.time[0], drop=True)
-
-    # Change the time of that data to the 0th hour
-    t = pd.Timestamp(data0.time.values[0]).replace(hour=0).to_datetime64()
-    data0.time.values[0] = t
-
-    # Merge the datasets
-    data = xr.concat([data0, data], dim='time')
+        data = gc.fill_GC_first_hour(data)
 
     return data
 
@@ -354,12 +345,12 @@ if __name__ == '__main__':
     print('Applying TROPOMI operator for %d-%02d\n' % (YEAR, MONTH))
 
     ## ---------------------------------------------------------------------##
-    ## Remove buffer boxes
+    ## Remove buffer boxes and adjust to be grid box edges
     ## ---------------------------------------------------------------------##
-    LAT_MAX -= LAT_DELTA*BUFFER[0]
-    LAT_MIN += LAT_DELTA*BUFFER[1]
-    LON_MAX -= LON_DELTA*BUFFER[2]
-    LON_MIN += LON_DELTA*BUFFER[3]
+    LATLON = [LAT_MIN, LAT_MAX, LAT_DELTA, LON_MIN, LON_MAX, LON_DELTA, BUFFER]
+    LAT_EDGES, LON_EDGES = gc.adjust_grid_bounds(*LATLON)
+    LAT_MIN, LAT_MAX = LAT_EDGES
+    LON_MIN, LON_MAX = LON_EDGES
 
     ## ---------------------------------------------------------------------##
     ## List all satellite files for the year and date defined
