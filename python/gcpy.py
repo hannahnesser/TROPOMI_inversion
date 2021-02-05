@@ -1,11 +1,41 @@
 '''
 This is a package designed to deal with common GEOS-Chem
-processing needs.
+processing needs. It also contains several generic functions that
+are used in the course of working with GEOS-Chem data.
 '''
 import numpy as np
 import pandas as pd
 import xarray as xr
+import pickle
 
+## -------------------------------------------------------------------------##
+## Loading functions
+## -------------------------------------------------------------------------##
+def save_obj(obj, name):
+    '''
+    This is a generic function to save a data object using
+    pickle, which reduces the memory requirements.
+    '''
+    with open(name , 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name):
+    '''
+    This is a generic function to open a data object using
+    pickle, which reduces the memory requirements.
+    '''
+    with open( name, 'rb') as f:
+        return pickle.load(f)
+
+## -------------------------------------------------------------------------##
+## Statistics functions
+## -------------------------------------------------------------------------##
+def rmse(diff):
+    return np.sqrt(np.mean(diff**2))
+
+## -------------------------------------------------------------------------##
+## Grid functions
+## -------------------------------------------------------------------------##
 def adjust_grid_bounds(lat_min, lat_max, lat_delta,
                        lon_min, lon_max, lon_delta,
                        buffer=[0, 0, 0, 0]):
@@ -50,7 +80,18 @@ def create_gc_grid(lat_min, lat_max, lat_delta,
 
     return data
 
+def nearest_loc(data, compare_data):
+    return np.abs(compare_data[:, None] - data[None, :]).argmin(axis=0)
+
+## -------------------------------------------------------------------------##
+## GEOS-Chem fixing functions
+## -------------------------------------------------------------------------##
 def fill_GC_first_hour(data):
+    '''
+    This function fills in the first hour of GEOS-Chem output data
+    because of GEOS-Chem's failure to output data during the first time
+    segment of every simulation. What an odd bug.
+    '''
     data0 = data.where(data.time == data.time[0], drop=True)
 
     # Change the time of that data to the 0th hour
@@ -61,6 +102,3 @@ def fill_GC_first_hour(data):
     data = xr.concat([data0, data], dim='time')
 
     return data
-
-def nearest_loc(data, compare_data):
-    return np.abs(compare_data[:, None] - data[None, :]).argmin(axis=0)

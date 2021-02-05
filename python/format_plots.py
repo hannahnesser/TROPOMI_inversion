@@ -38,7 +38,6 @@ rcParams['axes.titlepad'] = config.TITLE_PAD
 
 from matplotlib.font_manager import findfont, FontProperties
 font = findfont(FontProperties(family=['sans-serif']))
-print(font)
 
 def color(k, cmap='inferno', lut=10):
     c = plt.cm.get_cmap(cmap, lut=lut)

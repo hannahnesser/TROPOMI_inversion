@@ -1,5 +1,6 @@
 # Figure sizes
 SCALE = 1
+PRES_SCALE = 2
 # BASE_FIG_SIZE = 6
 BASE_WIDTH = 7
 BASE_HEIGHT = 6
@@ -16,3 +17,5 @@ TITLE_PAD = 10
 CBAR_PAD = 0.05
 LABEL_PAD = 20
 CBAR_LABEL_PAD = 75
+
+# Default colors
