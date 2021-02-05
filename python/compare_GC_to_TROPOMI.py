@@ -9,10 +9,11 @@ import sys
 
 import numpy as np
 import pandas as pd
+from itertools import product
 # import datetime
 # import copy
 
-sys.path.append('.')
+sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
 import gcpy as gc
 
 ## -------------------------------------------------------------------------##
@@ -78,12 +79,16 @@ lat_edges, lon_edges = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
                                              lon_min, lon_max, lon_delta,
                                              buffers)
 
-# Generate a grid on which to save out average difference
-diff_grid = gc.create_gc_grid(*lat_edges, lat_delta, *lon_edges, lon_delta,
-                              centers=False)
+# # Generate a grid on which to save out average difference
+lats, lons = gc.create_gc_grid(*lat_edges, lat_delta, *lon_edges, lon_delta,
+                               centers=False, return_xarray=False)
+# diff_grid = xr.Dataset({'xch4' : diff_grid, 'count' : diff_grid})
+diff_grid = pd.DataFrame(list(product(lats, lons)),
+                         columns=['LAT', 'LON'])
+diff_grid['DIFF'] = 0
+diff_grid['COUNT'] = 0
 
-## THIS IS WHERE I LEFT OFF
-
+# Loop through the data
 for y in years:
     #  Create a dataframe filled with 0s to store summary yearly data
     lat_intervals = pd.cut(lat_bins, lat_bins)[1:]
@@ -130,15 +135,23 @@ for y in years:
         data = data[['LON', 'LAT', 'DIFF']]
 
         # Take the difference and apply it to a grid.
-        lat_idx = gc.nearest_loc(data['LAT'], lats)
-        lon_idx = gc.nearest_loc(data['LON'], lons)
+        data['LAT_EDGES'] = pd.cut(data['LAT'], lat_edges)
+        data['LON_EDGES'] = pd.cut(data['LON'], lon_edges)
+        data_grid = data.groupby(['LAT_EDGES', 'LON_EDGES'])
+        data_grid = data_grid.agg({'DIFF' : ['count', 'sum']})
+        data_grid = data_grid['DIFF'].reset_index()
+        # Get the latitudes and longitudes
+
+
+        lat_idx = nearest_loc(data['LAT'].values, diff_grid['LAT'].values)
+        lon_idx = nearest_loc(data['LON'].values, diff_grid['LON'].values)
         ##### THIS IS WHERE I LEFT OFF
 
         # Group the difference between model and observation
         # by latitude bin
         data['LAT_BIN'] = pd.cut(data['LAT'], lat_bins)
-        month_summ = data.groupby('LAT_BIN').agg({'DIFF' : ['count', 'mean',
-                                                      'std', rmse]})
+        month_summ = data.groupby('LAT_BIN')
+        month_summ = month_summ.agg({'DIFF' : ['count', 'mean', 'std', rmse]})
         month_summ = month_summ['DIFF'].reset_index()
 
         # Add in a total summary for that day

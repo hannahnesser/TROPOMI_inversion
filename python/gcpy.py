@@ -42,7 +42,7 @@ def create_gc_grid(lat_min, lat_max, lat_delta,
     lons = np.arange(lon_min, lon_max + lon_delta, lon_delta)
 
     if return_xarray:
-        data = xr.DataArray(np.zeros(lats, lons),
+        data = xr.DataArray(np.zeros((len(lats), len(lons))),
                             coords=[lats, lons],
                             dims=['lats', 'lons'])
     else:
@@ -63,4 +63,4 @@ def fill_GC_first_hour(data):
     return data
 
 def nearest_loc(data, compare_data):
-    return np.abs(data[:, 1] - compare_data[1, :]).argmin(axis=0)
+    return np.abs(compare_data[:, None] - data[None, :]).argmin(axis=0)
