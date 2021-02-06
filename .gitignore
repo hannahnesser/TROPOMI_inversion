@@ -20,5 +20,8 @@ python/__pycache__
 **.png
 **.gif
 
+# pkl files
+**.pkl
+
 # DS store
 **.DS_Store
