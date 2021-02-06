@@ -137,7 +137,9 @@ if Analysis:
                                        'iGC', 'jGC', 'PRECISION',
                                        'ALBEDO_SWIR', 'ALBEDO_NIR',
                                        'AOD', 'MOD_COL'])
-    data['FILTER'] =
+
+    # Create a column for the blended albedo filter
+    data['FILTER'] = tp.blended_albedo_filter(data, data['ALBEDO_SWIR'],)
 
     # Subset data
     data = data[['LON', 'LAT', 'OBS', 'MOD', 'DIFF']]
