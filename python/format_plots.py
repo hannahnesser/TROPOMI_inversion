@@ -126,13 +126,13 @@ def add_cax(fig, ax, cbar_pad_inches=0.25):
     # x0
     fig_width = fig.get_size_inches()[0]
     x0_init = axis.get_position().x1
-    x0 = (fig_width*x0_init + cbar_pad_inches)/fig_width
+    x0 = (fig_width*x0_init + cbar_pad_inches*config.SCALE)/fig_width
 
     # y0
     y0 = axis.get_position().y0
 
     # Width
-    cbar_width_inches = 0.1
+    cbar_width_inches = 0.1*config.SCALE
     width = cbar_width_inches/fig_width
 
     # Make axis
