@@ -28,7 +28,7 @@ from matplotlib import rcParams
 import sys
 sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
 import inversion as inv
-import plots as p
+import gcpy as gc
 import format_plots as fp
 
 # os.environ['QT_QPA_PLATFORM'] = 'offscreen'

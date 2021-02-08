@@ -270,7 +270,7 @@ def get_intmap(Sat_p, GC_p):
 
     return intmap
 
-def get_newmap(intmap, Sat_p, GC_p, gc_ch4_native, dryair):
+def get_newmap(intmap, gc_ch4_native, dryair):
     nobs, ngc, ntrop = intmap.shape
     # gc_ch4 = np.zeros((nobs, ntrop - 1))
     # gc_weight = np.zeros((nobs, ntrop - 1))
@@ -288,10 +288,17 @@ def get_newmap(intmap, Sat_p, GC_p, gc_ch4_native, dryair):
 
     return met
 
-def apply_avker(avker, prior, dryair, sat_ch4, gc_weight):
-    rat = prior / dryair * 1e9
-    temp = (gc_weight * (rat + avker * (sat_ch4 - rat))).sum(axis=1)
-    return temp
+def apply_avker(avker, prior, dryair, sat_ch4, gc_weight, filt=None):
+    if filt is None:
+        filt = np.ones(avker.shape[1])
+    else:
+        filt = filt.astype(int)
+
+    # Apply filter
+    rat = prior/dryair * 1e9
+
+    # Return XCH4 with averaging kernel applied
+    return (filt*gc_weight*(rat + avker*(sat_ch4 - rat))).sum(axis=1)
 
 def nearest_loc(GC, TROPOMI):
     # Find the grid box and time indices corresponding to TROPOMI obs
@@ -427,7 +434,7 @@ if __name__ == '__main__':
 
         # create an empty matrix to store TROPOMI CH4, GC CH4,
         # lon, lat, II, and JJ (GC indices)
-        temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
+        temp_obs_GC=np.zeros([NN, 12],dtype=np.float32)
 
         #================================
         #--- now compute sensitivity ---
@@ -450,8 +457,10 @@ if __name__ == '__main__':
 
         # Create mapping between GC and TROPOMI pressure levels
         intmap = get_intmap(TROPOMI['pressures'].values, GC_P)
-        newmap = get_newmap(intmap, TROPOMI['pressures'].values, GC_P,
-                            GC_CH4, GC_DA)
+
+        # Apply that mapping to the GC data to generate GC data on
+        # the TROPOMI grid
+        newmap = get_newmap(intmap, GC_CH4, GC_DA)
 
         # Finally, apply the averaging kernel
         GC_base_post = apply_avker(TROPOMI['column_AK'].values,
@@ -462,6 +471,13 @@ if __name__ == '__main__':
         #                           TROPOMI['methane_profile_apriori'].values,
         #                           TROPOMI['dry_air_subcolumns'].values,
         #                           newmap['GC_CH4'], newmap['GC_WEIGHT'])
+
+        # And now get the GEOS-Chem stratospheric subcolumn
+        GC_base_strat = apply_avker(TROPOMI['column_AK'].values,
+                                    TROPOMI['methane_profile_apriori'].values,
+                                    TROPOMI['dry_air_subcolumns'].values,
+                                    newmap['GC_CH4'], newmap['GC_WEIGHT'],
+                                    filt=(TROPOMI['pressures_mid'] < 200))
 
         # Save out values
         # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
@@ -477,6 +493,7 @@ if __name__ == '__main__':
         temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
         temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
         temp_obs_GC[:, 10] = GC_COL
+        temp_obs_GC[:, 11] = GC_base_strat
 
         result={}
         result['obs_GC'] = temp_obs_GC

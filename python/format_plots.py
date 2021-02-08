@@ -201,7 +201,7 @@ def add_subtitle(ax, subtitle, **kwargs):
                            **kwargs)
     return ax
 
-def get_square_limits(xdata, ydata):
+def get_square_limits(xdata, ydata, **kw):
     # Get data limits
     dmin = min(np.min(xdata), np.min(ydata))
     dmax = max(np.max(xdata), np.max(ydata))
@@ -211,8 +211,8 @@ def get_square_limits(xdata, ydata):
 
     try:
         # get lims
-        ylim = kw.pop('ylim')
-        xlim = kw.pop('xlim')
+        ylim = kw.pop('lims')
+        xlim = ylim
         xy = (min(xlim[0], ylim[0]), max(xlim[1], ylim[1]))
     except:
         # set lims

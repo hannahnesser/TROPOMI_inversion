@@ -25,6 +25,12 @@ print(sc1.shape)
 # for t in d_lev.time:
 #     print(d_lev.where(d_lev.time == t, drop=True).max())
 
+# ========================================================================== ## Adding stratospheric analysis to TROPOMI operator
+
+VCH4_apriori = TROPOMI['methane_profile_apriori']/TROPOMI
+TROPOMI['dry_air_subcolumns']
+
+
 # ========================================================================== ## Diagnosing error in TROPOMI operator
 
 import numpy as np
@@ -55,6 +61,7 @@ BUFFER = [3, 3, 3, 3] # [N S E W]
 
 YEAR = 2019
 MONTH = 1
+DAY = 1
 
 ## ---------------------------------------------------------------------##
 ## Remove buffer boxes
@@ -171,6 +178,12 @@ GC_base_post2 = oper.apply_avker(TROPOMI['column_AK'].values,
 #                           TROPOMI['methane_profile_apriori'].values,
 #                           TROPOMI['dry_air_subcolumns'].values,
 #                           newmap['GC_CH4'], newmap['GC_WEIGHT'])
+
+GC_base_strat = apply_avker(TROPOMI['column_AK'].values,
+                            TROPOMI['methane_profile_apriori'].values,
+                            TROPOMI['dry_air_subcolumns'].values,
+                            newmap['GC_CH4'], newmap['GC_WEIGHT'],
+                            filt=(TROPOMI['pressures_mid'] < 200))
 
 # Save out values
 # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
