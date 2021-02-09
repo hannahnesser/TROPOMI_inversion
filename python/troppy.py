@@ -11,8 +11,8 @@ def blended_albedo_filter(data, data_swir, data_nir):
     Returns a filter that is true where we keep the data and false
     elsewhere.
     '''
-    filt = (2.4*data_nir - 1.13*data_swir) <= 0.9
-    print('The filter preserves %f%% of data.' % (100*filt.sum()/len(filt)))
+    filt = (2.4*data_nir - 1.13*data_swir)
+    #print('The filter preserves %f%% of data.' % (100*filt.sum()/len(filt)))
     return filt
 
 

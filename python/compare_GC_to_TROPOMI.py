@@ -19,6 +19,11 @@ Analysis = False
 
 # Make plots?
 Plots = True
+ScatterPlot = False
+SpatialBiasPlot = False
+LatBiasPlot = True
+MonthlyBiasPlot = False
+AlbedoBiasPlot = True
 
 # Set directories (this needs to be amended)
 if Analysis:
@@ -67,12 +72,13 @@ import format_plots as fp
 ## -------------------------------------------------------------------------##
 ## Define functions
 ## -------------------------------------------------------------------------##
-def filter_data(data, groupby, quantity='DIFF',
+def filter_data(data, groupby, quantity=['DIFF'],
                 stats=['count', 'mean', 'std', gc.rmse]):
     d = data.groupby(groupby)
-    d = d.agg({quantity : stats})
+    d = d.agg(stats)[quantity]
     d = d[quantity].reset_index()
     return d
+
 ## -------------------------------------------------------------------------##
 ## Analysis
 ## -------------------------------------------------------------------------##
@@ -90,7 +96,7 @@ if Analysis:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    data = np.array([]).reshape(0, 12)
+    data = np.array([]).reshape(0, 13)
     for m in months:
         print('Analyzing data for month %d' % m)
         for d in days:
@@ -110,7 +116,7 @@ if Analysis:
             # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR,
             # 8 ALBEDO_NIR, 9 AOD, 10 MOD_COL
             new_data = gc.load_obj(join(data_dir, file))['obs_GC']
-            new_data = np.insert(new_data, 11, m, axis=1) # add month
+            new_data = np.insert(new_data, 12, m, axis=1) # add month
 
             data = np.concatenate((data, new_data))
 
@@ -121,18 +127,23 @@ if Analysis:
     data = pd.DataFrame(data, columns=['OBS', 'MOD', 'LON', 'LAT',
                                        'iGC', 'jGC', 'PRECISION',
                                        'ALBEDO_SWIR', 'ALBEDO_NIR',
-                                       'AOD', 'MOD_COL', 'MONTH'])
+                                       'AOD', 'MOD_COL', 'MONTH',
+                                       'MOD_STRAT'])
 
     # Create a column for the blended albedo filter
     data['FILTER'] = tp.blended_albedo_filter(data, data['ALBEDO_SWIR'],
                                               data['ALBEDO_NIR'])
 
     # Subset data
-    data = data[['MONTH', 'LON', 'LAT', 'OBS', 'MOD',
+    data = data[['MONTH', 'LON', 'LAT', 'OBS', 'MOD', 'MOD_STRAT',
                  'ALBEDO_SWIR', 'FILTER']]
+
+    # Add troposphere column
+    data['MOD_TROP'] = data['MOD'] - data['MOD_STRAT']
 
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
+    data['DIFF_TROP'] = data['MOD_TROP'] - data['OBS']
 
     # Calculate the nearest latitude & longitude center
     data['LAT_CENTER'] = lats[gc.nearest_loc(data['LAT'].values, lats)]
@@ -148,7 +159,7 @@ if Analysis:
     gc.save_obj(data, join(processed_data_dir, '%d.pkl' % year))
 
     # Create a dictionary of total and filtered data
-    data_dict = {'Total' :data, 'Filtered' : data[data['FILTER']]}
+    data_dict = {'Total' : data, 'Filtered' : data[data['FILTER']]}
 
     ## ----------------------------------------- ##
     ## Calculate spatial bias
@@ -174,16 +185,23 @@ if Analysis:
     ## ----------------------------------------- ##
     ## Calculate latitudinal bias
     ## ----------------------------------------- ##
-    lat_bias = pd.DataFrame(columns={'FILTER', 'LAT_BIN', 'count', 'mean',
-                                     'std', 'rmse'})
-    for k, d in data_dict.items():
-        l_b = filter_data(d, groupby=['LAT_BIN'])
-        l_b['FILTER'] = k
-        lat_bias = lat_bias.append(l_b)
+    lat_bias_t = filter_data(data,
+                             quantity=['DIFF', 'OBS', 'MOD',
+                                       'MOD_TROP', 'MOD_STRAT'],
+                             groupby=['LAT_BIN'])
+    lat_bias_t['FILTER'] = 'Total'
+
+    lat_bias_f = filter_data(data[data['FILTER']],
+                             quantity=['DIFF', 'OBS', 'MOD',
+                                       'MOD_TROP', 'MOD_STRAT'],
+                             groupby=['LAT_BIN'])
+    lat_bias_f['FILTER'] = 'Filtered'
+
+    lat_bias_t = lat_bias_t.append(lat_bias_f)
 
     # Save out latitudinal bias summary
     file_name = '%04d_lat_summary.csv' % year
-    lat_bias.to_csv(join(processed_data_dir, file_name))
+    lat_bias_t.to_csv(join(processed_data_dir, file_name))
 
     ## ----------------------------------------- ##
     ## Calculate monthly bias
@@ -225,98 +243,118 @@ if Plots:
     ## ----------------------------------------- ##
     ## Total summary
     ## ----------------------------------------- ##
-    data = gc.load_obj(join(processed_data_dir, '%04d.pkl' % year))
+    if ScatterPlot:
+        data = gc.load_obj(join(processed_data_dir, '%04d.pkl' % year))
 
-    for f in ['Total', 'Filtered']:
-        if f == 'Filtered':
-            d = data[data['FILTER']]
-        else:
-            d = data
+        for f in ['Total', 'Filtered']:
+            if f == 'Filtered':
+                d = data[data['FILTER']]
+            else:
+                d = data
 
-        fig, ax, c = gc.plot_comparison(d['OBS'].values, d['MOD'].values,
-                                        lims=[1750, 1950],
-                                        xlabel='Observation',
-                                        ylabel='Model',
-                                        vmin=0, vmax=3e4)
-        ax.set_xticks(np.arange(1750, 2000, 100))
-        ax.set_yticks(np.arange(1750, 2000, 100))
-        fp.save_fig(fig, plot_dir, 'prior_bias_%s' % f.lower())
-        # print(data.head())
+            fig, ax, c = gc.plot_comparison(d['OBS'].values, d['MOD'].values,
+                                            lims=[1750, 1950],
+                                            xlabel='Observation',
+                                            ylabel='Model',
+                                            vmin=0, vmax=3e4)
+            ax.set_xticks(np.arange(1750, 2000, 100))
+            ax.set_yticks(np.arange(1750, 2000, 100))
+            fp.save_fig(fig, plot_dir, 'prior_bias_%s' % f.lower())
+            # print(data.head())
 
     ## ----------------------------------------- ##
     ## Spatial bias
     ## ----------------------------------------- ##
-    spat_bias = xr.open_dataset(join(processed_data_dir,
-                                '%04d_spatial_summary.nc' % year))
+    if SpatialBiasPlot:
+        spat_bias = xr.open_dataset(join(processed_data_dir,
+                                    '%04d_spatial_summary.nc' % year))
 
-    # Make figures
-    for f in ['Total', 'Filtered']:
-        d = spat_bias[f]
-        fig, ax = fp.get_figax(maps=True,
-                               lats=spat_bias.lats, lons=spat_bias.lons)
-        c = d.plot(ax=ax, cmap='RdBu_r', vmin=-30, vmax=30, add_colorbar=False)
-        cax = fp.add_cax(fig, ax)
-        cb = fig.colorbar(c, ax=ax, cax=cax)
-        cb = fp.format_cbar(cb, 'Model - Observation')
-        ax = fp.format_map(ax, spat_bias.lats, spat_bias.lons)
-        ax = fp.add_title(ax, 'Spatial Bias in Prior Run')
-        fp.save_fig(fig, plot_dir, 'prior_spatial_bias_%s' % f.lower())
+        # Make figures
+        for f in ['Total', 'Filtered']:
+            d = spat_bias[f]
+            fig, ax = fp.get_figax(maps=True,
+                                   lats=spat_bias.lats, lons=spat_bias.lons)
+            c = d.plot(ax=ax, cmap='RdBu_r', vmin=-30, vmax=30, add_colorbar=False)
+            cax = fp.add_cax(fig, ax)
+            cb = fig.colorbar(c, ax=ax, cax=cax)
+            cb = fp.format_cbar(cb, 'Model - Observation')
+            ax = fp.format_map(ax, spat_bias.lats, spat_bias.lons)
+            ax = fp.add_title(ax, 'Spatial Bias in Prior Run')
+            fp.save_fig(fig, plot_dir, 'prior_spatial_bias_%s' % f.lower())
 
     ## ----------------------------------------- ##
     ## Latitudinal bias
     ## ----------------------------------------- ##
-    lat_bias = pd.read_csv(join(processed_data_dir,
-                                '%04d_lat_summary.csv' % year),
-                           index_col=0)
-    lat_bias['LAT'] = (lat_bias['LAT_BIN'].str.split(r'\D', expand=True)
-                       .iloc[:, [1, 3]]
-                       .astype(float).mean(axis=1))
+    if LatBiasPlot:
+        lat_bias = pd.read_csv(join(processed_data_dir,
+                                    '%04d_lat_summary.csv' % year),
+                               index_col=0)
 
-    # Make figures
-    for f in ['Total', 'Filtered']:
-        d = lat_bias[lat_bias['FILTER'] == f]
-        fig, ax = fp.get_figax(aspect=1.75)
-        ax.errorbar(d['LAT'], d['mean'], yerr=d['std'], color=fp.color(4))
-        ax.set_xticks(np.arange(10, 70, 10))
-        ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
-        ax = fp.add_title(ax, 'Latitudinal Bias in Prior Run')
-        fp.save_fig(fig, plot_dir, 'prior_latitudinal_bias_%s' % f.lower())
+        lat_bias['LAT'] = (lat_bias['LAT_BIN'].str.split(r'\D', expand=True)
+                           .iloc[:, [1, 3]]
+                           .astype(float).mean(axis=1))
+
+
+        diff_cols = ['DIFF' + s for s in ['', '.1', '.2', '.3']] + ['FILTER']
+        lat_bias_diff = lat_bias[diff_cols].reset_index(drop=True)
+        lat_bias_diff.columns = lat_bias_diff.iloc[0]
+        lat_bias_diff = lat_bias_diff.drop(lat_bias_diff.index[0])
+        lat_bias_diff = lat_bias_diff.rename(columns={np.nan : 'FILTER'})
+
+        # Make figures: standard lat bias difference
+        for f in ['Total', 'Filtered']:
+            d = lat_bias_diff[lat_bias_diff['FILTER'] == f]
+            fig, ax = fp.get_figax(aspect=1.75)
+            ax.errorbar(d['LAT'], d['mean'], yerr=d['std'], color=fp.color(4))
+            ax.set_xticks(np.arange(10, 70, 10))
+            ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
+            ax = fp.add_title(ax, 'Latitudinal Bias in Prior Run')
+            fp.save_fig(fig, plot_dir, 'prior_latitudinal_bias_%s' % f.lower())
+
+        # DIFF = MOD - OBS --> DIFF_SUBCOL = MOD_SUBCOL - OBS
+        subcol_cols = ['']
+        lat_bias_subcol =
 
     ## ----------------------------------------- ##
     ## Monthly bias
     ## ----------------------------------------- ##
-    month_bias = pd.read_csv(join(processed_data_dir,
-                                  '%04d_month_summary.csv' % year),
-                             index_col=0)
-    month_bias['month'] = pd.to_datetime(month_bias['MONTH'], format='%m')
-    month_bias['month'] = month_bias['month'].dt.month_name().str[:3]
+    if MonthlyBiasPlot:
+        month_bias = pd.read_csv(join(processed_data_dir,
+                                      '%04d_month_summary.csv' % year),
+                                 index_col=0)
+        month_bias['month'] = pd.to_datetime(month_bias['MONTH'], format='%m')
+        month_bias['month'] = month_bias['month'].dt.month_name().str[:3]
 
-    # Make figures
-    for f in ['Total', 'Filtered']:
-        d = month_bias[month_bias['FILTER'] == f]
-        fig, ax = fp.get_figax(aspect=1.75)
-        ax.errorbar(d['month'], d['mean'], yerr=d['std'], color=fp.color(4))
-        ax = fp.add_labels(ax, 'Month', 'Model - Observation')
-        ax = fp.add_title(ax, 'Seasonal Bias in Prior Run')
-        fp.save_fig(fig, plot_dir, 'prior_seasonal_bias_%s' % f.lower())
+        # Make figures
+        for f in ['Total', 'Filtered']:
+            d = month_bias[month_bias['FILTER'] == f]
+            fig, ax = fp.get_figax(aspect=1.75)
+            ax.errorbar(d['month'], d['mean'], yerr=d['std'], color=fp.color(4))
+            ax = fp.add_labels(ax, 'Month', 'Model - Observation')
+            ax = fp.add_title(ax, 'Seasonal Bias in Prior Run')
+            fp.save_fig(fig, plot_dir, 'prior_seasonal_bias_%s' % f.lower())
 
     ## ----------------------------------------- ##
     ## Albedo bias
     ## ----------------------------------------- ##
-    albedo_bias = pd.read_csv(join(processed_data_dir,
-                                '%04d_albedo_summary.csv' % year),
-                           index_col=0)
-    albedo_bias['ALBEDO'] = (albedo_bias['ALBEDO_BIN'].str.split(r'\D',
-                                                              expand=True)
-                             .iloc[:, [2, 5]]
-                             .astype(float).mean(axis=1))/10
+    if AlbedoBiasPlot:
+        # First plot the blended albedo information
 
-    # Make figures
-    for f in ['Total', 'Filtered']:
-        d = albedo_bias[albedo_bias['FILTER'] == f]
-        fig, ax = fp.get_figax(aspect=1.75)
-        ax.errorbar(d['ALBEDO'], d['mean'], yerr=d['std'], color=fp.color(4))
-        ax.set_xticks(np.arange(0, 1, 0.2))
-        ax = fp.add_labels(ax, 'Albedo', 'Model - Observation')
-        ax = fp.add_title(ax, 'Albedo Bias in Prior Run')
-        fp.save_fig(fig, plot_dir, 'prior_albedo_bias_%s' % f.lower())
+
+        albedo_bias = pd.read_csv(join(processed_data_dir,
+                                    '%04d_albedo_summary.csv' % year),
+                               index_col=0)
+        albedo_bias['ALBEDO'] = (albedo_bias['ALBEDO_BIN'].str.split(r'\D',
+                                                                  expand=True)
+                                 .iloc[:, [2, 5]]
+                                 .astype(float).mean(axis=1))/10
+
+        # Make figures
+        for f in ['Total', 'Filtered']:
+            d = albedo_bias[albedo_bias['FILTER'] == f]
+            fig, ax = fp.get_figax(aspect=1.75)
+            ax.errorbar(d['ALBEDO'], d['mean'], yerr=d['std'], color=fp.color(4))
+            ax.set_xticks(np.arange(0, 1, 0.2))
+            ax = fp.add_labels(ax, 'Albedo', 'Model - Observation')
+            ax = fp.add_title(ax, 'Albedo Bias in Prior Run')
+            fp.save_fig(fig, plot_dir, 'prior_albedo_bias_%s' % f.lower())
