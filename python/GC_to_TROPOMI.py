@@ -472,7 +472,7 @@ if __name__ == '__main__':
         #                           TROPOMI['dry_air_subcolumns'].values,
         #                           newmap['GC_CH4'], newmap['GC_WEIGHT'])
 
-        # And now get the GEOS-Chem stratospheric subcolumn
+        # # And now get the GEOS-Chem stratospheric subcolumn
         GC_base_strat = apply_avker(TROPOMI['column_AK'].values,
                                     TROPOMI['methane_profile_apriori'].values,
                                     TROPOMI['dry_air_subcolumns'].values,
