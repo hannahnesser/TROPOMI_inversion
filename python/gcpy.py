@@ -10,6 +10,9 @@ import pickle
 import math
 from scipy.stats import linregress
 
+from os.path import join
+from os import listdir
+
 # Plotting
 import matplotlib.pyplot as plt
 from matplotlib import rcParams, colorbar, colors
@@ -57,6 +60,15 @@ def load_obj(name):
 ## -------------------------------------------------------------------------##
 def rmse(diff):
     return np.sqrt(np.mean(diff**2))
+
+def group_data(data, groupby, quantity='DIFF',
+                stats=['count', 'mean', 'std', rmse]):
+    return data.groupby(groupby).agg(stats)[quantity].reset_index()
+
+def comparison_stats(xdata, ydata):
+    m, b, r, p, err = linregress(xdata.flatten(), ydata.flatten())
+    bias = (ydata - xdata).mean()
+    return m, b, r, bias
 
 ## -------------------------------------------------------------------------##
 ## Grid functions
@@ -127,6 +139,52 @@ def fill_GC_first_hour(data):
     data = xr.concat([data0, data], dim='time')
 
     return data
+
+## -------------------------------------------------------------------------##
+## Planeflight functions
+## -------------------------------------------------------------------------##
+STD_PF_COLS = ['POINT', 'TYPE', 'YYYYMMDD', 'HHMM', 'LAT', 'LON', 'PRESS',
+               'OBS', 'T-IND', 'P-I', 'I-IND', 'J-IND', 'TRA_001']
+
+def load_pf(file, pf_cols=STD_PF_COLS):
+    data = pd.read_csv(file, usecols=pf_cols,
+                       sep='[\s]{1,20}',
+                       engine='python')
+    return data
+
+def load_all_pf(files, data_dir, pf_cols=STD_PF_COLS):
+    tot = pd.DataFrame(columns=pf_cols)
+    for f in np.sort(files):
+        data = load_pf(join(data_dir, f), pf_cols)
+        tot = pd.concat([tot, data], sort=False)
+    return tot
+
+def process_pf(pf_df):
+    # Rename
+    pf_df = pf_df.rename(columns={'TRA_001' : 'MOD'})
+
+    # Get rid of non physical points
+    pf_df = pf_df[pf_df['MOD'] > 0]
+
+    # Adjust units
+    pf_df['MOD'] *= 1e9
+
+    # Set data types
+    for col in ['POINT', 'P-I', 'I-IND', 'J-IND']:
+        pf_df[col] = pf_df[col].astype(int)
+
+    # Throw out data without pressure measurements
+    pf_df = pf_df.loc[pf_df['PRESS'] > 0]
+
+    # Add a difference column
+    pf_df['DIFF'] = pf_df['MOD'] - pf_df['OBS']
+
+    return pf_df
+
+def group_by_gridbox(pf_df):
+    pf_gr = pf_df.groupby(['P-I', 'I-IND', 'J-IND']).mean()
+    pf_gr = pf_gr[['OBS', 'MOD']].reset_index()
+    return pf_gr
 
 ## -------------------------------------------------------------------------##
 ## Plotting functions : state vectors
@@ -244,10 +302,20 @@ def plot_state_grid(data, rows, cols, clusters_plot,
 ## -------------------------------------------------------------------------##
 ## Plotting functions : comparison
 ## -------------------------------------------------------------------------##
-def comparison_stats(xdata, ydata):
-    m, b, r, p, err = linregress(xdata.flatten(), ydata.flatten())
-    bias = (ydata - xdata).mean()
-    return m, b, r, bias
+def add_stats_text(ax, r, bias):
+    if r**2 <= 0.99:
+        ax.text(0.05, 0.9, r'R = %.2f' % r,
+                fontsize=config.LABEL_FONTSIZE*config.SCALE,
+                transform=ax.transAxes)
+    else:
+        ax.text(0.05, 0.9, r'R $>$ 0.99',
+                fontsize=config.LABEL_FONTSIZE*fp.SCALE,
+                transform=ax.transAxes)
+    ax.text(0.05, 0.875, 'Bias = %.2f' % bias,
+            fontsize=config.LABEL_FONTSIZE*config.SCALE,
+            transform=ax.transAxes,
+            va='top')
+    return ax
 
 def plot_comparison_hexbin(xdata, ydata, cbar, stats, **kw):
     cbar_kwargs = kw.pop('cbar_kwargs', {})
@@ -277,18 +345,7 @@ def plot_comparison_hexbin(xdata, ydata, cbar, stats, **kw):
     # Print information about R2 on the plot
     if stats:
         _, _, r, bias = comparison_stats(xdata, ydata)
-        if r**2 <= 0.99:
-            ax.text(0.05, 0.9, r'R = %.2f' % r,
-                    fontsize=config.LABEL_FONTSIZE*config.SCALE,
-                    transform=ax.transAxes)
-        else:
-            ax.text(0.05, 0.9, r'R $>$ 0.99',
-                    fontsize=config.LABEL_FONTSIZE*fp.SCALE,
-                    transform=ax.transAxes)
-        ax.text(0.05, 0.875, 'Bias = %.2f' % bias,
-                fontsize=config.LABEL_FONTSIZE*config.SCALE,
-                transform=ax.transAxes,
-                va='top')
+        ax = add_stats_text(ax, r, bias)
 
     if cbar:
         cbar_title = cbar_kwargs.pop('title', '')
@@ -298,6 +355,32 @@ def plot_comparison_hexbin(xdata, ydata, cbar, stats, **kw):
         return fig, ax, cbar
     else:
         return fig, ax, c
+
+def plot_comparison_scatter(xdata, ydata, stats, **kw):
+    fig_kwargs = kw.pop('fig_kwargs', {})
+    lims = kw.pop('lims', None)
+
+    fig, ax = fp.get_figax(**fig_kwargs)
+    ax.set_aspect('equal')
+
+    # Get data limits
+    xlim, ylim, xy, dmin, dmax = fp.get_square_limits(xdata, ydata, lims=lims)
+
+    # Plot hexbin
+    kw['color'] = kw.pop('color', fp.color(4))
+    kw['s'] = kw.pop('s', 3)
+    c = ax.scatter(xdata, ydata, **kw)
+
+    # Aesthetics
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+
+    # Print information about R2 on the plot
+    if stats:
+        _, _, r, bias = comparison_stats(xdata, ydata)
+        ax = add_stats_text(ax, r, bias)
+
+    return fig, ax, c
 
 def plot_comparison_dict(xdata, ydata, **kw):
     fig_kwargs = kw.pop('fig_kwargs', {})
@@ -327,7 +410,7 @@ def plot_comparison_dict(xdata, ydata, **kw):
 
     return fig, ax, cbar
 
-def plot_comparison(xdata, ydata, cbar=True, stats=True, **kw):
+def plot_comparison(xdata, ydata, cbar=True, stats=True, hexbin=True, **kw):
     # Get other plot labels
     xlabel = kw.pop('xlabel', '')
     ylabel = kw.pop('ylabel', '')
@@ -337,9 +420,10 @@ def plot_comparison(xdata, ydata, cbar=True, stats=True, **kw):
 
     if type(ydata) == dict:
         fig, ax, c = plot_comparison_dict(xdata, ydata, **kw)
-
-    else:
+    elif hexbin:
         fig, ax, c = plot_comparison_hexbin(xdata, ydata, cbar, stats, **kw)
+    else:
+        fig, ax, c = plot_comparison_scatter(xdata, ydata, stats, **kw)
 
     # Aesthetics
     ax = fp.plot_one_to_one(ax)

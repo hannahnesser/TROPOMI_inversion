@@ -67,6 +67,7 @@ if CalculateInversionQuantities:
                      delim_whitespace=True, header=0,
                      usecols=['I', 'J', 'GOSAT', 'model', 'S_OBS'])
     k = load_obj(join(data_dir, 'kA.pkl')).T
+    rat =
 
     # Now we will filter
     # Define filters

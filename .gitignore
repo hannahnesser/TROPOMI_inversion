@@ -25,3 +25,6 @@ python/__pycache__
 
 # DS store
 **.DS_Store
+
+# planeflight files
+prior/plane_logs/*
