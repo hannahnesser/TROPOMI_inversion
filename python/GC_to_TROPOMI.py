@@ -434,7 +434,7 @@ if __name__ == '__main__':
 
         # create an empty matrix to store TROPOMI CH4, GC CH4,
         # lon, lat, II, and JJ (GC indices)
-        temp_obs_GC=np.zeros([NN, 12],dtype=np.float32)
+        temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
 
         #================================
         #--- now compute sensitivity ---
@@ -472,13 +472,6 @@ if __name__ == '__main__':
         #                           TROPOMI['dry_air_subcolumns'].values,
         #                           newmap['GC_CH4'], newmap['GC_WEIGHT'])
 
-        # # And now get the GEOS-Chem stratospheric subcolumn
-        GC_base_strat = apply_avker(TROPOMI['column_AK'].values,
-                                    TROPOMI['methane_profile_apriori'].values,
-                                    TROPOMI['dry_air_subcolumns'].values,
-                                    newmap['GC_CH4'], newmap['GC_WEIGHT'],
-                                    filt=(TROPOMI['pressures_mid'] < 200))
-
         # Save out values
         # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
         # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
@@ -493,7 +486,6 @@ if __name__ == '__main__':
         temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
         temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
         temp_obs_GC[:, 10] = GC_COL
-        temp_obs_GC[:, 11] = GC_base_strat
 
         result={}
         result['obs_GC'] = temp_obs_GC

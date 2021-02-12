@@ -168,15 +168,11 @@ if Analysis:
         data['FILTER'] = (data['BLENDED_ALBEDO'] < 1)
 
         # Subset data
-        data = data[['MONTH', 'LON', 'LAT', 'OBS', 'MOD', 'MOD_STRAT',
+        data = data[['MONTH', 'LON', 'LAT', 'OBS', 'MOD',
                      'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'FILTER']]
-
-        # Add troposphere column
-        data['MOD_TROP'] = data['MOD'] - data['MOD_STRAT']
 
         # Calculate model - observation
         data['DIFF'] = data['MOD'] - data['OBS']
-        data['DIFF_TROP'] = data['MOD_TROP'] - data['OBS']
 
         # Calculate the nearest latitude & longitude center
         data['LAT_CENTER'] = lats[gc.nearest_loc(data['LAT'].values, lats)]
