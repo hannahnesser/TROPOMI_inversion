@@ -20,14 +20,13 @@ import matplotlib.pyplot as plt
 Analysis = True
 
 # Do bias correction?
-BiasCorrection = False
+BiasCorrection = True
 
 # Does a bias corrected file exist?
-BiasCorrected = True
-bias_corrected_data = '2019_bias_corrected.pkl'
+BiasCorrected = False
 
 # Make plots?
-Plots = True
+Plots = False
 ScatterPlot = True
 SpatialBiasPlot = True
 LatBiasPlot = True
@@ -37,10 +36,27 @@ AlbedoBiasPlot = True
 # Perform planeflight analysis?
 PlaneFlight = False
 
+
+# Set years, months, and dates
+year = 2019
+months = np.arange(1, 12, 1) # Excluding December for now
+days = np.arange(1, 32, 1)
+
+pf_year = 2018
+pf_months = [5]
+
+# Files
+files = f'{year}.pkl'
+# files = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+#          for mm in months for dd in days]
+# bias_corrected_data = '2019_bias_corrected.pkl'
+pf_files = 'plane.log.YYYYMMDD'
+
+
 # Set directories (this needs to be amended)
 if Analysis:
     # analysis_code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-    # analysis_data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/ProcessedDir'
+    # analysis_data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir'
     # processed_data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/SummaryDir'
     # analysis_processed_data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/SummaryDir'
     analysis_code_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/python'
@@ -63,16 +79,8 @@ if PlaneFlight:
     pf_plot_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/plots'
 
 # Define file name format
-files = 'YYYYMMDD_GCtoTROPOMI.pkl'
-pf_files = 'plane.log.YYYYMMDD'
+# files = 'YYYYMMDD_GCtoTROPOMI.pkl'
 
-# Set years, months, and dates
-year = 2019
-months = np.arange(1, 12, 1) # Excluding December for now
-days = np.arange(1, 32, 1)
-
-pf_year = 2018
-pf_months = [5]
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
@@ -126,7 +134,7 @@ if Analysis:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    if bias_corrected_data is None:
+    if type(files) == list:
         data = np.array([]).reshape(0, 13)
         for m in months:
             print('Analyzing data for month %d' % m)
@@ -150,46 +158,48 @@ if Analysis:
                 new_data = np.insert(new_data, 12, m, axis=1) # add month
 
                 data = np.concatenate((data, new_data))
+    else:
+        data = gc.load_obj(join(data_dir, files))
 
-        ## ----------------------------------------- ##
-        ## Basic data formatting
-        ## ----------------------------------------- ##
-        # Create a dataframe from the data
-        data = pd.DataFrame(data, columns=['OBS', 'MOD', 'LON', 'LAT',
-                                           'iGC', 'jGC', 'PRECISION',
-                                           'ALBEDO_SWIR', 'ALBEDO_NIR',
-                                           'AOD', 'MOD_COL', 'MOD_STRAT',
-                                           'MONTH'])
+    ## ----------------------------------------- ##
+    ## Basic data formatting
+    ## ----------------------------------------- ##
+    # Create a dataframe from the data
+    data = pd.DataFrame(data, columns=['OBS', 'MOD', 'LON', 'LAT',
+                                       'iGC', 'jGC', 'PRECISION',
+                                       'ALBEDO_SWIR', 'ALBEDO_NIR',
+                                       'AOD', 'MOD_COL', 'MOD_STRAT',
+                                       'MONTH'])
 
-        # Create a column for the blended albedo filter
-        data['BLENDED_ALBEDO'] = tp.blended_albedo(data,
-                                                   data['ALBEDO_SWIR'],
-                                                   data['ALBEDO_NIR'])
-        data['FILTER'] = (data['BLENDED_ALBEDO'] < 1)
+    # Create a column for the blended albedo filter
+    data['BLENDED_ALBEDO'] = tp.blended_albedo(data,
+                                               data['ALBEDO_SWIR'],
+                                               data['ALBEDO_NIR'])
+    data['FILTER'] = (data['BLENDED_ALBEDO'] < 1)
 
-        # Subset data
-        data = data[['MONTH', 'LON', 'LAT', 'OBS', 'MOD',
-                     'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'FILTER']]
+    # Subset data
+    data = data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT', 'OBS', 'MOD',
+                 'PRECISION', 'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'FILTER']]
 
-        # Calculate model - observation
-        data['DIFF'] = data['MOD'] - data['OBS']
+    # Calculate model - observation
+    data['DIFF'] = data['MOD'] - data['OBS']
 
-        # Calculate the nearest latitude & longitude center
-        data['LAT_CENTER'] = lats[gc.nearest_loc(data['LAT'].values, lats)]
-        data['LON_CENTER'] = lons[gc.nearest_loc(data['LON'].values, lons)]
+    # # Calculate the nearest latitude & longitude center
+    # data['LAT_CENTER'] = lats[gc.nearest_loc(data['LAT'].values, lats)]
+    # data['LON_CENTER'] = lons[gc.nearest_loc(data['LON'].values, lons)]
 
-        # Group the difference between model and observation by latitude bin
-        data['LAT_BIN'] = pd.cut(data['LAT'], lat_bins)
+    # Group the difference between model and observation by latitude bin
+    data['LAT_BIN'] = pd.cut(data['LAT'], lat_bins)
 
-        # Group by albedo bin
-        data['ALBEDO_BIN'] = pd.cut(data['ALBEDO_SWIR'], albedo_bins)
+    # Group by albedo bin
+    data['ALBEDO_BIN'] = pd.cut(data['ALBEDO_SWIR'], albedo_bins)
 
-        # Save the data
-        gc.save_obj(data, join(processed_data_dir, '%d.pkl' % year))
+    # Save the data
+    gc.save_obj(data, join(processed_data_dir, '%d.pkl' % year))
 
-        # Create a dictionary of total and filtered data
-        data_dict = {'Total' : data, 'Filtered' : data[data['FILTER']]}
-        suffix = ''
+    # Create a dictionary of total and filtered data
+    data_dict = {'Total' : data, 'Filtered' : data[data['FILTER']]}
+    suffix = ''
 
     else:
         data = gc.load_obj(join(data_dir, bias_corrected_data))

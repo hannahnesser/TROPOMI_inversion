@@ -61,6 +61,9 @@ def load_obj(name):
 def rmse(diff):
     return np.sqrt(np.mean(diff**2))
 
+def add_quad(data):
+    return np.sqrt((data**2).sum())
+
 def group_data(data, groupby, quantity='DIFF',
                 stats=['count', 'mean', 'std', rmse]):
     return data.groupby(groupby).agg(stats)[quantity].reset_index()
