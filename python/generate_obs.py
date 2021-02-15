@@ -7,6 +7,9 @@ Inputs:
                     after processing to apply the TROPOMI averaging kernel.
                     The data has not yet been filtered or bias corrected
                     other than removing the qa < 0.5 data.
+
+                    The data can either be a list of files or an individual,
+                    concatenated file
 '''
 
 from os.path import join
@@ -310,12 +313,6 @@ if calculate_so:
 
     print('Sigma Squared : ', var['VAR'].values)
     print('RRSD : ', var['RRSD'].values)
-
-
-    # data_grid = xr.Dataset(data_grid)
-
-    # file_name = '%04d_spatial_summary%s.nc' % (year, suffix)
-    # data_grid.to_netcdf(join(processed_data_dir, file_name))
 
 ## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities

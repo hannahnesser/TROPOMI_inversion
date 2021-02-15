@@ -93,6 +93,17 @@ def adjust_grid_bounds(lat_min, lat_max, lat_delta,
     lon_max = lon_max - lon_delta*buffer[2] + lon_delta/2
     return [lat_min, lat_max], [lon_min, lon_max]
 
+def subset_data_latlon(data, lat_min, lat_max, lon_min, lon_max):
+    '''
+    This function subsets a given dataset (in xarray form, with
+    latitude and longitude variables lat and lon, respectively)
+    to a given lat lon grid.
+    '''
+    data = data.where((data.lat > lat_min) & (data.lat < lat_max) &
+                      (data.lon > lon_min) & (data.lon < lon_max),
+                      drop=True)
+    return data
+
 def create_gc_grid(lat_min, lat_max, lat_delta,
                    lon_min, lon_max, lon_delta,
                    centers=True, return_xarray=True):
