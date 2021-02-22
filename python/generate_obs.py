@@ -25,25 +25,27 @@ import pandas as pd
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
+# Local preferences
 base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python'
 data_dir = base_dir + 'inversion_data'
+output_dir = base_dir + 'inversion_data'
 plot_dir = base_dir + 'plots'
 
 # # Cannon preferences
-# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_old/'
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-# data_dir = base_dir + 'ProcessedDir'
-# output_dir = base_dir + 'SummaryDir'
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = f'{base_dir}SummaryDir'
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
 months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-prior_run = f'{year}.pkl'
-# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-#              for mm in months for dd in days]
+# prior_run = f'{year}.pkl'
+prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+             for mm in months for dd in days]
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
@@ -55,7 +57,7 @@ remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
 analyze_biases = False
-calculate_so = True
+calculate_so = False
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
