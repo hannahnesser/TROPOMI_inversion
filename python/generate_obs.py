@@ -39,7 +39,7 @@ plot_dir = base_dir + 'plots'
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
-months = np.arange(1, 12, 1) # excluding December for now
+months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
 prior_run = f'{year}.pkl'
 # prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
@@ -154,6 +154,7 @@ if filter_on_blended_albedo:
     data = data[data['BLENDED_ALBEDO'] < blended_albedo_threshold]
     print(f'Data is filtered on blended albedo < {blended_albedo_threshold}.')
 
+
 if remove_latitudinal_bias:
     # Correct the latitudinal bias
     coef = p.polyfit(data['LAT'], data['DIFF'], deg=1)
@@ -161,6 +162,12 @@ if remove_latitudinal_bias:
     data['MOD'] -= bias_correction
     data['DIFF'] -= bias_correction
     print(f'Data has latitudinal bias removed.')
+
+# Save out result
+if filter_on_blended_albedo or remove_latitudinal_bias:
+    gc.save_obj(data, join(data_dir, f'{year}_corrected.pkl'))
+
+# Save out
 
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
@@ -303,25 +310,38 @@ if calculate_so:
     # average observations as obs_month.pkl
     # average precision as prec_month.pkl
 
-    # Now calculate the gridded variance and relative standard deviation
-    # of the residual error
+    # Now calculate the gridded variance and standard deviation of the
+    # residual error. The standard deviation is weighted by the number
+    # of observations in a grid cell because this will decrease the
+    # error in a grid cell.
     # (sigma_squared and rrsd, respectively, in ZQ's code)
     data = pd.merge(data, avg_err, on=groupby, how='left')
     data['VAR'] = (data['RES_ERR'] - data['AVG_RES_ERR'])**2
-    var = data.groupby(groupby).mean()[['VAR', 'OBS']].reset_index()
-    var['RRSD'] = var['VAR']**0.5/var['OBS']
+    var = data.groupby(groupby).mean()[['VAR']].reset_index() # removed 'OBS'
+    # var = var.rename(columns={'OBS' : 'AVG_OBS'})
+    var['STD'] = var['VAR']**0.5#/var['OBS']
 
-    print('Sigma Squared : ', var['VAR'].values)
-    print('RRSD : ', var['RRSD'].values)
+    print('Variance : ', var['VAR'].values)
+    print('Standard Deviation : ', var['STD'].values)
+
+    # Merge these final variances back into the data (first removing
+    # the initial variance calculation, since this was an intermediary)
+    data = data.drop(columns=['VAR'])
+    data = pd.merge(data, var, on=groupby, how='left')
+
+    # Where the variance calculated by the residual error method is less
+    # than the precision squared value calculated above, set the error equal
+    # to precision squared
+    cond = data['VAR'] < data['PREC_SQ']
+    data['SO'] = data['VAR']
+    data['SO'].loc[cond] = data['PREC_SQ'][cond]
 
 ## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities
 ## ------------------------------------------------------------------------ ##
-# y = data['OBS']
-# gc.save_obj(join(data_dir, y), 'y.pkl')
+gc.save_obj(data['OBS'], join(data_dir, 'y.pkl'))
+gc.save_obj(data['MOD'], join(data_dir, 'kxa.pkl'))
+gc.save_obj(data['SO'], join(data_dir, 'so.pkl'))
 
-# Kxa = data['MOD']
-# gc.save_obj(join(data_dir, Kxa), 'Kxa.pkl')
-
-# print(data)
+# # print(data)
 print('=== CODE COMPLETE ====')

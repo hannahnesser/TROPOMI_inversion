@@ -135,7 +135,7 @@ def nearest_loc(data, compare_data):
     return np.abs(compare_data[:, None] - data[None, :]).argmin(axis=0)
 
 ## -------------------------------------------------------------------------##
-## GEOS-Chem fixing functions
+## GEOS-Chem correction functions
 ## -------------------------------------------------------------------------##
 def fill_GC_first_hour(data):
     '''
@@ -153,6 +153,65 @@ def fill_GC_first_hour(data):
     data = xr.concat([data0, data], dim='time')
 
     return data
+
+## -------------------------------------------------------------------------##
+## GEOS-Chem output-processing functions
+## -------------------------------------------------------------------------##
+def load_files(*files, **kwargs):
+    '''
+    A function that will load one or more files
+    '''
+    if len(files) > 1:
+        # Open files
+        files = [f for f in files if f in listdir(kwargs['data_dir'])]
+        data = xr.open_mfdataset(files)
+    else:
+        data = xr.open_dataset(files[0])
+
+    return data
+
+## -------------------------------------------------------------------------##
+## HEMCO input functions
+## -------------------------------------------------------------------------##
+def define_HEMCO_std_attributes(data, name=None):
+    '''
+    This function defines the attributes for time, lat, and lon,
+    the standard GEOS-Chem dimensions. It currently doesn't have the
+    capacity to define level attributes.
+    '''
+    print('Remember to define the following attributes for non-standard')
+    print('variables:')
+    print(' - title (global)')
+    print(' - long_name')
+    print(' - units')
+
+    # Check if time is in the dataset and, if not, add it
+    if 'time' not in data.coords:
+        data = data.expand_dims('time')
+
+    # Convert to dataset
+    if type(data) != xr.core.dataset.Dataset:
+        assert name is not None, 'Name is not provided for dataset.'
+        data = data.to_dataset(name=name)
+
+    # Set time, lat, and lon attributes
+    data.time.attrs = {'long_name' : 'Time',
+                       'units' : 'hours since 2009-01-01 00:00:00',
+                       'calendar' : 'standard'}
+    data.lat.attrs = {'long_name': 'latitude', 'units': 'degrees_north'}
+    data.lon.attrs = {'long_name': 'longitude', 'units': 'degrees_east'}
+    return data
+
+def define_HEMCO_var_attributes(data, var, long_name, units):
+    data[var].attrs = {'long_name' : long_name, 'units' : units}
+    return data
+
+def save_HEMCO_netcdf(data, data_dir, file_name):
+    encoding = {'_FillValue' : None, 'dtype' : 'float32'}
+    var = {k : encoding for k in data.keys()}
+    coord = {k : encoding for k in data.coords}
+    var.update(coord)
+    data.to_netcdf(join(data_dir, file_name), encoding=var)
 
 ## -------------------------------------------------------------------------##
 ## Planeflight functions
@@ -199,119 +258,6 @@ def group_by_gridbox(pf_df):
     pf_gr = pf_df.groupby(['P-I', 'I-IND', 'J-IND']).mean()
     pf_gr = pf_gr[['OBS', 'MOD']].reset_index()
     return pf_gr
-
-## -------------------------------------------------------------------------##
-## Plotting functions : state vectors
-## -------------------------------------------------------------------------##
-def plot_state(data, clusters_plot, default_value=0, cbar=True, **kw):
-        # Match the data to lat/lon data
-    data = match_data_to_clusters(data, clusters_plot, default_value)
-
-    # Plot
-    fig, ax, c = plot_state_format(data, default_value, cbar, **kw)
-    return fig, ax, c
-
-def match_data_to_clusters(data, clusters, default_value=0):
-    result = clusters.copy()
-    c_array = result.values
-    c_idx = np.where(c_array > 0)
-    c_val = c_array[c_idx]
-    row_idx = [r for _, r, _ in sorted(zip(c_val, c_idx[0], c_idx[1]))]
-    col_idx = [c for _, _, c in sorted(zip(c_val, c_idx[0], c_idx[1]))]
-    idx = (row_idx, col_idx)
-
-    d_idx = np.where(c_array == 0)
-
-    c_array[c_idx] = data
-    c_array[d_idx] = default_value
-    result.values = c_array
-
-    return result
-
-def plot_state_format(data, default_value=0, cbar=True, **kw):
-    # Get kw
-    title = kw.pop('title', '')
-    kw['cmap'] = kw.get('cmap', 'viridis')
-    kw['vmin'] = kw.get('vmin', data.min())
-    kw['vmax'] = kw.get('vmax', data.max())
-    kw['add_colorbar'] = False
-    cbar_kwargs = kw.pop('cbar_kwargs', {})
-    label_kwargs = kw.pop('label_kwargs', {})
-    title_kwargs = kw.pop('title_kwargs', {})
-    map_kwargs = kw.pop('map_kwargs', {})
-    fig_kwargs = kw.pop('fig_kwargs', {})
-
-    # Get figure
-    lat_range = [data.lat.min(), data.lat.max()]
-    lon_range = [data.lon.min(), data.lon.max()]
-    fig, ax  = fp.get_figax(maps=True, lats=lat_range, lons=lon_range,
-                            **fig_kwargs)
-
-    # Plot data
-    c = data.plot(ax=ax, snap=True, **kw)
-
-    # Set limits
-    ax.set_xlim(lon_range)
-    ax.set_ylim(lat_range)
-
-    # Add title and format map
-    ax = fp.add_title(ax, title, **title_kwargs)
-    ax = fp.format_map(ax, data.lat, data.lon, **map_kwargs)
-
-    if cbar:
-        cbar_title = cbar_kwargs.pop('title', '')
-        cax = fp.add_cax(fig, ax)
-        cb = fig.colorbar(c, ax=ax, cax=cax, **cbar_kwargs)
-        cb = fp.format_cbar(cb, cbar_title)
-        return fig, ax, cb
-    else:
-        return fig, ax, c
-
-def plot_state_grid(data, rows, cols, clusters_plot,
-                    cbar=True, **kw):
-    assert rows*cols == data.shape[1], \
-           'Dimension mismatch: Data does not match number of plots.'
-
-    try:
-        kw.get('vmin')
-        kw.get('vmax')
-    except KeyError:
-        print('vmin and vmax not supplied. Plots may have inconsistent\
-               colorbars.')
-
-    try:
-        titles = kw.pop('titles')
-        vmins = kw.pop('vmins')
-        vmaxs = kw.pop('vmaxs')
-    except KeyError:
-        pass
-
-    fig_kwargs = kw.pop('fig_kwargs', {})
-    fig, ax = fp.get_figax(rows, cols, maps=True,
-                           lats=clusters_plot.lat, lons=clusters_plot.lon,
-                            **fig_kwargs)
-
-    if cbar:
-        cax = fp.add_cax(fig, ax)
-        cbar_kwargs = kw.pop('cbar_kwargs', {})
-
-    for i, axis in enumerate(ax.flatten()):
-        kw['fig_kwargs'] = {'figax' : [fig, axis]}
-        try:
-            kw['title'] = titles[i]
-            kw['vmin'] = vmins[i]
-            kw['vmax'] = vmaxs[i]
-        except NameError:
-            pass
-
-        fig, axis, c = plot_state(data[:,i], clusters_plot,
-                                  cbar=False, **kw)
-    if cbar:
-        cbar_title = cbar_kwargs.pop('title', '')
-        c = fig.colorbar(c, cax=cax, **cbar_kwargs)
-        c = fp.format_cbar(c, cbar_title)
-
-    return fig, ax, c
 
 ## -------------------------------------------------------------------------##
 ## Plotting functions : comparison

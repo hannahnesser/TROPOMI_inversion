@@ -67,7 +67,7 @@ if CalculateInversionQuantities:
                      delim_whitespace=True, header=0,
                      usecols=['I', 'J', 'GOSAT', 'model', 'S_OBS'])
     k = load_obj(join(data_dir, 'kA.pkl')).T
-    rat =
+    # rat =
 
     # Now we will filter
     # Define filters
@@ -182,6 +182,7 @@ if CalculateEigenvectors:
 
     for i in range(10):
         pert = p.match_data_to_clusters(prolongation[:, i], clusters, 0)
+        print(pert)
         pert = pert.to_dataset(name='evec_pert')
 
         # Define HEMCO attributes
