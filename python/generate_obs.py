@@ -120,7 +120,7 @@ if type(prior_run) == list:
     # Create a dataframe from the data
     columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
                'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD',
-               'MOD_COL', 'MOD_STRAT', 'MONTH']
+               'MOD_COL', 'MONTH']
     data = pd.DataFrame(data, columns=columns)
 
     # Calculate blended albedo
