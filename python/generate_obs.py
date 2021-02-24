@@ -26,26 +26,26 @@ import pandas as pd
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # # Local preferences
-# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-# code_dir = base_dir + 'python'
-# data_dir = base_dir + 'inversion_data'
-# output_dir = base_dir + 'inversion_data'
-# plot_dir = base_dir + 'plots'
+base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+code_dir = base_dir + 'python'
+data_dir = base_dir + 'observations'
+output_dir = base_dir + 'inversion_data'
+plot_dir = base_dir + 'plots'
 
-# Cannon preferences
-base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_old/'
-code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-data_dir = f'{base_dir}ProcessedDir'
-output_dir = f'{base_dir}SummaryDir'
+# # Cannon preferences
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_old/'
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = f'{base_dir}SummaryDir'
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
-months = np.arange(1, 13, 1) # excluding December for now
+months = np.arange(1, 12, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-# prior_run = f'{year}.pkl'
-prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-             for mm in months for dd in days]
+prior_run = f'{year}.pkl'
+# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+#              for mm in months for dd in days]
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
@@ -57,7 +57,7 @@ remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
 analyze_biases = False
-calculate_so = False
+calculate_so = True
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
@@ -137,25 +137,37 @@ if type(prior_run) == list:
     data['DIFF'] = data['MOD'] - data['OBS']
 
     # Save the data out
-    gc.save_obj(data, join(output_dir, f'{year}.pkl'))
+    gc.save_obj(data, join(data_dir, f'{year}.pkl'))
 
 else:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
     data = gc.load_obj(join(data_dir, prior_run))
-    data = data.rename(columns={'PRECISION' : 'PREC'}) # Temporary fix
 
+# Subset for months
+data = data[data['MONTH'] <= months.max()]
 print('Data is loaded.')
 
 ## ----------------------------------------- ##
 ## Additional data corrections
 ## ----------------------------------------- ##
 if filter_on_blended_albedo:
+    # Plot values
+    for m in months:
+        d = data[data['MONTH'] == m]
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
+                   c=fp.color(4), s=3, alpha=0.5)
+        ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
+        ax.set_xlim(0, 2)
+        ax = fp.add_title(ax, cal.month_name[m])
+        ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
+        fp.save_fig(fig, plot_dir, f'blended_albedo_filter_{m:02d}{suffix}')
+
     # Apply the blended albedo filter
     data = data[data['BLENDED_ALBEDO'] < blended_albedo_threshold]
     print(f'Data is filtered on blended albedo < {blended_albedo_threshold}.')
-
 
 if remove_latitudinal_bias:
     # Correct the latitudinal bias
@@ -168,8 +180,6 @@ if remove_latitudinal_bias:
 # Save out result
 if filter_on_blended_albedo or remove_latitudinal_bias:
     gc.save_obj(data, join(data_dir, f'{year}_corrected.pkl'))
-
-# Save out
 
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
@@ -211,19 +221,6 @@ if analyze_biases:
     ## -------------------------------------------------------------------- ##
     ## Plot data
     ## -------------------------------------------------------------------- ##
-    ## ----------------------------------------- ##
-    ## Determine blended albedo filter value
-    ## ----------------------------------------- ##
-    for m in months:
-        d = data[data['MONTH'] == m]
-        fig, ax = fp.get_figax(aspect=1.75)
-        ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-                   c=fp.color(4), s=3, alpha=0.5)
-        ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
-        ax.set_xlim(0, 2)
-        ax = fp.add_title(ax, cal.month_name[m])
-        ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
-        fp.save_fig(fig, plot_dir, f'blended_albedo_filter_{m}{suffix}')
 
     ## ----------------------------------------- ##
     ## Scatter plot
@@ -319,31 +316,31 @@ if calculate_so:
     # (sigma_squared and rrsd, respectively, in ZQ's code)
     data = pd.merge(data, avg_err, on=groupby, how='left')
     data['VAR'] = (data['RES_ERR'] - data['AVG_RES_ERR'])**2
-    var = data.groupby(groupby).mean()[['VAR']].reset_index() # removed 'OBS'
-    # var = var.rename(columns={'OBS' : 'AVG_OBS'})
-    var['STD'] = var['VAR']**0.5#/var['OBS']
-
-    print('Variance : ', var['VAR'].values)
-    print('Standard Deviation : ', var['STD'].values)
+    var = data.groupby(groupby).mean()[['VAR', 'OBS']].reset_index()
+    var = var.rename(columns={'OBS' : 'AVG_OBS'})
+    var['STD'] = var['VAR']**0.5/var['AVG_OBS']
 
     # Merge these final variances back into the data (first removing
     # the initial variance calculation, since this was an intermediary)
     data = data.drop(columns=['VAR'])
     data = pd.merge(data, var, on=groupby, how='left')
 
+    # Scale by the observations
+    data['VAR'] = data['VAR']*data['OBS']
+
     # Where the variance calculated by the residual error method is less
     # than the precision squared value calculated above, set the error equal
     # to precision squared
     cond = data['VAR'] < data['PREC_SQ']
     data['SO'] = data['VAR']
-    data['SO'].loc[cond] = data['PREC_SQ'][cond]
+    data['SO'][cond] = data['PREC_SQ'][cond]
 
 ## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities
 ## ------------------------------------------------------------------------ ##
-gc.save_obj(data['OBS'], join(data_dir, 'y.pkl'))
-gc.save_obj(data['MOD'], join(data_dir, 'kxa.pkl'))
-gc.save_obj(data['SO'], join(data_dir, 'so.pkl'))
+gc.save_obj(data['OBS'], join(output_dir, 'y.pkl'))
+gc.save_obj(data['MOD'], join(output_dir, 'kxa.pkl'))
+gc.save_obj(data['SO'], join(output_dir, 'so.pkl'))
 
 # # print(data)
 print('=== CODE COMPLETE ====')

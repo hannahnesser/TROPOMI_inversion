@@ -35,6 +35,7 @@ days = np.arange(1, 32, 1)
 
 # Files
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{year}.nc'
+obs_file = f'{base_dir}observations/{year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters_0.25x0.3125.nc'
 
 # Which analyses do you wish to perform?
@@ -75,6 +76,7 @@ lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
 ## ------------------------------------------------------------------------ ##
 clusters = xr.open_dataset(cluster_file)
 nstate = int(clusters['Clusters'].max().values)
+print(f'Number of state vector elements : {nstate}')
 
 ## ------------------------------------------------------------------------ ##
 ## Load and process the emissions
@@ -99,9 +101,7 @@ emis = emis[['EmisCH4_Total', 'AREA']]
 # Join in clusters]
 emis['Clusters'] = clusters['Clusters'].squeeze()
 
-## ------------------------------------------------------------------------ ##
 ## Calculate emissions in ppbv
-## ------------------------------------------------------------------------ ##
 # Make assumptions about atmospheric conditions
 Mair = 0.02897 # Molar mass of air, kg/mol
 P = 1e5 # Surface pressure, Pa
@@ -114,12 +114,35 @@ emis['EmisCH4_ppb'] = 1e9*Mair*emis['EmisCH4_Total']*g/(U*W*P)
 
 # Subset
 emis = emis[['Clusters', 'EmisCH4_ppb']]
+print(emis)
 
+## ------------------------------------------------------------------------ ##
+## Load and process the observations
+## ------------------------------------------------------------------------ ##
+obs = gc.load_obj(obs_file)[['LON', 'LAT']]
+nobs = int(obs.shape[0] + 1)
+print(f'Number of observations : {nobs}')
+
+# Find the indices that correspond to each observation (i.e. the grid
+# box in which each observation is found) (Yes, this information should
+# be contained in the iGC and jGC columns in obs_file, but stupidly
+# I don't have that information for the cluster files)
+print(obs.head())
+
+# # First, find the lat/lon corresponding to the grid box of the obs
+obs['LAT'] = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
+obs['LON'] = gc.nearest_loc(obs['LON'].values, emis.lat.values)
+
+# Then, find the cluster indices corresponding to those lat/lon
+# print(emis['Clusters'].sel(lat=obs['LAT'].values, lon=obs['LON'].values))
+tmp = emis['Clusters'].sel(lat=obs['LAT'].values, lon=obs['LON'].values)
+print('wahoo')
+print(tmp)
 ## ------------------------------------------------------------------------ ##
 ## Build the Jacobian
 ## ------------------------------------------------------------------------ ##
 # Create a row for each cluster number
-def calculate_zone_emissions(emissions, zone, fraction_to_zone):
+def get_zone_emissions(emissions, ncells, emis_fraction):
     '''
     This function calculates the emissions allocated to each grid cell in
     successive rings (zones) from the source grid cell. Zone 0 corresponds
@@ -127,23 +150,23 @@ def calculate_zone_emissions(emissions, zone, fraction_to_zone):
     source grid cell, zone 2 to the 16 grid cells surrounding zone 1, and
     so on.
     '''
-    if zone == 0:
-        ncells = 1
-    else:
-        ncells = 8*zone
-
-    return emissions*fraction_to_zone/ncells
+    # if zone == 0:
+    #     ncells = 1
+    # else:
+    return (emissions*emis_fraction/ncells).values.reshape(-1,)
 
 def get_latlon_bounds(data, source_loc, zone):
     # Get lower boundary (for lat or lon)
     try:
-        mini = data.where(data < source_loc, drop=True).values[-zone]
+        mini = np.sort(data.where(data <= source_loc, drop=True).values)[::-1]
+        mini = mini[zone]
     except:
         mini = source_loc
 
     # Get upper boundary (for lat or lon)
     try:
-        maxi = data.where(data >= source_loc, drop=True).values[zone]
+        maxi = np.sort(data.where(data >= source_loc, drop=True).values)
+        maxi = maxi[zone]
     except:
         maxi = source_loc
 
@@ -158,12 +181,14 @@ def get_latlon_edges(data, source, mini, maxi):
         cond = (data == mini) | (data == maxi)
     return cond
 
-def get_zone_nstate_indices(data, nstate_idx, zone):
+def get_zone_indices(data, grid_cell_index, zone):
     '''
     ...
+    In theory this could be vectorized but it's not worth it for a
+    one time loop.
     '''
     # Get the latitude and longitude of the source grid box
-    source = data.where(data['Clusters'] == nstate_idx, drop=True)
+    source = data.where(data['Clusters'] == grid_cell_index, drop=True)
     source_lat = source.lat.values[0]
     source_lon = source.lon.values[0]
 
@@ -174,27 +199,58 @@ def get_zone_nstate_indices(data, nstate_idx, zone):
     # Get the state vector indices corresponding to the upper and
     # lower latitude values
     lat_cond = get_latlon_edges(data.lat, source_lat, lat_min, lat_max)
-    tmp = data.where(lat_cond & (data.lon >= lon_min) & (data.lon <= lon_max),
-                     drop=True)#['Clusters'].values
+    tmp1 = data.where(lat_cond & (data.lon >= lon_min) & (data.lon <= lon_max),
+                      drop=True)['Clusters'].values
 
     # Get the state vector indices corresponding to the upper and lower
     # longitude values
     lon_cond = get_latlon_edges(data.lon, source_lon, lon_min, lon_max)
-    tmp2 = data.where(lon_cond & (data.lat > lat_min) & (data.lat < lat_max),
-                      drop=True)
-    # if
-    print(lat_min, source_lat, lat_max)
-    print(lon_min, source_lon, lon_max)
-    print(tmp, tmp2)
+    tmp2 = data.where(lon_cond & (data.lat >= lat_min) & (data.lat <= lat_max),
+                      drop=True)['Clusters'].values
 
+    # Combine the two lists and remove duplicates and zeros (corresponding
+    # to grid cells that are not included in the state vector)
+    idx = np.concatenate((tmp1.reshape(-1,), tmp2.reshape(-1,)))
+    idx = idx[idx > 0]
+    idx = np.unique(idx).astype(int)
 
-for i in range(10): # range(nstate):
-    # we should construct the jacobian for each month. Probably easier than
-    # dealing with the memory constraints
-    # emis[]
-    ...
+    return idx
 
-get_zone_nstate_indices(emis, 1, 1)
+## First, obtain a column for every grid box. We will then duplicate
+## rows where there are multiple observations for a given grid box and time.
+
+# Initialize the nstate x nstate x months Jacobian
+k_nstate = np.zeros((nstate, nstate, len(months)))
+
+# Set the fractional mass decrease
+f = np.array([10, 6, 4, 3, 2.5])
+f /= f.sum()
+
+# Iterate through the columns
+for i in range(1, 10):#nstate+1):
+    # Get the emissions for that grid cell
+    emis_i = emis.where(emis['Clusters'] == i, drop=True)['EmisCH4_ppb']
+
+    # Iterate through the zones
+    for z in range(len(f)):
+        # Get state vector indices corresponding to each grid box in the
+        # given zone
+        idx_z = get_zone_indices(emis, grid_cell_index=i, zone=z)
+
+        # Calculate the emissions to be allocated to each of the grid cells
+        # in the zone if there are grid cells in the zone
+        if len(idx_z) > 0:
+            emis_z = get_zone_emissions(emis_i, ncells=len(idx_z),
+                                        emis_fraction=f[z])
+
+        # Place those emissions in the nstate x nstate x months Jacobian
+        k_nstate[idx_z, i, :] = emis_z
+
+    # Keep track of progress
+    if i % 1000 == 0:
+        print(f'{i:-6d}/{nstate}', '-'*int(i/nstate))
+
+# print(get_zone_indices(emis, 1, 0))
 
 # fig1, ax = plt.subplots()
 # temp.plot(vmin=0, vmax=1e-8, ax=ax, cmap='viridis')
