@@ -22,10 +22,16 @@ import matplotlib.pyplot as plt
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-code_dir = base_dir + 'python/'
-data_dir = base_dir + 'inversion_data/'
-plot_dir = base_dir + 'plots/'
+# # Local
+# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+# code_dir = f'{base_dir}python/'
+# data_dir = f'{base_dir}inversion_data/'
+# plot_dir = f'{base_dir}plots/'
+
+# Cannon
+base_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
+code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
+data_dir = f'{base_dir}inversion_data/'
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
@@ -37,6 +43,7 @@ days = np.arange(1, 32, 1)
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{year}.nc'
 obs_file = f'{base_dir}observations/{year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters_0.25x0.3125.nc'
+k_nstate = f'{data_dir}k0_nstate.pkl'#None
 
 # Which analyses do you wish to perform?
 
@@ -114,12 +121,11 @@ emis['EmisCH4_ppb'] = 1e9*Mair*emis['EmisCH4_Total']*g/(U*W*P)
 
 # Subset
 emis = emis[['Clusters', 'EmisCH4_ppb']]
-print(emis)
 
 ## ------------------------------------------------------------------------ ##
 ## Load and process the observations
 ## ------------------------------------------------------------------------ ##
-obs = gc.load_obj(obs_file)[['LON', 'LAT']]
+obs = gc.load_obj(obs_file)[['LON', 'LAT', 'MONTH']]
 nobs = int(obs.shape[0] + 1)
 print(f'Number of observations : {nobs}')
 
@@ -127,17 +133,15 @@ print(f'Number of observations : {nobs}')
 # box in which each observation is found) (Yes, this information should
 # be contained in the iGC and jGC columns in obs_file, but stupidly
 # I don't have that information for the cluster files)
-print(obs.head())
 
-# # First, find the lat/lon corresponding to the grid box of the obs
-obs['LAT'] = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
-obs['LON'] = gc.nearest_loc(obs['LON'].values, emis.lat.values)
+# First, find the cluster number of the grid box of the obs
+lat_idx = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
+lon_idx = gc.nearest_loc(obs['LON'].values, emis.lon.values)
+obs['CLUSTER'] = emis['Clusters'].values[lat_idx, lon_idx]
 
-# Then, find the cluster indices corresponding to those lat/lon
-# print(emis['Clusters'].sel(lat=obs['LAT'].values, lon=obs['LON'].values))
-tmp = emis['Clusters'].sel(lat=obs['LAT'].values, lon=obs['LON'].values)
-print('wahoo')
-print(tmp)
+# Format
+obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
+
 ## ------------------------------------------------------------------------ ##
 ## Build the Jacobian
 ## ------------------------------------------------------------------------ ##
@@ -216,54 +220,67 @@ def get_zone_indices(data, grid_cell_index, zone):
 
     return idx
 
-## First, obtain a column for every grid box. We will then duplicate
-## rows where there are multiple observations for a given grid box and time.
+if k_nstate is None:
+    ## First, obtain a column for every grid box. We will then duplicate
+    ## rows where there are multiple observations for a given grid box and time.
 
-# Initialize the nstate x nstate x months Jacobian
-k_nstate = np.zeros((nstate, nstate, len(months)))
+    # Initialize the nstate x nstate x months Jacobian
+    k_nstate = np.zeros((nstate, nstate, len(months)), dtype=np.float32)
 
-# Set the fractional mass decrease
-f = np.array([10, 6, 4, 3, 2.5])
-f /= f.sum()
+    # Set the fractional mass decrease
+    f = np.array([10, 6, 4, 3, 2.5])
+    f /= f.sum()
 
-# Iterate through the columns
-for i in range(1, 10):#nstate+1):
-    # Get the emissions for that grid cell
-    emis_i = emis.where(emis['Clusters'] == i, drop=True)['EmisCH4_ppb']
+    # Iterate through the columns
+    for i in range(1, nstate+1):
+        # Get the emissions for that grid cell
+        emis_i = emis.where(emis['Clusters'] == i, drop=True)['EmisCH4_ppb']
 
-    # Iterate through the zones
-    for z in range(len(f)):
-        # Get state vector indices corresponding to each grid box in the
-        # given zone
-        idx_z = get_zone_indices(emis, grid_cell_index=i, zone=z)
+        # Iterate through the zones
+        for z in range(len(f)):
+            # Get state vector indices corresponding to each grid box in the
+            # given zone
+            idx_z = get_zone_indices(emis, grid_cell_index=i, zone=z)
 
-        # Calculate the emissions to be allocated to each of the grid cells
-        # in the zone if there are grid cells in the zone
-        if len(idx_z) > 0:
-            emis_z = get_zone_emissions(emis_i, ncells=len(idx_z),
-                                        emis_fraction=f[z])
+            # Calculate the emissions to be allocated to each of the grid cells
+            # in the zone if there are grid cells in the zone
+            if len(idx_z) > 0:
+                emis_z = get_zone_emissions(emis_i, ncells=len(idx_z),
+                                            emis_fraction=f[z])
 
-        # Place those emissions in the nstate x nstate x months Jacobian
-        k_nstate[idx_z, i, :] = emis_z
+            # Place those emissions in the nstate x nstate x months Jacobian
+            k_nstate[i-1, idx_z-1, :] = emis_z
 
-    # Keep track of progress
-    if i % 1000 == 0:
-        print(f'{i:-6d}/{nstate}', '-'*int(i/nstate))
+        # Keep track of progress
+        if i % 1000 == 0:
+            print(f'{i:-6d}/{nstate}', '-'*int(20*i/nstate))
 
-# print(get_zone_indices(emis, 1, 0))
+    # Save
+    gc.save_obj(k_nstate, join(data_dir, f'k0_nstate.pkl'))
 
-# fig1, ax = plt.subplots()
-# temp.plot(vmin=0, vmax=1e-8, ax=ax, cmap='viridis')
+else:
+    k_nstate = gc.load_obj(join(data_dir, f'k0_nstate.pkl'))
 
-# fig2, ax = plt.subplots()
-# # emis = emis.mean(dim='time')
-# emis['EmisCH4_Total'].plot(vmin=0, vmax=1e-8, ax=ax, cmap='viridis')
-# plt.show()
+# Delete superfluous memory
+del(emis)
+del(clusters)
+obs = obs[['CLUSTER', 'MONTH']]
 
-# print((temp - emis['EmisCH4_Total']).max())
-# # print((temp - emis['EmisCH4_Total'] + emis['EmisCH4_SoilAbsorb']).max())
-# print(temp == emis['EmisCH4_Total'])
+# Now create a Jacobian for each chunk of 30,000 observations (the full
+# Jacobian is something like 3e6 x 2e4 and requires 300 GB even with float32)
+i = 0
+count = 0
+nchunk = int(3e4)
+state_vector_elements_remain = True
+while state_vector_elements_remain:
+    print(count)
+    o = obs[i:i+nchunk]
+    k_m = k_nstate[o['CLUSTER'], :, o['MONTH']]
+    gc.save_obj(k_m, join(data_dir, f'k0_{count:03d}.pkl'))
+    i += nchunk
+    count += 1
+    if i > nobs:
+        state_vector_elements_remain = False
 
-# Adjust units to Mg/km2/yr
-# emis *= 0.001*60*60*24*365*1000*1000
+# EASY CHECK: USE THIS SCRIPT TO BUILD THE JACOBIAN FOR MY TEST CASE
 

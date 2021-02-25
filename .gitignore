@@ -27,7 +27,7 @@ python/__pycache__
 **.DS_Store
 
 # planeflight files
-prior/plane_logs/*
+observations/plane_logs/*
 
 # Everything in scratch
 scratch/

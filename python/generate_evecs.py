@@ -15,21 +15,38 @@ import pandas as pd
 from scipy.linalg import eigh
 
 ## -------------------------------------------------------------------------##
-## Plotting defaults
+## Set user preferences
 ## -------------------------------------------------------------------------##
+# Cannon
+base_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
+code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
+data_dir = f'{base_dir}inversion_data/'
+
+# The prior_run can either be a list of files or a single file
+# with all of the data for simulation
+year = 2019
+months = np.arange(1, 12, 1) # excluding December for now
+days = np.arange(1, 32, 1)
+
+# Files
+emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{year}.nc'
+obs_file = f'{base_dir}observations/{year}_corrected.pkl'
+cluster_file = f'{data_dir}clusters_0.25x0.3125.nc'
+k_nstate = f'{data_dir}k0_nstate.pkl'#None
+
+# Which analyses do you wish to perform?
+
+# Information on the grid
+lat_bins = np.arange(10, 65, 5)
+lat_min = 9.75
+lat_max = 60
+lat_delta = 0.25
+lon_min = -130
+lon_max = -60
+lon_delta = 0.3125
+buffers = [3, 3, 3, 3]
 
 
-## -------------------------------------------------------------------------##
-## Define save and load functions
-## -------------------------------------------------------------------------##
-
-def save_obj(obj, name ):
-        with open(name , 'wb') as f:
-                pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-def load_obj(name):
-        with open( name, 'rb') as f:
-                return pickle.load(f)
 
 ## -------------------------------------------------------------------------##
 ## Load data

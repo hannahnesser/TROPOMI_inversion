@@ -25,14 +25,14 @@ import pandas as pd
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# # Local preferences
+# Local preferences
 base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python'
 data_dir = base_dir + 'observations'
 output_dir = base_dir + 'inversion_data'
 plot_dir = base_dir + 'plots'
 
-# # Cannon preferences
+# Cannon preferences
 # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_old/'
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 # data_dir = f'{base_dir}ProcessedDir'
@@ -46,6 +46,7 @@ days = np.arange(1, 32, 1)
 prior_run = f'{year}.pkl'
 # prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
 #              for mm in months for dd in days]
+# prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
@@ -57,7 +58,7 @@ remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
 analyze_biases = False
-calculate_so = True
+calculate_so = False
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
@@ -104,7 +105,7 @@ if type(prior_run) == list:
             continue
 
         # Get the month
-        month = file[4:6]
+        month = int(file[4:6])
 
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
@@ -322,7 +323,7 @@ if calculate_so:
 
     # Merge these final variances back into the data (first removing
     # the initial variance calculation, since this was an intermediary)
-    data = data.drop(columns=['VAR'])
+    data = data.drop(columns=['VAR', 'AVG_OBS'])
     data = pd.merge(data, var, on=groupby, how='left')
 
     # Scale by the observations
@@ -336,11 +337,102 @@ if calculate_so:
     data['SO'][cond] = data['PREC_SQ'][cond]
 
 ## ------------------------------------------------------------------------ ##
+## Plots
+## ------------------------------------------------------------------------ ##
+# Observations grouped on the grid
+# Get information on the lats and lons (edges of the domain)
+lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
+                                     lon_min, lon_max, lon_delta, buffers)
+
+# Generate a grid on which to save out average difference
+lats, lons = gc.create_gc_grid(*lat_e, lat_delta, *lon_e, lon_delta,
+                               centers=False, return_xarray=False)
+
+# Save nearest latitude and longitude centers
+data['LAT_CENTER'] = lats[gc.nearest_loc(data['LAT'].values, lats)]
+data['LON_CENTER'] = lons[gc.nearest_loc(data['LON'].values, lons)]
+
+# (and seasonally, just to show the variability in coverage)
+data['SEASON'] = 'DJF'
+data['SEASON'].loc[data['MONTH'].isin([3, 4, 5])] = 'MAM'
+data['SEASON'].loc[data['MONTH'].isin([6, 7, 8])] = 'JJA'
+data['SEASON'].loc[data['MONTH'].isin([9, 10, 11])] = 'SON'
+
+# Also calculate seasonal errors
+# We calculate the mean bias, observation, and precision on the GEOS-Chem
+# grid, accounting for the squaring of the precision
+groupby = ['LAT_CENTER', 'LON_CENTER', 'SEASON']
+group_quantities = ['DIFF', 'OBS', 'PREC_SQ']
+data['PREC_SQ'] = data['PREC']**2
+res_err = data.groupby(groupby).mean()[group_quantities].reset_index()
+res_err['PREC_SQ'] **= 0.5
+
+# Rename the columns
+res_err = res_err.rename(columns={'DIFF' : 'AVG_DIFF',
+                                  'OBS' : 'AVG_OBS',
+                                  'PREC_SQ' : 'AVG_PREC'})
+
+# Merge this data back into the original data frame
+data = pd.merge(data, res_err, on=groupby, how='left')
+
+# Subtract the bias from the difference to calculate the residual error
+# This is equivalent to ZQ's eps quantity
+data['RES_ERR'] = data['DIFF'] - data['AVG_DIFF']
+
+# Next we calculate the average residual error
+avg_err = data.groupby(groupby).mean()['RES_ERR'].reset_index()
+avg_err = avg_err.rename(columns={'RES_ERR' : 'AVG_RES_ERR'})
+# ZQ saves out:
+# average residual error as err_month.pkl,
+# average observations as obs_month.pkl
+# average precision as prec_month.pkl
+
+# Now calculate the gridded variance and standard deviation of the
+# residual error. The standard deviation is weighted by the number
+# of observations in a grid cell because this will decrease the
+# error in a grid cell.
+# (sigma_squared and rrsd, respectively, in ZQ's code)
+data = pd.merge(data, avg_err, on=groupby, how='left')
+data['VAR'] = (data['RES_ERR'] - data['AVG_RES_ERR'])**2
+d_p = data.groupby(groupby).mean()[['VAR', 'OBS']]#.reset_index()
+d_p = d_p.rename(columns={'OBS' : 'AVG_OBS'})
+d_p['STD'] = d_p['VAR']**0.5#/var['AVG_OBS']
+d_p = d_p[['STD', 'AVG_OBS']].to_xarray().rename({'LAT_CENTER' : 'lats',
+                                                     'LON_CENTER' : 'lons'})
+
+fig, ax = fp.get_figax(rows=1, cols=4, maps=True, lats=d_p.lats, lons=d_p.lons)
+fig_e, ax_e = fp.get_figax(rows=1, cols=4, maps=True,
+                           lats=d_p.lats, lons=d_p.lons)
+for i, s in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
+    d = d_p.where(d_p.SEASON == s, drop=True)
+
+    c = d['AVG_OBS'].plot(ax=ax[i], cmap='plasma', vmin=1800, vmax=1950,
+                          add_colorbar=False)
+    c_e = d['STD'].plot(ax=ax_e[i], cmap='plasma', vmin=0, vmax=40,
+                        add_colorbar=False)
+    for j, axis in enumerate([ax[i], ax_e[i]]):
+        axis = fp.format_map(axis, d.lats, d.lons)
+        axis = fp.add_title(axis, s)
+cax = fp.add_cax(fig, ax)
+cb = fig.colorbar(c, ax=ax, cax=cax)
+cb = fp.format_cbar(cb, 'XCH4 (ppb)')
+fp.save_fig(fig, plot_dir, f'observations{suffix}')
+
+cax_e = fp.add_cax(fig_e, ax_e)
+cb_e = fig.colorbar(c_e, ax=ax_e, cax=cax_e)
+cb_e = fp.format_cbar(cb_e, 'St. Dev. (ppb)')
+fp.save_fig(fig_e, plot_dir, f'errors{suffix}')
+
+## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities
 ## ------------------------------------------------------------------------ ##
 gc.save_obj(data['OBS'], join(output_dir, 'y.pkl'))
 gc.save_obj(data['MOD'], join(output_dir, 'kxa.pkl'))
-gc.save_obj(data['SO'], join(output_dir, 'so.pkl'))
+if calculate_so:
+    gc.save_obj(data['SO'], join(output_dir, 'so.pkl'))
+
+# print(data['OBS'])
+# print(data['SO'])
 
 # # print(data)
 print('=== CODE COMPLETE ====')

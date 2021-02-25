@@ -44,7 +44,7 @@ ScaleEigenvectors = False
 # ScaleFactor = 100
 CompareResults = True
 
-data_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ'
+data_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_JDM'
 RF = 0.001 # DON'T CHANGE
 
 ## -------------------------------------------------------------------------##

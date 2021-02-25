@@ -134,7 +134,7 @@ def create_gc_grid(lat_min, lat_max, lat_delta,
 def nearest_loc(data, compare_data):
     indices = np.abs(compare_data.reshape(-1, 1) -
                      data.reshape(1, -1)).argmin(axis=0)
-    return compare_data[indices]
+    return indices
 
 ## -------------------------------------------------------------------------##
 ## GEOS-Chem correction functions
