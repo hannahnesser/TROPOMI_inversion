@@ -26,17 +26,17 @@ import pandas as pd
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Local preferences
-base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-code_dir = base_dir + 'python'
-data_dir = base_dir + 'observations'
-output_dir = base_dir + 'inversion_data'
-plot_dir = base_dir + 'plots'
+# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+# code_dir = base_dir + 'python'
+# data_dir = base_dir + 'observations'
+# output_dir = base_dir + 'inversion_data'
+# plot_dir = base_dir + 'plots'
 
 # Cannon preferences
-# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_old/'
-# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-# data_dir = f'{base_dir}ProcessedDir'
-# output_dir = f'{base_dir}SummaryDir'
+base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+data_dir = f'{base_dir}ProcessedDir'
+output_dir = f'{base_dir}SummaryDir'
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
