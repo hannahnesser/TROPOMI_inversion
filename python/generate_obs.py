@@ -37,6 +37,7 @@ base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/T
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 data_dir = f'{base_dir}ProcessedDir'
 output_dir = f'{base_dir}SummaryDir'
+plot_dir = None
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
@@ -139,7 +140,7 @@ if type(prior_run) == list:
 
     # Print out some statistics
     cols = ['LAT', 'LON', 'MONTH', 'MOD']
-    print('MODEL MAXIMUM : ', data[data['MOD'] == data['MOD'].max][cols])
+    print('MODEL MAXIMUM : ', data['MOD'].max())
 
     # Save the data out
     gc.save_obj(data, join(data_dir, f'{year}.pkl'))
@@ -159,16 +160,18 @@ print('Data is loaded.')
 ## ----------------------------------------- ##
 if filter_on_blended_albedo:
     # Plot values
-    for m in months:
-        d = data[data['MONTH'] == m]
-        fig, ax = fp.get_figax(aspect=1.75)
-        ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-                   c=fp.color(4), s=3, alpha=0.5)
-        ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
-        ax.set_xlim(0, 2)
-        ax = fp.add_title(ax, cal.month_name[m])
-        ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
-        fp.save_fig(fig, plot_dir, f'blended_albedo_filter_{m:02d}{suffix}')
+    if plot_dir is not None:
+        for m in months:
+            d = data[data['MONTH'] == m]
+            fig, ax = fp.get_figax(aspect=1.75)
+            ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
+                       c=fp.color(4), s=3, alpha=0.5)
+            ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
+            ax.set_xlim(0, 2)
+            ax = fp.add_title(ax, cal.month_name[m])
+            ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
+            fp.save_fig(fig, plot_dir,
+                        f'blended_albedo_filter_{m:02d}{suffix}')
 
     # Apply the blended albedo filter
     data = data[data['BLENDED_ALBEDO'] < blended_albedo_threshold]
