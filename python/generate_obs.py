@@ -26,27 +26,27 @@ import pandas as pd
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Local preferences
-# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-# code_dir = base_dir + 'python'
-# data_dir = base_dir + 'observations'
-# output_dir = base_dir + 'inversion_data'
-# plot_dir = base_dir + 'plots'
+base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+code_dir = base_dir + 'python'
+data_dir = base_dir + 'observations'
+output_dir = base_dir + 'inversion_data'
+plot_dir = base_dir + 'plots'
 
-# Cannon preferences
-base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
-code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-data_dir = f'{base_dir}ProcessedDir'
-output_dir = f'{base_dir}SummaryDir'
+# # Cannon preferences
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = f'{base_dir}SummaryDir'
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
 months = np.arange(1, 12, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-prior_run = f'{year}.pkl'
-# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-#              for mm in months for dd in days]
-# prior_run.sort()
+# prior_run = f'{year}.pkl'
+prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+             for mm in months for dd in days]
+prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
@@ -136,6 +136,10 @@ if type(prior_run) == list:
 
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
+
+    # Print out some statistics
+    cols = ['LAT', 'LON', 'MONTH', 'MOD']
+    print('MODEL MAXIMUM : ', data[data['MOD'] == data['MOD'].max][cols])
 
     # Save the data out
     gc.save_obj(data, join(data_dir, f'{year}.pkl'))
