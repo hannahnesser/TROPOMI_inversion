@@ -82,11 +82,17 @@ if 'time' in emis.dims:
     # Average over time
     emis = emis.mean(dim='time')
 
+# Print a summary table
+summ = emis[[var for var in emis.keys() if var[:4] == 'Emis']]*emis['AREA']
+summ *= 1e-9*(60*60*24*365) # Adjust units to Tg/yr
+summ = summ.sum(dim=['lat', 'lon'])
+print(summ)
+
 # Select total emissions
 emis = emis['EmisCH4_Total']
 
 # Adjust units to Mg/km2/yr
-emis *= 0.001*60*60*24*365*1000*1000
+emis *= 1e-3*(60*60*24*365)*(1000*1000)
 
 print('The minimum positive emission is',
       np.abs(emis.where(emis > 0).min()).values)

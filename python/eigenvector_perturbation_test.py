@@ -45,18 +45,7 @@ ScaleEigenvectors = False
 CompareResults = True
 
 data_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_JDM'
-RF = 0.001 # DON'T CHANGE
-
-## -------------------------------------------------------------------------##
-## Define save and load functions
-## -------------------------------------------------------------------------##
-def save_obj(obj, name ):
-        with open(name , 'wb') as f:
-                pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-def load_obj(name):
-        with open( name, 'rb') as f:
-                return pickle.load(f)
+RF = 0.05
 
 ## -------------------------------------------------------------------------##
 ## Read data
