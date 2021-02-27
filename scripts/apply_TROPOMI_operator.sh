@@ -13,7 +13,7 @@
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 # Directories
-TROPOMI_DATA_DIR="/n/seasasfs02/hnesser/TROPOMI/downloads_14_14/"
+TROPOMI_DATA_DIR="/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
 GC_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir/"
 OUTPUT_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
 
