@@ -22,9 +22,10 @@ months = [5]
 days = np.arange(1, 32, 1)
 
 base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-code_dir = f'{base_dir}python'
-data_dir = f'{base_dir}prior/plane_logs'
-plot_dir = f'{base_dir}plots'
+code_dir = f'{base_dir}python/'
+data_dir = f'{base_dir}observations/plane_logs/'
+raw_data_dir = f'{data_dir}raw/ict_files/'
+plot_dir = f'{base_dir}plots/'
 pf_files = [f'plane.log.{year}{mm:02d}{dd:02d}'
             for mm in months for dd in days]
 
@@ -57,7 +58,7 @@ import format_plots as fp
 ## Planeflight analysis
 ## -------------------------------------------------------------------------##
 ## ----------------------------------------- ##
-## Load data
+## Load the GEOS-Chem planeflight data
 ## ----------------------------------------- ##
 # If the pf files are a list, compile monthly files
 if type(pf_files) == list:
@@ -77,11 +78,21 @@ if type(pf_files) == list:
         pf = gc.process_pf(pf)
         pf_gr = gc.group_by_gridbox(pf)
 
+## ----------------------------------------- ##
+## Load the raw ATom data (for stratosphere)
+## ----------------------------------------- ##
+raw_files = [join(raw_data_dir, f) for f in listdir(join(raw_data_dir))
+             if isfile(join(join(raw_data_dir), f)) & (f[0] != '.')]
+raw_files.sort()
+
+cols = ['UTC_Start', 'UTC_Stop', 'G_LONG', 'G_LAT', 'P',
+        'CH4_NOAA', 'CO_NOAA', 'O3_CL']
+
         # NOTE: this data requires stratosphere analysis
 
     # Read in data with troposphere boolean flag
-    pf = pd.read_csv(join(data_dir, 'planeflight_total.csv'), index_col=0,
-                     low_memory=False)
+    # pf = pd.read_csv(join(data_dir, 'planeflight_total.csv'), index_col=0,
+    #                  low_memory=False)
 
     # Subset for troposphere
     pf = pf[pf['TROP']]

@@ -42,7 +42,7 @@ plot_dir = None
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
-months = np.arange(1, 12, 1) # excluding December for now
+months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
 # prior_run = f'{year}.pkl'
 prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
