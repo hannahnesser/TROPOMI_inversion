@@ -1,10 +1,19 @@
 from os.path import join
 from os import listdir
 import sys
+import math
 
 import pickle
 import numpy as np
 import xarray as xr
+
+# Plotting
+import matplotlib.pyplot as plt
+from matplotlib import rcParams, colorbar, colors
+from matplotlib.colors import LinearSegmentedColormap
+from scipy.ndimage import zoom
+import cartopy.crs as ccrs
+import cartopy
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -17,11 +26,14 @@ plot_dir = base_dir + 'plots'
 # The emissions can either be a list of files or a single file
 # with an annual average
 year = 2019
-months = np.arange(1, 12, 1) # excluding December for now
+months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
 
 # Files
-emis_file = f'{base_dir}/prior/total_emissions/HEMCO_diagnostics.{year}.nc'
+emis_file = [f'{base_dir}/prior/total_emissions/\
+HEMCO_diagnostics.{year:04d}{mm:02d}010000.nc'
+             for mm in months]
+# emis_file = f'{base_dir}/prior/total_emissions/HEMCO_diagnostics.{year}.nc'
 clusters = f'{data_dir}/clusters_0.25x0.3125.nc'
 
 # Set relative prior error covariance value
@@ -44,9 +56,9 @@ buffers = [3, 3, 3, 3]
 # Custom packages
 sys.path.append(code_dir)
 import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
+# config.SCALE = config.PRES_SCALE
+# config.BASE_WIDTH = config.PRES_WIDTH
+# config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
 import troppy as tp
 import invpy as ip
@@ -69,8 +81,6 @@ lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
 ## -------------------------------------------------------------------------##
 if type(emis_file) == list:
     # Open files
-    emis_file = [join(data_dir, f) for f in emis_file
-                 if f in listdir(data_dir)]
     emis = xr.open_mfdataset(emis_file)
 else:
     emis = xr.open_dataset(join(data_dir, emis_file))
@@ -82,17 +92,58 @@ if 'time' in emis.dims:
     # Average over time
     emis = emis.mean(dim='time')
 
+    # Save summary file
+    name = 'HEMCO_diagnostics.2019.nc'
+    emis.to_netcdf(f'{base_dir}/prior/total_emissions/{name}')
+
 # Print a summary table
 summ = emis[[var for var in emis.keys() if var[:4] == 'Emis']]*emis['AREA']
 summ *= 1e-9*(60*60*24*365) # Adjust units to Tg/yr
-summ = summ.sum(dim=['lat', 'lon'])
+summ = summ.sum(dim=['lat', 'lon']).values
 print(summ)
-
-# Select total emissions
-emis = emis['EmisCH4_Total']
 
 # Adjust units to Mg/km2/yr
 emis *= 1e-3*(60*60*24*365)*(1000*1000)
+
+## ---------------------------------- ##
+## Plot
+## ---------------------------------- ##
+if plot_dir is not None:
+    emissions = ['Wetlands', 'Livestock',
+                ['Coal', 'Oil', 'Gas'],
+                ['Wastewater', 'Landfills'],
+                ['Termites', 'Seeps', 'BiomassBurn', 'Lakes'],
+                ['Rice', 'OtherAnth']]
+    titles = ['Wetlands', 'Livestock', 'Coal, Oil, and\nNatural Gas',
+              'Wastewater\nand Landfills', 'Other Biogenic\nSources',
+              'Other Anthropogenic\nSources']
+
+    # Set colormap
+    colormap = fp.cmap_trans('viridis')
+
+    ncategory = len(emissions)
+    fig, ax = fp.get_figax(rows=2, cols=math.ceil(ncategory/2),
+                           maps=True, lats=emis.lat, lons=emis.lon)
+    plt.subplots_adjust(hspace=0.5)
+    cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
+    for i, axis in enumerate(ax.flatten()):
+        axis = fp.format_map(axis, lats=emis.lat, lons=emis.lon)
+        if type(emissions[i]) == str:
+            e = emis['EmisCH4_%s' % emissions[i]].squeeze()
+        elif type(emissions[i] == list):
+            e = sum(emis['EmisCH4_%s' % em].squeeze()
+                    for em in emissions [i])
+
+        c = e.plot(ax=axis, cmap=colormap, vmin=0, vmax=5,
+                   add_colorbar=False)
+        cb = fig.colorbar(c, cax=cax, ticks=np.arange(0, 6, 1))
+        cb = fp.format_cbar(cb, cbar_title=r'Emissions (Mg km$^2$ a$^{-1}$)')
+        axis = fp.add_title(axis, titles[i])
+
+    fp.save_fig(fig, plot_dir, 'prior_emissions_2019')
+
+# Select total emissions
+emis = emis['EmisCH4_Total']
 
 print('The minimum positive emission is',
       np.abs(emis.where(emis > 0).min()).values)

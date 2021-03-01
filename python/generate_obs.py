@@ -15,6 +15,7 @@ Inputs:
 from os.path import join
 from os import listdir
 import sys
+import copy
 import calendar as cal
 
 import xarray as xr
@@ -25,29 +26,29 @@ import pandas as pd
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# # Local preferences
-# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-# code_dir = base_dir + 'python'
-# data_dir = base_dir + 'observations'
-# output_dir = base_dir + 'inversion_data'
-# plot_dir = base_dir + 'plots'
+# Local preferences
+base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+code_dir = base_dir + 'python'
+data_dir = base_dir + 'observations'
+output_dir = base_dir + 'inversion_data'
+plot_dir = base_dir + 'plots'
 
-# Cannon preferences
-base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
-code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-data_dir = f'{base_dir}ProcessedDir'
-output_dir = f'{base_dir}SummaryDir'
-plot_dir = None
+# # Cannon preferences
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = f'{base_dir}SummaryDir'
+# plot_dir = None
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
 months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-# prior_run = f'{year}.pkl'
-prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-             for mm in months for dd in days]
-prior_run.sort()
+prior_run = f'{year}.pkl'
+# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+#              for mm in months for dd in days]
+# prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
@@ -58,8 +59,8 @@ albedo_bins = np.arange(0, 1.1, 0.1)
 remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
-analyze_biases = False
-calculate_so = False
+analyze_biases = True
+calculate_so = True
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
@@ -77,9 +78,9 @@ buffers = [3, 3, 3, 3]
 # Custom packages
 sys.path.append(code_dir)
 import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
+# config.SCALE = config.PRES_SCALE
+# config.BASE_WIDTH = config.PRES_WIDTH
+# config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
 import troppy as tp
 import format_plots as fp
@@ -174,8 +175,11 @@ if filter_on_blended_albedo:
                         f'blended_albedo_filter_{m:02d}{suffix}')
 
     # Apply the blended albedo filter
+    old_nobs = data.shape[0]
     data = data[data['BLENDED_ALBEDO'] < blended_albedo_threshold]
+    nobs = data.shape[0]
     print(f'Data is filtered on blended albedo < {blended_albedo_threshold}.')
+    print(f'    {100*nobs/old_nobs:.1f}% of data is preserved.')
 
 if remove_latitudinal_bias:
     # Correct the latitudinal bias
@@ -184,6 +188,7 @@ if remove_latitudinal_bias:
     data['MOD'] -= bias_correction
     data['DIFF'] -= bias_correction
     print(f'Data has latitudinal bias removed.')
+    print(f'    y = {coef[0]:.2f} + {coef[1]:.2f}x')
 
 # Save out result
 if filter_on_blended_albedo or remove_latitudinal_bias:
@@ -340,13 +345,17 @@ if calculate_so:
     # than the precision squared value calculated above, set the error equal
     # to precision squared
     cond = data['VAR'] < data['PREC_SQ']
-    data['SO'] = data['VAR']
-    data['SO'][cond] = data['PREC_SQ'][cond]
+    data.loc[:, 'SO'] = data['VAR']
+    data.loc[cond, 'SO'] = data.loc[cond, 'PREC_SQ']
 
 ## ------------------------------------------------------------------------ ##
 ## Plots
 ## ------------------------------------------------------------------------ ##
 if plot_dir is not None:
+    plot_data = copy.deepcopy(data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT',
+                                    'OBS', 'MOD', 'DIFF', 'PREC',
+                                    'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'SO']])
+
     # Observations grouped on the grid
     # Get information on the lats and lons (edges of the domain)
     lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
@@ -357,22 +366,24 @@ if plot_dir is not None:
                                    centers=False, return_xarray=False)
 
     # Save nearest latitude and longitude centers
-    data['LAT_CENTER'] = lats[gc.nearest_loc(data['LAT'].values, lats)]
-    data['LON_CENTER'] = lons[gc.nearest_loc(data['LON'].values, lons)]
+    lat_idx = gc.nearest_loc(plot_data['LAT'].values, lats)
+    plot_data.loc[:, 'LAT_CENTER'] = lats[lat_idx]
+    lon_idx = gc.nearest_loc(plot_data['LON'].values, lons)
+    plot_data.loc[:, 'LON_CENTER'] = lons[lon_idx]
 
     # (and seasonally, just to show the variability in coverage)
-    data['SEASON'] = 'DJF'
-    data['SEASON'].loc[data['MONTH'].isin([3, 4, 5])] = 'MAM'
-    data['SEASON'].loc[data['MONTH'].isin([6, 7, 8])] = 'JJA'
-    data['SEASON'].loc[data['MONTH'].isin([9, 10, 11])] = 'SON'
+    plot_data.loc[:, 'SEASON'] = 'DJF'
+    plot_data.loc[plot_data['MONTH'].isin([3, 4, 5]), 'SEASON'] = 'MAM'
+    plot_data.loc[plot_data['MONTH'].isin([6, 7, 8]), 'SEASON'] = 'JJA'
+    plot_data.loc[plot_data['MONTH'].isin([9, 10, 11]), 'SEASON'] = 'SON'
 
     # Also calculate seasonal errors
     # We calculate the mean bias, observation, and precision on the GEOS-Chem
     # grid, accounting for the squaring of the precision
     groupby = ['LAT_CENTER', 'LON_CENTER', 'SEASON']
     group_quantities = ['DIFF', 'OBS', 'PREC_SQ']
-    data['PREC_SQ'] = data['PREC']**2
-    res_err = data.groupby(groupby).mean()[group_quantities].reset_index()
+    plot_data['PREC_SQ'] = plot_data['PREC']**2
+    res_err = plot_data.groupby(groupby).mean()[group_quantities].reset_index()
     res_err['PREC_SQ'] **= 0.5
 
     # Rename the columns
@@ -380,29 +391,25 @@ if plot_dir is not None:
                                       'OBS' : 'AVG_OBS',
                                       'PREC_SQ' : 'AVG_PREC'})
 
-    # Merge this data back into the original data frame
-    data = pd.merge(data, res_err, on=groupby, how='left')
+    # Merge this plot_data back into the original plot_data frame
+    plot_data = pd.merge(plot_data, res_err, on=groupby, how='left')
 
     # Subtract the bias from the difference to calculate the residual error
     # This is equivalent to ZQ's eps quantity
-    data['RES_ERR'] = data['DIFF'] - data['AVG_DIFF']
+    plot_data['RES_ERR'] = plot_data['DIFF'] - plot_data['AVG_DIFF']
 
     # Next we calculate the average residual error
-    avg_err = data.groupby(groupby).mean()['RES_ERR'].reset_index()
+    avg_err = plot_data.groupby(groupby).mean()['RES_ERR'].reset_index()
     avg_err = avg_err.rename(columns={'RES_ERR' : 'AVG_RES_ERR'})
-    # ZQ saves out:
-    # average residual error as err_month.pkl,
-    # average observations as obs_month.pkl
-    # average precision as prec_month.pkl
 
     # Now calculate the gridded variance and standard deviation of the
     # residual error. The standard deviation is weighted by the number
     # of observations in a grid cell because this will decrease the
     # error in a grid cell.
     # (sigma_squared and rrsd, respectively, in ZQ's code)
-    data = pd.merge(data, avg_err, on=groupby, how='left')
-    data['VAR'] = (data['RES_ERR'] - data['AVG_RES_ERR'])**2
-    d_p = data.groupby(groupby).mean()[['VAR', 'OBS']]#.reset_index()
+    plot_data = pd.merge(plot_data, avg_err, on=groupby, how='left')
+    plot_data['VAR'] = (plot_data['RES_ERR'] - plot_data['AVG_RES_ERR'])**2
+    d_p = plot_data.groupby(groupby).mean()[['VAR', 'OBS']]#.reset_index()
     d_p = d_p.rename(columns={'OBS' : 'AVG_OBS'})
     d_p['STD'] = d_p['VAR']**0.5#/var['AVG_OBS']
     d_p = d_p[['STD', 'AVG_OBS']].to_xarray().rename({'LAT_CENTER' : 'lats',
@@ -415,9 +422,9 @@ if plot_dir is not None:
     for i, s in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
         d = d_p.where(d_p.SEASON == s, drop=True)
 
-        c = d['AVG_OBS'].plot(ax=ax[i], cmap='plasma', vmin=1800, vmax=1950,
+        c = d['AVG_OBS'].plot(ax=ax[i], cmap='plasma', vmin=1800, vmax=1900,
                               add_colorbar=False)
-        c_e = d['STD'].plot(ax=ax_e[i], cmap='plasma', vmin=0, vmax=40,
+        c_e = d['STD'].plot(ax=ax_e[i], cmap='plasma', vmin=0, vmax=25,
                             add_colorbar=False)
         for j, axis in enumerate([ax[i], ax_e[i]]):
             axis = fp.format_map(axis, d.lats, d.lons)
@@ -444,4 +451,6 @@ if calculate_so:
 # print(data['SO'])
 
 # # print(data)
+nobs = data['OBS'].shape[0]
+print(f'Number of observations : {nobs}')
 print('=== CODE COMPLETE ====')
