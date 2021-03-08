@@ -75,6 +75,7 @@ import format_plots as fp
 # removing the buffer grid cells)
 lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
                                      lon_min, lon_max, lon_delta, buffers)
+print(lat_e, lon_e)
 
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
@@ -99,8 +100,9 @@ if 'time' in emis.dims:
 # Print a summary table
 summ = emis[[var for var in emis.keys() if var[:4] == 'Emis']]*emis['AREA']
 summ *= 1e-9*(60*60*24*365) # Adjust units to Tg/yr
-summ = summ.sum(dim=['lat', 'lon']).values
-print(summ)
+summ = summ.sum(dim=['lat', 'lon'])
+for k in summ.keys():
+    print(f'{k:>20} {summ[k].values:.2f}')
 
 # Adjust units to Mg/km2/yr
 emis *= 1e-3*(60*60*24*365)*(1000*1000)

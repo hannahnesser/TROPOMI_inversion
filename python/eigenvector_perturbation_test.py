@@ -13,6 +13,7 @@ repetition.
 ## -------------------------------------------------------------------------##
 from os.path import join
 import os
+from copy import deepcopy
 os.environ['OMP_NUM_THREADS'] = '1'
 
 import numpy as np
@@ -22,6 +23,9 @@ import os
 import pandas as pd
 import math
 import numpy as np
+from scipy.linalg import eigh
+
+# Plotting
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 
@@ -29,6 +33,7 @@ import sys
 sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
 import inversion as inv
 import gcpy as gc
+import invpy as ip
 import format_plots as fp
 
 # os.environ['QT_QPA_PLATFORM'] = 'offscreen'
@@ -37,80 +42,62 @@ rcParams['text.usetex'] = False
 ## -------------------------------------------------------------------------##
 ## User preferences
 ## -------------------------------------------------------------------------##
-CalculateInversionQuantities = False
 CalculateEigenvectors = False
-ScaleEigenvectors = False
-# ScaleFactor = 5e-8
-# ScaleFactor = 100
 CompareResults = True
 
 data_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_JDM'
+run_dir = '/n/holyscratch01/jacob_lab/hnesser/eigenvector_perturbation_test_JDM/'
 RF = 0.05
+year = 2015
+evec_scaling = ['0', '1', '1e-6', '1e-7']
+prior_dir = join(run_dir, 'prior_dir')
+pert_dir = [join(run_dir, f'pert_dir_{s}') for s in evec_scaling]
 
 ## -------------------------------------------------------------------------##
-## Read data
-## -------------------------------------------------------------------------##
-if CalculateInversionQuantities:
-    rrsd = load_obj(join(data_dir, 'rrsd.pkl'))
-    gc = pd.read_csv(join(data_dir, 'gc_output'),
-                     delim_whitespace=True, header=0,
-                     usecols=['I', 'J', 'GOSAT', 'model', 'S_OBS'])
-    k = load_obj(join(data_dir, 'kA.pkl')).T
-    # rat =
-
-    # Now we will filter
-    # Define filters
-    k_idx = np.isfinite(k).all(axis=1)
-    gc_idx = np.isfinite(gc).all(axis=1)
-
-    # Apply
-    k = k[k_idx & gc_idx]
-    gc = gc[k_idx & gc_idx]
-
-    # Reshape error by applying indices from gc
-    so_vec = (rrsd[gc['J'] - 1, gc['I'] - 1]*gc['GOSAT']*1e9)**2
-    so_vec[~(so_vec > 0)] = (gc['S_OBS'][~(so_vec > 0)])*1e18
-    so_vec = so_vec.values
-
-    # Now save out some quantities
-    y_base = gc['model'].values*1e9
-    y = gc['GOSAT'].values*1e9
-    xa = np.ones(k.shape[1])
-    sa_vec = np.ones(k.shape[1])*0.5**2
-
-    # save out
-    save_obj(k, join(data_dir, 'k.pkl'))
-    save_obj(so_vec, join(data_dir, 'so_vec.pkl'))
-    save_obj(y_base, join(data_dir, 'y_base.pkl'))
-    save_obj(y, join(data_dir, 'y.pkl'))
-    save_obj(xa, join(data_dir, 'xa.pkl'))
-    save_obj(sa_vec, join(data_dir, 'sa_vec.pkl'))
-
-## -------------------------------------------------------------------------##
-## Load data
-## -------------------------------------------------------------------------##
-# This else statement isn't strictly correct--we don't always need to load
-# these quantities (i.e. if we have already calculated eigenvectors)
-else:
-    # Jacobian
-    k = load_obj(join(data_dir, 'k.pkl')).astype('float32')
-
-    # Native-resolution prior and prior error
-    xa = load_obj(join(data_dir, 'xa.pkl')).reshape(-1, 1).astype('float32')
-    sa_vec = load_obj(join(data_dir, 'sa_vec.pkl')).reshape(-1, 1).astype('float32')
-
-    # Vectorized observations and error
-    y = load_obj(join(data_dir, 'y.pkl')).reshape(-1, 1).astype('float32')
-    y_base = load_obj(join(data_dir, 'y_base.pkl')).reshape(-1, 1).astype('float32')
-    so_vec = load_obj(join(data_dir, 'so_vec.pkl')).reshape(-1, 1).astype('float32')
-
-## -------------------------------------------------------------------------##
-## Create inversion object
+## Calculate eigenvectors
 ## -------------------------------------------------------------------------##
 if CalculateEigenvectors:
+    # Read in observing system
+    k = xr.open_dataarray(join(data_dir, 'k.nc')).values.T
+    y = xr.open_dataarray(join(data_dir, 'y.nc')).values.reshape(-1, 1)
+    y_base = xr.open_dataarray(join(data_dir,
+                                    'y_base.nc')).values.reshape(-1, 1)
+    so_vec = xr.open_dataarray(join(data_dir,
+                                    'so_vec.nc')).values.reshape(-1, 1)
+
+    # Subset observing system
+    years = xr.open_dataarray(join(data_dir, 'y_year.nc'))
+    glint = xr.open_dataarray(join(data_dir, 'y_glint.nc'))
+    lats = xr.open_dataarray(join(data_dir, 'y_lat.nc'))
+    cond = ((lats < 60) & (years == 2015) & (glint < 0.5)).values
+    del(years)
+    del(glint)
+    del(lats)
+
+    k = k[cond, :]
+    y = y[cond]
+    y_base = y_base[cond]
+    so_vec = so_vec[cond]
+
+    # Force Jacobian to be positive
+    k[k < 0] = 0
+
+    # Save
+    gc.save_obj(k, join(data_dir, 'k.pkl'))
+
+    # Define dimensions
+    nobs, nstate = k.shape
+
+    # Read in prior
+    xa = np.ones((nstate, 1))
+    xa_abs = xr.open_dataarray(join(data_dir,
+                                    'xa_abs.nc')).values.reshape(-1, 1)
+    sa_vec = xr.open_dataarray(join(data_dir,
+                                    'sa_vec.nc')).values.reshape(-1, 1)
+
     # Create a true Reduced Rank Jacobian object
-    inv_zq = inv.ReducedRankJacobian(k, xa, sa_vec, y, y_base, so_vec)
-    inv_zq.rf = RF
+    true = inv.ReducedRankJacobian(k, xa, sa_vec, y, y_base, so_vec)
+    true.rf = RF
 
     # Delete the other items from memory
     del(k)
@@ -121,9 +108,9 @@ if CalculateEigenvectors:
     del(so_vec)
 
     # Save out the PPH
-    pph = (inv_zq.sa_vec**0.5)*inv_zq.k.T
-    pph = np.dot(pph, ((inv_zq.rf/inv_zq.so_vec)*pph.T))
-    save_obj(pph, join(data_dir, 'pph.pkl'))
+    pph = (true.sa_vec**0.5)*true.k.T
+    pph = np.dot(pph, ((true.rf/true.so_vec)*pph.T))
+    gc.save_obj(pph, join(data_dir, 'pph.pkl'))
 
     # Complete an eigendecomposition of the prior pre-
     # conditioned Hessian
@@ -152,8 +139,8 @@ if CalculateEigenvectors:
         evecs = np.real(evecs)
 
     # Calculate the prolongation and reduction operators
-    prolongation = (evecs * inv_zq.sa_vec**0.5).T
-    reduction = (1/inv_zq.sa_vec**0.5) * evecs.T
+    prolongation = (evecs * true.sa_vec**0.5).T
+    reduction = (1/true.sa_vec**0.5) * evecs.T
 
     # Saving result to our instance.
     print('Saving eigenvalues and eigenvectors.')
@@ -169,52 +156,30 @@ if CalculateEigenvectors:
     clusters = xr.open_dataarray(join(data_dir, 'clusters.nc'),
                                  decode_times=False)
 
-    for i in range(10):
-        pert = p.match_data_to_clusters(prolongation[:, i], clusters, 0)
-        print(pert)
-        pert = pert.to_dataset(name='evec_pert')
+    for i in range(3):
+        pert = ip.match_data_to_clusters(prolongation[:, i], clusters, 0)
 
         # Define HEMCO attributes
-        pert.attrs = {'Title' : 'Eigenvector perturbation %d for the construction of the Jacobian matrix for methane inversions' % i}
-        pert.time.attrs = {'long_name' : 'Time',
-                           'units' : 'hours since 2009-01-01 00:00:00',
-                           'calendar' : 'standard'}
-        pert.lat.attrs = {'long_name': 'latitude', 'units': 'degrees_north'}
-        pert.lon.attrs = {'long_name': 'longitude', 'units': 'degrees_east'}
-        pert['evec_pert'].attrs = {'long_name' : 'Eigenvector perturbations',
-                                   'units' : 'kg/m2/s'}
+        long_name = 'Eigenvector perturbations'
+        pert = gc.define_HEMCO_std_attributes(pert, name='evec_pert')
+        # Just for the old version of the model, remove the time dimension
+        pert = pert.squeeze()
+        pert = gc.define_HEMCO_var_attributes(pert, 'evec_pert',
+                                              long_name=long_name,
+                                              units='kg/m2/s')
+        for s in evec_scaling:
+            suffix = f'_{(i+1):04d}_{s}'
+            title_str = f'Eigenvector perturbation {i+1} for the construction of the Jacobian matrix for methane inversions.'
+            pert.attrs = {'Title' : title_str, 'Scaling' : s}
 
-        pert.to_netcdf(join(data_dir, 'evec_pert_%04d.nc' % i),
-                       encoding={'evec_pert' : {'_FillValue' : None,
-                                                'dtype' : 'float32'},
-                                 'time' : {'_FillValue' : None,
-                                           'dtype' : 'float32'},
-                                 'lat' : {'_FillValue' : None,
-                                          'dtype' : 'float32'},
-                                 'lon' : {'_FillValue' : None,
-                                          'dtype' : 'float32'}})
+            # Scale
+            p = deepcopy(pert)
+            p['evec_pert'] *= float(s)
 
-## -------------------------------------------------------------------------##
-## Scale existing eigenvectors
-## -------------------------------------------------------------------------##
-if ScaleEigenvectors:
-    for i in range(10):
-        pert = xr.open_dataset(join(data_dir, 'evec_pert_%04d.nc' % i),
-                               decode_times=False)
-        for j in range(1, 4):
-            ScaleFactor = 10**j
-            pert['evec_pert'] *= ScaleFactor
-            pert.attrs['Scale Factor'] = ScaleFactor
-            pert.to_netcdf(join(data_dir,
-                                'evec_pert_%04d_scale_%d.nc' % (i, ScaleFactor)),
-                           encoding={'evec_pert' : {'_FillValue' : None,
-                                                    'dtype' : 'float32'},
-                                     'time' : {'_FillValue' : None,
-                                               'dtype' : 'float32'},
-                                    'lat' : {'_FillValue' : None,
-                                             'dtype' : 'float32'},
-                                    'lon' : {'_FillValue' : None,
-                                             'dtype' : 'float32'}})
+            gc.save_HEMCO_netcdf(p, data_dir, f'evec_pert{suffix}.nc')
+
+    pert.plot()
+    plt.show()
 
 ## -------------------------------------------------------------------------##
 ## Check that eigenvector perturbations worked
@@ -223,58 +188,69 @@ if CompareResults:
     ## ---------------------------------------------------------------------##
     ## Calculate Jacobian column from K and eigenvectors
     ## ---------------------------------------------------------------------##
-    k_file = 'kA.pkl'
+    k_file = 'k.pkl'
     prolongation_file = 'gamma_star.csv'
 
     # Load Jacobian and eigenvectors
-    k_true = load_obj(join(data_dir, k_file)).astype('float32').T
+    k_true = gc.load_obj(join(data_dir, k_file))
     evec = pd.read_csv(join(data_dir, prolongation_file),
                        header=None, usecols=[0])
 
     # Multiply the two
     kw_true = np.dot(k_true, evec.values)
 
+    # Subset
+    subset = ~np.isnan(kw_true).reshape(-1,)
+    kw_true = kw_true[subset]
+
     # Clear up memory
     del(k_true)
     del(evec)
 
     ## ---------------------------------------------------------------------##
-    ## Calculate Jacobian column from forward model
+    ## Calculate Jacobian column from forward model and compare
     ## ---------------------------------------------------------------------##
+    # Get filtering information
+    years = xr.open_dataarray(join(data_dir, 'y_year.nc'))
+    glint = xr.open_dataarray(join(data_dir, 'y_glint.nc'))
+    lats = xr.open_dataarray(join(data_dir, 'y_lat.nc'))
+    cond = ((lats < 60) & (years == 2015) & (glint < 0.5)).values
+    del(years)
+    del(glint)
+    del(lats)
 
-    # First, try the scaled summed - prior
-
-    # Read in each file individually
-    run_dir = '/n/holyscratch01/jacob_lab/hnesser/eigenvector_perturbation_test/'
-    test_prior_dir = join(run_dir, 'test_prior')
-    test_pert_dir = join(run_dir, 'test_summed')
-    ScaleFactor = 1
-
-    prior = pd.read_csv(join(test_prior_dir, 'sat_obs.gosat.00.m'),
+    # Read prior
+    prior = pd.read_csv(join(prior_dir, 'sat_obs.gosat.00.m'),
                         delim_whitespace=True, header=0, usecols=['model'],
                         low_memory=True)
-    pert = pd.read_csv(join(test_pert_dir, 'sat_obs.gosat.00.m'),
-                       delim_whitespace=True,header=0, usecols=['model'],
-                       low_memory=True)
-    kw_gc = (pert - prior)/ScaleFactor
+    prior = prior[cond].values.reshape(-1,)
 
-    # Subset
-    subset = ~np.isnan(kw_true)
-    kw_gc = kw_gc[subset]
-    kw_true = kw_true[subset]
+    # Read perturbations
+    for p in pert_dir:
+        scale_factor = p.split('_')[-1]
+        print(scale_factor)
+        pert = pd.read_csv(join(p, 'sat_obs.gosat.00.m'),
+                           delim_whitespace=True, header=0,
+                           usecols=['model', 'GLINT', 'LAT'],
+                           low_memory=True)
+        cond = ((pert['LAT'] < 60) & (pert['GLINT'] < 0.5))
+        pert = pert[cond]['model'].values
+        kw_gc = (pert - prior)#/float(scale_factor)
+        print(p)
+        print(kw_gc)
+        # kw_gc = kw_gc[subset]
 
-    ## ---------------------------------------------------------------------##
-    ## Compare the two
-    ## ---------------------------------------------------------------------##
+        ## Plot the comparison
+        # Get square axis limits
+        xlim, ylim, _, _, _ = fp.get_square_limits(kw_true, kw_gc)
 
-    # Get square axis limits
-    xlim, ylim, _, _, _ = fp.get_square_limits(kw_true, kw_gc.values)
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.scatter(kw_true, kw_gc)
+        ax.set_title(scale_factor)
+        ax.set_xlabel('Linear Algebra')
+        ax.set_ylabel('Forward Model')
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
 
-    fig, ax = plt.subplots(figsize=(10, 10))
-    ax.scatter(kw_true, kw_gc.values)
-    ax.set_xlabel('Linear Algebra')
-    ax.set_ylabel('Forward Model')
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    plt.show()
+        plt.show()
 

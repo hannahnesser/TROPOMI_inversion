@@ -32,18 +32,19 @@ import matplotlib.pyplot as plt
 base_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
 data_dir = f'{base_dir}inversion_data/'
+output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
-months = np.arange(1, 12, 1) # excluding December for now
+months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
 
 # Files
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{year}.nc'
 obs_file = f'{base_dir}observations/{year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters_0.25x0.3125.nc'
-k_nstate = f'{data_dir}k0_nstate.pkl'#None
+k_nstate = f'{data_dir}k0_nstate.pkl' # None
 
 # Which analyses do you wish to perform?
 
@@ -145,7 +146,6 @@ obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
 ## ------------------------------------------------------------------------ ##
 ## Build the Jacobian
 ## ------------------------------------------------------------------------ ##
-# Create a row for each cluster number
 def get_zone_emissions(emissions, ncells, emis_fraction):
     '''
     This function calculates the emissions allocated to each grid cell in
@@ -261,6 +261,7 @@ if k_nstate is None:
 else:
     k_nstate = gc.load_obj(join(data_dir, f'k0_nstate.pkl'))
 
+print('k0_nstate is loaded.')
 # Delete superfluous memory
 del(emis)
 del(clusters)
@@ -270,13 +271,14 @@ obs = obs[['CLUSTER', 'MONTH']]
 # Jacobian is something like 3e6 x 2e4 and requires 300 GB even with float32)
 i = 0
 count = 0
-nchunk = int(3e4)
+nchunk = int(5e4)
 state_vector_elements_remain = True
 while state_vector_elements_remain:
     print(count)
     o = obs[i:i+nchunk]
-    k_m = k_nstate[o['CLUSTER'], :, o['MONTH']]
-    gc.save_obj(k_m, join(data_dir, f'k0_{count:03d}.pkl'))
+    k_m = k_nstate[o['CLUSTER'], :, (o['MONTH']-1)]
+    gc.save_obj(k_m, join(output_dir, f'k0_{count:03d}.pkl'))
+    del(k_m)
     i += nchunk
     count += 1
     if i > nobs:

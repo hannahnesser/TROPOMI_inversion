@@ -110,34 +110,58 @@ def make_axes(rows=1, cols=1, aspect=None,
     # plt.subplots_adjust(right=1)
     return fig, ax
 
-def add_cax(fig, ax, cbar_pad_inches=0.25):
+def add_cax(fig, ax, cbar_pad_inches=0.25, horizontal=False):
     # should be updated to infer cbar width and cbar_pad_inches
-    try:
-        axis = ax[-1, -1]
-        height = ax[0, -1].get_position().y1 - ax[-1, -1].get_position().y0
-    except IndexError:
-        axis = ax[-1]
-        # height = ax[-1].get_position().height
-        height = ax[0].get_position().y1 - ax[-1].get_position().y0
-    except TypeError:
-        axis = ax
-        height = ax.get_position().height
+    if not horizontal:
+        try:
+            axis = ax[-1, -1]
+            height = ax[0, -1].get_position().y1 - ax[-1, -1].get_position().y0
+        except IndexError:
+            axis = ax[-1]
+            # height = ax[-1].get_position().height
+            height = ax[0].get_position().y1 - ax[-1].get_position().y0
+        except TypeError:
+            axis = ax
+            height = ax.get_position().height
 
-    # x0
-    fig_width = fig.get_size_inches()[0]
-    x0_init = axis.get_position().x1
-    x0 = (fig_width*x0_init + cbar_pad_inches*config.SCALE)/fig_width
+        # x0
+        fig_width = fig.get_size_inches()[0]
+        x0_init = axis.get_position().x1
+        x0 = (fig_width*x0_init + cbar_pad_inches*config.SCALE)/fig_width
 
-    # y0
-    y0 = axis.get_position().y0
+        # y0
+        y0 = axis.get_position().y0
 
-    # Width
-    cbar_width_inches = 0.1*config.SCALE
-    width = cbar_width_inches/fig_width
+        # Width
+        width = 0.1*config.SCALE/fig_width
+    else:
+        try:
+            axis = ax[-1, 0]
+            width = ax[-1, -1].get_position().x1 - ax[-1, 0].get_position().x0
+        except IndexError:
+            axis = ax[0]
+            width = ax[-1].get_position().x1 - ax[0].get_position().x0
+        except TypeError:
+            axis = ax
+            width = ax.get_position().width
+
+        # x0
+        x0 = axis.get_position().x0
+
+        # y0
+        fig_height = fig.get_size_inches()[1]
+        y0_init = axis.get_position().y0
+        y0 = (fig_height*y0_init - cbar_pad_inches*config.SCALE)/fig_height
+
+        # Height
+        height = 0.1*config.SCALE/fig_height
 
     # Make axis
     cax = fig.add_axes([x0, y0, width, height])
 
+    # if return_coords:
+    #     return cax, x0, y0, width, height
+    # else:
     return cax
 
 def get_figax(rows=1, cols=1, aspect=1,
@@ -240,16 +264,25 @@ def format_map(ax, lats, lons,
     # gl.ylabel_style = {'fontsize' : fontsize}
     return ax
 
-def format_cbar(cbar, cbar_title=''):
+def format_cbar(cbar, cbar_title='', horizontal=False):
     # cbar.set_label(cbar_title, fontsize=BASEFONT*config.SCALE,
     #                labelpad=CBAR_config.LABEL_PAD)
-    cbar.ax.text(5.25, 0.5, cbar_title,
-                 ha='center', va='center',
-                 rotation='vertical',
-                 fontsize=config.LABEL_FONTSIZE*config.SCALE,
-                 transform=cbar.ax.transAxes)
+            # x0
+    if horizontal:
+        x = 0.5
+        y = -4
+        rotation = 'horizontal'
+    else:
+        x = 6.5
+        y = 0.5
+        rotation = 'vertical'
+
     cbar.ax.tick_params(axis='both', which='both',
                         labelsize=config.TICK_FONTSIZE*config.SCALE)
+    cbar.ax.text(x, y, cbar_title, ha='center', va='center', rotation=rotation,
+                 fontsize=config.LABEL_FONTSIZE*config.SCALE,
+                 transform=cbar.ax.transAxes)
+
     return cbar
 
 def plot_one_to_one(ax):
