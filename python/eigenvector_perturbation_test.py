@@ -210,23 +210,16 @@ if CompareResults:
     ## ---------------------------------------------------------------------##
     ## Calculate Jacobian column from forward model and compare
     ## ---------------------------------------------------------------------##
-    # Get filtering information
-    years = xr.open_dataarray(join(data_dir, 'y_year.nc'))
-    glint = xr.open_dataarray(join(data_dir, 'y_glint.nc'))
-    lats = xr.open_dataarray(join(data_dir, 'y_lat.nc'))
-    cond = ((lats < 60) & (years == 2015) & (glint < 0.5)).values
-    del(years)
-    del(glint)
-    del(lats)
-
     # Read prior
     prior = pd.read_csv(join(prior_dir, 'sat_obs.gosat.00.m'),
-                        delim_whitespace=True, header=0, usecols=['model'],
+                        delim_whitespace=True, header=0,
+                        usecols=['model', 'GLINT', 'LAT'],
                         low_memory=True)
-    prior = prior[cond].values.reshape(-1,)
+    cond = ((prior['LAT'] < 60) & (prior['GLINT'] < 0.5))
+    prior = prior[cond]['model'].values.reshape(-1,)
 
     # Read perturbations
-    for p in pert_dir:
+    for p in pert_dir[1:2]:
         scale_factor = p.split('_')[-1]
         print(scale_factor)
         pert = pd.read_csv(join(p, 'sat_obs.gosat.00.m'),

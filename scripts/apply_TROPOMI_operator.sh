@@ -14,8 +14,8 @@
 ## -------------------------------------------------------------------------##
 # Directories
 TROPOMI_DATA_DIR="/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-GC_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir/"
-OUTPUT_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
+GC_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_6buff/OutputDir/"
+OUTPUT_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_6buff/ProcessedDir/"
 
 # Latitude and longitude range
 LONS="-130 -60 0.3125"
