@@ -155,6 +155,7 @@ else:
 # Subset for months
 data = data[data['MONTH'] <= months.max()]
 print('Data is loaded.')
+print('Maximum modeled observation is ', data['MOD'].max())
 
 ## ----------------------------------------- ##
 ## Additional data corrections
