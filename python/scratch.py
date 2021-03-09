@@ -1,3 +1,6 @@
+
+# # ========================================================================== ## Testing errors in eigenvector perturbations
+
 # # ========================================================================== ## Diagnosing error in prior simulation part 2
 
 from os.path import join
@@ -7,10 +10,15 @@ import copy
 import calendar as cal
 
 import xarray as xr
+import xbpch as xb
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
+
+data = xb.open_bpchdataset(filename='trac_avg.merra2_4x5_CH4.201501010000',
+                           tracerinfo_file='tracerinfo.dat',
+                           diaginfo_file='diaginfo.dat')
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -95,13 +103,13 @@ data_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/obs
 # the November restart file.
 
 # Where in the atmosphere does it originate?
-files = [f'GEOSChem.SpeciesConc.{year}{month}{dd:02d}_0000z.nc4' for dd in days]
-# for f in files[0]:
-f = files[0]
-data = xr.open_dataset(join(data_dir, f))
-# c = plt.scatter(data.lev, data['SpeciesConc_CH4'], c=data.time)
-# plt.colorbar(c)
-print(data)
+# files = [f'GEOSChem.SpeciesConc.{year}{month}{dd:02d}_0000z.nc4' for dd in days]
+# # for f in files[0]:
+# f = files[0]
+# data = xr.open_dataset(join(data_dir, f))
+# # c = plt.scatter(data.lev, data['SpeciesConc_CH4'], c=data.time)
+# # plt.colorbar(c)
+# print(data)
 
 
 # # ========================================================================== ## Diagnosing error in prior simulation

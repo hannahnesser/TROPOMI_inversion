@@ -49,7 +49,7 @@ data_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_JDM'
 run_dir = '/n/holyscratch01/jacob_lab/hnesser/eigenvector_perturbation_test_JDM/'
 RF = 0.05
 year = 2015
-evec_scaling = ['0', '1', '1e-6', '1e-7']
+evec_scaling = ['0', '1']#, '1e-6', '1e-7']
 prior_dir = join(run_dir, 'prior_dir')
 pert_dir = [join(run_dir, f'pert_dir_{s}') for s in evec_scaling]
 
