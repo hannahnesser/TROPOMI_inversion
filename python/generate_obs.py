@@ -45,10 +45,10 @@ plot_dir = None
 year = 2019
 months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-prior_run = f'{year}.pkl'
-# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-#              for mm in months for dd in days]
-# prior_run.sort()
+# prior_run = f'{year}.pkl'
+prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+             for mm in months for dd in days]
+prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
