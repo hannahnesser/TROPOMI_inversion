@@ -111,21 +111,21 @@ class Inversion:
                'Input types aren\'t all numpy arrays.'
 
         # Define the state and observational dimensions
-        self.nstate = k.shape[1]
-        self.nobs = k.shape[0]
+        self.nstate = xa.shape[0]
+        self.nobs = y.shape[0]
         self.latres = latres
         self.lonres = lonres
         self.state_vector = np.arange(1, self.nstate+1, 1)
 
         # Check whether all inputs have the right dimensions
-        assert xa.shape[0] == self.nstate, \
+        assert k.shape[1] == self.nstate, \
                'Dimension mismatch: Jacobian and prior.'
-        assert sa_vec.shape[0] == self.nstate, \
-               'Dimension mismatch: Jacobian and prior error.'
-        assert y.shape[0] == self.nobs, \
+        assert k.shape[0] == self.nobs, \
                'Dimension mismatch: Jacobian and observations.'
         assert so_vec.shape[0] == self.nobs, \
-               'Dimension mismatch: Jacobian and observational error'
+               'Dimension mismatch: observational error'
+        assert sa_vec.shape[0] == self.nstate, \
+               'Dimension mismatch: prior error.'
 
         # If everything works out, then we create the instance.
         self.k = k
@@ -134,17 +134,15 @@ class Inversion:
         self.y = y
         self.y_base = y_base
         self.so_vec = so_vec
+        self.rf = rf
 
         # Force k to be positive
-        # if np.any(self.k < 0):
-        #     print('Forcing negative values of the Jacobian to 0.')
-        #     self.k[self.k < 0] = 0
+        if np.any(self.k < 0):
+            print('Forcing negative values of the Jacobian to 0.')
+            self.k[self.k < 0] = 0
 
         # Solve for the constant c.
         self.calculate_c()
-
-        # Create space for a regularization factor.
-        self.rf = rf
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -154,7 +152,6 @@ class Inversion:
         self.y_out = None
 
         print('... Complete ...\n')
-
 
     ####################################
     ### STANDARD INVERSION FUNCTIONS ###
@@ -372,8 +369,58 @@ class Inversion:
 
         return fig, ax, c
 
+class ReducedMemoryInversion(Inversion):
+    def __init__(self, k_files, xa, sa_vec, y, y_base, so_vec,
+                 rf=1, latres=1, lonres=1.25):
+        print('... Initializing reduced memory inversion object ...')
 
-class ReducedRankInversion(Inversion):
+        # Check that the data are all the same types
+        assert all(isinstance(z, np.ndarray)
+                   for z in [xa, sa_vec, y, so_vec]), \
+               'Input types aren\'t all numpy arrays.'
+
+        assert isinstance(k, list), 'Jacobian is not a list of files.'
+
+        # Define the state and observational dimensions
+        self.nstate = xa.shape[0]
+        self.nobs = y.shape[0]
+        self.latres = latres
+        self.lonres = lonres
+        self.state_vector = np.arange(1, self.nstate+1, 1)
+
+        # Check whether all inputs have the right dimensions
+        assert k.shape[1] == self.nstate, \
+               'Dimension mismatch: Jacobian and prior.'
+        assert k.shape[0] == self.nobs, \
+               'Dimension mismatch: Jacobian and observations.'
+        assert so_vec.shape[0] == self.nobs, \
+               'Dimension mismatch: observational error'
+        assert sa_vec.shape[0] == self.nstate, \
+               'Dimension mismatch: prior error.'
+
+        # If everything works out, then we create the instance.
+        self.k = k
+        self.xa = xa
+        self.sa_vec = sa_vec
+        self.y = y
+        self.y_base = y_base
+        self.so_vec = so_vec
+        self.rf = rf
+
+        # # Solve for the constant c.
+        # self.calculate_c()
+
+        # Now create some holding spaces for values that may be filled
+        # in the course of solving the inversion.
+        self.xhat = None
+        self.shat = None
+        self.a = None
+        self.y_out = None
+
+        print('... Complete ...\n')
+
+
+class ReducedRankInversion(Inversion, ReducedMemoryInversion):
     # class variables shared by all instances
 
     def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
@@ -754,7 +801,8 @@ class ReducedRankInversion(Inversion):
 
         return fig, ax, c
 
-
+### SPLIT REDUCED RANK JACOBIAN AND REDUCED DIMENSION JACOBIAN INTO
+### DIFFERENT CLASSES
 class ReducedRankJacobian(ReducedRankInversion):
     def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
         # Inherit from the parent class.
