@@ -13,8 +13,8 @@
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 # Directories
-TROPOMI_DATA_DIR="/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-BASE_DIR="${1}"
+TROPOMI_DATA_DIR="${1}"
+BASE_DIR="${2}"
 INPUT_DIR="${BASE_DIR}OutputDir/"
 OUTPUT_DIR="${BASE_DIR}ProcessedDir/"
 

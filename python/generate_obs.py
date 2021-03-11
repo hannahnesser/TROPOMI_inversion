@@ -33,9 +33,12 @@ import pandas as pd
 # output_dir = base_dir + 'inversion_data'
 # plot_dir = base_dir + 'plots'
 
-# Cannon preferences
-base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
-code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# # Cannon preferences
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+
+base_dir = sys.argv[1]
+code_dir = sys.argv[2]
 data_dir = f'{base_dir}ProcessedDir'
 output_dir = f'{base_dir}SummaryDir'
 plot_dir = None
