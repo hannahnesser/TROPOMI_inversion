@@ -283,37 +283,9 @@ class Inversion:
         kw['title'] = kw.get('title', attribute_str)
 
         # Match the data to lat/lon data
-        data = ip.match_data_to_clusters(data, clusters_plot, default_value)
-
-        # Plot
-        fig, ax, c = ip.plot_state_format(data, default_value, cbar, **kw)
+        fig, ax, c = ip.plot_state(data, clusters_plot,
+                                   default_value, cbar, **kw)
         return fig, ax, c
-
-    def plot_multiscale_grid(self, clusters_plot, **kw):
-        # Get KW
-        title = kw.pop('title', '')
-        fig_kwargs = kw.pop('fig_kwargs', {})
-        title_kwargs = kw.pop('title_kwargs', {})
-        map_kwargs = kw.pop('map_kwargs', {})
-        kw['colors'] = kw.pop('colors', 'black')
-        kw['linewidths'] = kw.pop('linewidths', 1)
-
-        # Plot
-        nstate = len(np.unique(self.state_vector)[1:])
-        data = ip.match_data_to_clusters(self.state_vector,
-                                           clusters_plot, default_value=0)
-        data_zoomed = zoom(data.values, 50, order=0, mode='nearest')
-        fig, ax = fp.get_figax(maps=True, lats=data.lat, lons=data.lon,
-                               **fig_kwargs)
-        ax.contour(data_zoomed, levels=np.arange(0, nstate, 1),
-                   extent=[data.lon.min(), data.lon.max(),
-                           data.lat.min(), data.lat.max()],
-                   **kw)
-        ax = fp.add_title(ax, title, **title_kwargs)
-        ax = fp.format_map(ax, data.lat, data.lon, **map_kwargs)
-
-        return fig, ax
-
 
     def plot_state_grid(self, attributes, rows, cols, clusters_plot,
                         cbar=True, **kw):
@@ -400,7 +372,7 @@ class ReducedMemoryInversion(Inversion):
         self.rf = rf
 
         # # Solve for the constant c.
-        # self.calculate_c()
+        c = self.calculate_c()
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -427,7 +399,7 @@ class ReducedMemoryInversion(Inversion):
         Calculate c for the forward model, defined as ybase = Kxa + c.
         Save c as an element of the object.
         '''
-        c =
+        c = np.array([]])
         for file_name in self.k:
             k = self.open_k(file_name)
             c = self.y_base - self.k @ self.xa
@@ -913,8 +885,6 @@ class ReducedRankInversion(Inversion, ReducedMemoryInversion):
 
         return fig, ax, c
 
-### SPLIT REDUCED RANK JACOBIAN AND REDUCED DIMENSION JACOBIAN INTO
-### DIFFERENT CLASSES
 class ReducedRankJacobian(ReducedRankInversion):
     def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
         # Inherit from the parent class.
@@ -922,362 +892,6 @@ class ReducedRankJacobian(ReducedRankInversion):
 
         self.perturbed_cells = np.array([])
         self.model_runs = 0
-
-
-    #######################################
-    ### REDUCED DIMENSION JACOBIAN FUNCTIONS ###
-    #######################################
-    # def create_aggregate_cells_kmeans():
-
-    def get_neighboring_cells(self, nsv_index, clusters_plot, ring=1):
-        latlon = clusters_plot.where(clusters_plot == nsv_index, drop=True)
-        ulim_lon = latlon.lon.values + ring*self.lonres
-        llim_lon = latlon.lon.values - ring*self.lonres
-        ulim_lat = latlon.lat.values + ring*self.latres
-        llim_lat = latlon.lat.values - ring*self.latres
-        neighboring_cells = clusters_plot.where((clusters_plot.lon <= ulim_lon) &
-                                                (clusters_plot.lon >= llim_lon) &
-                                                (clusters_plot.lat <= ulim_lat) &
-                                                (clusters_plot.lat >= llim_lat),
-                                                drop=True).values.flatten()
-        return neighboring_cells[neighboring_cells > 0].astype(int)
-
-    def get_adjacent_cells(self, nsv_index, clusters_plot, ring=1):
-        latlon = clusters_plot.where(clusters_plot == nsv_index, drop=True)
-        ulim_lon = latlon.lon.values + ring*self.lonres
-        llim_lon = latlon.lon.values - ring*self.lonres
-        ulim_lat = latlon.lat.values + ring*self.latres
-        llim_lat = latlon.lat.values - ring*self.latres
-        cond_lon = (clusters_plot.lon <= ulim_lon) & \
-                   (clusters_plot.lon >= llim_lon) & \
-                   (clusters_plot.lat == latlon.lat.values)
-        cond_lat = (clusters_plot.lat <= ulim_lat) & \
-                   (clusters_plot.lat >= llim_lat) & \
-                   (clusters_plot.lon == latlon.lon.values)
-        cond = xr.ufuncs.logical_or(cond_lon, cond_lat)
-        adjacent_cells = clusters_plot.where(cond,
-                                             drop=True).values.flatten()
-        adjacent_cells = adjacent_cells[adjacent_cells != nsv_index]
-
-        # get rid of kitty corner nans
-        adjacent_cells = adjacent_cells[~np.isnan(adjacent_cells)]
-
-        # get rid of 0s
-        adjacent_cells = adjacent_cells[adjacent_cells > 0]
-
-        return adjacent_cells.astype(int)
-
-    def get_lat_adjacent_cells(self, nsv_index, clusters_plot, ring=1):
-        latlon = clusters_plot.where(clusters_plot == nsv_index, drop=True)
-        ulim_lat = latlon.lat.values + ring*self.latres
-        llim_lat = latlon.lat.values - ring*self.latres
-        cond_lat = (clusters_plot.lat <= ulim_lat) & \
-                   (clusters_plot.lat >= llim_lat) & \
-                   (clusters_plot.lon == latlon.lon.values)
-        adjacent_cells = clusters_plot.where(cond_lat,
-                                             drop=True).values.flatten()
-        adjacent_cells = adjacent_cells[adjacent_cells != nsv_index]
-        return adjacent_cells[~np.isnan(adjacent_cells)].astype(int)
-
-    def get_lon_adjacent_cells(self, nsv_index, clusters_plot, ring=1):
-        latlon = clusters_plot.where(clusters_plot == nsv_index, drop=True)
-        ulim_lon = latlon.lon.values + ring*self.lonres
-        llim_lon = latlon.lon.values - ring*self.lonres
-        cond_lon = (clusters_plot.lon <= ulim_lon) & \
-                   (clusters_plot.lon >= llim_lon) & \
-                   (clusters_plot.lat == latlon.lat.values)
-        adjacent_cells = clusters_plot.where(cond_lon,
-                                             drop=True).values.flatten()
-        adjacent_cells = adjacent_cells[adjacent_cells != nsv_index]
-        return adjacent_cells[~np.isnan(adjacent_cells)].astype(int)
-
-    def merge_cells_kmeans(self, label_idx, clusters_plot, cluster_size):
-        labels = np.zeros(self.nstate)
-        labels[label_idx] = label_idx + 1
-        # the +1 here is countered by a -1 later--this is a fix for
-        # pythonic indexing
-        labels = ip.match_data_to_clusters(labels,
-                                               clusters_plot)
-        labels = labels.to_dataframe('labels').reset_index()
-        labels = labels[labels['labels'] > 0]
-        labels['labels'] -= 1
-
-        # Now do kmeans clustering
-        n_clusters = int(len(label_idx)/cluster_size)
-        labels_new = KMeans(n_clusters=n_clusters,
-                            random_state=0)
-        labels_new = labels_new.fit(labels[['lat', 'lon']])
-
-        # Print out some information
-        label_stats = np.unique(labels_new.labels_, return_counts=True)
-        print('Number of clusters: %d' % len(label_stats[0]))
-        print('Cluster size: %d' % cluster_size)
-        print('Maximum number of grid boxes in a cluster: %d' \
-              % max(label_stats[1]))
-        print('Average number of grid boxes in a cluster: %.2f' \
-              % np.mean(label_stats[1]))
-        print('...')
-
-        # save the information
-        labels = labels.assign(new_labels=labels_new.labels_+1)
-        labels[['labels', 'new_labels']] = labels[['labels',
-                                                   'new_labels']].astype(int)
-
-        return labels
-
-    def aggregate_cells_kmeans(self, clusters_plot,
-                               n_cells, n_cluster_size=None,
-                               dofs_e=None):
-        print('... Generating multiscale grid ...')
-
-        # If first aggregation
-        if len(self.state_vector) == self.nstate:
-            # Get the indices associated with the most significant
-            # grid boxes
-            sig_idx = self.dofs.argsort()[::-1]
-
-            new_sv = np.zeros(self.nstate)
-
-            # Iterate through n_cells
-            n_cells = np.append(0, n_cells)
-            nidx = np.cumsum(n_cells)
-            for i, n in enumerate(n_cells[1:]):
-                # get cluster size
-                if n_cluster_size is None:
-                    cluster_size = i+2
-                else:
-                    cluster_size = n_cluster_size[i]
-
-                # get the indices of interest
-                sub_sig_idx = sig_idx[nidx[i]:nidx[i+1]]
-
-                new_labels = self.merge_cells_kmeans(sub_sig_idx,
-                                                     clusters_plot,
-                                                     cluster_size)
-
-                new_sv[new_labels['labels']] = new_labels['new_labels']+new_sv.max()
-                added_model_runs = len(np.unique(new_sv))
-
-        # If second aggregation (i.e. disaggregation)
-        else:
-            # expected DOFS
-            # Group the previous estimate of the DOFS by the state vector
-            dofs_e = pd.DataFrame(copy.deepcopy(dofs_e))
-            dofs_e = dofs_e.groupby(copy.deepcopy(self.state_vector)).sum()
-            dofs_e = np.array(dofs_e).reshape(-1,)
-
-            # Normallize by the number of grid cellls in each cluster
-            _, count = np.unique(self.state_vector, return_counts=True)
-            dofs_per_cell_e = dofs_e/count
-
-            # Calculate the difference (absolute and relative)
-            dofs_diff = self.dofs - dofs_per_cell_e
-            dofs_diff_rel = dofs_diff/dofs_per_cell_e
-
-            # Ignore grid cells that are already at native resolution
-            dofs_diff[count == 1] = 0
-
-            # Get the indices associated with the largest differences
-            sig_idx = dofs_diff.argsort()[::-1] + 1
-
-            new_sv = copy.deepcopy(self.state_vector)
-            count = 0
-            i = 0
-            while count <= n_cells[0]:
-                idx = np.where(sig_idx[i] == self.state_vector)[0]
-                renumber_idx = np.where(sig_idx[i] < self.state_vector)[0]
-                new_sv[renumber_idx] += len(idx) - 1
-                new_sv[idx] = np.arange(new_sv[idx[0]],
-                                        new_sv[idx[0]] + len(idx))
-                count += len(idx) - 1
-                i += 1
-            print('%d cells disaggregated' % (i-1))
-            added_model_runs = count
-            # now renumber
-
-        # if we're at the point of disaggregating cells
-        # take the largest sig_idx[1]
-        # set all indices equal to new, unique values
-        # count the number of new indices
-        # while less than n_cells, continue
-        print('Number of state vector elements: %d' \
-              % len(np.unique(new_sv)))
-        print('... Complete ...\n')
-
-        return new_sv, added_model_runs
-
-    @staticmethod
-    def calculate_perturbation_matrix(state_vector, significance):
-        sv_sig = pd.DataFrame({'sv' : state_vector,
-                               'sig' : significance})
-        sv_sig = sv_sig.groupby(by='sv').mean().reset_index()
-        sv_sig = sv_sig.sort_values(by='sig')
-        sv_sig = sv_sig[sv_sig['sv'] > 0]
-        p = np.zeros((len(state_vector), sv_sig.shape[0]))
-        for i, sv in enumerate(sv_sig['sv']):
-            index = np.argwhere(state_vector == sv).reshape(-1,)
-            p[index, i] = 0.5
-        return p
-
-    def disaggregate_k_ms(self):
-        # Create space for the full resolution Jacobian
-        k_fr = np.zeros((self.nobs, len(self.state_vector)))
-        for i in range(1, self.nstate+1):
-            # get the column indices for the new Jacobian
-            cols_idx = np.where(self.state_vector == i)[0]
-
-            # get the Jacobian values
-            ki = self.k[:, i-1]/len(cols_idx)
-            ki = np.tile(ki.reshape(-1, 1), (1, len(cols_idx)))
-
-            # fill in
-            k_fr[:, cols_idx] = ki
-        return k_fr
-
-    def calculate_k_ms(self, forward_model):
-        k_ms = pd.DataFrame(forward_model)
-        k_ms = k_ms.groupby(self.state_vector, axis=1).sum()
-        self.k = np.array(k_ms)
-
-    def calculate_prior_ms(self, xa_abs, sa_vec):
-        xa_abs_ms = pd.DataFrame(xa_abs).groupby(self.state_vector).sum()
-
-        sa_vec_abs = pd.DataFrame(sa_vec*xa_abs)
-        sa_vec_abs_ms = (sa_vec_abs**2).groupby(self.state_vector).sum()**0.5
-        sa_vec_ms = sa_vec_abs_ms/xa_abs_ms
-
-        self.xa_abs = np.array(xa_abs_ms).reshape(-1,)
-        self.xa = np.ones(self.nstate).reshape(-1,)
-        self.sa_vec = np.array(sa_vec_ms).reshape(-1,)
-
-    def calculate_trans_ms(self, nstate_native):
-        gamma = np.zeros((self.nstate, nstate_native))
-        for i in range(self.nstate):
-            cidx = np.where(self.nstate == i )[0]
-            gamma[cidx] = 1
-        try:
-            gamma_star = (self.sa_vec*gamma.T @
-                          inv((gamma @ (self.sa_vec*gamma.T))))
-            return gamma, gamma_star
-        except np.linalg.LinAlgError:
-            print('Singular matrix.')
-            return gamma
-
-    def calculate_significance(self,
-                               pct_of_info=None, rank=None, prolongation=None):
-        if prolongation is None:
-            rank, prolongation, _, _ = self.projection(pct_of_info=pct_of_info,
-                                                       rank=rank)
-        significance = np.sqrt((prolongation**2)).sum(axis=1)
-
-        return rank, significance
-
-    def update_jacobian_rd(self, forward_model, xa_abs, sa_vec, clusters_plot,
-                           pct_of_info=None, rank=None, snr=None,
-                           n_cells=[100, 200],
-                           n_cluster_size=[1, 2],
-                           dofs_e=None,
-                           k_base=None):#, #threshold=0,
-                        # perturbation_factor=0.5):
-        '''
-        This function generates a multi-scale Jacobian on the basis
-        of the information content, as given by the diagonal elements
-        of the averaging kernel. It maintains the native resolution
-        for the grid cells with the highest information content while
-        aggregating together grid cells with lower information content
-        using K means clustering. The user must provide the number of
-        desired number of grid cells and the number of grid cells per
-        cluster for each aggregation level. It accepts the following
-        arguments:
-            forward_model       the true Jacobian
-            clusters_plot       the mapping from the grid cells to state
-                                vector number
-            pct_of_info         currently not used
-            rank                currently not used
-            snr                 currently not used
-            n_cells             the number of native resolution grid
-                                cells to be used in the aggregation
-                                scheme (integer or list of integers);
-                                defaults to [100, 200]
-            n_cluster_size      the number of native resolution grid
-                                cells to aggregate together at each level
-                                of aggregation; defaults to [1, 2]
-            k_base              currently defaults to previous k
-        Example:
-            Passing n_cells=[100, 200], n_cluster_size=[1, 2] will
-            generate a state vector where the 100 grid cells with highest
-            information content maintain the native resolution (i.e.
-            cluster size = 1) and the 200 grid cells with next highest
-            information content will be aggregated into clusters with size
-            2. The final state vector will have dimension 200.
-        '''
-
-        if k_base is None:
-            k_base = copy.deepcopy(self.k)
-
-        # We start by creating a new instance of the class. This
-        # is where
-        new = ReducedRankJacobian(k=k_base,
-                                  xa=copy.deepcopy(self.xa),
-                                  sa_vec=copy.deepcopy(self.sa_vec),
-                                  y=copy.deepcopy(self.y),
-                                  y_base=copy.deepcopy(self.y_base),
-                                  so_vec=copy.deepcopy(self.so_vec))
-        new.state_vector = copy.deepcopy(self.state_vector)
-        new.dofs = copy.deepcopy(self.dofs)
-        new.model_runs = copy.deepcopy(self.model_runs)
-        new.rf = copy.deepcopy(self.rf)
-        _, counts = np.unique(self.state_vector, return_counts=True)
-
-        # If previously optimized, set significance to 0
-        # if len(self.perturbed_cells) > 0:
-        if np.any(counts > 1):
-            print('Ignoring previously optimized grid cells.')
-            # significance[self.perturbed_cells] = 0
-            new.dofs[counts == 1] = 0
-
-        # We need the new state vector first. This gives us the
-        # clusterings of the base resolution state vector
-        # elements as dictated by n_cells and n_cluster_size.
-        new.state_vector, new_runs = new.aggregate_cells_kmeans(clusters_plot,
-                                                       n_cells=n_cells,
-                                                       n_cluster_size=  n_cluster_size,
-                                                       dofs_e=dofs_e)
-        new.model_runs += new_runs
-
-        # We calculate the number of model runs and the counts of
-        # each cluster
-        elements, counts = np.unique(new.state_vector, return_counts=True)
-
-        # # Now update the Jacobian
-        new.nstate = len(elements)
-        new.calculate_k_ms(forward_model)
-        new.calculate_prior_ms(xa_abs=xa_abs, sa_vec=sa_vec)
-
-        # Adjust the rf
-        new.rf = self.rf*new.nstate/self.nstate
-
-        # Update the value of c in the new instance
-        new.calculate_c()
-
-        # And do the eigendecomposition
-        new.edecomp()
-
-        # And solve the inversion
-        new.solve_inversion()
-
-        # And save a long xhat/shat/avker (start by saving them as
-        # an unphysical value so that we can check for errors)
-        new.xhat_long = np.ones(len(new.state_vector))
-        new.dofs_long = np.zeros(len(new.state_vector))
-        for i in range(1, new.nstate + 1):
-            idx = np.where(new.state_vector == i)[0]
-            new.xhat_long[idx] = new.xhat[i - 1]
-            new.dofs_long[idx] = new.dofs[i - 1]
-
-        print('NUMBER OF MODEL RUNS : %d' % new.model_runs)
-
-        return new
 
     # Rewrite to take any prolongation matrix?
     def update_jacobian(self, forward_model,
@@ -1508,3 +1122,290 @@ class ReducedRankJacobian(ReducedRankInversion):
         #         transform=ax.transAxes)
 
         return fig01, fig02, fig03 #, fig04, fig05
+
+class ReducedDimensionJacobian(ReducedRankInversion):
+    def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
+        # Inherit from the parent class.
+        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, y_base, so_vec)
+
+        self.perturbed_cells = np.array([])
+        self.model_runs = 0
+
+    def merge_cells_kmeans(self, label_idx, clusters_plot, cluster_size):
+        labels = np.zeros(self.nstate)
+        labels[label_idx] = label_idx + 1
+        # the +1 here is countered by a -1 later--this is a fix for
+        # pythonic indexing
+        labels = ip.match_data_to_clusters(labels,
+                                               clusters_plot)
+        labels = labels.to_dataframe('labels').reset_index()
+        labels = labels[labels['labels'] > 0]
+        labels['labels'] -= 1
+
+        # Now do kmeans clustering
+        n_clusters = int(len(label_idx)/cluster_size)
+        labels_new = KMeans(n_clusters=n_clusters,
+                            random_state=0)
+        labels_new = labels_new.fit(labels[['lat', 'lon']])
+
+        # Print out some information
+        label_stats = np.unique(labels_new.labels_, return_counts=True)
+        print('Number of clusters: %d' % len(label_stats[0]))
+        print('Cluster size: %d' % cluster_size)
+        print('Maximum number of grid boxes in a cluster: %d' \
+              % max(label_stats[1]))
+        print('Average number of grid boxes in a cluster: %.2f' \
+              % np.mean(label_stats[1]))
+        print('...')
+
+        # save the information
+        labels = labels.assign(new_labels=labels_new.labels_+1)
+        labels[['labels', 'new_labels']] = labels[['labels',
+                                                   'new_labels']].astype(int)
+
+        return labels
+
+    def aggregate_cells_kmeans(self, clusters_plot,
+                               n_cells, n_cluster_size=None,
+                               dofs_e=None):
+        print('... Generating multiscale grid ...')
+
+        # If first aggregation
+        if len(self.state_vector) == self.nstate:
+            # Get the indices associated with the most significant
+            # grid boxes
+            sig_idx = self.dofs.argsort()[::-1]
+
+            new_sv = np.zeros(self.nstate)
+
+            # Iterate through n_cells
+            n_cells = np.append(0, n_cells)
+            nidx = np.cumsum(n_cells)
+            for i, n in enumerate(n_cells[1:]):
+                # get cluster size
+                if n_cluster_size is None:
+                    cluster_size = i+2
+                else:
+                    cluster_size = n_cluster_size[i]
+
+                # get the indices of interest
+                sub_sig_idx = sig_idx[nidx[i]:nidx[i+1]]
+
+                new_labels = self.merge_cells_kmeans(sub_sig_idx,
+                                                     clusters_plot,
+                                                     cluster_size)
+
+                new_sv[new_labels['labels']] = new_labels['new_labels']+new_sv.max()
+                added_model_runs = len(np.unique(new_sv))
+
+        # If second aggregation (i.e. disaggregation)
+        else:
+            # expected DOFS
+            # Group the previous estimate of the DOFS by the state vector
+            dofs_e = pd.DataFrame(copy.deepcopy(dofs_e))
+            dofs_e = dofs_e.groupby(copy.deepcopy(self.state_vector)).sum()
+            dofs_e = np.array(dofs_e).reshape(-1,)
+
+            # Normallize by the number of grid cellls in each cluster
+            _, count = np.unique(self.state_vector, return_counts=True)
+            dofs_per_cell_e = dofs_e/count
+
+            # Calculate the difference (absolute and relative)
+            dofs_diff = self.dofs - dofs_per_cell_e
+            dofs_diff_rel = dofs_diff/dofs_per_cell_e
+
+            # Ignore grid cells that are already at native resolution
+            dofs_diff[count == 1] = 0
+
+            # Get the indices associated with the largest differences
+            sig_idx = dofs_diff.argsort()[::-1] + 1
+
+            new_sv = copy.deepcopy(self.state_vector)
+            count = 0
+            i = 0
+            while count <= n_cells[0]:
+                idx = np.where(sig_idx[i] == self.state_vector)[0]
+                renumber_idx = np.where(sig_idx[i] < self.state_vector)[0]
+                new_sv[renumber_idx] += len(idx) - 1
+                new_sv[idx] = np.arange(new_sv[idx[0]],
+                                        new_sv[idx[0]] + len(idx))
+                count += len(idx) - 1
+                i += 1
+            print('%d cells disaggregated' % (i-1))
+            added_model_runs = count
+            # now renumber
+
+        # if we're at the point of disaggregating cells
+        # take the largest sig_idx[1]
+        # set all indices equal to new, unique values
+        # count the number of new indices
+        # while less than n_cells, continue
+        print('Number of state vector elements: %d' \
+              % len(np.unique(new_sv)))
+        print('... Complete ...\n')
+
+        return new_sv, added_model_runs
+
+
+    def disaggregate_k_ms(self):
+        # Create space for the full resolution Jacobian
+        k_fr = np.zeros((self.nobs, len(self.state_vector)))
+        for i in range(1, self.nstate+1):
+            # get the column indices for the new Jacobian
+            cols_idx = np.where(self.state_vector == i)[0]
+
+            # get the Jacobian values
+            ki = self.k[:, i-1]/len(cols_idx)
+            ki = np.tile(ki.reshape(-1, 1), (1, len(cols_idx)))
+
+            # fill in
+            k_fr[:, cols_idx] = ki
+        return k_fr
+
+    def calculate_k(self, forward_model):
+        k_ms = pd.DataFrame(forward_model)
+        k_ms = k_ms.groupby(self.state_vector, axis=1).sum()
+        self.k = np.array(k_ms)
+
+    def calculate_prior(self, xa_abs, sa_vec):
+        xa_abs_ms = pd.DataFrame(xa_abs).groupby(self.state_vector).sum()
+
+        sa_vec_abs = pd.DataFrame(sa_vec*xa_abs)
+        sa_vec_abs_ms = (sa_vec_abs**2).groupby(self.state_vector).sum()**0.5
+        sa_vec_ms = sa_vec_abs_ms/xa_abs_ms
+
+        self.xa_abs = np.array(xa_abs_ms).reshape(-1,)
+        self.xa = np.ones(self.nstate).reshape(-1,)
+        self.sa_vec = np.array(sa_vec_ms).reshape(-1,)
+
+    def update_jacobian_rd(self, forward_model, xa_abs, sa_vec, clusters_plot,
+                           pct_of_info=None, rank=None, snr=None,
+                           n_cells=[100, 200],
+                           n_cluster_size=[1, 2],
+                           dofs_e=None,
+                           k_base=None):#, #threshold=0,
+                        # perturbation_factor=0.5):
+        '''
+        This function generates a multi-scale Jacobian on the basis
+        of the information content, as given by the diagonal elements
+        of the averaging kernel. It maintains the native resolution
+        for the grid cells with the highest information content while
+        aggregating together grid cells with lower information content
+        using K means clustering. The user must provide the number of
+        desired number of grid cells and the number of grid cells per
+        cluster for each aggregation level. It accepts the following
+        arguments:
+            forward_model       the true Jacobian
+            clusters_plot       the mapping from the grid cells to state
+                                vector number
+            pct_of_info         currently not used
+            rank                currently not used
+            snr                 currently not used
+            n_cells             the number of native resolution grid
+                                cells to be used in the aggregation
+                                scheme (integer or list of integers);
+                                defaults to [100, 200]
+            n_cluster_size      the number of native resolution grid
+                                cells to aggregate together at each level
+                                of aggregation; defaults to [1, 2]
+            k_base              currently defaults to previous k
+        Example:
+            Passing n_cells=[100, 200], n_cluster_size=[1, 2] will
+            generate a state vector where the 100 grid cells with highest
+            information content maintain the native resolution (i.e.
+            cluster size = 1) and the 200 grid cells with next highest
+            information content will be aggregated into clusters with size
+            2. The final state vector will have dimension 200.
+        '''
+
+        if k_base is None:
+            k_base = copy.deepcopy(self.k)
+
+        # We start by creating a new instance of the class. This
+        # is where
+        new = ReducedRankJacobian(k=k_base,
+                                  xa=copy.deepcopy(self.xa),
+                                  sa_vec=copy.deepcopy(self.sa_vec),
+                                  y=copy.deepcopy(self.y),
+                                  y_base=copy.deepcopy(self.y_base),
+                                  so_vec=copy.deepcopy(self.so_vec))
+        new.state_vector = copy.deepcopy(self.state_vector)
+        new.dofs = copy.deepcopy(self.dofs)
+        new.model_runs = copy.deepcopy(self.model_runs)
+        new.rf = copy.deepcopy(self.rf)
+        _, counts = np.unique(self.state_vector, return_counts=True)
+
+        # If previously optimized, set significance to 0
+        # if len(self.perturbed_cells) > 0:
+        if np.any(counts > 1):
+            print('Ignoring previously optimized grid cells.')
+            # significance[self.perturbed_cells] = 0
+            new.dofs[counts == 1] = 0
+
+        # We need the new state vector first. This gives us the
+        # clusterings of the base resolution state vector
+        # elements as dictated by n_cells and n_cluster_size.
+        new.state_vector, new_runs = new.aggregate_cells_kmeans(clusters_plot,
+                                                       n_cells=n_cells,
+                                                       n_cluster_size=  n_cluster_size,
+                                                       dofs_e=dofs_e)
+        new.model_runs += new_runs
+
+        # We calculate the number of model runs and the counts of
+        # each cluster
+        elements, counts = np.unique(new.state_vector, return_counts=True)
+
+        # # Now update the Jacobian
+        new.nstate = len(elements)
+        new.calculate_k(forward_model)
+        new.calculate_prior(xa_abs=xa_abs, sa_vec=sa_vec)
+
+        # Adjust the rf
+        new.rf = self.rf*new.nstate/self.nstate
+
+        # Update the value of c in the new instance
+        new.calculate_c()
+
+        # And do the eigendecomposition
+        new.edecomp()
+
+        # And solve the inversion
+        new.solve_inversion()
+
+        # And save a long xhat/shat/avker (start by saving them as
+        # an unphysical value so that we can check for errors)
+        new.xhat_long = np.ones(len(new.state_vector))
+        new.dofs_long = np.zeros(len(new.state_vector))
+        for i in range(1, new.nstate + 1):
+            idx = np.where(new.state_vector == i)[0]
+            new.xhat_long[idx] = new.xhat[i - 1]
+            new.dofs_long[idx] = new.dofs[i - 1]
+
+        print('NUMBER OF MODEL RUNS : %d' % new.model_runs)
+
+        return new
+
+    def plot_multiscale_grid(self, clusters_plot, **kw):
+        # Get KW
+        title = kw.pop('title', '')
+        fig_kwargs = kw.pop('fig_kwargs', {})
+        title_kwargs = kw.pop('title_kwargs', {})
+        map_kwargs = kw.pop('map_kwargs', {})
+        kw['colors'] = kw.pop('colors', 'black')
+        kw['linewidths'] = kw.pop('linewidths', 1)
+
+        # Plot
+        nstate = len(np.unique(self.state_vector)[1:])
+        data = ip.match_data_to_clusters(self.state_vector,
+                                           clusters_plot, default_value=0)
+        data_zoomed = zoom(data.values, 50, order=0, mode='nearest')
+        fig, ax = fp.get_figax(maps=True, lats=data.lat, lons=data.lon,
+                               **fig_kwargs)
+        ax.contour(data_zoomed, levels=np.arange(0, nstate, 1),
+                   extent=[data.lon.min(), data.lon.max(),
+                           data.lat.min(), data.lat.max()],
+                   **kw)
+        ax = fp.add_title(ax, title, **title_kwargs)
+        ax = fp.format_map(ax, data.lat, data.lon, **map_kwargs)
+
+        return fig, ax
