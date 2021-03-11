@@ -10,15 +10,15 @@ import copy
 import calendar as cal
 
 import xarray as xr
-import xbpch as xb
+# import xbpch as xb
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
 
-data = xb.open_bpchdataset(filename='trac_avg.merra2_4x5_CH4.201501010000',
-                           tracerinfo_file='tracerinfo.dat',
-                           diaginfo_file='diaginfo.dat')
+# data = xb.open_bpchdataset(filename='trac_avg.merra2_4x5_CH4.201501010000',
+#                            tracerinfo_file='tracerinfo.dat',
+#                            diaginfo_file='diaginfo.dat')
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -94,22 +94,29 @@ data_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/obs
 # is it the restart file?
 # rst12 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191201_0000z.nc4'))
 # rst11 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191101_0000z.nc4'))
-# for lev in rst11.lev:
-#     print(lev.values)
-#     print('Dec: ', rst12['SpeciesRst_CH4'].where(rst12.lev == lev, drop=True).min().values*1e9)
-#     print('Nov: ', rst11['SpeciesRst_CH4'].where(rst11.lev == lev, drop=True).min().values*1e9)
-#     print('\n')
+# # for lev in rst11.lev:
+# #     print(lev.values)
+# #     print('Dec: ', rst12['SpeciesRst_CH4'].where(rst12.lev == lev, drop=True).min().values*1e9)
+# #     print('Nov: ', rst11['SpeciesRst_CH4'].where(rst11.lev == lev, drop=True).min().values*1e9)
+# #     print('\n')
+# rst12.plot.scatter(x='SpeciesRst_CH4', y='lev')
+# rst11.plot.scatter(x='SpeciesRst_CH4', y='lev')
+# plt.show()
+
+
 # Probably not because the December restart file is actually larger than
 # the November restart file.
 
 # Where in the atmosphere does it originate?
-# files = [f'GEOSChem.SpeciesConc.{year}{month}{dd:02d}_0000z.nc4' for dd in days]
-# # for f in files[0]:
-# f = files[0]
-# data = xr.open_dataset(join(data_dir, f))
-# # c = plt.scatter(data.lev, data['SpeciesConc_CH4'], c=data.time)
-# # plt.colorbar(c)
-# print(data)
+files = [f'GEOSChem.SpeciesConc.{year}{month}{dd:02d}_0000z.nc4' for dd in days]
+# for f in files[0]:
+f = files[15]
+data = xr.open_dataset(join(data_dir, f))
+data = data.isel(time=1)
+data.plot.scatter(x='SpeciesConc_CH4', y='lev')
+# c = plt.scatter(data.lev, data['SpeciesConc_CH4'], c=data.time)
+# plt.colorbar(c)
+plt.show()
 
 
 # # ========================================================================== ## Diagnosing error in prior simulation
