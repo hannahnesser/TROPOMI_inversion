@@ -5,6 +5,7 @@ python/__pycache__
 
 # slurm files
 **slurm*
+**.out
 
 # log files
 **.log
