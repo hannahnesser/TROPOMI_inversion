@@ -30,4 +30,4 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 echo "Initiating script"
-python -u ${CODE_DIR}/python/generate_obs.py $PRIOR_DIR $CODE_DIR
+python -u ${CODE_DIR}/generate_obs.py $PRIOR_DIR $CODE_DIR
