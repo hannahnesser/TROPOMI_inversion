@@ -23,9 +23,9 @@ import cartopy.crs as ccrs
 import cartopy
 
 # Import information for plotting in a consistent fashion
-import format_plots as fp
 import config
-import plots as p
+import format_plots as fp
+import invpy as ip
 
 # Other font details
 rcParams['font.family'] = 'sans-serif'
@@ -142,7 +142,7 @@ class Inversion:
             self.k[self.k < 0] = 0
 
         # Solve for the constant c.
-        self.calculate_c()
+        self.c = self.calculate_c()
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -162,7 +162,8 @@ class Inversion:
         Calculate c for the forward model, defined as ybase = Kxa + c.
         Save c as an element of the object.
         '''
-        self.c = self.y_base - self.k @ self.xa
+        c = self.y_base - self.k @ self.xa
+        return c
 
     def obs_mod_diff(self, x):
         '''
@@ -281,20 +282,11 @@ class Inversion:
 
         kw['title'] = kw.get('title', attribute_str)
 
-        # Removing this for the multiscale grid instance, when
-        # the plotted data is native resolution and the
-        # state vector dimension is not
-        # # Force the data to have dimension equal to the state dimension
-        # err_str = 'Dimension mismatch: Data does not match state dimension.'
-        # err_data = '(data.shape[0] = %d, self.nstate = %d)' \
-        #            % (data.shape[0], self.nstate)
-        # assert data.shape[0] == self.nstate, err_str + err_data
-
         # Match the data to lat/lon data
-        data = p.match_data_to_clusters(data, clusters_plot, default_value)
+        data = ip.match_data_to_clusters(data, clusters_plot, default_value)
 
         # Plot
-        fig, ax, c = p.plot_state_format(data, default_value, cbar, **kw)
+        fig, ax, c = ip.plot_state_format(data, default_value, cbar, **kw)
         return fig, ax, c
 
     def plot_multiscale_grid(self, clusters_plot, **kw):
@@ -308,7 +300,7 @@ class Inversion:
 
         # Plot
         nstate = len(np.unique(self.state_vector)[1:])
-        data = p.match_data_to_clusters(self.state_vector,
+        data = ip.match_data_to_clusters(self.state_vector,
                                            clusters_plot, default_value=0)
         data_zoomed = zoom(data.values, 50, order=0, mode='nearest')
         fig, ax = fp.get_figax(maps=True, lats=data.lat, lons=data.lon,
@@ -416,6 +408,126 @@ class ReducedMemoryInversion(Inversion):
         self.shat = None
         self.a = None
         self.y_out = None
+
+        print('... Complete ...\n')
+
+    ####################################
+    ### STANDARD INVERSION FUNCTIONS ###
+    ####################################
+    @staticmethod
+    def open_k(file_name):
+        try:
+            k = gc.load_obj(file_name)
+            return k
+        except FileNotFoundError:
+            print(f'{file_name} not found.')
+
+    def calculate_c(self):
+        '''
+        Calculate c for the forward model, defined as ybase = Kxa + c.
+        Save c as an element of the object.
+        '''
+        c =
+        for file_name in self.k:
+            k = self.open_k(file_name)
+            c = self.y_base - self.k @ self.xa
+
+    def obs_mod_diff(self, x):
+        '''
+        Calculate the difference between the true observations y and the
+        simulated observations Kx + c for a given x. It returns this
+        difference as a vector.
+
+        Parameters:
+            x      The state vector at which to evaluate the difference
+                   between the true and simulated observations
+        Returns:
+            diff   The difference between the true and simulated observations
+                   as a vector
+        '''
+        diff = self.y - (self.k @ x + self.c)
+        return diff
+
+    def cost_func(self, x):
+        '''
+        Calculate the value of the Bayesian cost function
+            J(x) = (x - xa)T Sa (x-xa) + rf(y - Kx)T So (y - Kx)
+        for a given x. Prints out that value and the contributions from
+        the emission and observational terms.
+
+        Parameters:
+            x      The state vector at which to evaluate the cost function
+        Returns:
+            cost   The value of the cost function at x
+        '''
+
+        # Calculate the observational component of the cost function
+        cost_obs = self.obs_mod_diff(x).T \
+                   @ diags(self.rf/self.so_vec) @ self.obs_mod_diff(x)
+
+        # Calculate the emissions/prior component of the cost function
+        cost_emi = (x - self.xa).T @ diags(1/self.sa_vec) @ (x - self.xa)
+
+        # Calculate the total cost, print out information on the cost, and
+        # return the total cost function value
+        cost = cost_obs + cost_emi
+        print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
+              % (cost, cost_emi, cost_obs))
+        return cost
+
+    def solve_inversion(self):
+        '''
+        Calculate the solution to an analytic Bayesian inversion for the
+        given Inversion object. The solution includes the posterior state
+        vector (xhat), the posterior error covariance matrix (shat), and
+        the averaging kernel (A). The function prints out progress statements
+        and information about the posterior solution, including the value
+        of the cost function at the prior and posterior, the number of
+        negative state vector elements in the posterior solution, and the
+        DOFS of the posterior solution.
+        '''
+        print('... Solving inversion ...')
+
+        # We use the inverse of both the prior and observational
+        # error covariance matrices, so we save those as separate variables.
+        # Here we convert the variance vectors into diagonal covariance
+        # matrices. We also apply the regularization factor rf to the
+        # observational error covariance.
+        # Note: This would change if error variances were redefined as
+        # covariance matrices
+        so_inv = diags(self.rf/self.so_vec)
+        sa_inv = diags(1/self.sa_vec)
+
+        # Calculate the cost function at the prior.
+        print('Calculating the cost function at the prior mean.')
+        cost_prior = self.cost_func(self.xa)
+
+        # Calculate the posterior error.
+        print('Calculating the posterior error.')
+        self.shat = np.asarray(inv(self.k.T @ so_inv @ self.k + sa_inv))
+
+        # Calculate the posterior mean
+        print('Calculating the posterior mean.')
+        gain = np.asarray(self.shat @ self.k.T @ so_inv)
+        self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
+
+        # Calculate the cost function at the posterior. Also
+        # calculate the number of negative cells as an indicator of
+        # inversion success.
+        print('Calculating the cost function at the posterior mean.')
+        cost_post = self.cost_func(self.xhat)
+        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
+
+        # Calculate the averaging kernel.
+        print('Calculating the averaging kernel.')
+        self.a = np.asarray(identity(self.nstate) \
+                            - self.shat @ sa_inv)
+        self.dofs = np.diag(self.a)
+        print('     DOFS: %.2f' % np.trace(self.a))
+
+        # Calculate the new set of modeled observations.
+        print('Calculating updated modeled observations.')
+        self.y_out = self.k @ self.xhat + self.c
 
         print('... Complete ...\n')
 
@@ -884,7 +996,7 @@ class ReducedRankJacobian(ReducedRankInversion):
         labels[label_idx] = label_idx + 1
         # the +1 here is countered by a -1 later--this is a fix for
         # pythonic indexing
-        labels = p.match_data_to_clusters(labels,
+        labels = ip.match_data_to_clusters(labels,
                                                clusters_plot)
         labels = labels.to_dataframe('labels').reset_index()
         labels = labels[labels['labels'] > 0]
