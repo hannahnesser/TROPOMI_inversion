@@ -18,9 +18,4 @@ YEAR="2019"
 jid=$(sbatch --array=12-12 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR})
 
 # Analyze the output
-sbatch --job-name=consolidate_obs_data \
-       --output=%x_%j_%a.out \
-       -c 4 -N 1 -p huce_intel --mem 12000 -t 0-00:40 \
-       --dependency=afterok:${jid##* } \
-       --mail-type=END \
-       python generate_obs.py ${PRIOR_DIR} ${CODE_DIR}
+sbatch --dependency=afterok:${jid##* } run_generate_obs.sh
