@@ -34,7 +34,7 @@ import pandas as pd
 # plot_dir = base_dir + 'plots'
 
 # Cannon preferences
-base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_6buff/'
+base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 data_dir = f'{base_dir}ProcessedDir'
 output_dir = f'{base_dir}SummaryDir'
@@ -155,7 +155,12 @@ else:
 # Subset for months
 data = data[data['MONTH'] <= months.max()]
 print('Data is loaded.')
-print('Maximum modeled observation is ', data['MOD'].max())
+print('Maximum modeled observations:')
+print(data.groupby('MONTH').max()['MOD'])
+print('\n')
+print('Maximum model-observation difference:')
+print(data.groupby('MONTH').max()['DIFF'])
+
 
 ## ----------------------------------------- ##
 ## Additional data corrections

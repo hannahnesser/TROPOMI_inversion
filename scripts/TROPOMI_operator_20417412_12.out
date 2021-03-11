@@ -1,0 +1,54 @@
+=======================================================================
+TROPOMI DATA DIRECTORY:    /n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/
+GEOS-CHEM DATA DIRECTORY:  /n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000OutputDir/
+OUTPUT DATA DIRECTORY:     /n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000ProcessedDir/
+LONGITUDE RANGE:           -130 -60 0.3125
+LATITUDE RANGE:            9.75 60 0.25
+YEAR:                      2019
+MONTH:                     12
+=======================================================================
+Activating python environment
+Activated /n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion
+Initiating script
+findfont: Font family ['sans-serif'] not found. Falling back to DejaVu Sans.
+Applying TROPOMI operator for 2019-12
+
+Number of dates:  31
+=========== 20191201 ===========
+Processing 18679 Observations
+================================
+Traceback (most recent call last):
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/file_manager.py", line 199, in _acquire_with_cache_info
+    file = self._cache[self._key]
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/lru_cache.py", line 53, in __getitem__
+    value = self._cache[key]
+KeyError: [<class 'netCDF4._netCDF4.Dataset'>, ('/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000OutputDir/GEOSChem.SpeciesConc.20191201_0000z.nc4',), 'r', (('clobber', True), ('diskless', False), ('format', 'NETCDF4'), ('persist', False))]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/n/home04/hnesser/TROPOMI_inversion/python/TROPOMI_operator.py", line 447, in <module>
+    GC = read_GC(GC_data_dir, date)
+  File "/n/home04/hnesser/TROPOMI_inversion/python/TROPOMI_operator.py", line 142, in read_GC
+    data = get_diagnostic(data_dir, 'SpeciesConc', date)
+  File "/n/home04/hnesser/TROPOMI_inversion/python/TROPOMI_operator.py", line 137, in get_diagnostic
+    data = xr.open_dataset(filename)
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/api.py", line 572, in open_dataset
+    store = opener(filename_or_obj, **extra_kwargs, **backend_kwargs)
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/netCDF4_.py", line 364, in open
+    return cls(manager, group=group, mode=mode, lock=lock, autoclose=autoclose)
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/netCDF4_.py", line 314, in __init__
+    self.format = self.ds.data_model
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/netCDF4_.py", line 373, in ds
+    return self._acquire()
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/netCDF4_.py", line 367, in _acquire
+    with self._manager.acquire_context(needs_lock) as root:
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/contextlib.py", line 113, in __enter__
+    return next(self.gen)
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/file_manager.py", line 187, in acquire_context
+    file, cached = self._acquire_with_cache_info(needs_lock)
+  File "/n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion/lib/python3.8/site-packages/xarray/backends/file_manager.py", line 205, in _acquire_with_cache_info
+    file = self._opener(*self._args, **kwargs)
+  File "netCDF4/_netCDF4.pyx", line 2357, in netCDF4._netCDF4.Dataset.__init__
+  File "netCDF4/_netCDF4.pyx", line 1925, in netCDF4._netCDF4._ensure_nc_success
+FileNotFoundError: [Errno 2] No such file or directory: b'/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000OutputDir/GEOSChem.SpeciesConc.20191201_0000z.nc4'

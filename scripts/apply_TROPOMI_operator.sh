@@ -14,8 +14,9 @@
 ## -------------------------------------------------------------------------##
 # Directories
 TROPOMI_DATA_DIR="/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-GC_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_6buff/OutputDir/"
-OUTPUT_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_6buff/ProcessedDir/"
+BASE_DIR="${1}"
+INPUT_DIR="${BASE_DIR}OutputDir/"
+OUTPUT_DIR="${BASE_DIR}ProcessedDir/"
 
 # Latitude and longitude range
 LONS="-130 -60 0.3125"
@@ -31,7 +32,7 @@ MONTH="${SLURM_ARRAY_TASK_ID}"
 ## -------------------------------------------------------------------------##
 echo "======================================================================="
 echo "TROPOMI DATA DIRECTORY:    ${TROPOMI_DATA_DIR}"
-echo "GEOS-CHEM DATA DIRECTORY:  ${GC_DATA_DIR}"
+echo "GEOS-CHEM DATA DIRECTORY:  ${INPUT_DIR}"
 echo "OUTPUT DATA DIRECTORY:     ${OUTPUT_DIR}"
 echo "LONGITUDE RANGE:           ${LONS}"
 echo "LATITUDE RANGE:            ${LATS}"
@@ -57,4 +58,4 @@ cd $GC_DATA_DIR
 mkdir -p $OUTPUT_DIR
 
 echo "Initiating script"
-python -u ${python_dir}/python/TROPOMI_operator.py $TROPOMI_DATA_DIR $GC_DATA_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
+python -u ${python_dir}/python/TROPOMI_operator.py $TROPOMI_DATA_DIR $INPUT_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
