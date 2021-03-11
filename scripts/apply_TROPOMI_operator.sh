@@ -54,7 +54,7 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 python_dir=$(dirname `pwd`)
-cd $GC_DATA_DIR
+cd $INPUT_DIR
 mkdir -p $OUTPUT_DIR
 
 echo "Initiating script"
