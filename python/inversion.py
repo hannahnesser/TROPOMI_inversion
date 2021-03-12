@@ -333,7 +333,7 @@ class Inversion:
 
         return fig, ax, c
 
-class ReducedRankInversion(Inversion, ReducedMemoryInversion):
+class ReducedRankInversion(Inversion):
     # class variables shared by all instances
 
     def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
@@ -956,7 +956,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
 
         return fig, ax
 
-class ReducedMemoryInversion(Inversion):
+class ReducedMemoryInversion(Inversion, ReducedRankInversion):
     def __init__(self, k_files, xa, sa_vec, y, y_base, so_vec,
                  rf=1, latres=1, lonres=1.25):
         print('... Initializing reduced memory inversion object ...')
