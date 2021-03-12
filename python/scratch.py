@@ -1,3 +1,68 @@
+## ========================================================================== ## Creating big mem inversion class
+# ## ==========================================================================
+from os.path import join
+import os
+from copy import deepcopy
+os.environ['OMP_NUM_THREADS'] = '1'
+
+import numpy as np
+import xarray as xr
+import pickle
+import os
+import pandas as pd
+import math
+import numpy as np
+from scipy.linalg import eigh
+
+# Plotting
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
+
+import sys
+sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
+import inversion as inv
+import gcpy as gc
+import invpy as ip
+import format_plots as fp
+
+def open_k(file_name):
+    try:
+        k = gc.load_obj(file_name)
+        return k
+    except FileNotFoundError:
+        print(f'{file_name} not found.')
+
+
+k = [f for f in os.listdir() if f[:2] == 'k0']
+y = gc.load_obj('y.pkl')
+y_base = gc.load_obj('kxa.pkl')
+so_vec = gc.load_obj('so.pkl')
+xa = gc.load_obj('xa.pkl')
+sa_vec = gc.load_obj('sa.pkl')
+
+nstate = xa.shape[0]
+nobs = y.shape[0]
+
+# kn = open_k(k[0])
+
+def calculate_c():
+    '''
+    Calculate c for the forward model, defined as ybase = Kxa + c.
+    Save c as an element of the object.
+    '''
+    c = np.zeros(nobs)
+    i0 = 0
+    i1 = 0
+    for file_name in k:
+        kn = open_k(file_name)
+        i1 += kn.shape[0]
+        print(i0, i1)
+        c[i0:i1] = y_base[i0:i1] - np.matmul(kn, xa)
+        print('hello')
+        i0 = i1
+    return c
+
+c = calculate_c()
 
 # # ========================================================================== ## Testing errors in eigenvector perturbations
 
@@ -59,6 +124,9 @@ import gcpy as gc
 import troppy as tp
 import format_plots as fp
 
+tmp = gc.load_obj('/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/inversion_data/y.pkl')
+print(tmp)
+
 # data
 year = 2019
 month = 12
@@ -66,57 +134,57 @@ days = np.arange(1, 32, 1)
 files = [f'{year}{month}{dd:02d}_GCtoTROPOMI.pkl' for dd in days]
 data_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/observations'
 
-# data = np.array([]).reshape(0, 13)
-# for f in files:
-#     month = int(f[4:6])
-#     day = int(f[6:8])
-#     print(day)
-#     new_data = gc.load_obj(join(data_dir, f))['obs_GC']
-#     new_data = np.insert(new_data, 11, month, axis=1)
-#     new_data = np.insert(new_data, 12, day, axis=1)
-#     data = np.concatenate((data, new_data))
+# # data = np.array([]).reshape(0, 13)
+# # for f in files:
+# #     month = int(f[4:6])
+# #     day = int(f[6:8])
+# #     print(day)
+# #     new_data = gc.load_obj(join(data_dir, f))['obs_GC']
+# #     new_data = np.insert(new_data, 11, month, axis=1)
+# #     new_data = np.insert(new_data, 12, day, axis=1)
+# #     data = np.concatenate((data, new_data))
 
-# columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-#            'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
-#            'MONTH', 'DAY']
-# data = pd.DataFrame(data, columns=columns)
-# data['DIFF'] = data['MOD'] - data['OBS']
+# # columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
+# #            'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
+# #            'MONTH', 'DAY']
+# # data = pd.DataFrame(data, columns=columns)
+# # data['DIFF'] = data['MOD'] - data['OBS']
 
-# print(data)
+# # print(data)
 
-# c = plt.scatter(data['OBS'], data['MOD'], c=data['DAY'], s=10, alpha=0.5)
-# plt.colorbar(c)
-# plt.ylim(1600, 2000)
-# plt.xlim(1600, 2000)
+# # c = plt.scatter(data['OBS'], data['MOD'], c=data['DAY'], s=10, alpha=0.5)
+# # plt.colorbar(c)
+# # plt.ylim(1600, 2000)
+# # plt.xlim(1600, 2000)
+# # plt.show()
+
+# # Isolated early days--we'll use day 1 as a test case
+# # is it the restart file?
+# # rst12 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191201_0000z.nc4'))
+# # rst11 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191101_0000z.nc4'))
+# # # for lev in rst11.lev:
+# # #     print(lev.values)
+# # #     print('Dec: ', rst12['SpeciesRst_CH4'].where(rst12.lev == lev, drop=True).min().values*1e9)
+# # #     print('Nov: ', rst11['SpeciesRst_CH4'].where(rst11.lev == lev, drop=True).min().values*1e9)
+# # #     print('\n')
+# # rst12.plot.scatter(x='SpeciesRst_CH4', y='lev')
+# # rst11.plot.scatter(x='SpeciesRst_CH4', y='lev')
+# # plt.show()
+
+
+# # Probably not because the December restart file is actually larger than
+# # the November restart file.
+
+# # Where in the atmosphere does it originate?
+# files = [f'GEOSChem.SpeciesConc.{year}{month}{dd:02d}_0000z.nc4' for dd in days]
+# # for f in files[0]:
+# f = files[15]
+# data = xr.open_dataset(join(data_dir, f))
+# data = data.isel(time=1)
+# data.plot.scatter(x='SpeciesConc_CH4', y='lev')
+# # c = plt.scatter(data.lev, data['SpeciesConc_CH4'], c=data.time)
+# # plt.colorbar(c)
 # plt.show()
-
-# Isolated early days--we'll use day 1 as a test case
-# is it the restart file?
-# rst12 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191201_0000z.nc4'))
-# rst11 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191101_0000z.nc4'))
-# # for lev in rst11.lev:
-# #     print(lev.values)
-# #     print('Dec: ', rst12['SpeciesRst_CH4'].where(rst12.lev == lev, drop=True).min().values*1e9)
-# #     print('Nov: ', rst11['SpeciesRst_CH4'].where(rst11.lev == lev, drop=True).min().values*1e9)
-# #     print('\n')
-# rst12.plot.scatter(x='SpeciesRst_CH4', y='lev')
-# rst11.plot.scatter(x='SpeciesRst_CH4', y='lev')
-# plt.show()
-
-
-# Probably not because the December restart file is actually larger than
-# the November restart file.
-
-# Where in the atmosphere does it originate?
-files = [f'GEOSChem.SpeciesConc.{year}{month}{dd:02d}_0000z.nc4' for dd in days]
-# for f in files[0]:
-f = files[15]
-data = xr.open_dataset(join(data_dir, f))
-data = data.isel(time=1)
-data.plot.scatter(x='SpeciesConc_CH4', y='lev')
-# c = plt.scatter(data.lev, data['SpeciesConc_CH4'], c=data.time)
-# plt.colorbar(c)
-plt.show()
 
 
 # # ========================================================================== ## Diagnosing error in prior simulation

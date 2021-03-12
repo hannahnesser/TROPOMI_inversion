@@ -30,11 +30,11 @@ plot_dir = base_dir + 'plots/'
 # The emissions can either be a list of files or a single file
 # with an annual average
 year = 2019
-months = np.arange(1, 12, 1) # excluding December for now
+months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-# emis_file = [f'{data_dir}HEMCO_diagnostics.{year}{mm:02d}010000.nc'
-#              for mm in months]
-emis_file = f'{data_dir}HEMCO_diagnostics.{year}.nc'
+emis_file = [f'{data_dir}HEMCO_diagnostics.{year}{mm:02d}010000.nc'
+             for mm in months]
+# emis_file = f'{data_dir}HEMCO_diagnostics.{year}.nc'
 
 # We also need to define a land cover file
 land_file = f'{base_dir}gc_inputs/GEOSFP.20200101.CN.025x03125.NA.nc'
@@ -80,21 +80,20 @@ lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
 ## -------------------------------------------------------------------------##
-emis = gc.load_files(emis_file)
+emis = gc.load_files(emis_file, data_dir=data_dir)
 
 # Remove emissions from buffer grid cells
 emis = gc.subset_data_latlon(emis, *lat_e, *lon_e)
 
+# Separate out anthropogenic methane emissions
+emis = (emis['EmisCH4_OtherAnth'] + emis['EmisCH4_Rice'] +
+        emis['EmisCH4_Wastewater'] + emis['EmisCH4_Coal'] +
+        emis['EmisCH4_Landfills'] + emis['EmisCH4_Gas'] +
+        emis['EmisCH4_Livestock'] + emis['EmisCH4_Oil'])
+
 # Average over time
 if 'time' in emis.dims:
-    emis = emis.mean(dim='time')
-
-# Separate out anthropogenic methane emissions
-emis['EmisCH4_Anthro'] = (emis['EmisCH4_OtherAnth'] + emis['EmisCH4_Rice'] +
-                          emis['EmisCH4_Wastewater'] + emis['EmisCH4_Coal'] +
-                          emis['EmisCH4_Landfills'] + emis['EmisCH4_Gas'] +
-                          emis['EmisCH4_Livestock'] + emis['EmisCH4_Oil'])
-emis = emis['EmisCH4_Anthro']
+    emis = emis.mean(dim='time').load()
 
 # Adjust units to Mg/km2/yr
 emis *= 0.001*60*60*24*365*1000*1000
@@ -131,7 +130,7 @@ emis = emis.where((emis < emis_threshold) & (lc < land_threshold))
 emis = emis.where(emis.isnull(), 0)
 
 # Fill in the cluster values
-emis.values[emis.isnull()] = np.arange(1, emis.isnull().sum()+1)[::-1]
+emis.values[emis.isnull()] = np.arange(1, emis.isnull().values.sum()+1)[::-1]
 
 # Print information about clusters
 print(f'The inversion will optimize {int(emis.max().values)} clusters.')

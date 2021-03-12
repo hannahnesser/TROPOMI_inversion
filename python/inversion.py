@@ -976,10 +976,6 @@ class ReducedMemoryInversion(ReducedRankInversion):
         self.state_vector = np.arange(1, self.nstate+1, 1)
 
         # Check whether all inputs have the right dimensions
-        assert k.shape[1] == self.nstate, \
-               'Dimension mismatch: Jacobian and prior.'
-        assert k.shape[0] == self.nobs, \
-               'Dimension mismatch: Jacobian and observations.'
         assert so_vec.shape[0] == self.nobs, \
                'Dimension mismatch: observational error'
         assert sa_vec.shape[0] == self.nstate, \
@@ -1009,23 +1005,29 @@ class ReducedMemoryInversion(ReducedRankInversion):
     ####################################
     ### STANDARD INVERSION FUNCTIONS ###
     ####################################
-    # @staticmethod
-    # def open_k(file_name):
-    #     try:
-    #         k = gc.load_obj(file_name)
-    #         return k
-    #     except FileNotFoundError:
-    #         print(f'{file_name} not found.')
+    @staticmethod
+    def open_k(file_name):
+        try:
+            k = gc.load_obj(file_name)
+            return k
+        except FileNotFoundError:
+            print(f'{file_name} not found.')
 
-    # def calculate_c(self):
-    #     '''
-    #     Calculate c for the forward model, defined as ybase = Kxa + c.
-    #     Save c as an element of the object.
-    #     '''
-    #     c = np.array([])
-    #     for file_name in self.k:
-    #         k = self.open_k(file_name)
-    #         c = self.y_base - self.k @ self.xa
+    def calculate_c(self):
+        '''
+        Calculate c for the forward model, defined as ybase = Kxa + c.
+        Save c as an element of the object.
+        '''
+        c = np.zeros(self.nobs)
+        i0 = 0
+        i1 = 0
+        for file_name in self.k:
+            kn = self.open_k(file_name)
+            i1 += kn.shape[0]
+            c[i0:i1] = self.y_base[i0:i1] - np.matmul(kn, self.xa)
+            i0 = i1
+        return c
+
 
     # def obs_mod_diff(self, x):
     #     '''

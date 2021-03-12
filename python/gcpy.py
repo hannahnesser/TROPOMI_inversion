@@ -163,10 +163,8 @@ def load_files(*files, **kwargs):
     '''
     A function that will load one or more files
     '''
-    if len(files) > 1:
-        # Open files
-        files = [f for f in files if f in listdir(kwargs['data_dir'])]
-        data = xr.open_mfdataset(files)
+    if len(*files) > 1:
+        data = xr.open_mfdataset(*files)
     else:
         data = xr.open_dataset(files[0])
 
