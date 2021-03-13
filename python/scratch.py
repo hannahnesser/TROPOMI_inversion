@@ -34,6 +34,7 @@ def open_k(file_name):
 
 
 k = [f for f in os.listdir() if f[:2] == 'k0']
+k.sort()
 y = gc.load_obj('y.pkl')
 y_base = gc.load_obj('kxa.pkl')
 so_vec = gc.load_obj('so.pkl')

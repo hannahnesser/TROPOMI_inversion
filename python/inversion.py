@@ -957,7 +957,9 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         return fig, ax
 
 class ReducedMemoryInversion(ReducedRankInversion):
-    def __init__(self, k_files, xa, sa_vec, y, y_base, so_vec,
+    os.environ['OMP_NUM_THREADS'] = '1'
+
+    def __init__(self, k_files, xa, sa_vec, y, y_base, so_vec, c=None,
                  rf=1, latres=1, lonres=1.25):
         print('... Initializing reduced memory inversion object ...')
 
@@ -991,7 +993,10 @@ class ReducedMemoryInversion(ReducedRankInversion):
         self.rf = rf
 
         # # Solve for the constant c.
-        c = self.calculate_c()
+        if c is None:
+            self.c = self.calculate_c()
+        else:
+            self.c = c
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -1013,37 +1018,52 @@ class ReducedMemoryInversion(ReducedRankInversion):
         except FileNotFoundError:
             print(f'{file_name} not found.')
 
-    def calculate_c(self):
-        '''
-        Calculate c for the forward model, defined as ybase = Kxa + c.
-        Save c as an element of the object.
-        '''
-        c = np.zeros(self.nobs)
+    def multiply_kx(multiplier):
+        if len(multiplier.shape) == 1:
+            product = np.zeros(kn.shape[0])
+        else:
+            product = np.zeros(kn.shape[0], multiplier.shape[1])
         i0 = 0
         i1 = 0
         for file_name in self.k:
             kn = self.open_k(file_name)
             i1 += kn.shape[0]
-            c[i0:i1] = self.y_base[i0:i1] - np.matmul(kn, self.xa)
-            i0 = i1
+            if len(multiplier.shape) == 1:
+                product[i0:i1] = np.matmul(kn, multiplier)
+            else:
+                product[i0:i1, :] = np.matmul(kn, multiplier)
+        del(kn)
+        return product
+
+    def multiply_yk(multiplier):
+        ...
+
+    def calculate_c(self):
+        '''
+        Calculate c for the forward model, defined as ybase = Kxa + c.
+        Save c as an element of the object.
+        '''
+        kxa = self.multiply_kx(self.xa)
+        c = self.y_base - kxa
+        print('Remember to save out c to avoid recomputing.')
         return c
 
+    def obs_mod_diff(self, x):
+        '''
+        Calculate the difference between the true observations y and the
+        simulated observations Kx + c for a given x. It returns this
+        difference as a vector.
 
-    # def obs_mod_diff(self, x):
-    #     '''
-    #     Calculate the difference between the true observations y and the
-    #     simulated observations Kx + c for a given x. It returns this
-    #     difference as a vector.
-
-    #     Parameters:
-    #         x      The state vector at which to evaluate the difference
-    #                between the true and simulated observations
-    #     Returns:
-    #         diff   The difference between the true and simulated observations
-    #                as a vector
-    #     '''
-    #     diff = self.y - (self.k @ x + self.c)
-    #     return diff
+        Parameters:
+            x      The state vector at which to evaluate the difference
+                   between the true and simulated observations
+        Returns:
+            diff   The difference between the true and simulated observations
+                   as a vector
+        '''
+        kx = self.multiply_kx(x)
+        diff = self.y - (kx + self.c)
+        return diff
 
     # def cost_func(self, x):
     #     '''
