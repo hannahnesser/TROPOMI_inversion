@@ -9,6 +9,8 @@ import xarray as xr
 import pickle
 import math
 from scipy.stats import linregress
+import h5py
+import dask.array as da
 
 from os.path import join
 from os import listdir
@@ -39,21 +41,32 @@ rcParams['axes.titlepad'] = 0
 ## -------------------------------------------------------------------------##
 ## Loading functions
 ## -------------------------------------------------------------------------##
-def save_obj(obj, name):
+def save_obj(obj, name, big_mem=False):
     '''
     This is a generic function to save a data object using
     pickle, which reduces the memory requirements.
     '''
-    with open(name , 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+    if big_mem:
+        h5f = h5py.File(name, 'w')
+        h5f.create_dataset('data', data=obj)
+        h5f.close()
+    else:
+        with open(name , 'wb') as f:
+            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
-def load_obj(name):
+def load_obj(name, big_mem=False):
     '''
     This is a generic function to open a data object using
     pickle, which reduces the memory requirements.
     '''
-    with open( name, 'rb') as f:
-        return pickle.load(f)
+    if big_mem:
+        h5f = h5py.File(name, 'r')
+        d = h5f['data']
+        x = da.from_array(d)
+        return x
+    else:
+        with open( name, 'rb') as f:
+            return pickle.load(f)
 
 ## -------------------------------------------------------------------------##
 ## Statistics functions

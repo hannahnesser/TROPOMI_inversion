@@ -1018,7 +1018,10 @@ class ReducedMemoryInversion(ReducedRankInversion):
         except FileNotFoundError:
             print(f'{file_name} not found.')
 
-    def multiply_kx(multiplier):
+    def multiply_kx(self, multiplier):
+        '''
+        Multiply the Jacobian by a vector x (multiplier)
+        '''
         if len(multiplier.shape) == 1:
             product = np.zeros(kn.shape[0])
         else:
@@ -1035,7 +1038,10 @@ class ReducedMemoryInversion(ReducedRankInversion):
         del(kn)
         return product
 
-    def multiply_yk(multiplier):
+    def multiply_yk(self, multiplier):
+
+
+    def calculate_innovation_matrix(self):
         ...
 
     def calculate_c(self):
@@ -1065,88 +1071,88 @@ class ReducedMemoryInversion(ReducedRankInversion):
         diff = self.y - (kx + self.c)
         return diff
 
-    # def cost_func(self, x):
-    #     '''
-    #     Calculate the value of the Bayesian cost function
-    #         J(x) = (x - xa)T Sa (x-xa) + rf(y - Kx)T So (y - Kx)
-    #     for a given x. Prints out that value and the contributions from
-    #     the emission and observational terms.
+    def cost_func(self, x):
+        '''
+        Calculate the value of the Bayesian cost function
+            J(x) = (x - xa)T Sa (x-xa) + rf(y - Kx)T So (y - Kx)
+        for a given x. Prints out that value and the contributions from
+        the emission and observational terms.
 
-    #     Parameters:
-    #         x      The state vector at which to evaluate the cost function
-    #     Returns:
-    #         cost   The value of the cost function at x
-    #     '''
+        Parameters:
+            x      The state vector at which to evaluate the cost function
+        Returns:
+            cost   The value of the cost function at x
+        '''
 
-    #     # Calculate the observational component of the cost function
-    #     cost_obs = self.obs_mod_diff(x).T \
-    #                @ diags(self.rf/self.so_vec) @ self.obs_mod_diff(x)
+        # Calculate the observational component of the cost function
+        cost_obs = self.obs_mod_diff(x).T \
+                   @ diags(self.rf/self.so_vec) @ self.obs_mod_diff(x)
 
-    #     # Calculate the emissions/prior component of the cost function
-    #     cost_emi = (x - self.xa).T @ diags(1/self.sa_vec) @ (x - self.xa)
+        # Calculate the emissions/prior component of the cost function
+        cost_emi = (x - self.xa).T @ diags(1/self.sa_vec) @ (x - self.xa)
 
-    #     # Calculate the total cost, print out information on the cost, and
-    #     # return the total cost function value
-    #     cost = cost_obs + cost_emi
-    #     print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
-    #           % (cost, cost_emi, cost_obs))
-    #     return cost
+        # Calculate the total cost, print out information on the cost, and
+        # return the total cost function value
+        cost = cost_obs + cost_emi
+        print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
+              % (cost, cost_emi, cost_obs))
+        return cost
 
-    # def solve_inversion(self):
-    #     '''
-    #     Calculate the solution to an analytic Bayesian inversion for the
-    #     given Inversion object. The solution includes the posterior state
-    #     vector (xhat), the posterior error covariance matrix (shat), and
-    #     the averaging kernel (A). The function prints out progress statements
-    #     and information about the posterior solution, including the value
-    #     of the cost function at the prior and posterior, the number of
-    #     negative state vector elements in the posterior solution, and the
-    #     DOFS of the posterior solution.
-    #     '''
-    #     print('... Solving inversion ...')
+    def solve_inversion(self, calculate_cost=False):
+        '''
+        Calculate the solution to an analytic Bayesian inversion for the
+        given Inversion object. The solution includes the posterior state
+        vector (xhat), the posterior error covariance matrix (shat), and
+        the averaging kernel (A). The function includes the option to print
+        out progress statements and information about the posterior solution,
+        including the value of the cost function at the prior and posterior,
+        the number of negative state vector elements in the posterior
+        solution, and the DOFS of the posterior solution.
+        '''
+        print('... Solving inversion ...')
 
-    #     # We use the inverse of both the prior and observational
-    #     # error covariance matrices, so we save those as separate variables.
-    #     # Here we convert the variance vectors into diagonal covariance
-    #     # matrices. We also apply the regularization factor rf to the
-    #     # observational error covariance.
-    #     # Note: This would change if error variances were redefined as
-    #     # covariance matrices
-    #     so_inv = diags(self.rf/self.so_vec)
-    #     sa_inv = diags(1/self.sa_vec)
+        # We use the inverse of both the prior and observational
+        # error covariance matrices, so we save those as separate variables.
+        # To avoid memory constraints, we keep sa and so as vectors. This
+        # will need to be updated if covariances are used. We also apply the
+        #regularization factor rf to the observational error covariance.
+        so_inv = self.rf/self.so_vec
+        sa_inv = 1/self.sa_vec
 
-    #     # Calculate the cost function at the prior.
-    #     print('Calculating the cost function at the prior mean.')
-    #     cost_prior = self.cost_func(self.xa)
+        # Calculate the cost function at the prior if requested
+        if calculate_cost:
+            print('Calculating the cost function at the prior mean.')
+            cost_prior = self.cost_func(self.xa)
 
-    #     # Calculate the posterior error.
-    #     print('Calculating the posterior error.')
-    #     self.shat = np.asarray(inv(self.k.T @ so_inv @ self.k + sa_inv))
+        # Calculate the posterior error.
+        print('Calculating the posterior error.')
+        self.shat = np.asarray(inv(self.k.T @ so_inv @ self.k + sa_inv))
 
-    #     # Calculate the posterior mean
-    #     print('Calculating the posterior mean.')
-    #     gain = np.asarray(self.shat @ self.k.T @ so_inv)
-    #     self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
+        # Calculate the posterior mean
+        print('Calculating the posterior mean.')
+        gain = np.asarray(self.shat @ self.k.T @ so_inv)
+        self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
 
-    #     # Calculate the cost function at the posterior. Also
-    #     # calculate the number of negative cells as an indicator of
-    #     # inversion success.
-    #     print('Calculating the cost function at the posterior mean.')
-    #     cost_post = self.cost_func(self.xhat)
-    #     print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
+        # Calculate the cost function at the posterior if requested
+        if calculate_cost:
+            print('Calculating the cost function at the posterior mean.')
+            cost_post = self.cost_func(self.xhat)
 
-    #     # Calculate the averaging kernel.
-    #     print('Calculating the averaging kernel.')
-    #     self.a = np.asarray(identity(self.nstate) \
-    #                         - self.shat @ sa_inv)
-    #     self.dofs = np.diag(self.a)
-    #     print('     DOFS: %.2f' % np.trace(self.a))
+        # Also calculate the number of negative cells as an indicator of
+        # inversion success.
+        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
 
-    #     # Calculate the new set of modeled observations.
-    #     print('Calculating updated modeled observations.')
-    #     self.y_out = self.k @ self.xhat + self.c
+        # Calculate the averaging kernel.
+        print('Calculating the averaging kernel.')
+        self.a = np.asarray(identity(self.nstate) - self.shat @ sa_inv)
+        self.dofs = np.diag(self.a)
+        print('     DOFS: %.2f' % np.trace(self.a))
 
-    #     print('... Complete ...\n')
+        # Calculate the new set of modeled observations.
+        print('Calculating updated modeled observations.')
+        self.y_out = self.k @ self.xhat + self.c
+
+        print('... Complete ...\n')
 
     # def get_rank(self, pct_of_info=None, rank=None, snr=None):
     #     frac = np.cumsum(self.evals_q/self.evals_q.sum())
