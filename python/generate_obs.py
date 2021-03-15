@@ -22,6 +22,8 @@ import xarray as xr
 import numpy as np
 from numpy.polynomial import polynomial as p
 import pandas as pd
+pd.set_option('display.max_columns', None)
+
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -48,7 +50,7 @@ plot_dir = None
 year = 2019
 months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-# prior_run = f'{year}.pkl'
+#prior_run = f'{year}.pkl'
 prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
              for mm in months for dd in days]
 prior_run.sort()
@@ -134,17 +136,20 @@ if type(prior_run) == list:
                                                data['ALBEDO_SWIR'],
                                                data['ALBEDO_NIR'])
 
-
     # Subset data
     data = data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT', 'OBS', 'MOD',
                  'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO']]
-
+    
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
 
     # Print out some statistics
     cols = ['LAT', 'LON', 'MONTH', 'MOD']
     print('MODEL MAXIMUM : ', data['MOD'].max())
+    print('MODEL MINIMUM : ', data['MOD'].min())
+    print('TROPOMI MAXIMUM : ', data['OBS'].max())
+    print('TROPOMI MINIMUM : ', data['OBS'].min())
+    print('DIFFERENCE MAXIMUM : ', data['DIFF'].max())
 
     # Save the data out
     gc.save_obj(data, join(data_dir, f'{year}.pkl'))
@@ -185,7 +190,7 @@ if filter_on_blended_albedo:
     print(f'    {100*nobs/old_nobs:.1f}% of data is preserved.')
     print(f'    TROPOMI statistics:')
     summ = data.groupby('MONTH')[['OBS', 'DIFF']]
-    summ = pd.concat([summ.min(), summ.max()])
+    summ = pd.concat([summ.min(), summ.max()], axis=1)
     print(summ)
 
 if remove_latitudinal_bias:
@@ -200,7 +205,7 @@ if remove_latitudinal_bias:
     print(f'    y = {coef[0]:.2f} + {coef[1]:.2f}x')
     print(f'    Model statistics:')
     summ = data.groupby('MONTH')[['MOD', 'DIFF']]
-    summ = pd.concat([summ.min(), summ.max()])
+    summ = pd.concat([summ.min(), summ.max()], axis=1)
     print(summ)
 
 # Save out result
