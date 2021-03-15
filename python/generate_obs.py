@@ -152,14 +152,13 @@ if type(prior_run) == list:
     print('DIFFERENCE MAXIMUM : ', data['DIFF'].max())
 
     # Save the data out
-    gc.save_obj(data, join(data_dir, f'{year}.pkl'))
+    gc.save_obj(data, join(output_dir, f'{year}.pkl'))
 
 else:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    print(join(data_dir, prior_run))
-    data = gc.load_obj(join(data_dir, prior_run))
+    data = gc.load_obj(join(output_dir, prior_run))
 
 print('Data is loaded.')
 
