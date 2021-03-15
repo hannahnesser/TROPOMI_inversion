@@ -61,7 +61,7 @@ blended_albedo_threshold = 1
 albedo_bins = np.arange(0, 1.1, 0.1)
 
 # Remove latitudinal bias
-remove_latitudinal_bias = False
+remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
 analyze_biases = True
