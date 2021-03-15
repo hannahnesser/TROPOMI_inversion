@@ -24,7 +24,6 @@ from numpy.polynomial import polynomial as p
 import pandas as pd
 pd.set_option('display.max_columns', None)
 
-
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
