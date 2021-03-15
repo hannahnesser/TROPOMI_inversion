@@ -1,69 +1,70 @@
-## ========================================================================== ## Creating big mem inversion class
-# ## ==========================================================================
-from os.path import join
-import os
-from copy import deepcopy
-os.environ['OMP_NUM_THREADS'] = '1'
+# ## ========================================================================== ## Creating big mem inversion class
+# # ## ==========================================================================
+# from os.path import join
+# import os
+# from copy import deepcopy
+# os.environ['OMP_NUM_THREADS'] = '1'
 
-import numpy as np
-import xarray as xr
-import pickle
-import os
-import pandas as pd
-import math
-import numpy as np
-from scipy.linalg import eigh
+# import numpy as np
+# import xarray as xr
+# import pickle
+# import os
+# import pandas as pd
+# import math
+# import numpy as np
+# from scipy.linalg import eigh
 
-# Plotting
-import matplotlib.pyplot as plt
-from matplotlib import rcParams
+# # Plotting
+# import matplotlib.pyplot as plt
+# from matplotlib import rcParams
 
-import sys
-sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
-import inversion as inv
-import gcpy as gc
-import invpy as ip
-import format_plots as fp
+# import sys
+# sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
+# import inversion as inv
+# import gcpy as gc
+# import invpy as ip
+# import format_plots as fp
 
-def open_k(file_name):
-    try:
-        k = gc.load_obj(file_name)
-        return k
-    except FileNotFoundError:
-        print(f'{file_name} not found.')
+# def open_k(file_name):
+#     try:
+#         k = gc.load_obj(file_name)
+#         return k
+#     except FileNotFoundError:
+#         print(f'{file_name} not found.')
 
 
-k = [f for f in os.listdir() if f[:2] == 'k0']
-k.sort()
-y = gc.load_obj('y.pkl')
-y_base = gc.load_obj('kxa.pkl')
-so_vec = gc.load_obj('so.pkl')
-xa = gc.load_obj('xa.pkl')
-sa_vec = gc.load_obj('sa.pkl')
+# # k = [join(output_dir, f) for f in listdir(output_dir) if f[:2] == 'k0']
+# # k.sort()
+# k0 = xr.open_mfdataset(k, chunks=1000, concat_dim='nobs')
+# y = gc.load_obj('y.pkl')
+# y_base = gc.load_obj('kxa.pkl')
+# so_vec = gc.load_obj('so.pkl')
+# xa = gc.load_obj('xa.pkl')
+# sa_vec = gc.load_obj('sa.pkl')
 
-nstate = xa.shape[0]
-nobs = y.shape[0]
+# nstate = xa.shape[0]
+# nobs = y.shape[0]
 
-# kn = open_k(k[0])
+# # kn = open_k(k[0])
 
-def calculate_c():
-    '''
-    Calculate c for the forward model, defined as ybase = Kxa + c.
-    Save c as an element of the object.
-    '''
-    c = np.zeros(nobs)
-    i0 = 0
-    i1 = 0
-    for file_name in k:
-        kn = open_k(file_name)
-        i1 += kn.shape[0]
-        print(i0, i1)
-        c[i0:i1] = y_base[i0:i1] - np.matmul(kn, xa)
-        print('hello')
-        i0 = i1
-    return c
+# def calculate_c():
+#     '''
+#     Calculate c for the forward model, defined as ybase = Kxa + c.
+#     Save c as an element of the object.
+#     '''
+#     c = np.zeros(nobs)
+#     i0 = 0
+#     i1 = 0
+#     for file_name in k:
+#         kn = open_k(file_name)
+#         i1 += kn.shape[0]
+#         print(i0, i1)
+#         c[i0:i1] = y_base[i0:i1] - np.matmul(kn, xa)
+#         print('hello')
+#         i0 = i1
+#     return c
 
-c = calculate_c()
+# c = calculate_c()
 
 # # ========================================================================== ## Testing errors in eigenvector perturbations
 
@@ -81,6 +82,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 # data = xb.open_bpchdataset(filename='trac_avg.merra2_4x5_CH4.201501010000',
 #                            tracerinfo_file='tracerinfo.dat',
@@ -124,9 +126,8 @@ import config
 import gcpy as gc
 import troppy as tp
 import format_plots as fp
-
-tmp = gc.load_obj('/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/inversion_data/y.pkl')
-print(tmp)
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams['text.latex.preamble'] = r'\usepackage{cmbright}'
 
 # data
 year = 2019
@@ -135,21 +136,41 @@ days = np.arange(1, 32, 1)
 files = [f'{year}{month}{dd:02d}_GCtoTROPOMI.pkl' for dd in days]
 data_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/observations'
 
-# # data = np.array([]).reshape(0, 13)
-# # for f in files:
-# #     month = int(f[4:6])
-# #     day = int(f[6:8])
-# #     print(day)
-# #     new_data = gc.load_obj(join(data_dir, f))['obs_GC']
-# #     new_data = np.insert(new_data, 11, month, axis=1)
-# #     new_data = np.insert(new_data, 12, day, axis=1)
-# #     data = np.concatenate((data, new_data))
+data = np.array([]).reshape(0, 13)
+for f in files:
+    month = int(f[4:6])
+    day = int(f[6:8])
+    new_data = gc.load_obj(join(data_dir, f))['obs_GC']
+    new_data = np.insert(new_data, 11, month, axis=1)
+    new_data = np.insert(new_data, 12, day, axis=1)
+    data = np.concatenate((data, new_data))
 
-# # columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-# #            'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
-# #            'MONTH', 'DAY']
-# # data = pd.DataFrame(data, columns=columns)
-# # data['DIFF'] = data['MOD'] - data['OBS']
+columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
+           'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
+           'MONTH', 'DAY']
+data = pd.DataFrame(data, columns=columns)
+data['DIFF'] = data['MOD'] - data['OBS']
+data['BLENDED_ALBEDO'] = tp.blended_albedo(data,
+                                           data['ALBEDO_SWIR'],
+                                           data['ALBEDO_NIR'])
+
+summ_max = data.groupby('DAY').max()[['ALBEDO_SWIR']]
+print(summ_max)
+summ_min = data.groupby('DAY').min()[['ALBEDO_SWIR']]
+print(summ_min)
+
+test = data[data['DAY'] == 19]
+pd.set_option('display.max_columns', None)
+print(test[test['DIFF'] == test['DIFF'].max()])
+
+fig, ax = fp.get_figax(maps=True, lats=[lat_min, lat_max],
+                       lons=[lon_min, lon_max])
+ax = fp.format_map(ax, lats=[lat_min, lat_max], lons=[lon_min, lon_max])
+cax = fp.add_cax(fig, ax)
+c = ax.scatter(test['LON'], test['LAT'], c=test['DIFF'], cmap='plasma',
+               vmin=0, vmax=100, s=3)
+cb = fig.colorbar(c, ax=ax, cax=cax)
+plt.show()
 
 # # print(data)
 
@@ -159,18 +180,33 @@ data_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/obs
 # # plt.xlim(1600, 2000)
 # # plt.show()
 
-# # Isolated early days--we'll use day 1 as a test case
-# # is it the restart file?
-# # rst12 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191201_0000z.nc4'))
-# # rst11 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191101_0000z.nc4'))
-# # # for lev in rst11.lev:
-# # #     print(lev.values)
-# # #     print('Dec: ', rst12['SpeciesRst_CH4'].where(rst12.lev == lev, drop=True).min().values*1e9)
-# # #     print('Nov: ', rst11['SpeciesRst_CH4'].where(rst11.lev == lev, drop=True).min().values*1e9)
-# # #     print('\n')
-# # rst12.plot.scatter(x='SpeciesRst_CH4', y='lev')
-# # rst11.plot.scatter(x='SpeciesRst_CH4', y='lev')
-# # plt.show()
+# Isolated early days--we'll use day 1 as a test case
+# is it the restart file?
+# files = [f for f in listdir(join(data_dir, 'gc_inputs/restarts'))
+#          if f[-3:] == 'nc4']
+# files.sort()
+# for i, f in enumerate(files):
+#     data = xr.open_dataset(join(data_dir, 'gc_inputs/restarts', f))
+#     fig, ax = fp.get_figax()
+#     try:
+#         data = data.rename({'SpeciesRst_CH4' : 'CH4'})
+#     except ValueError:
+#         data = data.rename({'SPC_CH4' : 'CH4'})
+
+#     data['CH4'].attrs['long_name'] = 'CH4'
+#     data.plot.scatter(x='CH4', y='lev',
+#                       ax=ax, c=fp.color(4), s=4, alpha=0.5)
+#     fp.save_fig(fig, join(data_dir, 'plots'), f'restart{i:02d}.png')
+# rst12 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191201_0000z.nc4'))
+# rst11 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191101_0000z.nc4'))
+# # for lev in rst11.lev:
+# #     print(lev.values)
+# #     print('Dec: ', rst12['SpeciesRst_CH4'].where(rst12.lev == lev, drop=True).min().values*1e9)
+# #     print('Nov: ', rst11['SpeciesRst_CH4'].where(rst11.lev == lev, drop=True).min().values*1e9)
+# #     print('\n')
+# rst12.plot.scatter(x='SpeciesRst_CH4', y='lev')
+# rst11.plot.scatter(x='SpeciesRst_CH4', y='lev')
+# plt.show()
 
 
 # # Probably not because the December restart file is actually larger than

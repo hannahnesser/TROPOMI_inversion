@@ -256,12 +256,22 @@ if k_nstate is None:
             print(f'{i:-6d}/{nstate}', '-'*int(20*i/nstate))
 
     # Save
-    gc.save_obj(k_nstate, join(data_dir, f'k0_nstate.pkl'))
+    # gc.save_obj(k_nstate, join(data_dir, f'k0_nstate.pkl'))
+    k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'))
 
 else:
-    k_nstate = gc.load_obj(join(data_dir, f'k0_nstate.pkl'))
+    # big_mem = False
+    # if k_nstate.split('.')[-1] == 'hdf5':
+    #     big_mem=True
+    # k_nstate = gc.load_obj(join(data_dir, k_nstate), big_mem=big_mem)
+
+    k_nstate = xr.open_dataarray(join(data_dir, 'k0_nstate.nc'),
+                                 chunks={'nstate' : 1000,
+                                         'nstate_1' : 1000,
+                                         'months' : 12})
 
 print('k0_nstate is loaded.')
+
 # Delete superfluous memory
 del(emis)
 del(clusters)
@@ -276,7 +286,7 @@ state_vector_elements_remain = True
 while state_vector_elements_remain:
     print(count)
     o = obs[i:i+nchunk]
-    k_m = k_nstate[o['CLUSTER'], :, (o['MONTH']-1)]
+    k_m = k_nstate[obs['CLUSTER'].values, :, (obs['MONTH'].values-1)]
     gc.save_obj(k_m, join(output_dir, f'k0_{count:03d}.pkl'))
     del(k_m)
     i += nchunk

@@ -47,9 +47,12 @@ def save_obj(obj, name, big_mem=False):
     pickle, which reduces the memory requirements.
     '''
     if big_mem:
-        h5f = h5py.File(name, 'w')
-        h5f.create_dataset('data', data=obj)
-        h5f.close()
+        if str(type(obj)).split('\'')[1].split('.')[0] == 'dask':
+            obj.to_hdf5(name)
+        else:
+            h5f = h5py.File(name, 'w')
+            h5f.create_dataset('data', data=obj)
+            h5f.close()
     else:
         with open(name , 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)

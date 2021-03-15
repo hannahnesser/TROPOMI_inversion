@@ -59,11 +59,11 @@ blended_albedo_threshold = 1
 albedo_bins = np.arange(0, 1.1, 0.1)
 
 # Remove latitudinal bias
-remove_latitudinal_bias = False
+remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
 analyze_biases = False
-calculate_so = False
+calculate_so = True
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
@@ -155,15 +155,7 @@ else:
     ## ----------------------------------------- ##
     data = gc.load_obj(join(data_dir, prior_run))
 
-# Subset for months
-data = data[data['MONTH'] <= months.max()]
 print('Data is loaded.')
-print('Maximum modeled observations:')
-print(data.groupby('MONTH').max()['MOD'])
-print('\n')
-print('Maximum model-observation difference:')
-print(data.groupby('MONTH').max()['DIFF'])
-
 
 ## ----------------------------------------- ##
 ## Additional data corrections
@@ -187,8 +179,14 @@ if filter_on_blended_albedo:
     old_nobs = data.shape[0]
     data = data[data['BLENDED_ALBEDO'] < blended_albedo_threshold]
     nobs = data.shape[0]
-    print(f'Data is filtered on blended albedo < {blended_albedo_threshold}.')
+
+    # Print information
+    print(f'\nData is filtered on blended albedo < {blended_albedo_threshold}.')
     print(f'    {100*nobs/old_nobs:.1f}% of data is preserved.')
+    print(f'    TROPOMI statistics:')
+    summ = data.groupby('MONTH')[['OBS', 'DIFF']]
+    summ = pd.concat([summ.min(), summ.max()])
+    print(summ)
 
 if remove_latitudinal_bias:
     # Correct the latitudinal bias
@@ -196,8 +194,14 @@ if remove_latitudinal_bias:
     bias_correction = p.polyval(data['LAT'], coef)
     data['MOD'] -= bias_correction
     data['DIFF'] -= bias_correction
-    print(f'Data has latitudinal bias removed.')
+
+    # Print information
+    print(f'\nData has latitudinal bias removed.')
     print(f'    y = {coef[0]:.2f} + {coef[1]:.2f}x')
+    print(f'    Model statistics:')
+    summ = data.groupby('MONTH')[['MOD', 'DIFF']]
+    summ = pd.concat([summ.min(), summ.max()])
+    print(summ)
 
 # Save out result
 if filter_on_blended_albedo or remove_latitudinal_bias:

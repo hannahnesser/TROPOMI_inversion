@@ -15,7 +15,7 @@ YEAR="2019"
 # MONTH= months are set in the array variable
 
 # Apply the TROPOMI operator
-jid=$(sbatch --array=12-12 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR})
+# jid=$(sbatch --array=12-12 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR})
 
 # Analyze the output
 sbatch --dependency=afterok:${jid##* } run_generate_obs.sh ${PRIOR_DIR} ${CODE_DIR}
