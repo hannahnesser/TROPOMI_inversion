@@ -1,8 +1,26 @@
-name: base
+name: TROPOMI_inversion
 channels:
   - defaults
 dependencies:
-  - conda
-  - python=3
+  - pip=20.2
+  - numpy=1.19.1
+  - netcdf4
+  - pillow=7.2.0
+  - pandas=1.1.0
+  - xesmf=0.3.0
+  - scipy=1.5.2
+  - xarray
+  - netcdf-fortran=4.5.3
+  - cartopy=0.17.0
+  - hdf5=1.10.6
+  - geos=3.8.1
+  - esmf=8.0.1
+  - matplotlib
+  - python=3.8.5
+  - scikit-learn=0.23.1
+  - ipython
+  - dask
+  - bottleneck
   - xbpch
-prefix: /n/home04/hnesser/python/miniconda
+  - h5py
+prefix: /n/home04/hnesser/python/miniconda/envs/TROPOMI_inversion
