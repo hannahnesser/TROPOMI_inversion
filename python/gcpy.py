@@ -52,7 +52,7 @@ def load_obj(name):
     This is a generic function to open a data object using
     pickle, which reduces the memory requirements.
     '''
-    with open( name, 'rb') as f:
+    with open(name, 'rb') as f:
         return pickle.load(f)
 
 ## -------------------------------------------------------------------------##
