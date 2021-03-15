@@ -61,11 +61,11 @@ blended_albedo_threshold = 1
 albedo_bins = np.arange(0, 1.1, 0.1)
 
 # Remove latitudinal bias
-remove_latitudinal_bias = True
+remove_latitudinal_bias = False
 
 # Which analyses do you wish to perform?
 analyze_biases = False
-calculate_so = True
+calculate_so = False
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
