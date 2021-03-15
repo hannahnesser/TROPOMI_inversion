@@ -11,7 +11,6 @@ Inputs:
                     The data can either be a list of files or an individual,
                     concatenated file
 '''
-
 from os.path import join
 from os import listdir
 import sys
