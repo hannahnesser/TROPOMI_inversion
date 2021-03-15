@@ -24,36 +24,35 @@ from numpy.polynomial import polynomial as p
 import pandas as pd
 pd.set_option('display.max_columns', None)
 
-
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Local preferences
-# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-# code_dir = base_dir + 'python'
-# data_dir = base_dir + 'observations'
-# output_dir = base_dir + 'inversion_data'
-# plot_dir = base_dir + 'plots'
+base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+code_dir = base_dir + 'python'
+data_dir = base_dir + 'observations'
+output_dir = base_dir + 'inversion_data'
+plot_dir = base_dir + 'plots'
 
 # # Cannon preferences
 # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
-base_dir = sys.argv[1]
-code_dir = sys.argv[2]
-data_dir = f'{base_dir}ProcessedDir'
-output_dir = f'{base_dir}SummaryDir'
-plot_dir = None
+# base_dir = sys.argv[1]
+# code_dir = sys.argv[2]
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = f'{base_dir}SummaryDir'
+# plot_dir = None
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
 months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-# prior_run = f'{year}.pkl'
-prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-             for mm in months for dd in days]
-prior_run.sort()
+prior_run = f'{year}.pkl'
+# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+#              for mm in months for dd in days]
+# prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
@@ -158,7 +157,7 @@ else:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    data = gc.load_obj(join(output_dir, prior_run))
+    data = gc.load_obj(join(data_dir, prior_run))
 
 print('Data is loaded.')
 
