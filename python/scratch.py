@@ -153,22 +153,23 @@ data['DIFF'] = data['MOD'] - data['OBS']
 data['BLENDED_ALBEDO'] = tp.blended_albedo(data,
                                            data['ALBEDO_SWIR'],
                                            data['ALBEDO_NIR'])
+data = data[data['BLENDED_ALBEDO'] < 1]
 
-summ_max = data.groupby('DAY').max()[['ALBEDO_SWIR']]
+pd.set_option('display.max_columns', None)
+summ_max = data.groupby('DAY').max()[['AOD']]
 print(summ_max)
-summ_min = data.groupby('DAY').min()[['ALBEDO_SWIR']]
+summ_min = data.groupby('DAY').min()[['AOD']]
 print(summ_min)
 
-test = data[data['DAY'] == 19]
-pd.set_option('display.max_columns', None)
+test = data[data['DAY'] == 27]
 print(test[test['DIFF'] == test['DIFF'].max()])
 
 fig, ax = fp.get_figax(maps=True, lats=[lat_min, lat_max],
                        lons=[lon_min, lon_max])
 ax = fp.format_map(ax, lats=[lat_min, lat_max], lons=[lon_min, lon_max])
 cax = fp.add_cax(fig, ax)
-c = ax.scatter(test['LON'], test['LAT'], c=test['DIFF'], cmap='plasma',
-               vmin=0, vmax=100, s=3)
+c = ax.scatter(test['LON'], test['LAT'], c=test['OBS'], cmap='plasma',
+               vmin=1600, vmax=1800, s=3)
 cb = fig.colorbar(c, ax=ax, cax=cax)
 plt.show()
 
