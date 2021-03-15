@@ -1,0 +1,13 @@
+prefix=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+sharedlibdir=${libdir}
+includedir=${prefix}/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.11.1-motley
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}

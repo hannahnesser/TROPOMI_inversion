@@ -1,0 +1,107 @@
+{
+  "build": "py38_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/anaconda/osx-64",
+  "constrains": [],
+  "depends": [
+    "python >=3.8,<3.9.0a0"
+  ],
+  "extracted_package_dir": "/Users/hannahnesser/opt/anaconda3/pkgs/ptyprocess-0.6.0-py38_0",
+  "features": "",
+  "files": [
+    "lib/python3.8/site-packages/ptyprocess-0.6.0-py3.8.egg-info",
+    "lib/python3.8/site-packages/ptyprocess/__init__.py",
+    "lib/python3.8/site-packages/ptyprocess/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ptyprocess/__pycache__/_fork_pty.cpython-38.pyc",
+    "lib/python3.8/site-packages/ptyprocess/__pycache__/ptyprocess.cpython-38.pyc",
+    "lib/python3.8/site-packages/ptyprocess/__pycache__/util.cpython-38.pyc",
+    "lib/python3.8/site-packages/ptyprocess/_fork_pty.py",
+    "lib/python3.8/site-packages/ptyprocess/ptyprocess.py",
+    "lib/python3.8/site-packages/ptyprocess/util.py"
+  ],
+  "fn": "ptyprocess-0.6.0-py38_0.tar.bz2",
+  "license": "ISC",
+  "link": {
+    "source": "/Users/hannahnesser/opt/anaconda3/pkgs/ptyprocess-0.6.0-py38_0",
+    "type": 1
+  },
+  "md5": "74a0fc093f3bfc54bea4df5ac5175f1b",
+  "name": "ptyprocess",
+  "package_tarball_full_path": "/Users/hannahnesser/opt/anaconda3/pkgs/ptyprocess-0.6.0-py38_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess-0.6.0-py3.8.egg-info",
+        "path_type": "hardlink",
+        "sha256": "269fecd2a017a5d268840d92dc14ac8f28ac08c9f6088c0c021a44696d4e3909",
+        "sha256_in_prefix": "269fecd2a017a5d268840d92dc14ac8f28ac08c9f6088c0c021a44696d4e3909",
+        "size_in_bytes": 264
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "43b09ddf55530a415683828f1ea67be7290e43b923e64ba8fadce4a8ecfcb2ea",
+        "sha256_in_prefix": "43b09ddf55530a415683828f1ea67be7290e43b923e64ba8fadce4a8ecfcb2ea",
+        "size_in_bytes": 138
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "2e5e08fcd2c3404fd9483cd40fca7684c248d35c3548fb554edfe37ece81a0ac",
+        "sha256_in_prefix": "2e5e08fcd2c3404fd9483cd40fca7684c248d35c3548fb554edfe37ece81a0ac",
+        "size_in_bytes": 320
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess/__pycache__/_fork_pty.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "42d96de22ddf4c9f3c00b88863065e1db0e1936ae7890b2ad4fdbf36d42759aa",
+        "sha256_in_prefix": "42d96de22ddf4c9f3c00b88863065e1db0e1936ae7890b2ad4fdbf36d42759aa",
+        "size_in_bytes": 1967
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess/__pycache__/ptyprocess.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "6cb83d1ee8d98d6c5d17fbf907064761753b0d243edb870903e0da46e893f351",
+        "sha256_in_prefix": "6cb83d1ee8d98d6c5d17fbf907064761753b0d243edb870903e0da46e893f351",
+        "size_in_bytes": 22688
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess/__pycache__/util.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "b027700493553ed3ac3338fc7f49de79ea4eb4eaac06ed016119a474b6d47cac",
+        "sha256_in_prefix": "b027700493553ed3ac3338fc7f49de79ea4eb4eaac06ed016119a474b6d47cac",
+        "size_in_bytes": 1977
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess/_fork_pty.py",
+        "path_type": "hardlink",
+        "sha256": "555bcccbc7386698c332220c4a0f13d414358374817b10e97b2fdcc62d27e5ac",
+        "sha256_in_prefix": "555bcccbc7386698c332220c4a0f13d414358374817b10e97b2fdcc62d27e5ac",
+        "size_in_bytes": 2362
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess/ptyprocess.py",
+        "path_type": "hardlink",
+        "sha256": "ac3ff556e5b4d87c7007884f226e9c6a1e571b1ee91e3f10698cf93a1097c1fe",
+        "sha256_in_prefix": "ac3ff556e5b4d87c7007884f226e9c6a1e571b1ee91e3f10698cf93a1097c1fe",
+        "size_in_bytes": 31355
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ptyprocess/util.py",
+        "path_type": "hardlink",
+        "sha256": "ad001d0d165fa0e88e9fabf2916b61d3023a145280a7b689b4149db7e28159d5",
+        "sha256_in_prefix": "ad001d0d165fa0e88e9fabf2916b61d3023a145280a7b689b4149db7e28159d5",
+        "size_in_bytes": 2785
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "6d1a9a0b7112782158145b2b9e2d5bc17b6e8087ed640c6d6223d64de7d0bd2f",
+  "size": 23492,
+  "subdir": "osx-64",
+  "timestamp": 1573040899438,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/anaconda/osx-64/ptyprocess-0.6.0-py38_0.tar.bz2",
+  "version": "0.6.0"
+}

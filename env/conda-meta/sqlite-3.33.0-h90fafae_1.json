@@ -1,0 +1,98 @@
+{
+  "arch": "x86_64",
+  "build": "h90fafae_1",
+  "build_number": 1,
+  "channel": "https://conda.anaconda.org/intel/osx-64",
+  "constrains": [],
+  "depends": [
+    "intelpython >=2019.0"
+  ],
+  "extracted_package_dir": "/Users/hannahnesser/opt/anaconda3/pkgs/sqlite-3.33.0-h90fafae_1",
+  "features": "",
+  "files": [
+    "bin/sqlite3",
+    "include/sqlite3.h",
+    "include/sqlite3ext.h",
+    "lib/libsqlite3.0.dylib",
+    "lib/libsqlite3.a",
+    "lib/libsqlite3.dylib",
+    "lib/pkgconfig/sqlite3.pc"
+  ],
+  "fn": "sqlite-3.33.0-h90fafae_1.tar.bz2",
+  "license": "Public-Domain",
+  "license_family": "Public-Domain",
+  "link": {
+    "source": "/Users/hannahnesser/opt/anaconda3/pkgs/sqlite-3.33.0-h90fafae_1",
+    "type": 1
+  },
+  "md5": "ecde395b79d3709f378fb79dbf3a3d9a",
+  "name": "sqlite",
+  "package_tarball_full_path": "/Users/hannahnesser/opt/anaconda3/pkgs/sqlite-3.33.0-h90fafae_1.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "bin/sqlite3",
+        "file_mode": "binary",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/localdisk/tc/agent2/work/e97ae1676ffe5204/base/conda-bld/sqlite_1599568479415/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold",
+        "sha256": "71e845641550389bd2d3eec9c8981f05bd9b292a1b496d70ebfa64a4310535f5",
+        "sha256_in_prefix": "cc3d8264cfc52c6f5b799c48ffde6f7a3049fa9f2b76311dc1c8bc00627193b1",
+        "size_in_bytes": 1877260
+      },
+      {
+        "_path": "include/sqlite3.h",
+        "path_type": "hardlink",
+        "sha256": "9f1616845b4e9cb80ca324b6d4b16847024e097988a8427900b6fa423efdb416",
+        "sha256_in_prefix": "9f1616845b4e9cb80ca324b6d4b16847024e097988a8427900b6fa423efdb416",
+        "size_in_bytes": 580572
+      },
+      {
+        "_path": "include/sqlite3ext.h",
+        "path_type": "hardlink",
+        "sha256": "f28f682ee2810392b037a5a308c60d63dafae5fc4d72d015e9b7460ca1ca6657",
+        "sha256_in_prefix": "f28f682ee2810392b037a5a308c60d63dafae5fc4d72d015e9b7460ca1ca6657",
+        "size_in_bytes": 35269
+      },
+      {
+        "_path": "lib/libsqlite3.0.dylib",
+        "file_mode": "binary",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/localdisk/tc/agent2/work/e97ae1676ffe5204/base/conda-bld/sqlite_1599568479415/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold",
+        "sha256": "f48949ebd3830432935953a3529589c1f6a525d357f6219a8fbdccfc1bc4ee97",
+        "sha256_in_prefix": "7d7c42162c156a6a855cf98264da56a9123e3b5913dcf44eaf8eb7f291f4bafb",
+        "size_in_bytes": 1642688
+      },
+      {
+        "_path": "lib/libsqlite3.a",
+        "path_type": "hardlink",
+        "sha256": "8ff8ab1dd9dbb5e93f7c3648c5434e375ff65b020ecfa896ae98be5946c5bbb8",
+        "sha256_in_prefix": "8ff8ab1dd9dbb5e93f7c3648c5434e375ff65b020ecfa896ae98be5946c5bbb8",
+        "size_in_bytes": 1991928
+      },
+      {
+        "_path": "lib/libsqlite3.dylib",
+        "path_type": "softlink",
+        "sha256": "f48949ebd3830432935953a3529589c1f6a525d357f6219a8fbdccfc1bc4ee97",
+        "size_in_bytes": 1642688
+      },
+      {
+        "_path": "lib/pkgconfig/sqlite3.pc",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "853c9fb7855cb5ced6943d38da98b06acbbc5790989ea73e739baac6700fe723",
+        "sha256_in_prefix": "8da781cab0a38c55edcf5baa551faa9d28f7b28f28fea498c55ff8f5bac1dcbf",
+        "size_in_bytes": 289
+      }
+    ],
+    "paths_version": 1
+  },
+  "platform": "darwin",
+  "requested_spec": "None",
+  "size": 2605373,
+  "subdir": "osx-64",
+  "timestamp": 1599568727435,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/intel/osx-64/sqlite-3.33.0-h90fafae_1.tar.bz2",
+  "version": "3.33.0"
+}

@@ -1,0 +1,118 @@
+{
+  "build": "py38hf1fa96c_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/anaconda/osx-64",
+  "constrains": [],
+  "depends": [
+    "numpy >=1.14.6,<2.0a0",
+    "python >=3.8,<3.9.0a0"
+  ],
+  "extracted_package_dir": "/Users/hannahnesser/opt/anaconda3/pkgs/cftime-1.2.1-py38hf1fa96c_0",
+  "features": "",
+  "files": [
+    "lib/python3.8/site-packages/cftime-1.2.1.dist-info/COPYING",
+    "lib/python3.8/site-packages/cftime-1.2.1.dist-info/INSTALLER",
+    "lib/python3.8/site-packages/cftime-1.2.1.dist-info/METADATA",
+    "lib/python3.8/site-packages/cftime-1.2.1.dist-info/RECORD",
+    "lib/python3.8/site-packages/cftime-1.2.1.dist-info/WHEEL",
+    "lib/python3.8/site-packages/cftime-1.2.1.dist-info/direct_url.json",
+    "lib/python3.8/site-packages/cftime-1.2.1.dist-info/top_level.txt",
+    "lib/python3.8/site-packages/cftime/__init__.py",
+    "lib/python3.8/site-packages/cftime/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/cftime/_cftime.cpython-38-darwin.so"
+  ],
+  "fn": "cftime-1.2.1-py38hf1fa96c_0.tar.bz2",
+  "license": "MIT and GPL-3.0-only",
+  "link": {
+    "source": "/Users/hannahnesser/opt/anaconda3/pkgs/cftime-1.2.1-py38hf1fa96c_0",
+    "type": 1
+  },
+  "md5": "f97bbaf7415ce8465094f75367c6ab19",
+  "name": "cftime",
+  "package_tarball_full_path": "/Users/hannahnesser/opt/anaconda3/pkgs/cftime-1.2.1-py38hf1fa96c_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python3.8/site-packages/cftime-1.2.1.dist-info/COPYING",
+        "path_type": "hardlink",
+        "sha256": "d78f2775bc76256c90e175972cf8e29079c006d689ec408845515cc71baf694d",
+        "sha256_in_prefix": "d78f2775bc76256c90e175972cf8e29079c006d689ec408845515cc71baf694d",
+        "size_in_bytes": 33908
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime-1.2.1.dist-info/INSTALLER",
+        "path_type": "hardlink",
+        "sha256": "d0edee15f91b406f3f99726e44eb990be6e34fd0345b52b910c568e0eef6a2a8",
+        "sha256_in_prefix": "d0edee15f91b406f3f99726e44eb990be6e34fd0345b52b910c568e0eef6a2a8",
+        "size_in_bytes": 5
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime-1.2.1.dist-info/METADATA",
+        "path_type": "hardlink",
+        "sha256": "4a838ff6ddb9e55ba6d083d36336daa246223cf1b628e098a8eb81d4e8b4e4b9",
+        "sha256_in_prefix": "4a838ff6ddb9e55ba6d083d36336daa246223cf1b628e098a8eb81d4e8b4e4b9",
+        "size_in_bytes": 5299
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime-1.2.1.dist-info/RECORD",
+        "path_type": "hardlink",
+        "sha256": "9a84b332adfa4ef9ff3d6dadf8a23a0e5c3ba10c6dcc107bf8cd591c202d122c",
+        "sha256_in_prefix": "9a84b332adfa4ef9ff3d6dadf8a23a0e5c3ba10c6dcc107bf8cd591c202d122c",
+        "size_in_bytes": 785
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime-1.2.1.dist-info/WHEEL",
+        "path_type": "hardlink",
+        "sha256": "1e273806bec7caa425a3f5818962b9f14bc4a200a75a79f4d13387274314aa97",
+        "sha256_in_prefix": "1e273806bec7caa425a3f5818962b9f14bc4a200a75a79f4d13387274314aa97",
+        "size_in_bytes": 109
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime-1.2.1.dist-info/direct_url.json",
+        "path_type": "hardlink",
+        "sha256": "5b912beaa124d7ab99426144d60fde6b34aed7026f5d58edf7b864ac52f369e8",
+        "sha256_in_prefix": "5b912beaa124d7ab99426144d60fde6b34aed7026f5d58edf7b864ac52f369e8",
+        "size_in_bytes": 138
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime-1.2.1.dist-info/top_level.txt",
+        "path_type": "hardlink",
+        "sha256": "d3f3d00ed5a5680772176fb4acaf76aa4568988d33e201d2e420f746688da897",
+        "sha256_in_prefix": "d3f3d00ed5a5680772176fb4acaf76aa4568988d33e201d2e420f746688da897",
+        "size_in_bytes": 7
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "d4bdcadad9c22909c2c816a202234291a697c4c9082f4b37c68cae4af1305ba4",
+        "sha256_in_prefix": "d4bdcadad9c22909c2c816a202234291a697c4c9082f4b37c68cae4af1305ba4",
+        "size_in_bytes": 570
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "97579f452b055c12a262cf4b5bdea73c0622cb05dffac0de69ea1cf4b960b426",
+        "sha256_in_prefix": "97579f452b055c12a262cf4b5bdea73c0622cb05dffac0de69ea1cf4b960b426",
+        "size_in_bytes": 828
+      },
+      {
+        "_path": "lib/python3.8/site-packages/cftime/_cftime.cpython-38-darwin.so",
+        "file_mode": "binary",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/be4e1388-f441-4805-4f65-8527069c60e4/volume/cftime_1595380105609/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "c6f6c46cb56a82da9ed36659015ce2e59b82e2e2fd78a2fd0b7a7286ca8d0f27",
+        "sha256_in_prefix": "a33665310ad9d97cda8261162dbf396cde73e837313b5176176ed2b2b1c1d489",
+        "size_in_bytes": 619040
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "7b196a28845dbef2c43dfa4f5e28d3f02ab1b1cb6465c372780545fc8ca806d9",
+  "size": 264702,
+  "subdir": "osx-64",
+  "timestamp": 1595380158012,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/anaconda/osx-64/cftime-1.2.1-py38hf1fa96c_0.tar.bz2",
+  "version": "1.2.1"
+}

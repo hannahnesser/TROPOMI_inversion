@@ -1,0 +1,49 @@
+{
+  "build": "pyhd3eb1b0_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/noarch",
+  "constrains": [
+    "openssl !=1.1.1e"
+  ],
+  "depends": [
+    "bokeh >=1.0.0,!=2.0.0",
+    "cloudpickle >=0.2.2",
+    "cytoolz >=0.8.2",
+    "dask-core 2021.1.0.*",
+    "distributed >=2021.1.0",
+    "fsspec >=0.6.0",
+    "numpy >=1.15.1",
+    "pandas >=0.25.0",
+    "partd >=0.3.10",
+    "python >=3.6",
+    "toolz >=0.8.2"
+  ],
+  "extracted_package_dir": "/Users/hannahnesser/opt/anaconda3/pkgs/dask-2021.1.0-pyhd3eb1b0_0",
+  "features": "",
+  "files": [],
+  "fn": "dask-2021.1.0-pyhd3eb1b0_0.conda",
+  "legacy_bz2_md5": "5dfd709b5fb161e0cc0c605e8ee86cb7",
+  "legacy_bz2_size": 4746,
+  "license": "BSD-3-Clause",
+  "link": {
+    "source": "/Users/hannahnesser/opt/anaconda3/pkgs/dask-2021.1.0-pyhd3eb1b0_0",
+    "type": 1
+  },
+  "md5": "639f61ac2b8a1411fb65ea404a0955c9",
+  "name": "dask",
+  "noarch": "python",
+  "package_tarball_full_path": "/Users/hannahnesser/opt/anaconda3/pkgs/dask-2021.1.0-pyhd3eb1b0_0.conda",
+  "package_type": "noarch_python",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "dask",
+  "sha256": "fc577942ea37b7a4e50056be88c58dd52c4977358098911a1e95379766f956f2",
+  "size": 5088,
+  "subdir": "noarch",
+  "timestamp": 1611588656764,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/noarch/dask-2021.1.0-pyhd3eb1b0_0.conda",
+  "version": "2021.1.0"
+}

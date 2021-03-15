@@ -1,0 +1,133 @@
+#! /bin/sh
+#
+# This forms the basis for the nf-config utility, which tells you
+# various things about the netCDF Fortran installation.
+
+
+prefix=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env
+exec_prefix=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env
+libdir=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib
+includedir=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include
+fmoddir=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include
+#
+cc="/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/bin/x86_64-apple-darwin13.4.0-clang"
+fc="/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/bin/x86_64-apple-darwin13.4.0-gfortran"
+cflags="-I/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include -march=core2 -mtune=haswell -mssse3 -ftree-vectorize -fPIC -fPIE -fstack-protector-strong -O2 -pipe -isystem /Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include -fdebug-prefix-map=/Users/runner/miniforge3/conda-bld/netcdf-fortran_1603144139011/work=/usr/local/src/conda/netcdf-fortran-4.5.3 -fdebug-prefix-map=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env=/usr/local/src/conda-prefix -fPIC -I/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include -fPIC -g -Wall -Wno-unused-variable -Wno-unused-parameter -O2 "
+fflags="-I${includedir} -I${fmoddir}"
+#
+has_dap="yes"
+has_nc2="yes"
+has_nc4="yes"
+has_f90="TRUE"
+has_f03="yes"
+flibs="-L${libdir} -lnetcdff -lnetcdf"
+version=" 4.5.3"
+
+ usage()
+ {
+         echo
+         echo "This $version has been built with the following features: "
+         echo
+         echo "  --cc        -> $cc"
+         echo "  --cflags    -> $cflags"
+         echo
+         echo "  --fc        -> $fc"
+         echo "  --fflags    -> $fflags"
+         echo "  --flibs     -> $flibs"
+         echo "  --has-f90   -> $has_f90"
+         echo "  --has-f03   -> $has_f03"
+         echo
+         echo "  --has-nc2   -> $has_nc2"
+         echo "  --has-nc4   -> $has_nc4"
+ 	echo
+         echo "  --prefix    -> $prefix"
+         echo "  --includedir-> $includedir"
+         echo "  --version   -> $version"
+         echo
+ }
+
+ if test $# -eq 0; then
+     usage 1
+ fi
+
+ while test $# -gt 0; do
+     case "$1" in
+      #this deals with options in the style
+      #--option=value and extracts the value part
+      #[not currently used]
+     -*=*) value=`echo "$1" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
+     *) value= ;;
+     esac
+
+     case "$1" in
+
+     --help)
+ 	usage 0
+ 	;;
+
+     --all)
+ 	all
+ 	;;
+
+     --cc)
+ 	echo $cc
+ 	;;
+
+     --fc)
+ 	echo $fc
+ 	;;
+
+     --cflags)
+ 	echo $cflags
+ 	;;
+
+     --fflags)
+ 	echo $fflags
+ 	;;
+
+     --has-dap)
+        	echo $has_dap
+        	;;
+
+     --has-nc2)
+        	echo $has_nc2
+        	;;
+
+     --has-nc4)
+        	echo $has_nc4
+        	;;
+
+     --has-f90)
+        	echo $has_f90
+        	;;
+
+     --has-f03)
+        	echo $has_f03
+        	;;
+
+     --flibs)
+        	echo $flibs
+        	;;
+
+     --prefix)
+        	echo "${CMAKE_INSTALL_PREFIX}"
+        	;;
+
+     --includedir)
+        	echo "${includedir}"
+        	;;
+
+     --version)
+ 	echo $version
+ 	;;
+
+     *)
+         echo "unknown option: $1"
+ 	usage
+ 	exit 1
+ 	;;
+     esac
+     shift
+ done
+
+ exit 0

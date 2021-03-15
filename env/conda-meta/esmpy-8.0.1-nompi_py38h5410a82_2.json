@@ -1,0 +1,768 @@
+{
+  "build": "nompi_py38h5410a82_2",
+  "build_number": 2,
+  "channel": "https://conda.anaconda.org/conda-forge/osx-64",
+  "constrains": [],
+  "depends": [
+    "esmf 8.0.1 nompi_*",
+    "numpy",
+    "python >=3.8,<3.9.0a0",
+    "python_abi 3.8.* *_cp38"
+  ],
+  "extracted_package_dir": "/Users/hannahnesser/opt/anaconda3/pkgs/esmpy-8.0.1-nompi_py38h5410a82_2",
+  "features": "",
+  "files": [
+    "lib/python3.8/site-packages/ESMF/__init__.py",
+    "lib/python3.8/site-packages/ESMF/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/__init__.py",
+    "lib/python3.8/site-packages/ESMF/api/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/__pycache__/constants.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/__pycache__/esmpymanager.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/__pycache__/field.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/__pycache__/grid.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/__pycache__/locstream.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/__pycache__/mesh.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/__pycache__/regrid.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/api/constants.py",
+    "lib/python3.8/site-packages/ESMF/api/esmpymanager.py",
+    "lib/python3.8/site-packages/ESMF/api/field.py",
+    "lib/python3.8/site-packages/ESMF/api/grid.py",
+    "lib/python3.8/site-packages/ESMF/api/locstream.py",
+    "lib/python3.8/site-packages/ESMF/api/mesh.py",
+    "lib/python3.8/site-packages/ESMF/api/regrid.py",
+    "lib/python3.8/site-packages/ESMF/interface/__init__.py",
+    "lib/python3.8/site-packages/ESMF/interface/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/interface/__pycache__/cbindings.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/interface/__pycache__/esmfmkfile.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/interface/__pycache__/loadESMF.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/interface/cbindings.py",
+    "lib/python3.8/site-packages/ESMF/interface/esmfmkfile.py",
+    "lib/python3.8/site-packages/ESMF/interface/loadESMF.py",
+    "lib/python3.8/site-packages/ESMF/test/__init__.py",
+    "lib/python3.8/site-packages/ESMF/test/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/__pycache__/base.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/__pycache__/base_test.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/__pycache__/test_cbindings.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/base.py",
+    "lib/python3.8/site-packages/ESMF/test/base_test.py",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__init__.py",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/read_test_cases_from_control_file.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/regrid_check.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/regrid_check_driver.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/regrid_from_file_consts.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/run_regrid_from_file.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/run_regrid_from_file_dryrun.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/read_test_cases_from_control_file.py",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/regrid_check.py",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/regrid_check_driver.py",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/regrid_from_file_consts.py",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/run_regrid_from_file.py",
+    "lib/python3.8/site-packages/ESMF/test/regrid_from_file/run_regrid_from_file_dryrun.py",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__init__.py",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_array.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_field.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_grid.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_locstream.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_mesh.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_regrid.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_vm.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/test/test_api/test_array.py",
+    "lib/python3.8/site-packages/ESMF/test/test_api/test_field.py",
+    "lib/python3.8/site-packages/ESMF/test/test_api/test_grid.py",
+    "lib/python3.8/site-packages/ESMF/test/test_api/test_locstream.py",
+    "lib/python3.8/site-packages/ESMF/test/test_api/test_mesh.py",
+    "lib/python3.8/site-packages/ESMF/test/test_api/test_regrid.py",
+    "lib/python3.8/site-packages/ESMF/test/test_api/test_vm.py",
+    "lib/python3.8/site-packages/ESMF/test/test_cbindings.py",
+    "lib/python3.8/site-packages/ESMF/util/__init__.py",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/cache_data.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/decorators.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/esmpyarray.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/exceptions.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/field_utilities.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/grid_utilities.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/helpers.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/itester.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/locstream_utilities.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/mesh_utilities.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/__pycache__/slicing.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/cache_data.py",
+    "lib/python3.8/site-packages/ESMF/util/decorators.py",
+    "lib/python3.8/site-packages/ESMF/util/enum/__init__.py",
+    "lib/python3.8/site-packages/ESMF/util/enum/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/ESMF/util/esmpyarray.py",
+    "lib/python3.8/site-packages/ESMF/util/exceptions.py",
+    "lib/python3.8/site-packages/ESMF/util/field_utilities.py",
+    "lib/python3.8/site-packages/ESMF/util/grid_utilities.py",
+    "lib/python3.8/site-packages/ESMF/util/helpers.py",
+    "lib/python3.8/site-packages/ESMF/util/itester.py",
+    "lib/python3.8/site-packages/ESMF/util/locstream_utilities.py",
+    "lib/python3.8/site-packages/ESMF/util/mesh_utilities.py",
+    "lib/python3.8/site-packages/ESMF/util/slicing.py",
+    "lib/python3.8/site-packages/ESMPy-8.0.0-py3.8.egg-info"
+  ],
+  "fn": "esmpy-8.0.1-nompi_py38h5410a82_2.tar.bz2",
+  "license": "The University of Illinois/NCSA",
+  "link": {
+    "source": "/Users/hannahnesser/opt/anaconda3/pkgs/esmpy-8.0.1-nompi_py38h5410a82_2",
+    "type": 1
+  },
+  "md5": "37be7c634a39c65aa07ec9f04ddb454d",
+  "name": "esmpy",
+  "package_tarball_full_path": "/Users/hannahnesser/opt/anaconda3/pkgs/esmpy-8.0.1-nompi_py38h5410a82_2.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "52b8e35f410f69c576c39108ebaf3e6e435a14ac2b70e5b56b6132883076616c",
+        "sha256_in_prefix": "52b8e35f410f69c576c39108ebaf3e6e435a14ac2b70e5b56b6132883076616c",
+        "size_in_bytes": 5303
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "3ef271c71fae3fa9bdb46a3965493a8b4936c395b18b05dd4b2b7e9363f15a72",
+        "sha256_in_prefix": "3ef271c71fae3fa9bdb46a3965493a8b4936c395b18b05dd4b2b7e9363f15a72",
+        "size_in_bytes": 5106
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_in_bytes": 0
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "384031df25ec857a0e7f66070e717b4dc7cdb1fd32e9087020130450a4fddd7a",
+        "sha256_in_prefix": "384031df25ec857a0e7f66070e717b4dc7cdb1fd32e9087020130450a4fddd7a",
+        "size_in_bytes": 139
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__pycache__/constants.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "109d5ad43d7b6c3cbaaeca6b0a1f65cba299e47af7af7fc7c1c2fdb9dcd06692",
+        "sha256_in_prefix": "109d5ad43d7b6c3cbaaeca6b0a1f65cba299e47af7af7fc7c1c2fdb9dcd06692",
+        "size_in_bytes": 8294
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__pycache__/esmpymanager.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "877082d03c989b075ab46e099c92a10df12845b5d1f2678b1191bf948b40dcbd",
+        "sha256_in_prefix": "877082d03c989b075ab46e099c92a10df12845b5d1f2678b1191bf948b40dcbd",
+        "size_in_bytes": 6614
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__pycache__/field.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "6a50d8d5c5e0272c0bf508e4132965a5e5eb721b2d56edbc549325bab8942819",
+        "sha256_in_prefix": "6a50d8d5c5e0272c0bf508e4132965a5e5eb721b2d56edbc549325bab8942819",
+        "size_in_bytes": 11735
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__pycache__/grid.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "0fba5aee9bdd158f3f487e09e682110227ed10066d88577de2b9cb2881f7f8bb",
+        "sha256_in_prefix": "0fba5aee9bdd158f3f487e09e682110227ed10066d88577de2b9cb2881f7f8bb",
+        "size_in_bytes": 33626
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__pycache__/locstream.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "0d506c04d82c76b56e82ea2c09bfe2fef5f1a8b7cbf3945e9f809bd112c058a0",
+        "sha256_in_prefix": "0d506c04d82c76b56e82ea2c09bfe2fef5f1a8b7cbf3945e9f809bd112c058a0",
+        "size_in_bytes": 9306
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__pycache__/mesh.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "1dc4adb20518b335f8d4d3c3acfae0fd27e3e18c20b92169bcc911083ebd5c3d",
+        "sha256_in_prefix": "1dc4adb20518b335f8d4d3c3acfae0fd27e3e18c20b92169bcc911083ebd5c3d",
+        "size_in_bytes": 21564
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/__pycache__/regrid.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "506746a5d68f8d9498a01c86770334c54540f1ca97b27bdcba6e83e782d6ab59",
+        "sha256_in_prefix": "506746a5d68f8d9498a01c86770334c54540f1ca97b27bdcba6e83e782d6ab59",
+        "size_in_bytes": 21350
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/constants.py",
+        "path_type": "hardlink",
+        "sha256": "4827fe821930bbf7957725511e744f216cd5ec74019c3b79deb47e4f39618d7b",
+        "sha256_in_prefix": "4827fe821930bbf7957725511e744f216cd5ec74019c3b79deb47e4f39618d7b",
+        "size_in_bytes": 18167
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/esmpymanager.py",
+        "path_type": "hardlink",
+        "sha256": "a47d5e703552d54e102ebb3369da695722c138f525e6aa8274b9c83f2611d83f",
+        "sha256_in_prefix": "a47d5e703552d54e102ebb3369da695722c138f525e6aa8274b9c83f2611d83f",
+        "size_in_bytes": 6624
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/field.py",
+        "path_type": "hardlink",
+        "sha256": "fcc086b0a5c9c9593396c080895693af0054dc8bea3cbbd78fa7ee7b80f315c1",
+        "sha256_in_prefix": "fcc086b0a5c9c9593396c080895693af0054dc8bea3cbbd78fa7ee7b80f315c1",
+        "size_in_bytes": 14053
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/grid.py",
+        "path_type": "hardlink",
+        "sha256": "3f2e4e94f85525c6e796615d8cddcfa4102258560851ba7a68e0e6356fa5ce02",
+        "sha256_in_prefix": "3f2e4e94f85525c6e796615d8cddcfa4102258560851ba7a68e0e6356fa5ce02",
+        "size_in_bytes": 48859
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/locstream.py",
+        "path_type": "hardlink",
+        "sha256": "281a1f271d84a129cebb17310d2ca928bf7c31cb89a3dfd6e9fa025febd58461",
+        "sha256_in_prefix": "281a1f271d84a129cebb17310d2ca928bf7c31cb89a3dfd6e9fa025febd58461",
+        "size_in_bytes": 9923
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/mesh.py",
+        "path_type": "hardlink",
+        "sha256": "6ad20f22cad6333f64b6f0919a92653a8054fe970f677ca7edb62b033de596f5",
+        "sha256_in_prefix": "6ad20f22cad6333f64b6f0919a92653a8054fe970f677ca7edb62b033de596f5",
+        "size_in_bytes": 25067
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/api/regrid.py",
+        "path_type": "hardlink",
+        "sha256": "746a26cb58e4c5627600862e250ba31bd248c90b2c02bf2aa8e8ad86c078e357",
+        "sha256_in_prefix": "746a26cb58e4c5627600862e250ba31bd248c90b2c02bf2aa8e8ad86c078e357",
+        "size_in_bytes": 26054
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/interface/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_in_bytes": 0
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/interface/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "7b13d6fce04d0a8677fbca4f508975cd7fc21050c708c7f5b6e1ea490a77e282",
+        "sha256_in_prefix": "7b13d6fce04d0a8677fbca4f508975cd7fc21050c708c7f5b6e1ea490a77e282",
+        "size_in_bytes": 145
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/interface/__pycache__/cbindings.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "20e4e522f24181600caca74504df7cf1ef88ffa0b8a9b228cdbc239f50c32e98",
+        "sha256_in_prefix": "20e4e522f24181600caca74504df7cf1ef88ffa0b8a9b228cdbc239f50c32e98",
+        "size_in_bytes": 66261
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/interface/__pycache__/esmfmkfile.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "46d940ccf002fa1e9f74fef733f9f3b33e276072c98bd4b12150fdc10a8f6d07",
+        "sha256_in_prefix": "46d940ccf002fa1e9f74fef733f9f3b33e276072c98bd4b12150fdc10a8f6d07",
+        "size_in_bytes": 432
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/interface/__pycache__/loadESMF.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "d95d7c21149171e8be3a6608121884698a114ca5f65e52536e71ec6e64f12eb4",
+        "sha256_in_prefix": "d95d7c21149171e8be3a6608121884698a114ca5f65e52536e71ec6e64f12eb4",
+        "size_in_bytes": 2211
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/interface/cbindings.py",
+        "path_type": "hardlink",
+        "sha256": "89b037106a78bbf4df4b77210865156b6a13fbdc4a80e0acb0696b93b1b5d9e7",
+        "sha256_in_prefix": "89b037106a78bbf4df4b77210865156b6a13fbdc4a80e0acb0696b93b1b5d9e7",
+        "size_in_bytes": 96795
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/interface/esmfmkfile.py",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/Users/runner/miniforge3/conda-bld/esmpy_1602547701815/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pla",
+        "sha256": "1e3af44d10089571391c610c00acd363da1d27ba72d2f1c80647bad7aebb8bf1",
+        "sha256_in_prefix": "4edd6e4a6e3f042d6c59c1feb9dceff605f26f24075abe86b6dc314a386fa115",
+        "size_in_bytes": 282
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/interface/loadESMF.py",
+        "path_type": "hardlink",
+        "sha256": "06a12da3e24f4e1f2144af3e69c8c91a773e00f7f51b5d01beb5e7e3c1d32d0e",
+        "sha256_in_prefix": "06a12da3e24f4e1f2144af3e69c8c91a773e00f7f51b5d01beb5e7e3c1d32d0e",
+        "size_in_bytes": 3915
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_in_bytes": 0
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "b69588363f84c2c7a00a7da53f0effb024c63230e9e1c8f1f3d434f0ab260183",
+        "sha256_in_prefix": "b69588363f84c2c7a00a7da53f0effb024c63230e9e1c8f1f3d434f0ab260183",
+        "size_in_bytes": 140
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/__pycache__/base.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "99750b839648b769fabe0445ce53dcd5dddd0b48ad8104ea61862b53f8702df3",
+        "sha256_in_prefix": "99750b839648b769fabe0445ce53dcd5dddd0b48ad8104ea61862b53f8702df3",
+        "size_in_bytes": 3929
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/__pycache__/base_test.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "b6b989d8fe2d47fe1189598b58c20d11441269daef866f443e28831554877c53",
+        "sha256_in_prefix": "b6b989d8fe2d47fe1189598b58c20d11441269daef866f443e28831554877c53",
+        "size_in_bytes": 1573
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/__pycache__/test_cbindings.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "bd2bc8a254a9c5cf61a02a761396eac0e6d9d9b5f6d9696bf88e9d378ee11340",
+        "sha256_in_prefix": "bd2bc8a254a9c5cf61a02a761396eac0e6d9d9b5f6d9696bf88e9d378ee11340",
+        "size_in_bytes": 2396
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/base.py",
+        "path_type": "hardlink",
+        "sha256": "9013eea76b7bc9fc0922431939e942930cfff1baac08cac6a1fd46b0489a1f34",
+        "sha256_in_prefix": "9013eea76b7bc9fc0922431939e942930cfff1baac08cac6a1fd46b0489a1f34",
+        "size_in_bytes": 3990
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/base_test.py",
+        "path_type": "hardlink",
+        "sha256": "b129f2dbf2ceef4b1474aae6281ec873cca8ffd484d56bf3dae81093b3e8b3ab",
+        "sha256_in_prefix": "b129f2dbf2ceef4b1474aae6281ec873cca8ffd484d56bf3dae81093b3e8b3ab",
+        "size_in_bytes": 783
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_in_bytes": 0
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "0aefffe37ff4da756599d8874e73ca687a30ac7f385cf5641639aa039d9c4595",
+        "sha256_in_prefix": "0aefffe37ff4da756599d8874e73ca687a30ac7f385cf5641639aa039d9c4595",
+        "size_in_bytes": 157
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/read_test_cases_from_control_file.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "63d620cf21be521b408d9311d6333a18f547fd6ea4a4d5e9f8fadde0dd4bdc88",
+        "sha256_in_prefix": "63d620cf21be521b408d9311d6333a18f547fd6ea4a4d5e9f8fadde0dd4bdc88",
+        "size_in_bytes": 1208
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/regrid_check.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "d6cf0cf3f2beb8af0ea39d8e04ab86f445a523c15c661ce4a01da9cd8a8fee45",
+        "sha256_in_prefix": "d6cf0cf3f2beb8af0ea39d8e04ab86f445a523c15c661ce4a01da9cd8a8fee45",
+        "size_in_bytes": 6806
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/regrid_check_driver.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "5d72f724fbc01875fa861af53fba3fb73646b7946a0d8bbe1bd6a32ff9a5db8a",
+        "sha256_in_prefix": "5d72f724fbc01875fa861af53fba3fb73646b7946a0d8bbe1bd6a32ff9a5db8a",
+        "size_in_bytes": 2613
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/regrid_from_file_consts.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "1432df1e7bd580c8330fedefbfa2dbcdf1ecbbca2fca9d08b043bd8392d5d12c",
+        "sha256_in_prefix": "1432df1e7bd580c8330fedefbfa2dbcdf1ecbbca2fca9d08b043bd8392d5d12c",
+        "size_in_bytes": 1089
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/run_regrid_from_file.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "04ed207fef7b41fbcccae4953871a7127c2817f8331c43d1c161ed570449f836",
+        "sha256_in_prefix": "04ed207fef7b41fbcccae4953871a7127c2817f8331c43d1c161ed570449f836",
+        "size_in_bytes": 1342
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/__pycache__/run_regrid_from_file_dryrun.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "c4dae6819d39d24f44985607efceb6677e64115b9fe47f008e46b7a940a5cb7b",
+        "sha256_in_prefix": "c4dae6819d39d24f44985607efceb6677e64115b9fe47f008e46b7a940a5cb7b",
+        "size_in_bytes": 1747
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/read_test_cases_from_control_file.py",
+        "path_type": "hardlink",
+        "sha256": "656e27e14fa9cb9a05b42e63dfef074a6071852a8e729eb22d12ee3c54c09960",
+        "sha256_in_prefix": "656e27e14fa9cb9a05b42e63dfef074a6071852a8e729eb22d12ee3c54c09960",
+        "size_in_bytes": 1144
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/regrid_check.py",
+        "path_type": "hardlink",
+        "sha256": "e68b7889d1113af9eac61e9fe9b9a5e52888616461890fe09ef48af6fc0d6b9d",
+        "sha256_in_prefix": "e68b7889d1113af9eac61e9fe9b9a5e52888616461890fe09ef48af6fc0d6b9d",
+        "size_in_bytes": 12558
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/regrid_check_driver.py",
+        "path_type": "hardlink",
+        "sha256": "d6d377407b501057d9f9bf2d1c433c4a32df2802199fd222d62f864f305fac8d",
+        "sha256_in_prefix": "d6d377407b501057d9f9bf2d1c433c4a32df2802199fd222d62f864f305fac8d",
+        "size_in_bytes": 3545
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/regrid_from_file_consts.py",
+        "path_type": "hardlink",
+        "sha256": "6427d569ebd8c5173d13f9add0f1ba19a56d29930f67f3c0320f1ec482761a38",
+        "sha256_in_prefix": "6427d569ebd8c5173d13f9add0f1ba19a56d29930f67f3c0320f1ec482761a38",
+        "size_in_bytes": 1247
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/run_regrid_from_file.py",
+        "path_type": "hardlink",
+        "sha256": "eaefde4fc6bdba1249c3e5203048b387bb3b9ebe9e877a105e39b0117da49a6d",
+        "sha256_in_prefix": "eaefde4fc6bdba1249c3e5203048b387bb3b9ebe9e877a105e39b0117da49a6d",
+        "size_in_bytes": 1532
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/regrid_from_file/run_regrid_from_file_dryrun.py",
+        "path_type": "hardlink",
+        "sha256": "23ae38911a07ff908b8f32c92e63b82dc6d1e99806d07b1801adaa4f3ab55db6",
+        "sha256_in_prefix": "23ae38911a07ff908b8f32c92e63b82dc6d1e99806d07b1801adaa4f3ab55db6",
+        "size_in_bytes": 2159
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_in_bytes": 0
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "d9733e7001bf32ae5d83e50d0133f92ea356d29dc471e9992f2e3f514122ec0e",
+        "sha256_in_prefix": "d9733e7001bf32ae5d83e50d0133f92ea356d29dc471e9992f2e3f514122ec0e",
+        "size_in_bytes": 149
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_array.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "5b63678fafb3d143804676321e3d55fac1d1b9306ecc0f786d8f63903688a504",
+        "sha256_in_prefix": "5b63678fafb3d143804676321e3d55fac1d1b9306ecc0f786d8f63903688a504",
+        "size_in_bytes": 6605
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_field.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "723d0fbc15858bef842c7633481aecd6cd05d6304fb09d14050a4f903156e5fb",
+        "sha256_in_prefix": "723d0fbc15858bef842c7633481aecd6cd05d6304fb09d14050a4f903156e5fb",
+        "size_in_bytes": 14740
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_grid.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "9b6bbcc7887f17a4896ff71256ec2731172c6995529ebf2d9ee32b6b3fad68da",
+        "sha256_in_prefix": "9b6bbcc7887f17a4896ff71256ec2731172c6995529ebf2d9ee32b6b3fad68da",
+        "size_in_bytes": 24447
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_locstream.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "53d857733d03f3e9be804725b7f847599862fa986c9c3ed81b1a6623c72848b9",
+        "sha256_in_prefix": "53d857733d03f3e9be804725b7f847599862fa986c9c3ed81b1a6623c72848b9",
+        "size_in_bytes": 2566
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_mesh.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "e8cd27a05be76bd72f595d79c6b0fc75a02c892fbda5d1c0bf980bfcca111141",
+        "sha256_in_prefix": "e8cd27a05be76bd72f595d79c6b0fc75a02c892fbda5d1c0bf980bfcca111141",
+        "size_in_bytes": 7348
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_regrid.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "f5dbfb9e09345b2293b2483be8c578baeafb5f6fce7a6b7a86ff845734810073",
+        "sha256_in_prefix": "f5dbfb9e09345b2293b2483be8c578baeafb5f6fce7a6b7a86ff845734810073",
+        "size_in_bytes": 27117
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/__pycache__/test_vm.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "d7e32ee31fbc4165dd8cebcb211c954b7a24b48cf87edf0c9174b64fd802e4ca",
+        "sha256_in_prefix": "d7e32ee31fbc4165dd8cebcb211c954b7a24b48cf87edf0c9174b64fd802e4ca",
+        "size_in_bytes": 1302
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/test_array.py",
+        "path_type": "hardlink",
+        "sha256": "2729e5791f9b88479aee04b20653a187ec0583b8e77669b196580cd8241f3a17",
+        "sha256_in_prefix": "2729e5791f9b88479aee04b20653a187ec0583b8e77669b196580cd8241f3a17",
+        "size_in_bytes": 8353
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/test_field.py",
+        "path_type": "hardlink",
+        "sha256": "4b9ea2530624528925a9cbc5132070ee919f20ea8bb279ad0d96732eeac43a6e",
+        "sha256_in_prefix": "4b9ea2530624528925a9cbc5132070ee919f20ea8bb279ad0d96732eeac43a6e",
+        "size_in_bytes": 21445
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/test_grid.py",
+        "path_type": "hardlink",
+        "sha256": "4844e9532fc22d8cdfb6dde3fce1a29516be945dd09d8c51c15b6f51e9a422e5",
+        "sha256_in_prefix": "4844e9532fc22d8cdfb6dde3fce1a29516be945dd09d8c51c15b6f51e9a422e5",
+        "size_in_bytes": 36694
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/test_locstream.py",
+        "path_type": "hardlink",
+        "sha256": "d4b31c6ce68db15a390be9b8f71e32b16bd9f447281704893adccf3a5a87e941",
+        "sha256_in_prefix": "d4b31c6ce68db15a390be9b8f71e32b16bd9f447281704893adccf3a5a87e941",
+        "size_in_bytes": 2340
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/test_mesh.py",
+        "path_type": "hardlink",
+        "sha256": "7974b19b9ee367f2b56190e02b356e13ae8661f7bebcb8dee1eef54ba3dc4b53",
+        "sha256_in_prefix": "7974b19b9ee367f2b56190e02b356e13ae8661f7bebcb8dee1eef54ba3dc4b53",
+        "size_in_bytes": 9380
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/test_regrid.py",
+        "path_type": "hardlink",
+        "sha256": "618f1e13db5a8d44b61df6f964e032ab4b3a7caf6a60cc34d279caf081ad8319",
+        "sha256_in_prefix": "618f1e13db5a8d44b61df6f964e032ab4b3a7caf6a60cc34d279caf081ad8319",
+        "size_in_bytes": 58707
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_api/test_vm.py",
+        "path_type": "hardlink",
+        "sha256": "3161346c2c013af949f040c6ac745dfec37a3893d9ab87878a157dc3b37064e1",
+        "sha256_in_prefix": "3161346c2c013af949f040c6ac745dfec37a3893d9ab87878a157dc3b37064e1",
+        "size_in_bytes": 994
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/test/test_cbindings.py",
+        "path_type": "hardlink",
+        "sha256": "caa71d150b56ec40dbfc416aabb022f60bb3a8a2a62c9e5bf62a41e63687cfd0",
+        "sha256_in_prefix": "caa71d150b56ec40dbfc416aabb022f60bb3a8a2a62c9e5bf62a41e63687cfd0",
+        "size_in_bytes": 2402
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_in_bytes": 0
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "2de58b855b8375867a2625c463c662c16e51defe07d76e93b1a46acb47061e05",
+        "sha256_in_prefix": "2de58b855b8375867a2625c463c662c16e51defe07d76e93b1a46acb47061e05",
+        "size_in_bytes": 140
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/cache_data.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "31e055e1dfe9590599965b6d7b5e6e4a650c036a6b128e8e3a15774b96bf87ed",
+        "sha256_in_prefix": "31e055e1dfe9590599965b6d7b5e6e4a650c036a6b128e8e3a15774b96bf87ed",
+        "size_in_bytes": 1373
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/decorators.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "d0c34c1794e4b0b548bb35420e52a23a645c514d513b73d78e310e5a0351e0bb",
+        "sha256_in_prefix": "d0c34c1794e4b0b548bb35420e52a23a645c514d513b73d78e310e5a0351e0bb",
+        "size_in_bytes": 2668
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/esmpyarray.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "180d7c8a27c3a5eb5f97a6a7a7f7e6e48a236813bfe46f3f98e0cb271b509696",
+        "sha256_in_prefix": "180d7c8a27c3a5eb5f97a6a7a7f7e6e48a236813bfe46f3f98e0cb271b509696",
+        "size_in_bytes": 4094
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/exceptions.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "4a5ee517bf06d30539542bbe5493583989bf9813663729cccb9e9c364a42c9a4",
+        "sha256_in_prefix": "4a5ee517bf06d30539542bbe5493583989bf9813663729cccb9e9c364a42c9a4",
+        "size_in_bytes": 4005
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/field_utilities.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "01938cd5a074fc32db7d6cc79a12408b8340c83f650c2bcc9aabae5b637f2af6",
+        "sha256_in_prefix": "01938cd5a074fc32db7d6cc79a12408b8340c83f650c2bcc9aabae5b637f2af6",
+        "size_in_bytes": 3428
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/grid_utilities.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "dec4c175b70133846494c347214444c8588a307bc31a34cdfa37277cc4830e75",
+        "sha256_in_prefix": "dec4c175b70133846494c347214444c8588a307bc31a34cdfa37277cc4830e75",
+        "size_in_bytes": 16926
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/helpers.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "7ae68de9189db4521d1eb67010d54023ad6c1f66ddb27e494586dbd7e4cc3d5a",
+        "sha256_in_prefix": "7ae68de9189db4521d1eb67010d54023ad6c1f66ddb27e494586dbd7e4cc3d5a",
+        "size_in_bytes": 772
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/itester.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "2602eb0b3aa4a7d745aef0911ccb710e2449f652d408346bab1566e210e5b971",
+        "sha256_in_prefix": "2602eb0b3aa4a7d745aef0911ccb710e2449f652d408346bab1566e210e5b971",
+        "size_in_bytes": 881
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/locstream_utilities.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "b453ce52244679b7cee3dd74ee01153a92c568ce238c9963308c6f621854ff34",
+        "sha256_in_prefix": "b453ce52244679b7cee3dd74ee01153a92c568ce238c9963308c6f621854ff34",
+        "size_in_bytes": 3403
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/mesh_utilities.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "9c078cd949fa8a94e864182a59e0a3c52cb0a9b443552c29c1db09df5c523186",
+        "sha256_in_prefix": "9c078cd949fa8a94e864182a59e0a3c52cb0a9b443552c29c1db09df5c523186",
+        "size_in_bytes": 44842
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/__pycache__/slicing.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "4f0c76ccc4cc864e5817add95b6acb17532e483520162dea3da7e6b0735a94ae",
+        "sha256_in_prefix": "4f0c76ccc4cc864e5817add95b6acb17532e483520162dea3da7e6b0735a94ae",
+        "size_in_bytes": 3612
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/cache_data.py",
+        "path_type": "hardlink",
+        "sha256": "50ddd33159e4be3136af08b5b8e20deb1d26877352723c040ed1894552ee0bd9",
+        "sha256_in_prefix": "50ddd33159e4be3136af08b5b8e20deb1d26877352723c040ed1894552ee0bd9",
+        "size_in_bytes": 1760
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/decorators.py",
+        "path_type": "hardlink",
+        "sha256": "fb2fbac3ef10f4054205d2ca49650a73134fab9032aca06b6ae2ceded434ebce",
+        "sha256_in_prefix": "fb2fbac3ef10f4054205d2ca49650a73134fab9032aca06b6ae2ceded434ebce",
+        "size_in_bytes": 2321
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/enum/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "ecc7f879fe61cc9c6e8e880b4ffce54d00f945bf9ff5105926fd28b825a32761",
+        "sha256_in_prefix": "ecc7f879fe61cc9c6e8e880b4ffce54d00f945bf9ff5105926fd28b825a32761",
+        "size_in_bytes": 31074
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/enum/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "5225874b35271e0a85d1ee601318abf09ff9bcbb52bb7631185fe18f57bae1b6",
+        "sha256_in_prefix": "5225874b35271e0a85d1ee601318abf09ff9bcbb52bb7631185fe18f57bae1b6",
+        "size_in_bytes": 20028
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/esmpyarray.py",
+        "path_type": "hardlink",
+        "sha256": "07c9222db0088b07fd44dd07fdd4e3309500302395098174d9f7a520ebcd01f4",
+        "sha256_in_prefix": "07c9222db0088b07fd44dd07fdd4e3309500302395098174d9f7a520ebcd01f4",
+        "size_in_bytes": 4793
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/exceptions.py",
+        "path_type": "hardlink",
+        "sha256": "6d1d9d7a7e1988459e0410036e27b65f1d72c1a21df1f71454e5788c3928103c",
+        "sha256_in_prefix": "6d1d9d7a7e1988459e0410036e27b65f1d72c1a21df1f71454e5788c3928103c",
+        "size_in_bytes": 2379
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/field_utilities.py",
+        "path_type": "hardlink",
+        "sha256": "914bdee1b13b441156fc4af5d14a9dccdd151e1a537012e1dca0a0487218f4aa",
+        "sha256_in_prefix": "914bdee1b13b441156fc4af5d14a9dccdd151e1a537012e1dca0a0487218f4aa",
+        "size_in_bytes": 5770
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/grid_utilities.py",
+        "path_type": "hardlink",
+        "sha256": "4d19d575598ce4d80a965b0f921557d7246d6bcc73068f5b414ccf53039955c7",
+        "sha256_in_prefix": "4d19d575598ce4d80a965b0f921557d7246d6bcc73068f5b414ccf53039955c7",
+        "size_in_bytes": 23917
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/helpers.py",
+        "path_type": "hardlink",
+        "sha256": "9ae626c4e3ed24118e2ae8d6415e04410b8531469c0e5241da157d92b2117321",
+        "sha256_in_prefix": "9ae626c4e3ed24118e2ae8d6415e04410b8531469c0e5241da157d92b2117321",
+        "size_in_bytes": 509
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/itester.py",
+        "path_type": "hardlink",
+        "sha256": "1d1bd2c952bc9cd1b15643b9312e8a386f3fd2ce272a53ee5b88af3ba247967c",
+        "sha256_in_prefix": "1d1bd2c952bc9cd1b15643b9312e8a386f3fd2ce272a53ee5b88af3ba247967c",
+        "size_in_bytes": 582
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/locstream_utilities.py",
+        "path_type": "hardlink",
+        "sha256": "4a7454dba1ded061be96f6c933a69495005e222e38a97df8dba53ba8542531c4",
+        "sha256_in_prefix": "4a7454dba1ded061be96f6c933a69495005e222e38a97df8dba53ba8542531c4",
+        "size_in_bytes": 5155
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/mesh_utilities.py",
+        "path_type": "hardlink",
+        "sha256": "1e0e7eab1c9fcc1c0d989b0c4f1a237b65b8eb1471bd0a60dc16b2f1e9b933ca",
+        "sha256_in_prefix": "1e0e7eab1c9fcc1c0d989b0c4f1a237b65b8eb1471bd0a60dc16b2f1e9b933ca",
+        "size_in_bytes": 61832
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMF/util/slicing.py",
+        "path_type": "hardlink",
+        "sha256": "c77495e3422952319a26d3523592556cec66d54fb92d003b26c46f3efb5ea42b",
+        "sha256_in_prefix": "c77495e3422952319a26d3523592556cec66d54fb92d003b26c46f3efb5ea42b",
+        "size_in_bytes": 4856
+      },
+      {
+        "_path": "lib/python3.8/site-packages/ESMPy-8.0.0-py3.8.egg-info",
+        "path_type": "hardlink",
+        "sha256": "51967f1446fd0b8e7b5347cb7ca85d6ea7169e407a729678e405bc38881d1280",
+        "sha256_in_prefix": "51967f1446fd0b8e7b5347cb7ca85d6ea7169e407a729678e405bc38881d1280",
+        "size_in_bytes": 652
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "f1f536a5bb67040026295a18a14680d838eaf0a74fc05cb28121ae286604f777",
+  "size": 174096,
+  "subdir": "osx-64",
+  "timestamp": 1602547931382,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/conda-forge/osx-64/esmpy-8.0.1-nompi_py38h5410a82_2.tar.bz2",
+  "version": "8.0.1"
+}

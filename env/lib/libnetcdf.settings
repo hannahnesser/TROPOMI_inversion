@@ -1,0 +1,45 @@
+# NetCDF C Configuration Summary
+==============================
+
+# General
+-------
+NetCDF Version:		4.7.4
+Dispatch Version:       1
+Configured On:		Mon Dec 14 16:18:40 UTC 2020
+Host System:		x86_64-Darwin-19.6.0
+Build Directory: 	/Users/runner/miniforge3/conda-bld/libnetcdf_1607962396756/work
+Install Prefix:         /Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env
+
+# Compiling Options
+-----------------
+C Compiler:		/Users/runner/miniforge3/conda-bld/libnetcdf_1607962396756/_build_env/bin/x86_64-apple-darwin13.4.0-clang
+CFLAGS:			-march=core2 -mtune=haswell -mssse3 -ftree-vectorize -fPIC -fPIE -fstack-protector-strong -O2 -pipe -isystem /Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include -fdebug-prefix-map=/Users/runner/miniforge3/conda-bld/libnetcdf_1607962396756/work=/usr/local/src/conda/libnetcdf-4.7.4 -fdebug-prefix-map=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env=/usr/local/src/conda-prefix -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -march=core2
+CPPFLAGS:		 
+LDFLAGS:		-Wl,-pie -Wl,-headerpad_max_install_names  -Wl,-rpath,/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib -L/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib 
+AM_CFLAGS:		
+AM_CPPFLAGS:		
+AM_LDFLAGS:		
+Shared Library:		yes
+Static Library:		no
+Extra libraries:	-lmfhdf -ldf -lhdf5_hl -lhdf5 -lm -lcurl
+
+# Features
+--------
+NetCDF-2 API:		yes
+HDF4 Support:		yes
+HDF5 Support:		yes
+NetCDF-4 API:		yes
+NC-4 Parallel Support:	no
+PnetCDF Support:	no
+DAP2 Support:		yes
+DAP4 Support:		yes
+Byte-Range Support:	yes
+Diskless Support:	yes
+MMap Support:		no
+JNA Support:		no
+CDF5 Support:		yes
+ERANGE Fill Support:	yes
+Relaxed Boundary Check:	yes
+SZIP Support:           no
+SZIP Write Support:     no
+Parallel Filters:       no

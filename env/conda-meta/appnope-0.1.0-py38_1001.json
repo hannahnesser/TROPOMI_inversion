@@ -1,0 +1,140 @@
+{
+  "build": "py38_1001",
+  "build_number": 1001,
+  "channel": "https://conda.anaconda.org/anaconda/osx-64",
+  "constrains": [],
+  "depends": [
+    "python >=3.8,<3.9.0a0"
+  ],
+  "extracted_package_dir": "/Users/hannahnesser/opt/anaconda3/pkgs/appnope-0.1.0-py38_1001",
+  "features": "",
+  "files": [
+    "lib/python3.8/site-packages/appnope-0.1.0.dist-info/INSTALLER",
+    "lib/python3.8/site-packages/appnope-0.1.0.dist-info/LICENSE",
+    "lib/python3.8/site-packages/appnope-0.1.0.dist-info/METADATA",
+    "lib/python3.8/site-packages/appnope-0.1.0.dist-info/RECORD",
+    "lib/python3.8/site-packages/appnope-0.1.0.dist-info/WHEEL",
+    "lib/python3.8/site-packages/appnope-0.1.0.dist-info/direct_url.json",
+    "lib/python3.8/site-packages/appnope-0.1.0.dist-info/top_level.txt",
+    "lib/python3.8/site-packages/appnope/__init__.py",
+    "lib/python3.8/site-packages/appnope/__pycache__/__init__.cpython-38.pyc",
+    "lib/python3.8/site-packages/appnope/__pycache__/_dummy.cpython-38.pyc",
+    "lib/python3.8/site-packages/appnope/__pycache__/_nope.cpython-38.pyc",
+    "lib/python3.8/site-packages/appnope/_dummy.py",
+    "lib/python3.8/site-packages/appnope/_nope.py"
+  ],
+  "fn": "appnope-0.1.0-py38_1001.tar.bz2",
+  "license": "BSD 2-Clause",
+  "license_family": "BSD",
+  "link": {
+    "source": "/Users/hannahnesser/opt/anaconda3/pkgs/appnope-0.1.0-py38_1001",
+    "type": 1
+  },
+  "md5": "95620c9e9c0459036e31e1a2aef915d5",
+  "name": "appnope",
+  "package_tarball_full_path": "/Users/hannahnesser/opt/anaconda3/pkgs/appnope-0.1.0-py38_1001.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python3.8/site-packages/appnope-0.1.0.dist-info/INSTALLER",
+        "path_type": "hardlink",
+        "sha256": "d0edee15f91b406f3f99726e44eb990be6e34fd0345b52b910c568e0eef6a2a8",
+        "sha256_in_prefix": "d0edee15f91b406f3f99726e44eb990be6e34fd0345b52b910c568e0eef6a2a8",
+        "size_in_bytes": 5
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope-0.1.0.dist-info/LICENSE",
+        "path_type": "hardlink",
+        "sha256": "0d32193e358c88e30be8ec37069cd41867d5f7db3273776fc7bd5c19517332c4",
+        "sha256_in_prefix": "0d32193e358c88e30be8ec37069cd41867d5f7db3273776fc7bd5c19517332c4",
+        "size_in_bytes": 1131
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope-0.1.0.dist-info/METADATA",
+        "path_type": "hardlink",
+        "sha256": "9bfaa9713e75959c0f59edd6a88a9e3d7c8e61b1badc6f8d5c1c2d82a0dc1879",
+        "sha256_in_prefix": "9bfaa9713e75959c0f59edd6a88a9e3d7c8e61b1badc6f8d5c1c2d82a0dc1879",
+        "size_in_bytes": 685
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope-0.1.0.dist-info/RECORD",
+        "path_type": "hardlink",
+        "sha256": "b7e5d341d42df207cc916093eefe2d692b89a70b71fe23d53de5205ed13b9736",
+        "sha256_in_prefix": "b7e5d341d42df207cc916093eefe2d692b89a70b71fe23d53de5205ed13b9736",
+        "size_in_bytes": 934
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope-0.1.0.dist-info/WHEEL",
+        "path_type": "hardlink",
+        "sha256": "9064fbe0b5b245466b2f85602e1ebf835d8879597ff6ef5956169dae05d95046",
+        "sha256_in_prefix": "9064fbe0b5b245466b2f85602e1ebf835d8879597ff6ef5956169dae05d95046",
+        "size_in_bytes": 110
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope-0.1.0.dist-info/direct_url.json",
+        "path_type": "hardlink",
+        "sha256": "019969f68bfe30635371a47ba0a876150863b9f82b58dd668b5f062a90b70a06",
+        "sha256_in_prefix": "019969f68bfe30635371a47ba0a876150863b9f82b58dd668b5f062a90b70a06",
+        "size_in_bytes": 139
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope-0.1.0.dist-info/top_level.txt",
+        "path_type": "hardlink",
+        "sha256": "3642a27e7bcc10115807b162deff767c6819abc194565f1a32d61161be54061e",
+        "sha256_in_prefix": "3642a27e7bcc10115807b162deff767c6819abc194565f1a32d61161be54061e",
+        "size_in_bytes": 8
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "ce6f521b2384445df8b9453d8d870b5a5ef2ecdd8f77e71604f13d936db67556",
+        "sha256_in_prefix": "ce6f521b2384445df8b9453d8d870b5a5ef2ecdd8f77e71604f13d936db67556",
+        "size_in_bytes": 247
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope/__pycache__/__init__.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "159e63584e9f0c91b048b11126c14ead1c2a85b5bc5f888dddad26af7993ab6d",
+        "sha256_in_prefix": "159e63584e9f0c91b048b11126c14ead1c2a85b5bc5f888dddad26af7993ab6d",
+        "size_in_bytes": 370
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope/__pycache__/_dummy.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "9132b9f223c269a923502d61add69173927e4a7901154fb14229d82afe5ec789",
+        "sha256_in_prefix": "9132b9f223c269a923502d61add69173927e4a7901154fb14229d82afe5ec789",
+        "size_in_bytes": 910
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope/__pycache__/_nope.cpython-38.pyc",
+        "path_type": "hardlink",
+        "sha256": "f26fbb1cffb84c52e617495593aebc142304f06132227504242dd01e01c744c0",
+        "sha256_in_prefix": "f26fbb1cffb84c52e617495593aebc142304f06132227504242dd01e01c744c0",
+        "size_in_bytes": 3064
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope/_dummy.py",
+        "path_type": "hardlink",
+        "sha256": "4e1f90273e89d54b73af5470a17ef530bdc78df5e513eb2d3871db54486316ee",
+        "sha256_in_prefix": "4e1f90273e89d54b73af5470a17ef530bdc78df5e513eb2d3871db54486316ee",
+        "size_in_bytes": 578
+      },
+      {
+        "_path": "lib/python3.8/site-packages/appnope/_nope.py",
+        "path_type": "hardlink",
+        "sha256": "0150c7e34bd6cf8275be18c4082b3b34fc6b78e3f5ac9b0f9067bd447b9c1d3a",
+        "sha256_in_prefix": "0150c7e34bd6cf8275be18c4082b3b34fc6b78e3f5ac9b0f9067bd447b9c1d3a",
+        "size_in_bytes": 3680
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "cacf508816a12214e981f668822d3c84dd2c4f71f074608aadb812aaa131ec8f",
+  "size": 8817,
+  "subdir": "osx-64",
+  "timestamp": 1594338453724,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/anaconda/osx-64/appnope-0.1.0-py38_1001.tar.bz2",
+  "version": "0.1.0"
+}

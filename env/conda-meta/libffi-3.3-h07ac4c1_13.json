@@ -1,0 +1,92 @@
+{
+  "arch": "x86_64",
+  "build": "h07ac4c1_13",
+  "build_number": 13,
+  "channel": "https://conda.anaconda.org/intel/osx-64",
+  "constrains": [],
+  "depends": [
+    "intelpython >=2019.0"
+  ],
+  "extracted_package_dir": "/Users/hannahnesser/opt/anaconda3/pkgs/libffi-3.3-h07ac4c1_13",
+  "features": "",
+  "files": [
+    "include/ffi.h",
+    "include/ffitarget.h",
+    "lib/libffi.6.dylib",
+    "lib/libffi.7.dylib",
+    "lib/libffi.a",
+    "lib/libffi.dylib",
+    "lib/pkgconfig/libffi.pc"
+  ],
+  "fn": "libffi-3.3-h07ac4c1_13.tar.bz2",
+  "license": "MIT",
+  "link": {
+    "source": "/Users/hannahnesser/opt/anaconda3/pkgs/libffi-3.3-h07ac4c1_13",
+    "type": 1
+  },
+  "md5": "352f6f834e5ca26a15931f13977a1712",
+  "name": "libffi",
+  "package_tarball_full_path": "/Users/hannahnesser/opt/anaconda3/pkgs/libffi-3.3-h07ac4c1_13.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "include/ffi.h",
+        "path_type": "hardlink",
+        "sha256": "6ac535a9dfeb6a80bc1ecc1eff71626ddd8a15131e3265298536e2966170179b",
+        "sha256_in_prefix": "6ac535a9dfeb6a80bc1ecc1eff71626ddd8a15131e3265298536e2966170179b",
+        "size_in_bytes": 13934
+      },
+      {
+        "_path": "include/ffitarget.h",
+        "path_type": "hardlink",
+        "sha256": "ce9a87677a9b9af9dcc6f8f632b62948214824174b65fe4361d3b662cc72aec0",
+        "sha256_in_prefix": "ce9a87677a9b9af9dcc6f8f632b62948214824174b65fe4361d3b662cc72aec0",
+        "size_in_bytes": 4343
+      },
+      {
+        "_path": "lib/libffi.6.dylib",
+        "path_type": "softlink",
+        "sha256": "54911f4c97417366cddc02e508cfbb59315066bc4a1602b32d8f9f697097ae1d",
+        "size_in_bytes": 65632
+      },
+      {
+        "_path": "lib/libffi.7.dylib",
+        "path_type": "hardlink",
+        "sha256": "54911f4c97417366cddc02e508cfbb59315066bc4a1602b32d8f9f697097ae1d",
+        "sha256_in_prefix": "54911f4c97417366cddc02e508cfbb59315066bc4a1602b32d8f9f697097ae1d",
+        "size_in_bytes": 65632
+      },
+      {
+        "_path": "lib/libffi.a",
+        "path_type": "hardlink",
+        "sha256": "4cb537028af5bfc08dff63e6408a2ed24e53863e07d76191530158a780c38af8",
+        "sha256_in_prefix": "4cb537028af5bfc08dff63e6408a2ed24e53863e07d76191530158a780c38af8",
+        "size_in_bytes": 63880
+      },
+      {
+        "_path": "lib/libffi.dylib",
+        "path_type": "softlink",
+        "sha256": "54911f4c97417366cddc02e508cfbb59315066bc4a1602b32d8f9f697097ae1d",
+        "size_in_bytes": 65632
+      },
+      {
+        "_path": "lib/pkgconfig/libffi.pc",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "c8802ea0d06ee889c3df00fb7a981de89148d87f29b38199552632db16e9cdd7",
+        "sha256_in_prefix": "d7c069872c294eff148a6a1db076adf9b62f21eb5b6617135bed970e5a480593",
+        "size_in_bytes": 285
+      }
+    ],
+    "paths_version": 1
+  },
+  "platform": "darwin",
+  "requested_spec": "None",
+  "size": 46426,
+  "subdir": "osx-64",
+  "timestamp": 1603771212544,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/intel/osx-64/libffi-3.3-h07ac4c1_13.tar.bz2",
+  "version": "3.3"
+}

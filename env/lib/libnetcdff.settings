@@ -1,0 +1,33 @@
+# NetCDF Fortran Configuration Summary
+==============================
+
+# General
+-------
+Library Version:		4.5.3
+Configured On:		        
+Host System:		        x86_64-Darwin-19.6.0
+Build Directory: 	        /Users/runner/miniforge3/conda-bld/netcdf-fortran_1603144139011/work/build_shared
+Install Prefix:                 /Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env
+
+# Compiling Options
+-----------------
+Fortran Compiler:               /Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/bin/x86_64-apple-darwin13.4.0-gfortran
+FFLAGS:                         -isysroot /Applications/Xcode_11.7.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -march=core2 -mtune=haswell -ftree-vectorize -fPIC -fstack-protector -O2 -pipe -isystem /Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include -fdebug-prefix-map=/Users/runner/miniforge3/conda-bld/netcdf-fortran_1603144139011/work=/usr/local/src/conda/netcdf-fortran-4.5.3 -fdebug-prefix-map=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env=/usr/local/src/conda-prefix -g
+LDFLAGS:		        -Wl,-pie -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib -L/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib -L/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib -Wl,-rpath,/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib -lcurl -lhdf5 -lhdf5_hl -ldf -lmfhdf 
+AM_LDFLAGS:                     
+Shared Library:		        yes
+Static Library:		        no
+Extra libraries:	        -lnetcdf
+
+# Features
+--------
+F03:                            yes
+Dap Support:                    yes
+Logging Support:                yes
+NetCDF-2 API:                   yes
+NetCDF-4 API:                   yes
+CDF5 Support:                   yes
+Parallel IO:                    no
+NetCDF4 Parallel IO:            no
+PnetCDF Parallel IO:            no
+SZIP Write Support:             no

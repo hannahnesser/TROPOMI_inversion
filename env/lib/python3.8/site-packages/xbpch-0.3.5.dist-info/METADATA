@@ -1,0 +1,29 @@
+Metadata-Version: 2.1
+Name: xbpch
+Version: 0.3.5
+Summary: xarray interface for bpch files
+Home-page: https://github.com/darothen/xbpch
+Author: Daniel Rothenberg
+Author-email: darothen@mit.edu
+Maintainer: Daniel Rothenberg
+Maintainer-email: darothen@mit.edu
+License: MIT
+Download-URL: https://github.com/darothen/xbpch/archive/v0.3.5.tar.gz
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Topic :: Scientific/Engineering
+
+**xpbch** is a simple utility for reading the proprietary binary punch format
+(bpch) outputs used in versions of GEOS-Chem earlier than v11-02. The utility
+allows a user to load this data into an xarray/dask-powered workflow without
+necessarily pre-processing the data using GAMAP or IDL.
+
+

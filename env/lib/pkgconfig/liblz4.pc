@@ -1,0 +1,14 @@
+#   LZ4 - Fast LZ compression algorithm
+#   Copyright (C) 2011-2014, Yann Collet.
+#   BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
+
+prefix=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env
+libdir=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib
+includedir=/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include
+
+Name: lz4
+Description: extremely fast lossless compression algorithm library
+URL: http://www.lz4.org/
+Version: 1.9.2
+Libs: -L/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/lib -llz4
+Cflags: -I/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/env/include

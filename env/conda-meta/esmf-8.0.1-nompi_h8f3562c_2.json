@@ -1,0 +1,1438 @@
+{
+  "build": "nompi_h8f3562c_2",
+  "build_number": 2,
+  "channel": "https://conda.anaconda.org/conda-forge/osx-64",
+  "constrains": [],
+  "depends": [
+    "hdf5 * nompi_*",
+    "hdf5 >=1.10.6,<1.10.7.0a0",
+    "libcxx >=10.0.1",
+    "libgfortran 5.*",
+    "libgfortran5 >=9.3.0",
+    "libnetcdf * nompi_*",
+    "libnetcdf >=4.7.4,<4.7.5.0a0",
+    "netcdf-fortran >=4.5.3,<4.6.0a0 nompi_*"
+  ],
+  "extracted_package_dir": "/Users/hannahnesser/opt/anaconda3/pkgs/esmf-8.0.1-nompi_h8f3562c_2",
+  "features": "",
+  "files": [
+    "bin/ESMF_Info",
+    "bin/ESMF_InfoC",
+    "bin/ESMF_Regrid",
+    "bin/ESMF_RegridWeightGen",
+    "bin/ESMF_Scrip2Unstruct",
+    "bin/ESMF_WebServController",
+    "include/ESMC.h",
+    "include/ESMC_Arg.h",
+    "include/ESMC_Array.h",
+    "include/ESMC_ArraySpec.h",
+    "include/ESMC_Calendar.h",
+    "include/ESMC_Clock.h",
+    "include/ESMC_Conf.h",
+    "include/ESMC_Config.h",
+    "include/ESMC_CoordSys.h",
+    "include/ESMC_CplComp.h",
+    "include/ESMC_DistGrid.h",
+    "include/ESMC_Field.h",
+    "include/ESMC_Grid.h",
+    "include/ESMC_GridComp.h",
+    "include/ESMC_Init.h",
+    "include/ESMC_Interface.h",
+    "include/ESMC_LocStream.h",
+    "include/ESMC_LogErr.h",
+    "include/ESMC_Macros.h",
+    "include/ESMC_Mesh.h",
+    "include/ESMC_RHandle.h",
+    "include/ESMC_ReturnCodes.h",
+    "include/ESMC_SciComp.h",
+    "include/ESMC_State.h",
+    "include/ESMC_Test.h",
+    "include/ESMC_Time.h",
+    "include/ESMC_TimeInterval.h",
+    "include/ESMC_Util.h",
+    "include/ESMC_VM.h",
+    "include/ESMC_XGrid.h",
+    "lib/esmf.mk",
+    "lib/libesmf.a",
+    "lib/libesmf.dylib",
+    "lib/libesmf_fullylinked.dylib",
+    "lib/libesmftrace_preload.dylib",
+    "lib/libesmftrace_static.a",
+    "lib/preload.sh",
+    "mod/esmf.mod",
+    "mod/esmf_alarmmod.mod",
+    "mod/esmf_alarmtypemod.mod",
+    "mod/esmf_arraybundlemod.mod",
+    "mod/esmf_arraycreatemod.mod",
+    "mod/esmf_arraygathermod.mod",
+    "mod/esmf_arraygetmod.mod",
+    "mod/esmf_arrayhamod.mod",
+    "mod/esmf_arraymod.mod",
+    "mod/esmf_arrayscattermod.mod",
+    "mod/esmf_arrayspecmod.mod",
+    "mod/esmf_attachmethodsmod.mod",
+    "mod/esmf_attpacktypemod.mod",
+    "mod/esmf_attributeinternalsmod.mod",
+    "mod/esmf_attributemod.mod",
+    "mod/esmf_basemod.mod",
+    "mod/esmf_calendarmod.mod",
+    "mod/esmf_clockmod.mod",
+    "mod/esmf_clocktypemod.mod",
+    "mod/esmf_complianceicmod.mod",
+    "mod/esmf_compmod.mod",
+    "mod/esmf_configmod.mod",
+    "mod/esmf_containermod.mod",
+    "mod/esmf_cplcompmod.mod",
+    "mod/esmf_delayoutmod.mod",
+    "mod/esmf_distgridconnectionmod.mod",
+    "mod/esmf_distgridmod.mod",
+    "mod/esmf_distgridregdecompmod.mod",
+    "mod/esmf_dynamicmaskmod.mod",
+    "mod/esmf_f90interfacemod.mod",
+    "mod/esmf_factorreadmod.mod",
+    "mod/esmf_fieldbundlemod.mod",
+    "mod/esmf_fieldcreatemod.mod",
+    "mod/esmf_fieldemptymod.mod",
+    "mod/esmf_fieldgathermod.mod",
+    "mod/esmf_fieldgetallocboundsmod.mod",
+    "mod/esmf_fieldgetmod.mod",
+    "mod/esmf_fieldhalomod.mod",
+    "mod/esmf_fieldmod.mod",
+    "mod/esmf_fieldprmod.mod",
+    "mod/esmf_fieldredistmod.mod",
+    "mod/esmf_fieldregridmod.mod",
+    "mod/esmf_fieldscattermod.mod",
+    "mod/esmf_fieldsetmod.mod",
+    "mod/esmf_fieldsmmmod.mod",
+    "mod/esmf_fieldwrmod.mod",
+    "mod/esmf_fileregridcheckmod.mod",
+    "mod/esmf_fileregridmod.mod",
+    "mod/esmf_fortranwordsizemod.mod",
+    "mod/esmf_fractionmod.mod",
+    "mod/esmf_geombasemod.mod",
+    "mod/esmf_gridcompmod.mod",
+    "mod/esmf_gridmod.mod",
+    "mod/esmf_gridutilmod.mod",
+    "mod/esmf_infomod.mod",
+    "mod/esmf_initmacrosmod.mod",
+    "mod/esmf_initmod.mod",
+    "mod/esmf_io_ncputgetmod.mod",
+    "mod/esmf_io_netcdfmod.mod",
+    "mod/esmf_io_yamlmod.mod",
+    "mod/esmf_iofiletypecheckmod.mod",
+    "mod/esmf_iogridmosaicmod.mod",
+    "mod/esmf_iogridspecmod.mod",
+    "mod/esmf_iomod.mod",
+    "mod/esmf_ioscripmod.mod",
+    "mod/esmf_iougridmod.mod",
+    "mod/esmf_ioutilmod.mod",
+    "mod/esmf_localarraycreatemod.mod",
+    "mod/esmf_localarraygetmod.mod",
+    "mod/esmf_localarraymod.mod",
+    "mod/esmf_localarraywrappertypemod.mod",
+    "mod/esmf_locstreammod.mod",
+    "mod/esmf_logerrmod.mod",
+    "mod/esmf_logpublicmod.mod",
+    "mod/esmf_meshmod.mod",
+    "mod/esmf_pointlistmod.mod",
+    "mod/esmf_regridmod.mod",
+    "mod/esmf_regridweightgencheckmod.mod",
+    "mod/esmf_regridweightgenmod.mod",
+    "mod/esmf_rhandlemod.mod",
+    "mod/esmf_scicompmod.mod",
+    "mod/esmf_staggerlocmod.mod",
+    "mod/esmf_staggerloctypemod.mod",
+    "mod/esmf_stateapimod.mod",
+    "mod/esmf_statecontainermod.mod",
+    "mod/esmf_stateinternalsmod.mod",
+    "mod/esmf_stateitemmod.mod",
+    "mod/esmf_statemod.mod",
+    "mod/esmf_statereconcile2mod.mod",
+    "mod/esmf_statereconcilemod.mod",
+    "mod/esmf_stateremrepmod.mod",
+    "mod/esmf_statetypesmod.mod",
+    "mod/esmf_statevamod.mod",
+    "mod/esmf_statewrmod.mod",
+    "mod/esmf_testmod.mod",
+    "mod/esmf_timeintervalmod.mod",
+    "mod/esmf_timeintervaltypemod.mod",
+    "mod/esmf_timemod.mod",
+    "mod/esmf_timetypemod.mod",
+    "mod/esmf_traceapimod.mod",
+    "mod/esmf_tracemod.mod",
+    "mod/esmf_typekindgetmod.mod",
+    "mod/esmf_utilcubedspheremod.mod",
+    "mod/esmf_utilmod.mod",
+    "mod/esmf_utilsortmod.mod",
+    "mod/esmf_utilstringmod.mod",
+    "mod/esmf_utiltypesmod.mod",
+    "mod/esmf_vmmod.mod",
+    "mod/esmf_webservmod.mod",
+    "mod/esmf_xgridcreatemod.mod",
+    "mod/esmf_xgridgeombasemod.mod",
+    "mod/esmf_xgridgetmod.mod",
+    "mod/esmf_xgridmod.mod",
+    "mod/esmfiomod.mod",
+    "mod/nuopc.mod",
+    "mod/nuopc_auxiliary.mod",
+    "mod/nuopc_base.mod",
+    "mod/nuopc_comp.mod",
+    "mod/nuopc_compliance_base.mod",
+    "mod/nuopc_compliance_connector.mod",
+    "mod/nuopc_compliance_driver.mod",
+    "mod/nuopc_compliance_model.mod",
+    "mod/nuopc_connector.mod",
+    "mod/nuopc_driver.mod",
+    "mod/nuopc_fielddictionaryapi.mod",
+    "mod/nuopc_fielddictionarydef.mod",
+    "mod/nuopc_freeformatdef.mod",
+    "mod/nuopc_mediator.mod",
+    "mod/nuopc_model.mod",
+    "mod/nuopc_modelbase.mod",
+    "mod/nuopc_runsequencedef.mod"
+  ],
+  "fn": "esmf-8.0.1-nompi_h8f3562c_2.tar.bz2",
+  "license": "University of Illinois/NCSA (NCSA)",
+  "link": {
+    "source": "/Users/hannahnesser/opt/anaconda3/pkgs/esmf-8.0.1-nompi_h8f3562c_2",
+    "type": 1
+  },
+  "md5": "ed97612cf828c0d0b9532076324901e7",
+  "name": "esmf",
+  "package_tarball_full_path": "/Users/hannahnesser/opt/anaconda3/pkgs/esmf-8.0.1-nompi_h8f3562c_2.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "bin/ESMF_Info",
+        "path_type": "hardlink",
+        "sha256": "2cab2a5f907453142eed088e451f4f235b4ea015a812d4f47effbf0aa89bd4ac",
+        "sha256_in_prefix": "2cab2a5f907453142eed088e451f4f235b4ea015a812d4f47effbf0aa89bd4ac",
+        "size_in_bytes": 18104
+      },
+      {
+        "_path": "bin/ESMF_InfoC",
+        "path_type": "hardlink",
+        "sha256": "aac50ce99afe17ac5b7b6b62ae3025985c48eeb7cf156bcf6c36520ec4090475",
+        "sha256_in_prefix": "aac50ce99afe17ac5b7b6b62ae3025985c48eeb7cf156bcf6c36520ec4090475",
+        "size_in_bytes": 13008
+      },
+      {
+        "_path": "bin/ESMF_Regrid",
+        "path_type": "hardlink",
+        "sha256": "d4a58e0b37e94b6b82d74d9bcdc3bb116c3951de324f41afdff19052dc38b0bc",
+        "sha256_in_prefix": "d4a58e0b37e94b6b82d74d9bcdc3bb116c3951de324f41afdff19052dc38b0bc",
+        "size_in_bytes": 35536
+      },
+      {
+        "_path": "bin/ESMF_RegridWeightGen",
+        "path_type": "hardlink",
+        "sha256": "b203f7eaa3169f887b33b6ffb48176cdefbe6671487b57caa51b6557b3e9ae8a",
+        "sha256_in_prefix": "b203f7eaa3169f887b33b6ffb48176cdefbe6671487b57caa51b6557b3e9ae8a",
+        "size_in_bytes": 60888
+      },
+      {
+        "_path": "bin/ESMF_Scrip2Unstruct",
+        "path_type": "hardlink",
+        "sha256": "f016d1c45fd5b7273cd791f8b750fc339863c5b84a69d73a8c38806caf61c566",
+        "sha256_in_prefix": "f016d1c45fd5b7273cd791f8b750fc339863c5b84a69d73a8c38806caf61c566",
+        "size_in_bytes": 36260
+      },
+      {
+        "_path": "bin/ESMF_WebServController",
+        "path_type": "hardlink",
+        "sha256": "0630aec7a297f64aaea9cacbb6d0c47eae77b8852ed433ced641da4753639f54",
+        "sha256_in_prefix": "0630aec7a297f64aaea9cacbb6d0c47eae77b8852ed433ced641da4753639f54",
+        "size_in_bytes": 18932
+      },
+      {
+        "_path": "include/ESMC.h",
+        "path_type": "hardlink",
+        "sha256": "94980137be8e097e52f495a2fbec38e51fbda4aa9ac1372ddf92023fca802ccc",
+        "sha256_in_prefix": "94980137be8e097e52f495a2fbec38e51fbda4aa9ac1372ddf92023fca802ccc",
+        "size_in_bytes": 2006
+      },
+      {
+        "_path": "include/ESMC_Arg.h",
+        "path_type": "hardlink",
+        "sha256": "d4609cacd39feb3909e39256c1fe03a4226a6aadaece3cac80f54e4e8ac026dc",
+        "sha256_in_prefix": "d4609cacd39feb3909e39256c1fe03a4226a6aadaece3cac80f54e4e8ac026dc",
+        "size_in_bytes": 2115
+      },
+      {
+        "_path": "include/ESMC_Array.h",
+        "path_type": "hardlink",
+        "sha256": "08ecc4f6eec011675d914edcf8914e7e8923dcfe0d5e3b11e2904d6c61caf248",
+        "sha256_in_prefix": "08ecc4f6eec011675d914edcf8914e7e8923dcfe0d5e3b11e2904d6c61caf248",
+        "size_in_bytes": 5992
+      },
+      {
+        "_path": "include/ESMC_ArraySpec.h",
+        "path_type": "hardlink",
+        "sha256": "f72effc532e1f41ba787ef234be9ab75c0c97f714b3f34a9862a1a8f7e897aa9",
+        "sha256_in_prefix": "f72effc532e1f41ba787ef234be9ab75c0c97f714b3f34a9862a1a8f7e897aa9",
+        "size_in_bytes": 3784
+      },
+      {
+        "_path": "include/ESMC_Calendar.h",
+        "path_type": "hardlink",
+        "sha256": "26b8a923a8dd2c18393cf8493a7a88b585996e04f5063043bbb530066824f158",
+        "sha256_in_prefix": "26b8a923a8dd2c18393cf8493a7a88b585996e04f5063043bbb530066824f158",
+        "size_in_bytes": 6028
+      },
+      {
+        "_path": "include/ESMC_Clock.h",
+        "path_type": "hardlink",
+        "sha256": "08e4ad5aa04d41749576da9bd260767a860197ac33e688d6c4025f562346035c",
+        "sha256_in_prefix": "08e4ad5aa04d41749576da9bd260767a860197ac33e688d6c4025f562346035c",
+        "size_in_bytes": 6432
+      },
+      {
+        "_path": "include/ESMC_Conf.h",
+        "path_type": "hardlink",
+        "sha256": "739bba256b7e977e5121fcb493ebb8a6cf37f08d4ae53ef5f92a94b799d826d4",
+        "sha256_in_prefix": "739bba256b7e977e5121fcb493ebb8a6cf37f08d4ae53ef5f92a94b799d826d4",
+        "size_in_bytes": 1117
+      },
+      {
+        "_path": "include/ESMC_Config.h",
+        "path_type": "hardlink",
+        "sha256": "6bac563c6303e56b03e780b7c686a04f4abaf40504ac409e35ab9e2e6edc68a2",
+        "sha256_in_prefix": "6bac563c6303e56b03e780b7c686a04f4abaf40504ac409e35ab9e2e6edc68a2",
+        "size_in_bytes": 14615
+      },
+      {
+        "_path": "include/ESMC_CoordSys.h",
+        "path_type": "hardlink",
+        "sha256": "8130de16474b0371ea9e1e433bf3fab06fd21a241ee6ae3d1d8b3a56cc9cbf7b",
+        "sha256_in_prefix": "8130de16474b0371ea9e1e433bf3fab06fd21a241ee6ae3d1d8b3a56cc9cbf7b",
+        "size_in_bytes": 644
+      },
+      {
+        "_path": "include/ESMC_CplComp.h",
+        "path_type": "hardlink",
+        "sha256": "7ba189c7217cdf83caddfff7c6f86e073b1c6092a8e8fa43fd13a09a9e572c8f",
+        "sha256_in_prefix": "7ba189c7217cdf83caddfff7c6f86e073b1c6092a8e8fa43fd13a09a9e572c8f",
+        "size_in_bytes": 16865
+      },
+      {
+        "_path": "include/ESMC_DistGrid.h",
+        "path_type": "hardlink",
+        "sha256": "2d84de38cf67cbd93feaf63e00d1418ff24e7802ddf9a86e3e08d3f43324795e",
+        "sha256_in_prefix": "2d84de38cf67cbd93feaf63e00d1418ff24e7802ddf9a86e3e08d3f43324795e",
+        "size_in_bytes": 4327
+      },
+      {
+        "_path": "include/ESMC_Field.h",
+        "path_type": "hardlink",
+        "sha256": "f3df5f0d93ffd47192e25becf1e759acc83069d8ee3224818e9230cd4e75c7ef",
+        "sha256_in_prefix": "f3df5f0d93ffd47192e25becf1e759acc83069d8ee3224818e9230cd4e75c7ef",
+        "size_in_bytes": 56597
+      },
+      {
+        "_path": "include/ESMC_Grid.h",
+        "path_type": "hardlink",
+        "sha256": "42886e4b5674a0fa0d60521ffe294fda2ff4902d2ed9d8a65fc0958648196b8d",
+        "sha256_in_prefix": "42886e4b5674a0fa0d60521ffe294fda2ff4902d2ed9d8a65fc0958648196b8d",
+        "size_in_bytes": 19892
+      },
+      {
+        "_path": "include/ESMC_GridComp.h",
+        "path_type": "hardlink",
+        "sha256": "dae28f3ed4cf235883ffad452b15c1b6dfc96674fe3e875fbff096d38ab99d20",
+        "sha256_in_prefix": "dae28f3ed4cf235883ffad452b15c1b6dfc96674fe3e875fbff096d38ab99d20",
+        "size_in_bytes": 17208
+      },
+      {
+        "_path": "include/ESMC_Init.h",
+        "path_type": "hardlink",
+        "sha256": "384ec00f0cf6b2718fa74ef11680c6007cd3cbb0988d622527e1537d7ac42c14",
+        "sha256_in_prefix": "384ec00f0cf6b2718fa74ef11680c6007cd3cbb0988d622527e1537d7ac42c14",
+        "size_in_bytes": 5908
+      },
+      {
+        "_path": "include/ESMC_Interface.h",
+        "path_type": "hardlink",
+        "sha256": "b8f785f436fd09cdf0bce05a9ed219d92706ad0bf25a172f3dca94fbb078ff81",
+        "sha256_in_prefix": "b8f785f436fd09cdf0bce05a9ed219d92706ad0bf25a172f3dca94fbb078ff81",
+        "size_in_bytes": 1873
+      },
+      {
+        "_path": "include/ESMC_LocStream.h",
+        "path_type": "hardlink",
+        "sha256": "5f1c9385887fef047ffe3592ac06a741f3173772ca9d802f68ca176ff32e74fc",
+        "sha256_in_prefix": "5f1c9385887fef047ffe3592ac06a741f3173772ca9d802f68ca176ff32e74fc",
+        "size_in_bytes": 7586
+      },
+      {
+        "_path": "include/ESMC_LogErr.h",
+        "path_type": "hardlink",
+        "sha256": "a1ddf15872efe24140e2e76c559d6e40d91df14a8cf5d61258e14ec5ea9d4181",
+        "sha256_in_prefix": "a1ddf15872efe24140e2e76c559d6e40d91df14a8cf5d61258e14ec5ea9d4181",
+        "size_in_bytes": 3326
+      },
+      {
+        "_path": "include/ESMC_Macros.h",
+        "path_type": "hardlink",
+        "sha256": "b8f18e87e96b25549756a6a62ad498ebffedd96a1ad5227f5fd69308c62b1451",
+        "sha256_in_prefix": "b8f18e87e96b25549756a6a62ad498ebffedd96a1ad5227f5fd69308c62b1451",
+        "size_in_bytes": 2190
+      },
+      {
+        "_path": "include/ESMC_Mesh.h",
+        "path_type": "hardlink",
+        "sha256": "4a54628c1eccf68bf3ded594a792488263997668d5a5a6b7fc38d06d22acf866",
+        "sha256_in_prefix": "4a54628c1eccf68bf3ded594a792488263997668d5a5a6b7fc38d06d22acf866",
+        "size_in_bytes": 27507
+      },
+      {
+        "_path": "include/ESMC_RHandle.h",
+        "path_type": "hardlink",
+        "sha256": "52a16fd9bb907b437c0da47f9a8f60dc8221a0712f33fc306cb7cf1bdfc390b2",
+        "sha256_in_prefix": "52a16fd9bb907b437c0da47f9a8f60dc8221a0712f33fc306cb7cf1bdfc390b2",
+        "size_in_bytes": 3911
+      },
+      {
+        "_path": "include/ESMC_ReturnCodes.h",
+        "path_type": "hardlink",
+        "sha256": "d7a2c91a52027bbe1d7c14e801ca7403c4a0f0ec69d1825cc28b0bb9afad7d82",
+        "sha256_in_prefix": "d7a2c91a52027bbe1d7c14e801ca7403c4a0f0ec69d1825cc28b0bb9afad7d82",
+        "size_in_bytes": 6558
+      },
+      {
+        "_path": "include/ESMC_SciComp.h",
+        "path_type": "hardlink",
+        "sha256": "6641a8365d6200bbb33e4f3cd6ba9249f80cbb2a02786b15c7c5e8f0a0539fe4",
+        "sha256_in_prefix": "6641a8365d6200bbb33e4f3cd6ba9249f80cbb2a02786b15c7c5e8f0a0539fe4",
+        "size_in_bytes": 4004
+      },
+      {
+        "_path": "include/ESMC_State.h",
+        "path_type": "hardlink",
+        "sha256": "d67968e5b67a48b99e0b9b125d518bb1b7bc9c02ad053f8951242f238cccefc5",
+        "sha256_in_prefix": "d67968e5b67a48b99e0b9b125d518bb1b7bc9c02ad053f8951242f238cccefc5",
+        "size_in_bytes": 6940
+      },
+      {
+        "_path": "include/ESMC_Test.h",
+        "path_type": "hardlink",
+        "sha256": "7eaca41a4a54bc9de5bca554023ac6841e7153629bcd022790746fffc5b9e91f",
+        "sha256_in_prefix": "7eaca41a4a54bc9de5bca554023ac6841e7153629bcd022790746fffc5b9e91f",
+        "size_in_bytes": 1838
+      },
+      {
+        "_path": "include/ESMC_Time.h",
+        "path_type": "hardlink",
+        "sha256": "7be81c7d792da2d56047216855eecb5bf37ce34b6e68e511e9fed20ba0223b0d",
+        "sha256_in_prefix": "7be81c7d792da2d56047216855eecb5bf37ce34b6e68e511e9fed20ba0223b0d",
+        "size_in_bytes": 5515
+      },
+      {
+        "_path": "include/ESMC_TimeInterval.h",
+        "path_type": "hardlink",
+        "sha256": "8a52d51fd193e2fe61e9a7aae20515bb829dcce39113f341c925be88d8ab8918",
+        "sha256_in_prefix": "8a52d51fd193e2fe61e9a7aae20515bb829dcce39113f341c925be88d8ab8918",
+        "size_in_bytes": 5134
+      },
+      {
+        "_path": "include/ESMC_Util.h",
+        "path_type": "hardlink",
+        "sha256": "56407c968ddc49f48a9b529b9fdcbf18dce73e62aab9b34cdc1c631c13b0e6dc",
+        "sha256_in_prefix": "56407c968ddc49f48a9b529b9fdcbf18dce73e62aab9b34cdc1c631c13b0e6dc",
+        "size_in_bytes": 6743
+      },
+      {
+        "_path": "include/ESMC_VM.h",
+        "path_type": "hardlink",
+        "sha256": "11f617008baf343a2e667fff55c3301afba8f4aeafcbeda8f59d04a89d771c28",
+        "sha256_in_prefix": "11f617008baf343a2e667fff55c3301afba8f4aeafcbeda8f59d04a89d771c28",
+        "size_in_bytes": 12165
+      },
+      {
+        "_path": "include/ESMC_XGrid.h",
+        "path_type": "hardlink",
+        "sha256": "cd703815f7de04c39abff51bc9f22ce5e6de774dc38ae680d1b08167a91b63dc",
+        "sha256_in_prefix": "cd703815f7de04c39abff51bc9f22ce5e6de774dc38ae680d1b08167a91b63dc",
+        "size_in_bytes": 25491
+      },
+      {
+        "_path": "lib/esmf.mk",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/Users/runner/miniforge3/conda-bld/esmf_1605247954436/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_plac",
+        "sha256": "709e362bde4633bceee4cb7561d8e50aaac819d51801a4c80c9ebdab5ebf842e",
+        "sha256_in_prefix": "8568c0eefa27fbf6facec88baeebc2a417a2434a6e45aacc8e9ecc7bdc510a0d",
+        "size_in_bytes": 12369
+      },
+      {
+        "_path": "lib/libesmf.a",
+        "path_type": "hardlink",
+        "sha256": "40c70b7976cb02cbad157f81d9b4f5f0e1f367a24c4cacb2c5a9a44cedc8c960",
+        "sha256_in_prefix": "40c70b7976cb02cbad157f81d9b4f5f0e1f367a24c4cacb2c5a9a44cedc8c960",
+        "size_in_bytes": 34434552
+      },
+      {
+        "_path": "lib/libesmf.dylib",
+        "path_type": "hardlink",
+        "sha256": "5c2582cc3097f89b60023a7aa2c894231b593fc5b7705ade0e2dcf0206a6f1d7",
+        "sha256_in_prefix": "5c2582cc3097f89b60023a7aa2c894231b593fc5b7705ade0e2dcf0206a6f1d7",
+        "size_in_bytes": 23732168
+      },
+      {
+        "_path": "lib/libesmf_fullylinked.dylib",
+        "path_type": "hardlink",
+        "sha256": "15fdc0ac818c99c0fa9aefc4f8ac5e9b4ad46106d3a9fc5df076f8fd3f2baf29",
+        "sha256_in_prefix": "15fdc0ac818c99c0fa9aefc4f8ac5e9b4ad46106d3a9fc5df076f8fd3f2baf29",
+        "size_in_bytes": 23736272
+      },
+      {
+        "_path": "lib/libesmftrace_preload.dylib",
+        "path_type": "hardlink",
+        "sha256": "8206767eb6878b5e08cbf093d88736dc4d64c977bd9af841a3671efc10c234e5",
+        "sha256_in_prefix": "8206767eb6878b5e08cbf093d88736dc4d64c977bd9af841a3671efc10c234e5",
+        "size_in_bytes": 14348
+      },
+      {
+        "_path": "lib/libesmftrace_static.a",
+        "path_type": "hardlink",
+        "sha256": "1eb97472dae708f12bcfc90920f0c8435f43c5721ed619caaf377e38e365f22d",
+        "sha256_in_prefix": "1eb97472dae708f12bcfc90920f0c8435f43c5721ed619caaf377e38e365f22d",
+        "size_in_bytes": 4448
+      },
+      {
+        "_path": "lib/preload.sh",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/Users/runner/miniforge3/conda-bld/esmf_1605247954436/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_plac",
+        "sha256": "2be33bcaebbb0ab90736e1d3fa71dcd3321bf4aedd3bfb368238f8437a535c09",
+        "sha256_in_prefix": "f74d56d7608f3db8b49f7b8abfd7b18ea9016c69a3536b25d72107b057f30307",
+        "size_in_bytes": 376
+      },
+      {
+        "_path": "mod/esmf.mod",
+        "path_type": "hardlink",
+        "sha256": "053f5b6a517a12a052677a2bda7f803a28dad97222db2527b92869ab93f68b94",
+        "sha256_in_prefix": "053f5b6a517a12a052677a2bda7f803a28dad97222db2527b92869ab93f68b94",
+        "size_in_bytes": 437511
+      },
+      {
+        "_path": "mod/esmf_alarmmod.mod",
+        "path_type": "hardlink",
+        "sha256": "b6f1410bbfd42b710221a7b8d8f71bc94ed2425a81225bd09d1a13ba1320dcfa",
+        "sha256_in_prefix": "b6f1410bbfd42b710221a7b8d8f71bc94ed2425a81225bd09d1a13ba1320dcfa",
+        "size_in_bytes": 23248
+      },
+      {
+        "_path": "mod/esmf_alarmtypemod.mod",
+        "path_type": "hardlink",
+        "sha256": "14ae270a7804dcaaeac1de5fc023781b41d7e8d1cd28377eb841e2ad2bba05d6",
+        "sha256_in_prefix": "14ae270a7804dcaaeac1de5fc023781b41d7e8d1cd28377eb841e2ad2bba05d6",
+        "size_in_bytes": 16976
+      },
+      {
+        "_path": "mod/esmf_arraybundlemod.mod",
+        "path_type": "hardlink",
+        "sha256": "c7a4f2bf0413c732d9bf1828e51f6c983b3739962aa432dc58c3df68df5959e2",
+        "sha256_in_prefix": "c7a4f2bf0413c732d9bf1828e51f6c983b3739962aa432dc58c3df68df5959e2",
+        "size_in_bytes": 36596
+      },
+      {
+        "_path": "mod/esmf_arraycreatemod.mod",
+        "path_type": "hardlink",
+        "sha256": "75ea6f802b5c289e013dbf42627d7008c1984172106226be0b7af0c7f6c2924a",
+        "sha256_in_prefix": "75ea6f802b5c289e013dbf42627d7008c1984172106226be0b7af0c7f6c2924a",
+        "size_in_bytes": 63811
+      },
+      {
+        "_path": "mod/esmf_arraygathermod.mod",
+        "path_type": "hardlink",
+        "sha256": "dfb7d51146a2f3e448a4fd4409b41280a5b0746c14a129c9686311ae99acca33",
+        "sha256_in_prefix": "dfb7d51146a2f3e448a4fd4409b41280a5b0746c14a129c9686311ae99acca33",
+        "size_in_bytes": 31975
+      },
+      {
+        "_path": "mod/esmf_arraygetmod.mod",
+        "path_type": "hardlink",
+        "sha256": "18d7c88e4e3dfeb23fb84076a8613dedb63c5d3d53c6f2e73e3534f31f12ab5e",
+        "sha256_in_prefix": "18d7c88e4e3dfeb23fb84076a8613dedb63c5d3d53c6f2e73e3534f31f12ab5e",
+        "size_in_bytes": 32515
+      },
+      {
+        "_path": "mod/esmf_arrayhamod.mod",
+        "path_type": "hardlink",
+        "sha256": "a18e5360fe38deb2c17b172ecdf71a9b5930bde97ddcda81a76b53c0d5ba72e4",
+        "sha256_in_prefix": "a18e5360fe38deb2c17b172ecdf71a9b5930bde97ddcda81a76b53c0d5ba72e4",
+        "size_in_bytes": 31115
+      },
+      {
+        "_path": "mod/esmf_arraymod.mod",
+        "path_type": "hardlink",
+        "sha256": "02fafde02f783bb034ed0fb76184d74bf69922048ec4629ef42a3e71c2fdf245",
+        "sha256_in_prefix": "02fafde02f783bb034ed0fb76184d74bf69922048ec4629ef42a3e71c2fdf245",
+        "size_in_bytes": 79509
+      },
+      {
+        "_path": "mod/esmf_arrayscattermod.mod",
+        "path_type": "hardlink",
+        "sha256": "d46fac42ffc2998cef7868871827e2f79c5b88bc5a59a6768ed7288c908c8f15",
+        "sha256_in_prefix": "d46fac42ffc2998cef7868871827e2f79c5b88bc5a59a6768ed7288c908c8f15",
+        "size_in_bytes": 32207
+      },
+      {
+        "_path": "mod/esmf_arrayspecmod.mod",
+        "path_type": "hardlink",
+        "sha256": "87359925de474d2bcce38038c957961db1691e4f339aabbf33a976b3e15b2092",
+        "sha256_in_prefix": "87359925de474d2bcce38038c957961db1691e4f339aabbf33a976b3e15b2092",
+        "size_in_bytes": 19051
+      },
+      {
+        "_path": "mod/esmf_attachmethodsmod.mod",
+        "path_type": "hardlink",
+        "sha256": "84e2799d6d2303932b711f8c67a788a875885466d71ffe92d4544213e39ee99d",
+        "sha256_in_prefix": "84e2799d6d2303932b711f8c67a788a875885466d71ffe92d4544213e39ee99d",
+        "size_in_bytes": 60265
+      },
+      {
+        "_path": "mod/esmf_attpacktypemod.mod",
+        "path_type": "hardlink",
+        "sha256": "360f576192895f18aee743d739541436d0b6c0b8f2932c2e74567bf137e51439",
+        "sha256_in_prefix": "360f576192895f18aee743d739541436d0b6c0b8f2932c2e74567bf137e51439",
+        "size_in_bytes": 14722
+      },
+      {
+        "_path": "mod/esmf_attributeinternalsmod.mod",
+        "path_type": "hardlink",
+        "sha256": "3442f48c9d6f11d97573d269197f61f360cdb45a93a941fe030f4149bf8f66b9",
+        "sha256_in_prefix": "3442f48c9d6f11d97573d269197f61f360cdb45a93a941fe030f4149bf8f66b9",
+        "size_in_bytes": 33657
+      },
+      {
+        "_path": "mod/esmf_attributemod.mod",
+        "path_type": "hardlink",
+        "sha256": "c88a2d9f36abffc03cd551af40d84eb0054a1b26d29b78776078aabc2fae3ca9",
+        "sha256_in_prefix": "c88a2d9f36abffc03cd551af40d84eb0054a1b26d29b78776078aabc2fae3ca9",
+        "size_in_bytes": 145163
+      },
+      {
+        "_path": "mod/esmf_basemod.mod",
+        "path_type": "hardlink",
+        "sha256": "57683beaca050233bef1ead6e7f6dde26a6ab714e1358e80866eb0577429f2c8",
+        "sha256_in_prefix": "57683beaca050233bef1ead6e7f6dde26a6ab714e1358e80866eb0577429f2c8",
+        "size_in_bytes": 17485
+      },
+      {
+        "_path": "mod/esmf_calendarmod.mod",
+        "path_type": "hardlink",
+        "sha256": "c93977fe12efdb8db342a5b0f8446e802d66e87ab0c303ff4dba073953b32a36",
+        "sha256_in_prefix": "c93977fe12efdb8db342a5b0f8446e802d66e87ab0c303ff4dba073953b32a36",
+        "size_in_bytes": 21783
+      },
+      {
+        "_path": "mod/esmf_clockmod.mod",
+        "path_type": "hardlink",
+        "sha256": "20df0d74ce94c2eb64fb0af8670bbc071152fb100888cf57afcd99ee477d52bf",
+        "sha256_in_prefix": "20df0d74ce94c2eb64fb0af8670bbc071152fb100888cf57afcd99ee477d52bf",
+        "size_in_bytes": 23421
+      },
+      {
+        "_path": "mod/esmf_clocktypemod.mod",
+        "path_type": "hardlink",
+        "sha256": "912e06c55b93934ebf89913e717a66af6ce4965b2d2453185ac1705f503e7734",
+        "sha256_in_prefix": "912e06c55b93934ebf89913e717a66af6ce4965b2d2453185ac1705f503e7734",
+        "size_in_bytes": 16604
+      },
+      {
+        "_path": "mod/esmf_complianceicmod.mod",
+        "path_type": "hardlink",
+        "sha256": "b17a5ea5739c8868e0e97feeacd7095a9aa07589f32d15861a059718dcb00d87",
+        "sha256_in_prefix": "b17a5ea5739c8868e0e97feeacd7095a9aa07589f32d15861a059718dcb00d87",
+        "size_in_bytes": 51657
+      },
+      {
+        "_path": "mod/esmf_compmod.mod",
+        "path_type": "hardlink",
+        "sha256": "d7c7b281fd17495bcd542352601c6e18d3ac2ba03a2ee2d73c332abf452fe026",
+        "sha256_in_prefix": "d7c7b281fd17495bcd542352601c6e18d3ac2ba03a2ee2d73c332abf452fe026",
+        "size_in_bytes": 59196
+      },
+      {
+        "_path": "mod/esmf_configmod.mod",
+        "path_type": "hardlink",
+        "sha256": "3c551127bf1c3cfc1738986be6b8eb4a1dad0bf648606eb37b25297d7ef995cd",
+        "sha256_in_prefix": "3c551127bf1c3cfc1738986be6b8eb4a1dad0bf648606eb37b25297d7ef995cd",
+        "size_in_bytes": 23468
+      },
+      {
+        "_path": "mod/esmf_containermod.mod",
+        "path_type": "hardlink",
+        "sha256": "526561968d26151037496bc0599cbce459840bd673eb9dd74a7a8e788b8ad8dd",
+        "sha256_in_prefix": "526561968d26151037496bc0599cbce459840bd673eb9dd74a7a8e788b8ad8dd",
+        "size_in_bytes": 41626
+      },
+      {
+        "_path": "mod/esmf_cplcompmod.mod",
+        "path_type": "hardlink",
+        "sha256": "236626ceb0a9bd825c5e18e3e670d06578dde4f956ac9a02adce054d3ec1d522",
+        "sha256_in_prefix": "236626ceb0a9bd825c5e18e3e670d06578dde4f956ac9a02adce054d3ec1d522",
+        "size_in_bytes": 69691
+      },
+      {
+        "_path": "mod/esmf_delayoutmod.mod",
+        "path_type": "hardlink",
+        "sha256": "0fe311943253f737225cbefc8919ab1d3d86f0f586ec8d586056ac2015919ba7",
+        "sha256_in_prefix": "0fe311943253f737225cbefc8919ab1d3d86f0f586ec8d586056ac2015919ba7",
+        "size_in_bytes": 21954
+      },
+      {
+        "_path": "mod/esmf_distgridconnectionmod.mod",
+        "path_type": "hardlink",
+        "sha256": "fcfa7395bcb5f14e08199ac54e6650fb0049952a1c4ccf233cfb40cbd6bd80f8",
+        "sha256_in_prefix": "fcfa7395bcb5f14e08199ac54e6650fb0049952a1c4ccf233cfb40cbd6bd80f8",
+        "size_in_bytes": 15766
+      },
+      {
+        "_path": "mod/esmf_distgridmod.mod",
+        "path_type": "hardlink",
+        "sha256": "cc4285405d8ce546f31866923b3c78de3ecf4e170d610c45d136cda63e14a85d",
+        "sha256_in_prefix": "cc4285405d8ce546f31866923b3c78de3ecf4e170d610c45d136cda63e14a85d",
+        "size_in_bytes": 25474
+      },
+      {
+        "_path": "mod/esmf_distgridregdecompmod.mod",
+        "path_type": "hardlink",
+        "sha256": "61018928ad72d690e77e022580a61976010afc131b67251d1fdbec61d59c99bf",
+        "sha256_in_prefix": "61018928ad72d690e77e022580a61976010afc131b67251d1fdbec61d59c99bf",
+        "size_in_bytes": 16060
+      },
+      {
+        "_path": "mod/esmf_dynamicmaskmod.mod",
+        "path_type": "hardlink",
+        "sha256": "33f4bf5b7edbe67d1b32b87417805a37fbb78c9cb4b31f9973df2b450e20c288",
+        "sha256_in_prefix": "33f4bf5b7edbe67d1b32b87417805a37fbb78c9cb4b31f9973df2b450e20c288",
+        "size_in_bytes": 21521
+      },
+      {
+        "_path": "mod/esmf_f90interfacemod.mod",
+        "path_type": "hardlink",
+        "sha256": "8e827ab2cadc740db189deadfd1f9feb9ecc3d634ecb287c703e4fe7ab1262bc",
+        "sha256_in_prefix": "8e827ab2cadc740db189deadfd1f9feb9ecc3d634ecb287c703e4fe7ab1262bc",
+        "size_in_bytes": 15448
+      },
+      {
+        "_path": "mod/esmf_factorreadmod.mod",
+        "path_type": "hardlink",
+        "sha256": "d81be4cbde0f72a792528a3e57226c77d8989064655a5035a36a5097e14e19e8",
+        "sha256_in_prefix": "d81be4cbde0f72a792528a3e57226c77d8989064655a5035a36a5097e14e19e8",
+        "size_in_bytes": 68331
+      },
+      {
+        "_path": "mod/esmf_fieldbundlemod.mod",
+        "path_type": "hardlink",
+        "sha256": "7ef7c0d66063fb85052d73491c9b354c5f7ea0d182c734699fbf4eb2b5bfad1e",
+        "sha256_in_prefix": "7ef7c0d66063fb85052d73491c9b354c5f7ea0d182c734699fbf4eb2b5bfad1e",
+        "size_in_bytes": 63514
+      },
+      {
+        "_path": "mod/esmf_fieldcreatemod.mod",
+        "path_type": "hardlink",
+        "sha256": "0cce2f2de71c7da5765af846222a5ba5b6882a6331cf7022b5ca600f91a4c038",
+        "sha256_in_prefix": "0cce2f2de71c7da5765af846222a5ba5b6882a6331cf7022b5ca600f91a4c038",
+        "size_in_bytes": 78002
+      },
+      {
+        "_path": "mod/esmf_fieldemptymod.mod",
+        "path_type": "hardlink",
+        "sha256": "75ebadfda69ba41788a4c00908ce19fbd019d5d5bf81ab17474479cc5f521f97",
+        "sha256_in_prefix": "75ebadfda69ba41788a4c00908ce19fbd019d5d5bf81ab17474479cc5f521f97",
+        "size_in_bytes": 84961
+      },
+      {
+        "_path": "mod/esmf_fieldgathermod.mod",
+        "path_type": "hardlink",
+        "sha256": "1a6c78e96a305de6fe22a933c1c864b48628ae8b4206e3647c3d846a3c2878f2",
+        "sha256_in_prefix": "1a6c78e96a305de6fe22a933c1c864b48628ae8b4206e3647c3d846a3c2878f2",
+        "size_in_bytes": 42991
+      },
+      {
+        "_path": "mod/esmf_fieldgetallocboundsmod.mod",
+        "path_type": "hardlink",
+        "sha256": "253946b1eab80722531f26f21dd75cc56ba774646a3e20beaf6548cd56c1320d",
+        "sha256_in_prefix": "253946b1eab80722531f26f21dd75cc56ba774646a3e20beaf6548cd56c1320d",
+        "size_in_bytes": 40479
+      },
+      {
+        "_path": "mod/esmf_fieldgetmod.mod",
+        "path_type": "hardlink",
+        "sha256": "da5f9e6baec94e5495dfad091d4808874f89b7286e64a80a053547de79596b41",
+        "sha256_in_prefix": "da5f9e6baec94e5495dfad091d4808874f89b7286e64a80a053547de79596b41",
+        "size_in_bytes": 45122
+      },
+      {
+        "_path": "mod/esmf_fieldhalomod.mod",
+        "path_type": "hardlink",
+        "sha256": "81b592f69bbf028c7f2165a3f2337220876976ac29fe656d651b3c5a28ed3300",
+        "sha256_in_prefix": "81b592f69bbf028c7f2165a3f2337220876976ac29fe656d651b3c5a28ed3300",
+        "size_in_bytes": 40150
+      },
+      {
+        "_path": "mod/esmf_fieldmod.mod",
+        "path_type": "hardlink",
+        "sha256": "94a1affd55e7febdc4cec6e36c518933e653bd337b7c5e9985fd0638e4468702",
+        "sha256_in_prefix": "94a1affd55e7febdc4cec6e36c518933e653bd337b7c5e9985fd0638e4468702",
+        "size_in_bytes": 46548
+      },
+      {
+        "_path": "mod/esmf_fieldprmod.mod",
+        "path_type": "hardlink",
+        "sha256": "83ea079dc8d01dc4194b2655680d20af7ce4195ac222bcf74ac16664825beae0",
+        "sha256_in_prefix": "83ea079dc8d01dc4194b2655680d20af7ce4195ac222bcf74ac16664825beae0",
+        "size_in_bytes": 40102
+      },
+      {
+        "_path": "mod/esmf_fieldredistmod.mod",
+        "path_type": "hardlink",
+        "sha256": "3f51edd8106b5ba8dd97b08456547dd329f829e87595e882aea91fdcf43d3ccf",
+        "sha256_in_prefix": "3f51edd8106b5ba8dd97b08456547dd329f829e87595e882aea91fdcf43d3ccf",
+        "size_in_bytes": 40583
+      },
+      {
+        "_path": "mod/esmf_fieldregridmod.mod",
+        "path_type": "hardlink",
+        "sha256": "b42329c8ac28f0bbc015464260ca09a97e0bd7b2cbf0949d226da7ceb347586f",
+        "sha256_in_prefix": "b42329c8ac28f0bbc015464260ca09a97e0bd7b2cbf0949d226da7ceb347586f",
+        "size_in_bytes": 41768
+      },
+      {
+        "_path": "mod/esmf_fieldscattermod.mod",
+        "path_type": "hardlink",
+        "sha256": "a97aad3b0347ea1a23799965d2a3d962dca7db15dfcd985d0026f4584dafe4f0",
+        "sha256_in_prefix": "a97aad3b0347ea1a23799965d2a3d962dca7db15dfcd985d0026f4584dafe4f0",
+        "size_in_bytes": 42683
+      },
+      {
+        "_path": "mod/esmf_fieldsetmod.mod",
+        "path_type": "hardlink",
+        "sha256": "fa5c58d60178c06f5283ae91f3176543b16167a34ae7594107e0bf240c0f4b27",
+        "sha256_in_prefix": "fa5c58d60178c06f5283ae91f3176543b16167a34ae7594107e0bf240c0f4b27",
+        "size_in_bytes": 39759
+      },
+      {
+        "_path": "mod/esmf_fieldsmmmod.mod",
+        "path_type": "hardlink",
+        "sha256": "882ff4697e8baeffb5f045d210e40515569f45205e6b1b4b381cd8db3752e54f",
+        "sha256_in_prefix": "882ff4697e8baeffb5f045d210e40515569f45205e6b1b4b381cd8db3752e54f",
+        "size_in_bytes": 41807
+      },
+      {
+        "_path": "mod/esmf_fieldwrmod.mod",
+        "path_type": "hardlink",
+        "sha256": "7f6964968d683ccb5254912e0c7b794a9e5391701982971253c82ec126c2505a",
+        "sha256_in_prefix": "7f6964968d683ccb5254912e0c7b794a9e5391701982971253c82ec126c2505a",
+        "size_in_bytes": 40067
+      },
+      {
+        "_path": "mod/esmf_fileregridcheckmod.mod",
+        "path_type": "hardlink",
+        "sha256": "3dd5e9e79a17fd8d6fbe7e161cf68453375bebd3b138823d067780a8c7ce593c",
+        "sha256_in_prefix": "3dd5e9e79a17fd8d6fbe7e161cf68453375bebd3b138823d067780a8c7ce593c",
+        "size_in_bytes": 235037
+      },
+      {
+        "_path": "mod/esmf_fileregridmod.mod",
+        "path_type": "hardlink",
+        "sha256": "03657973d29333a8cc7a40d8969c8e036286dd65375cd7e640b670389ff6ae52",
+        "sha256_in_prefix": "03657973d29333a8cc7a40d8969c8e036286dd65375cd7e640b670389ff6ae52",
+        "size_in_bytes": 232390
+      },
+      {
+        "_path": "mod/esmf_fortranwordsizemod.mod",
+        "path_type": "hardlink",
+        "sha256": "922c231040c74e0983e40aceee0b48ae968c836dbf00ea05a78479287d09fcaa",
+        "sha256_in_prefix": "922c231040c74e0983e40aceee0b48ae968c836dbf00ea05a78479287d09fcaa",
+        "size_in_bytes": 14486
+      },
+      {
+        "_path": "mod/esmf_fractionmod.mod",
+        "path_type": "hardlink",
+        "sha256": "07b68fc4c6914761a0162d1c9568beb42027b769757880221182aca377d1038e",
+        "sha256_in_prefix": "07b68fc4c6914761a0162d1c9568beb42027b769757880221182aca377d1038e",
+        "size_in_bytes": 14855
+      },
+      {
+        "_path": "mod/esmf_geombasemod.mod",
+        "path_type": "hardlink",
+        "sha256": "ccf303664fb807a85fee6e31db4f2e88da359e7b58de75cc175c684aecaf37f2",
+        "sha256_in_prefix": "ccf303664fb807a85fee6e31db4f2e88da359e7b58de75cc175c684aecaf37f2",
+        "size_in_bytes": 44264
+      },
+      {
+        "_path": "mod/esmf_gridcompmod.mod",
+        "path_type": "hardlink",
+        "sha256": "4017f46dcee475a9ec93610db28af76971cbcc3470ee527c29986c9c58d7887e",
+        "sha256_in_prefix": "4017f46dcee475a9ec93610db28af76971cbcc3470ee527c29986c9c58d7887e",
+        "size_in_bytes": 70167
+      },
+      {
+        "_path": "mod/esmf_gridmod.mod",
+        "path_type": "hardlink",
+        "sha256": "178144e7a4868d8d42ef6f7f4065b6d127ed633dc2a2f5f045e19c6ecfeafb7a",
+        "sha256_in_prefix": "178144e7a4868d8d42ef6f7f4065b6d127ed633dc2a2f5f045e19c6ecfeafb7a",
+        "size_in_bytes": 53302
+      },
+      {
+        "_path": "mod/esmf_gridutilmod.mod",
+        "path_type": "hardlink",
+        "sha256": "64becab1b17a54ee56f5e98a636ef028191136fbf1663a1e1ec8ff57505e3774",
+        "sha256_in_prefix": "64becab1b17a54ee56f5e98a636ef028191136fbf1663a1e1ec8ff57505e3774",
+        "size_in_bytes": 34452
+      },
+      {
+        "_path": "mod/esmf_infomod.mod",
+        "path_type": "hardlink",
+        "sha256": "f62baa7e66e8e6077c85e96cc43a2a76376b295b76e28fd5419f3fbffb67492f",
+        "sha256_in_prefix": "f62baa7e66e8e6077c85e96cc43a2a76376b295b76e28fd5419f3fbffb67492f",
+        "size_in_bytes": 55998
+      },
+      {
+        "_path": "mod/esmf_initmacrosmod.mod",
+        "path_type": "hardlink",
+        "sha256": "a9aa046f9a437f1a7c2ab960df9b879eb2e62128d54ae5f8c51a3390afc15f05",
+        "sha256_in_prefix": "a9aa046f9a437f1a7c2ab960df9b879eb2e62128d54ae5f8c51a3390afc15f05",
+        "size_in_bytes": 14519
+      },
+      {
+        "_path": "mod/esmf_initmod.mod",
+        "path_type": "hardlink",
+        "sha256": "d005bf002168ed19eca43c64e98ab509198f1a7665d4504d343b40875e0c3bf5",
+        "sha256_in_prefix": "d005bf002168ed19eca43c64e98ab509198f1a7665d4504d343b40875e0c3bf5",
+        "size_in_bytes": 18778
+      },
+      {
+        "_path": "mod/esmf_io_ncputgetmod.mod",
+        "path_type": "hardlink",
+        "sha256": "3ff013bd6e4aca5b5d52214b65c14bc7e1d0a7ca294efb5b8b4fa28ccfae60a6",
+        "sha256_in_prefix": "3ff013bd6e4aca5b5d52214b65c14bc7e1d0a7ca294efb5b8b4fa28ccfae60a6",
+        "size_in_bytes": 16099
+      },
+      {
+        "_path": "mod/esmf_io_netcdfmod.mod",
+        "path_type": "hardlink",
+        "sha256": "5032713e45a9f13c9c3587b2d5a30048b7625bf88be5ec692b5c8a2ab7e8effa",
+        "sha256_in_prefix": "5032713e45a9f13c9c3587b2d5a30048b7625bf88be5ec692b5c8a2ab7e8effa",
+        "size_in_bytes": 16192
+      },
+      {
+        "_path": "mod/esmf_io_yamlmod.mod",
+        "path_type": "hardlink",
+        "sha256": "43d55e3534492c373c7a074cb1ecb2141df180ed540255edd81931c759415a54",
+        "sha256_in_prefix": "43d55e3534492c373c7a074cb1ecb2141df180ed540255edd81931c759415a54",
+        "size_in_bytes": 16269
+      },
+      {
+        "_path": "mod/esmf_iofiletypecheckmod.mod",
+        "path_type": "hardlink",
+        "sha256": "2a5782e75e323950ad33484d7ae95a9a97812c011d527c6a5b470a8281546fba",
+        "sha256_in_prefix": "2a5782e75e323950ad33484d7ae95a9a97812c011d527c6a5b470a8281546fba",
+        "size_in_bytes": 89320
+      },
+      {
+        "_path": "mod/esmf_iogridmosaicmod.mod",
+        "path_type": "hardlink",
+        "sha256": "979ad20fb93818aa416330a0428e02b03eb508cf767d770821f3c399134967b3",
+        "sha256_in_prefix": "979ad20fb93818aa416330a0428e02b03eb508cf767d770821f3c399134967b3",
+        "size_in_bytes": 17520
+      },
+      {
+        "_path": "mod/esmf_iogridspecmod.mod",
+        "path_type": "hardlink",
+        "sha256": "9486571f9b2a99920f5bdfd2c38d9fdb3d85bae96b9d5e2e1445bacc3c5621d3",
+        "sha256_in_prefix": "9486571f9b2a99920f5bdfd2c38d9fdb3d85bae96b9d5e2e1445bacc3c5621d3",
+        "size_in_bytes": 16457
+      },
+      {
+        "_path": "mod/esmf_iomod.mod",
+        "path_type": "hardlink",
+        "sha256": "dafdab2b30c5f003f4f7583c3eb8449010d15b0cc9a4a459a56337b92ad8d5a5",
+        "sha256_in_prefix": "dafdab2b30c5f003f4f7583c3eb8449010d15b0cc9a4a459a56337b92ad8d5a5",
+        "size_in_bytes": 30309
+      },
+      {
+        "_path": "mod/esmf_ioscripmod.mod",
+        "path_type": "hardlink",
+        "sha256": "195a2084b342c98e18692b8da15b2478cf46ae65a5c12997431f1c9df0a455ba",
+        "sha256_in_prefix": "195a2084b342c98e18692b8da15b2478cf46ae65a5c12997431f1c9df0a455ba",
+        "size_in_bytes": 32504
+      },
+      {
+        "_path": "mod/esmf_iougridmod.mod",
+        "path_type": "hardlink",
+        "sha256": "8dcdea72bf53129cd73996cf13154e2ac4e8de56987e46f237305062b0ecbae9",
+        "sha256_in_prefix": "8dcdea72bf53129cd73996cf13154e2ac4e8de56987e46f237305062b0ecbae9",
+        "size_in_bytes": 16579
+      },
+      {
+        "_path": "mod/esmf_ioutilmod.mod",
+        "path_type": "hardlink",
+        "sha256": "cb79c0b2e203c502c4384dbf1f1fda54f6a17ae09c2f925b416051bb90ca7e0f",
+        "sha256_in_prefix": "cb79c0b2e203c502c4384dbf1f1fda54f6a17ae09c2f925b416051bb90ca7e0f",
+        "size_in_bytes": 12635
+      },
+      {
+        "_path": "mod/esmf_localarraycreatemod.mod",
+        "path_type": "hardlink",
+        "sha256": "7db61f76b12a979aaad5d41a3539833977667904b2dd5539808b1614fe7a416a",
+        "sha256_in_prefix": "7db61f76b12a979aaad5d41a3539833977667904b2dd5539808b1614fe7a416a",
+        "size_in_bytes": 30106
+      },
+      {
+        "_path": "mod/esmf_localarraygetmod.mod",
+        "path_type": "hardlink",
+        "sha256": "0db8191af531852c138680c589fc18cd73b4843281329d4958321fee98e3dd75",
+        "sha256_in_prefix": "0db8191af531852c138680c589fc18cd73b4843281329d4958321fee98e3dd75",
+        "size_in_bytes": 25299
+      },
+      {
+        "_path": "mod/esmf_localarraymod.mod",
+        "path_type": "hardlink",
+        "sha256": "10f2ad84ed9851b60ee10900ca463744a25483acadcbfc9cc26d95e6636c3fff",
+        "sha256_in_prefix": "10f2ad84ed9851b60ee10900ca463744a25483acadcbfc9cc26d95e6636c3fff",
+        "size_in_bytes": 33703
+      },
+      {
+        "_path": "mod/esmf_localarraywrappertypemod.mod",
+        "path_type": "hardlink",
+        "sha256": "8ce4d7600b6bb9546af1fe5499227f2d631d13daf86ac6e5b080b09897075584",
+        "sha256_in_prefix": "8ce4d7600b6bb9546af1fe5499227f2d631d13daf86ac6e5b080b09897075584",
+        "size_in_bytes": 32037
+      },
+      {
+        "_path": "mod/esmf_locstreammod.mod",
+        "path_type": "hardlink",
+        "sha256": "45d9d20564e159a326ae51c4fd10ab64f4c04112cf6e546984b93fa65231cd05",
+        "sha256_in_prefix": "45d9d20564e159a326ae51c4fd10ab64f4c04112cf6e546984b93fa65231cd05",
+        "size_in_bytes": 43135
+      },
+      {
+        "_path": "mod/esmf_logerrmod.mod",
+        "path_type": "hardlink",
+        "sha256": "1008e9ef763c021eeca6aa7766887b4bfb463d1d692a81afbc609e76cdba126e",
+        "sha256_in_prefix": "1008e9ef763c021eeca6aa7766887b4bfb463d1d692a81afbc609e76cdba126e",
+        "size_in_bytes": 19394
+      },
+      {
+        "_path": "mod/esmf_logpublicmod.mod",
+        "path_type": "hardlink",
+        "sha256": "ee3d341c84aaa6b4cd7459631cec93502bd0622db72f52a4d4e5223b0c59f061",
+        "sha256_in_prefix": "ee3d341c84aaa6b4cd7459631cec93502bd0622db72f52a4d4e5223b0c59f061",
+        "size_in_bytes": 1598
+      },
+      {
+        "_path": "mod/esmf_meshmod.mod",
+        "path_type": "hardlink",
+        "sha256": "a71f78a9a454830c9820d8f19e029d661b67521885305f5a75077dc14b8395e7",
+        "sha256_in_prefix": "a71f78a9a454830c9820d8f19e029d661b67521885305f5a75077dc14b8395e7",
+        "size_in_bytes": 44069
+      },
+      {
+        "_path": "mod/esmf_pointlistmod.mod",
+        "path_type": "hardlink",
+        "sha256": "a96a1007fb5731cf51b1c73f846bf686eb06372c6361c0f9b3ce75785c571fde",
+        "sha256_in_prefix": "a96a1007fb5731cf51b1c73f846bf686eb06372c6361c0f9b3ce75785c571fde",
+        "size_in_bytes": 35901
+      },
+      {
+        "_path": "mod/esmf_regridmod.mod",
+        "path_type": "hardlink",
+        "sha256": "790d2594422f9b7eb9eea9e1a9964533ee8168b1a242964138a166f557630f57",
+        "sha256_in_prefix": "790d2594422f9b7eb9eea9e1a9964533ee8168b1a242964138a166f557630f57",
+        "size_in_bytes": 36207
+      },
+      {
+        "_path": "mod/esmf_regridweightgencheckmod.mod",
+        "path_type": "hardlink",
+        "sha256": "b60c0afe09505ed11a8f70bd541c1c8c74745e85d4c5959fd25757963c27b9e0",
+        "sha256_in_prefix": "b60c0afe09505ed11a8f70bd541c1c8c74745e85d4c5959fd25757963c27b9e0",
+        "size_in_bytes": 205158
+      },
+      {
+        "_path": "mod/esmf_regridweightgenmod.mod",
+        "path_type": "hardlink",
+        "sha256": "26f2a09d97bf3e59320961b08432d20c4479cc10a2e3573e0edd5ad894487410",
+        "sha256_in_prefix": "26f2a09d97bf3e59320961b08432d20c4479cc10a2e3573e0edd5ad894487410",
+        "size_in_bytes": 230305
+      },
+      {
+        "_path": "mod/esmf_rhandlemod.mod",
+        "path_type": "hardlink",
+        "sha256": "d2625a28aeb61481c83349eab8496f9b8a4c1e64e00e329844b802085a1a0570",
+        "sha256_in_prefix": "d2625a28aeb61481c83349eab8496f9b8a4c1e64e00e329844b802085a1a0570",
+        "size_in_bytes": 22992
+      },
+      {
+        "_path": "mod/esmf_scicompmod.mod",
+        "path_type": "hardlink",
+        "sha256": "2d36ee38ff62e55b0f4300d0f2f3e08e5a5fc00b77459b73ad09ee8b792a8a63",
+        "sha256_in_prefix": "2d36ee38ff62e55b0f4300d0f2f3e08e5a5fc00b77459b73ad09ee8b792a8a63",
+        "size_in_bytes": 55941
+      },
+      {
+        "_path": "mod/esmf_staggerlocmod.mod",
+        "path_type": "hardlink",
+        "sha256": "f84c7ca96486a01220b7f0a08e549ecb55d7bae5f7ebd0c6dcd8594bf7dd4aaa",
+        "sha256_in_prefix": "f84c7ca96486a01220b7f0a08e549ecb55d7bae5f7ebd0c6dcd8594bf7dd4aaa",
+        "size_in_bytes": 18869
+      },
+      {
+        "_path": "mod/esmf_staggerloctypemod.mod",
+        "path_type": "hardlink",
+        "sha256": "d1c062c20e2149a887975efdd048c00609db5a1b6b942e428cdb752eaae0c178",
+        "sha256_in_prefix": "d1c062c20e2149a887975efdd048c00609db5a1b6b942e428cdb752eaae0c178",
+        "size_in_bytes": 18500
+      },
+      {
+        "_path": "mod/esmf_stateapimod.mod",
+        "path_type": "hardlink",
+        "sha256": "4f283b17cd3d447ffd42cf627cf729e1be8d0929dd5000f84fd93f5a2f309f8a",
+        "sha256_in_prefix": "4f283b17cd3d447ffd42cf627cf729e1be8d0929dd5000f84fd93f5a2f309f8a",
+        "size_in_bytes": 54215
+      },
+      {
+        "_path": "mod/esmf_statecontainermod.mod",
+        "path_type": "hardlink",
+        "sha256": "dbbc79760430321907ce1ed57bbf5a8c8d04367fcc1a9f70bb9502c903770306",
+        "sha256_in_prefix": "dbbc79760430321907ce1ed57bbf5a8c8d04367fcc1a9f70bb9502c903770306",
+        "size_in_bytes": 45088
+      },
+      {
+        "_path": "mod/esmf_stateinternalsmod.mod",
+        "path_type": "hardlink",
+        "sha256": "255b70c48509a4539f88fdfae47224d26dfc9ced1987f9b670767bfeb9471fc3",
+        "sha256_in_prefix": "255b70c48509a4539f88fdfae47224d26dfc9ced1987f9b670767bfeb9471fc3",
+        "size_in_bytes": 45502
+      },
+      {
+        "_path": "mod/esmf_stateitemmod.mod",
+        "path_type": "hardlink",
+        "sha256": "e436863c6ff6e3fedab71d62301d03396aa2290442cff6054861b272e53fe860",
+        "sha256_in_prefix": "e436863c6ff6e3fedab71d62301d03396aa2290442cff6054861b272e53fe860",
+        "size_in_bytes": 45360
+      },
+      {
+        "_path": "mod/esmf_statemod.mod",
+        "path_type": "hardlink",
+        "sha256": "73bd53f2116b071986023cfd44d67d802e5bb12252af971443fd5dd1c1062866",
+        "sha256_in_prefix": "73bd53f2116b071986023cfd44d67d802e5bb12252af971443fd5dd1c1062866",
+        "size_in_bytes": 54823
+      },
+      {
+        "_path": "mod/esmf_statereconcile2mod.mod",
+        "path_type": "hardlink",
+        "sha256": "3e256acede5ff6b36932a69b56fc85e0c3353845783b022478df44af1c81c65b",
+        "sha256_in_prefix": "3e256acede5ff6b36932a69b56fc85e0c3353845783b022478df44af1c81c65b",
+        "size_in_bytes": 44919
+      },
+      {
+        "_path": "mod/esmf_statereconcilemod.mod",
+        "path_type": "hardlink",
+        "sha256": "7d7d993f5f3f004d2c9e1f7c45a81d8f3f6d829f91b9cc46ccd713bf5dcf7adc",
+        "sha256_in_prefix": "7d7d993f5f3f004d2c9e1f7c45a81d8f3f6d829f91b9cc46ccd713bf5dcf7adc",
+        "size_in_bytes": 44762
+      },
+      {
+        "_path": "mod/esmf_stateremrepmod.mod",
+        "path_type": "hardlink",
+        "sha256": "bd280004b03dcec372942bd8a3be9fc844107da42a161547ceec997f20323fc8",
+        "sha256_in_prefix": "bd280004b03dcec372942bd8a3be9fc844107da42a161547ceec997f20323fc8",
+        "size_in_bytes": 44857
+      },
+      {
+        "_path": "mod/esmf_statetypesmod.mod",
+        "path_type": "hardlink",
+        "sha256": "d160603afa5f3443fc4c81f2d95a8ce4d47e8df699c6d8b0921bfbc31476b2dc",
+        "sha256_in_prefix": "d160603afa5f3443fc4c81f2d95a8ce4d47e8df699c6d8b0921bfbc31476b2dc",
+        "size_in_bytes": 51929
+      },
+      {
+        "_path": "mod/esmf_statevamod.mod",
+        "path_type": "hardlink",
+        "sha256": "09846ea2fbbe2bd5d68a931c6e1a931a465d68c06d0ffbf5ba94596e5cf5d0c3",
+        "sha256_in_prefix": "09846ea2fbbe2bd5d68a931c6e1a931a465d68c06d0ffbf5ba94596e5cf5d0c3",
+        "size_in_bytes": 43919
+      },
+      {
+        "_path": "mod/esmf_statewrmod.mod",
+        "path_type": "hardlink",
+        "sha256": "f1def04af9089ac3aea75a0af6c17f9a5d44dcf34f4f9f0539b055183d0fc11f",
+        "sha256_in_prefix": "f1def04af9089ac3aea75a0af6c17f9a5d44dcf34f4f9f0539b055183d0fc11f",
+        "size_in_bytes": 43952
+      },
+      {
+        "_path": "mod/esmf_testmod.mod",
+        "path_type": "hardlink",
+        "sha256": "ed8213a6301e0fdddbba97689308564175001a3abd1ef1cb707507bacae3d0c7",
+        "sha256_in_prefix": "ed8213a6301e0fdddbba97689308564175001a3abd1ef1cb707507bacae3d0c7",
+        "size_in_bytes": 51480
+      },
+      {
+        "_path": "mod/esmf_timeintervalmod.mod",
+        "path_type": "hardlink",
+        "sha256": "e1649d8553c74132a96d65ff6098dffe80308b24204ed07e583c32b05d290625",
+        "sha256_in_prefix": "e1649d8553c74132a96d65ff6098dffe80308b24204ed07e583c32b05d290625",
+        "size_in_bytes": 24003
+      },
+      {
+        "_path": "mod/esmf_timeintervaltypemod.mod",
+        "path_type": "hardlink",
+        "sha256": "6cd95a6321189ab38cf82bc93f0fd6e3f36f164ff188b051b7c02521adde7c29",
+        "sha256_in_prefix": "6cd95a6321189ab38cf82bc93f0fd6e3f36f164ff188b051b7c02521adde7c29",
+        "size_in_bytes": 16450
+      },
+      {
+        "_path": "mod/esmf_timemod.mod",
+        "path_type": "hardlink",
+        "sha256": "d9c7730fa665e1791c851606c016d39d2ab9ff3ef445fc94c1aed66c1cd72d53",
+        "sha256_in_prefix": "d9c7730fa665e1791c851606c016d39d2ab9ff3ef445fc94c1aed66c1cd72d53",
+        "size_in_bytes": 21570
+      },
+      {
+        "_path": "mod/esmf_timetypemod.mod",
+        "path_type": "hardlink",
+        "sha256": "6e76a4e5f9bfd0d0a4263a492534772ecce66c6de429718b01d19dd61bc64059",
+        "sha256_in_prefix": "6e76a4e5f9bfd0d0a4263a492534772ecce66c6de429718b01d19dd61bc64059",
+        "size_in_bytes": 16340
+      },
+      {
+        "_path": "mod/esmf_traceapimod.mod",
+        "path_type": "hardlink",
+        "sha256": "c77b1375685125c09440acdf78fc58e6728fe9b8e45e50d83e9660e588aaef24",
+        "sha256_in_prefix": "c77b1375685125c09440acdf78fc58e6728fe9b8e45e50d83e9660e588aaef24",
+        "size_in_bytes": 49763
+      },
+      {
+        "_path": "mod/esmf_tracemod.mod",
+        "path_type": "hardlink",
+        "sha256": "77093a555991a7cb30caf65b7da6b7242da623a50210f7c72997ffa0670a8716",
+        "sha256_in_prefix": "77093a555991a7cb30caf65b7da6b7242da623a50210f7c72997ffa0670a8716",
+        "size_in_bytes": 14659
+      },
+      {
+        "_path": "mod/esmf_typekindgetmod.mod",
+        "path_type": "hardlink",
+        "sha256": "5cd84053ba4244a0553ba8514a4af74f8838857559e358a7df8c95259ab1989b",
+        "sha256_in_prefix": "5cd84053ba4244a0553ba8514a4af74f8838857559e358a7df8c95259ab1989b",
+        "size_in_bytes": 14371
+      },
+      {
+        "_path": "mod/esmf_utilcubedspheremod.mod",
+        "path_type": "hardlink",
+        "sha256": "afc5c93bd1ffee70c2648f3f70970668b2dc78ecb0dab6337f9f25fef3b34fc3",
+        "sha256_in_prefix": "afc5c93bd1ffee70c2648f3f70970668b2dc78ecb0dab6337f9f25fef3b34fc3",
+        "size_in_bytes": 15081
+      },
+      {
+        "_path": "mod/esmf_utilmod.mod",
+        "path_type": "hardlink",
+        "sha256": "cb68a3f81d87c4a6eef54aacc6bdc45b0e5a17dee40643dab97e4ef91dc92ba0",
+        "sha256_in_prefix": "cb68a3f81d87c4a6eef54aacc6bdc45b0e5a17dee40643dab97e4ef91dc92ba0",
+        "size_in_bytes": 19019
+      },
+      {
+        "_path": "mod/esmf_utilsortmod.mod",
+        "path_type": "hardlink",
+        "sha256": "050e01f4f7c3d205175a707016df048ad8b5a32e2e68f3e2e8500c85dc6efd79",
+        "sha256_in_prefix": "050e01f4f7c3d205175a707016df048ad8b5a32e2e68f3e2e8500c85dc6efd79",
+        "size_in_bytes": 13270
+      },
+      {
+        "_path": "mod/esmf_utilstringmod.mod",
+        "path_type": "hardlink",
+        "sha256": "5be0fc8bbbc22173e49bd9119448f1c738313b2a2c1c12855524569c43378b01",
+        "sha256_in_prefix": "5be0fc8bbbc22173e49bd9119448f1c738313b2a2c1c12855524569c43378b01",
+        "size_in_bytes": 676
+      },
+      {
+        "_path": "mod/esmf_utiltypesmod.mod",
+        "path_type": "hardlink",
+        "sha256": "723caad53c4f7210bb75f1f5d1b8c138dc6e31fea11ba67d8fe05b0f759c174c",
+        "sha256_in_prefix": "723caad53c4f7210bb75f1f5d1b8c138dc6e31fea11ba67d8fe05b0f759c174c",
+        "size_in_bytes": 24406
+      },
+      {
+        "_path": "mod/esmf_vmmod.mod",
+        "path_type": "hardlink",
+        "sha256": "65d2a14c70cba907d31c286337953efd34f7bd75c0c85df6ec52b47010a27ae3",
+        "sha256_in_prefix": "65d2a14c70cba907d31c286337953efd34f7bd75c0c85df6ec52b47010a27ae3",
+        "size_in_bytes": 32138
+      },
+      {
+        "_path": "mod/esmf_webservmod.mod",
+        "path_type": "hardlink",
+        "sha256": "c1fe0d3910de67c9641da680471bfe73de61e0a8a1af250e8b69558dc7c4bce2",
+        "sha256_in_prefix": "c1fe0d3910de67c9641da680471bfe73de61e0a8a1af250e8b69558dc7c4bce2",
+        "size_in_bytes": 49713
+      },
+      {
+        "_path": "mod/esmf_xgridcreatemod.mod",
+        "path_type": "hardlink",
+        "sha256": "29f311154e40a824948813f445bb70e9d91396d46870bc1ff57e312a38f86d79",
+        "sha256_in_prefix": "29f311154e40a824948813f445bb70e9d91396d46870bc1ff57e312a38f86d79",
+        "size_in_bytes": 37123
+      },
+      {
+        "_path": "mod/esmf_xgridgeombasemod.mod",
+        "path_type": "hardlink",
+        "sha256": "fc5b645e048a59f8128bfee4240eaa78f9efbe479089b760c5fcb6ec41abfdfd",
+        "sha256_in_prefix": "fc5b645e048a59f8128bfee4240eaa78f9efbe479089b760c5fcb6ec41abfdfd",
+        "size_in_bytes": 40635
+      },
+      {
+        "_path": "mod/esmf_xgridgetmod.mod",
+        "path_type": "hardlink",
+        "sha256": "8a0e67d95d44eb4787d8e7717f5e9f77bad052b0cc70e21b24318fc7b7c91364",
+        "sha256_in_prefix": "8a0e67d95d44eb4787d8e7717f5e9f77bad052b0cc70e21b24318fc7b7c91364",
+        "size_in_bytes": 37017
+      },
+      {
+        "_path": "mod/esmf_xgridmod.mod",
+        "path_type": "hardlink",
+        "sha256": "a1a7b3e4f1123aa97f6d3412a4a81bbfac724bf4d332f2af1d10a1a6cd77652e",
+        "sha256_in_prefix": "a1a7b3e4f1123aa97f6d3412a4a81bbfac724bf4d332f2af1d10a1a6cd77652e",
+        "size_in_bytes": 42919
+      },
+      {
+        "_path": "mod/esmfiomod.mod",
+        "path_type": "hardlink",
+        "sha256": "3d8450e9d34b3903d7e1712b739329d4bdaeb0226c2e1b00ddcdaa09983342bd",
+        "sha256_in_prefix": "3d8450e9d34b3903d7e1712b739329d4bdaeb0226c2e1b00ddcdaa09983342bd",
+        "size_in_bytes": 50185
+      },
+      {
+        "_path": "mod/nuopc.mod",
+        "path_type": "hardlink",
+        "sha256": "3c29e9d33811cd7d4be12d7faae0d6cc7ae230135067633658b95c235d612328",
+        "sha256_in_prefix": "3c29e9d33811cd7d4be12d7faae0d6cc7ae230135067633658b95c235d612328",
+        "size_in_bytes": 61782
+      },
+      {
+        "_path": "mod/nuopc_auxiliary.mod",
+        "path_type": "hardlink",
+        "sha256": "3d418ba2ecee54400e09936bdea04d0024bee3ebcc37a059733961ae9ca8a0bc",
+        "sha256_in_prefix": "3d418ba2ecee54400e09936bdea04d0024bee3ebcc37a059733961ae9ca8a0bc",
+        "size_in_bytes": 52105
+      },
+      {
+        "_path": "mod/nuopc_base.mod",
+        "path_type": "hardlink",
+        "sha256": "3cb94f945fb7bfb0fc309e67665a068d98b3910a662be78065a6ab17027d1444",
+        "sha256_in_prefix": "3cb94f945fb7bfb0fc309e67665a068d98b3910a662be78065a6ab17027d1444",
+        "size_in_bytes": 57152
+      },
+      {
+        "_path": "mod/nuopc_comp.mod",
+        "path_type": "hardlink",
+        "sha256": "2e655fbacfca49e4ff7d6e15b03e029c9ce2b9f8f800442d77514a6925e4d246",
+        "sha256_in_prefix": "2e655fbacfca49e4ff7d6e15b03e029c9ce2b9f8f800442d77514a6925e4d246",
+        "size_in_bytes": 78136
+      },
+      {
+        "_path": "mod/nuopc_compliance_base.mod",
+        "path_type": "hardlink",
+        "sha256": "b73142c73565c15c29f664a5ac4e34891612910a92c8ae943201246638268faf",
+        "sha256_in_prefix": "b73142c73565c15c29f664a5ac4e34891612910a92c8ae943201246638268faf",
+        "size_in_bytes": 61173
+      },
+      {
+        "_path": "mod/nuopc_compliance_connector.mod",
+        "path_type": "hardlink",
+        "sha256": "c2449adcfd8efbbde60aace35ee5774a3370f4259d5a7d219308816c9aff9a52",
+        "sha256_in_prefix": "c2449adcfd8efbbde60aace35ee5774a3370f4259d5a7d219308816c9aff9a52",
+        "size_in_bytes": 52591
+      },
+      {
+        "_path": "mod/nuopc_compliance_driver.mod",
+        "path_type": "hardlink",
+        "sha256": "404a894fbc34fe390e2717c3c185407859ddd113ca4e652fc5a26b0162c9e675",
+        "sha256_in_prefix": "404a894fbc34fe390e2717c3c185407859ddd113ca4e652fc5a26b0162c9e675",
+        "size_in_bytes": 52592
+      },
+      {
+        "_path": "mod/nuopc_compliance_model.mod",
+        "path_type": "hardlink",
+        "sha256": "42c6d2a7b2e05c5fc2b68c2a8682a05e9303c4b385bcb96f862605603051fba3",
+        "sha256_in_prefix": "42c6d2a7b2e05c5fc2b68c2a8682a05e9303c4b385bcb96f862605603051fba3",
+        "size_in_bytes": 52591
+      },
+      {
+        "_path": "mod/nuopc_connector.mod",
+        "path_type": "hardlink",
+        "sha256": "a804f607d39fd9a2eb5de7c41d128a9d3d94df68b769ccfe5ee091fe39346680",
+        "sha256_in_prefix": "a804f607d39fd9a2eb5de7c41d128a9d3d94df68b769ccfe5ee091fe39346680",
+        "size_in_bytes": 55209
+      },
+      {
+        "_path": "mod/nuopc_driver.mod",
+        "path_type": "hardlink",
+        "sha256": "df6a9f2be7cea7c3ba4062877f67fbcd37cd0550233745b171da1d1e4fcc839c",
+        "sha256_in_prefix": "df6a9f2be7cea7c3ba4062877f67fbcd37cd0550233745b171da1d1e4fcc839c",
+        "size_in_bytes": 72482
+      },
+      {
+        "_path": "mod/nuopc_fielddictionaryapi.mod",
+        "path_type": "hardlink",
+        "sha256": "fa94cbe93a8d382905a696be81d40fccda5ded385945b50d51b706d376fa172e",
+        "sha256_in_prefix": "fa94cbe93a8d382905a696be81d40fccda5ded385945b50d51b706d376fa172e",
+        "size_in_bytes": 53705
+      },
+      {
+        "_path": "mod/nuopc_fielddictionarydef.mod",
+        "path_type": "hardlink",
+        "sha256": "4652f9f48eec7e9fc843dc0b3e08cc3cf083ef3393920bb586dcc45514cc0eee",
+        "sha256_in_prefix": "4652f9f48eec7e9fc843dc0b3e08cc3cf083ef3393920bb586dcc45514cc0eee",
+        "size_in_bytes": 53733
+      },
+      {
+        "_path": "mod/nuopc_freeformatdef.mod",
+        "path_type": "hardlink",
+        "sha256": "c0be0187d6d7a54217ce0f51ecda9d135b4b15084d93abe0dad846dd528e1578",
+        "sha256_in_prefix": "c0be0187d6d7a54217ce0f51ecda9d135b4b15084d93abe0dad846dd528e1578",
+        "size_in_bytes": 53222
+      },
+      {
+        "_path": "mod/nuopc_mediator.mod",
+        "path_type": "hardlink",
+        "sha256": "44dc42b42b7a442e7d72732cd2cb9f0c3e06000ae2460d807c7915db2ed0dbc5",
+        "sha256_in_prefix": "44dc42b42b7a442e7d72732cd2cb9f0c3e06000ae2460d807c7915db2ed0dbc5",
+        "size_in_bytes": 53782
+      },
+      {
+        "_path": "mod/nuopc_model.mod",
+        "path_type": "hardlink",
+        "sha256": "76988f2494bdedd31fca5ca22776af2c97cd05b2f988b2f3936f5922d5511370",
+        "sha256_in_prefix": "76988f2494bdedd31fca5ca22776af2c97cd05b2f988b2f3936f5922d5511370",
+        "size_in_bytes": 53793
+      },
+      {
+        "_path": "mod/nuopc_modelbase.mod",
+        "path_type": "hardlink",
+        "sha256": "26eef2f2300cb1bce490eb2c0355d159ffbfce76c839f01c86f6cc8b00799796",
+        "sha256_in_prefix": "26eef2f2300cb1bce490eb2c0355d159ffbfce76c839f01c86f6cc8b00799796",
+        "size_in_bytes": 54376
+      },
+      {
+        "_path": "mod/nuopc_runsequencedef.mod",
+        "path_type": "hardlink",
+        "sha256": "ee8df143dba6b9ae5cf05f98f7974a0a52cc89f4be8353d1e56a96f279b5ce6f",
+        "sha256_in_prefix": "ee8df143dba6b9ae5cf05f98f7974a0a52cc89f4be8353d1e56a96f279b5ce6f",
+        "size_in_bytes": 54584
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "esmf=8.0.1",
+  "sha256": "fa0a9e4aac12f46c3c906ea1b11d7d6d73e9574a7ad3845a57d0cfed1f6de260",
+  "size": 26413584,
+  "subdir": "osx-64",
+  "timestamp": 1605250275296,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/conda-forge/osx-64/esmf-8.0.1-nompi_h8f3562c_2.tar.bz2",
+  "version": "8.0.1"
+}
