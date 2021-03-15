@@ -210,7 +210,7 @@ if remove_latitudinal_bias:
 
 # Save out result
 if filter_on_blended_albedo or remove_latitudinal_bias:
-    gc.save_obj(data, join(data_dir, f'{year}_corrected.pkl'))
+    gc.save_obj(data, join(output_dir, f'{year}_corrected.pkl'))
 
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
