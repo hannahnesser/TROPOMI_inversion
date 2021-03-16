@@ -1,122 +1,126 @@
+import xarray as xr
+
+tmp = xr.open_dataset('/Users/hannahnesser/Downloads/s5p_l2_ch4_0014_15511.nc')
+print(tmp)
 
 # # ========================================================================== ## Testing errors in eigenvector perturbations
 
 # # ========================================================================== ## Diagnosing error in prior simulation part 2
 
-from os.path import join
-from os import listdir
-import sys
-import copy
-import calendar as cal
+# from os.path import join
+# from os import listdir
+# import sys
+# import copy
+# import calendar as cal
 
-import xarray as xr
-# import xbpch as xb
-import numpy as np
-import pandas as pd
+# import xarray as xr
+# # import xbpch as xb
+# import numpy as np
+# import pandas as pd
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-# data = xb.open_bpchdataset(filename='trac_avg.merra2_4x5_CH4.201501010000',
-#                            tracerinfo_file='tracerinfo.dat',
-#                            diaginfo_file='diaginfo.dat')
+# # data = xb.open_bpchdataset(filename='trac_avg.merra2_4x5_CH4.201501010000',
+# #                            tracerinfo_file='tracerinfo.dat',
+# #                            diaginfo_file='diaginfo.dat')
 
-## ------------------------------------------------------------------------ ##
-## Set user preferences
-## ------------------------------------------------------------------------ ##
-# # Local preferences
-# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-# code_dir = base_dir + 'python'
-# data_dir = base_dir + 'observations'
-# output_dir = base_dir + 'inversion_data'
-# plot_dir = base_dir + 'plots'
+# ## ------------------------------------------------------------------------ ##
+# ## Set user preferences
+# ## ------------------------------------------------------------------------ ##
+# # # Local preferences
+# # base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+# # code_dir = base_dir + 'python'
+# # data_dir = base_dir + 'observations'
+# # output_dir = base_dir + 'inversion_data'
+# # plot_dir = base_dir + 'plots'
 
-# # Cannon preferences
-# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
-# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-# data_dir = f'{base_dir}ProcessedDir'
-# output_dir = f'{base_dir}SummaryDir'
-# plot_dir = None
+# # # Cannon preferences
+# # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# # data_dir = f'{base_dir}ProcessedDir'
+# # output_dir = f'{base_dir}SummaryDir'
+# # plot_dir = None
 
 
 
-# Information on the grid
-lat_bins = np.arange(10, 65, 5)
-lat_min = 9.75
-lat_max = 60
-lat_delta = 0.25
-lon_min = -130
-lon_max = -60
-lon_delta = 0.3125
-buffers = [3, 3, 3, 3]
+# # Information on the grid
+# lat_bins = np.arange(10, 65, 5)
+# lat_min = 9.75
+# lat_max = 60
+# lat_delta = 0.25
+# lon_min = -130
+# lon_max = -60
+# lon_delta = 0.3125
+# buffers = [3, 3, 3, 3]
 
-## ------------------------------------------------------------------------ ##
-## Import custom packages
-## ------------------------------------------------------------------------ ##
-# Custom packages
-sys.path.append('.')
-import config
-import gcpy as gc
-import troppy as tp
-import format_plots as fp
+# ## ------------------------------------------------------------------------ ##
+# ## Import custom packages
+# ## ------------------------------------------------------------------------ ##
+# # Custom packages
+# sys.path.append('.')
+# import config
+# import gcpy as gc
+# import troppy as tp
+# import format_plots as fp
 
-# data
-year = 2019
-month = 12
-days = np.arange(1, 32, 1)
-files = [f'{year}{month}{dd:02d}_GCtoTROPOMI.pkl' for dd in days]
-data_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/observations'
+# # data
+# year = 2019
+# month = 12
+# days = np.arange(1, 32, 1)
+# files = [f'{year}{month}{dd:02d}_GCtoTROPOMI.pkl' for dd in days]
+# data_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/observations'
 
-# data = np.array([]).reshape(0, 13)
-# for f in files:
-#     month = int(f[4:6])
-#     day = int(f[6:8])
-#     print(day)
-#     new_data = gc.load_obj(join(data_dir, f))['obs_GC']
-#     new_data = np.insert(new_data, 11, month, axis=1)
-#     new_data = np.insert(new_data, 12, day, axis=1)
-#     data = np.concatenate((data, new_data))
+# # data = np.array([]).reshape(0, 13)
+# # for f in files:
+# #     month = int(f[4:6])
+# #     day = int(f[6:8])
+# #     print(day)
+# #     new_data = gc.load_obj(join(data_dir, f))['obs_GC']
+# #     new_data = np.insert(new_data, 11, month, axis=1)
+# #     new_data = np.insert(new_data, 12, day, axis=1)
+# #     data = np.concatenate((data, new_data))
 
-# columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-#            'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
-#            'MONTH', 'DAY']
-# data = pd.DataFrame(data, columns=columns)
-# data['DIFF'] = data['MOD'] - data['OBS']
+# # columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
+# #            'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
+# #            'MONTH', 'DAY']
+# # data = pd.DataFrame(data, columns=columns)
+# # data['DIFF'] = data['MOD'] - data['OBS']
 
-# print(data)
+# # print(data)
 
-# c = plt.scatter(data['OBS'], data['MOD'], c=data['DAY'], s=10, alpha=0.5)
-# plt.colorbar(c)
-# plt.ylim(1600, 2000)
-# plt.xlim(1600, 2000)
+# # c = plt.scatter(data['OBS'], data['MOD'], c=data['DAY'], s=10, alpha=0.5)
+# # plt.colorbar(c)
+# # plt.ylim(1600, 2000)
+# # plt.xlim(1600, 2000)
+# # plt.show()
+
+# # Isolated early days--we'll use day 1 as a test case
+# # is it the restart file?
+# # rst12 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191201_0000z.nc4'))
+# # rst11 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191101_0000z.nc4'))
+# # # for lev in rst11.lev:
+# # #     print(lev.values)
+# # #     print('Dec: ', rst12['SpeciesRst_CH4'].where(rst12.lev == lev, drop=True).min().values*1e9)
+# # #     print('Nov: ', rst11['SpeciesRst_CH4'].where(rst11.lev == lev, drop=True).min().values*1e9)
+# # #     print('\n')
+# # rst12.plot.scatter(x='SpeciesRst_CH4', y='lev')
+# # rst11.plot.scatter(x='SpeciesRst_CH4', y='lev')
+# # plt.show()
+
+
+# # Probably not because the December restart file is actually larger than
+# # the November restart file.
+
+# # Where in the atmosphere does it originate?
+# files = [f'GEOSChem.SpeciesConc.{year}{month}{dd:02d}_0000z.nc4' for dd in days]
+# # for f in files[0]:
+# f = files[15]
+# data = xr.open_dataset(join(data_dir, f))
+# data = data.isel(time=1)
+# data.plot.scatter(x='SpeciesConc_CH4', y='lev')
+# # c = plt.scatter(data.lev, data['SpeciesConc_CH4'], c=data.time)
+# # plt.colorbar(c)
 # plt.show()
-
-# Isolated early days--we'll use day 1 as a test case
-# is it the restart file?
-# rst12 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191201_0000z.nc4'))
-# rst11 = xr.open_dataset(join(data_dir, 'GEOSChem.Restart.20191101_0000z.nc4'))
-# # for lev in rst11.lev:
-# #     print(lev.values)
-# #     print('Dec: ', rst12['SpeciesRst_CH4'].where(rst12.lev == lev, drop=True).min().values*1e9)
-# #     print('Nov: ', rst11['SpeciesRst_CH4'].where(rst11.lev == lev, drop=True).min().values*1e9)
-# #     print('\n')
-# rst12.plot.scatter(x='SpeciesRst_CH4', y='lev')
-# rst11.plot.scatter(x='SpeciesRst_CH4', y='lev')
-# plt.show()
-
-
-# Probably not because the December restart file is actually larger than
-# the November restart file.
-
-# Where in the atmosphere does it originate?
-files = [f'GEOSChem.SpeciesConc.{year}{month}{dd:02d}_0000z.nc4' for dd in days]
-# for f in files[0]:
-f = files[15]
-data = xr.open_dataset(join(data_dir, f))
-data = data.isel(time=1)
-data.plot.scatter(x='SpeciesConc_CH4', y='lev')
-# c = plt.scatter(data.lev, data['SpeciesConc_CH4'], c=data.time)
-# plt.colorbar(c)
-plt.show()
 
 
 # # ========================================================================== ## Diagnosing error in prior simulation
