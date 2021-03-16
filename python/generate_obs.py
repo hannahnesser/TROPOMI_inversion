@@ -62,7 +62,7 @@ albedo_bins = np.arange(0, 1.1, 0.1)
 remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
-analyze_biases = False
+analyze_biases = True
 calculate_so = True
 
 # Information on the grid
