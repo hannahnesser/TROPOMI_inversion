@@ -21,3 +21,4 @@ dependencies:
   - xarray=0.16.2
   - xbpch=0.3.5
   - xesmf=0.3.0
+  - blas=1.1
