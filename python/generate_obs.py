@@ -13,10 +13,10 @@ Inputs:
 '''
 from os.path import join
 from os import listdir
+import os
 import sys
 import copy
 import calendar as cal
-
 import xarray as xr
 import numpy as np
 from numpy.polynomial import polynomial as p
