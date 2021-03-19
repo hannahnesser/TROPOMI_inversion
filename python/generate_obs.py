@@ -347,7 +347,8 @@ if calculate_so:
     data['VAR'] = (data['RES_ERR'] - data['AVG_RES_ERR'])**2
     var = data.groupby(groupby).mean()[['VAR', 'OBS']].reset_index()
     var = var.rename(columns={'OBS' : 'AVG_OBS'})
-    var['STD'] = var['VAR']**0.5/var['AVG_OBS']
+    var['STD'] = var['VAR']**0.5/var['AVG_OBS'] # rrsd
+    # var['VAR'] is sigmasq
 
     # Merge these final variances back into the data (first removing
     # the initial variance calculation, since this was an intermediary)
@@ -355,7 +356,7 @@ if calculate_so:
     data = pd.merge(data, var, on=groupby, how='left')
 
     # Scale by the observations
-    data['VAR'] = data['VAR']*data['OBS']
+    data['VAR'] = (data['STD']*data['OBS'])**2
 
     # Where the variance calculated by the residual error method is less
     # than the precision squared value calculated above, set the error equal
