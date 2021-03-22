@@ -126,7 +126,7 @@ def process_tropomi(data, date):
                         'ch4_profile_apriori' : 'methane_profile_apriori'})
 
     # Transpose
-    data = data.transpose('nobs', 'nwin', 'nlayer', 'ilayer')
+    data = data.transpose('nobs', 'nwin', 'nfov', 'nlayer', 'ilayer')
 
     return data
 
@@ -168,7 +168,7 @@ def read_GC(data_dir, date):
                         'Met_PEDGE' : 'PEDGE'})
 
     # Flip order
-    data = data.transpose('time', 'lon', 'lat', 'lev', 'ilev', 'nfov')
+    data = data.transpose('time', 'lon', 'lat', 'lev', 'ilev')
 
     # Check that the data has all 24 hours
     if len(data.time) != 24:
