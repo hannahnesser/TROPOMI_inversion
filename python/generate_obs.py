@@ -26,32 +26,32 @@ pd.set_option('display.max_columns', None)
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# Local preferences
-base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-code_dir = base_dir + 'python'
-data_dir = base_dir + 'observations'
-output_dir = base_dir + 'inversion_data'
-plot_dir = base_dir + 'plots'
+# # Local preferences
+# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+# code_dir = base_dir + 'python'
+# data_dir = base_dir + 'observations'
+# output_dir = base_dir + 'inversion_data'
+# plot_dir = base_dir + 'plots'
 
 # # Cannon preferences
 # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
-# base_dir = sys.argv[1]
-# code_dir = sys.argv[2]
-# data_dir = f'{base_dir}ProcessedDir'
-# output_dir = f'{base_dir}SummaryDir'
-# plot_dir = None
+base_dir = sys.argv[1]
+code_dir = sys.argv[2]
+data_dir = f'{base_dir}ProcessedDir'
+output_dir = f'{base_dir}SummaryDir'
+plot_dir = None
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
 months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-prior_run = f'{year}.pkl'
-# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-#              for mm in months for dd in days]
-# prior_run.sort()
+# prior_run = f'{year}.pkl'
+prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+             for mm in months for dd in days]
+prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
@@ -62,7 +62,7 @@ albedo_bins = np.arange(0, 1.1, 0.1)
 remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
-analyze_biases = True
+analyze_biases = False
 calculate_so = True
 
 # Information on the grid
@@ -114,9 +114,10 @@ if type(prior_run) == list:
 
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
-        # 10 MOD_COL
+        # 10 MOD_COL, 11 CLOUD FRAC 1, 12 CLOUD FRAC 2, 13 CLOUD FRAC 3,
+        # 14 CLOUD FRAC 4
         new_data = gc.load_obj(join(data_dir, file))['obs_GC']
-        new_data = np.insert(new_data, 11, month, axis=1) # add month
+        new_data = np.insert(new_data, 15, month, axis=1) # add month
 
         data = np.concatenate((data, new_data))
 
@@ -125,8 +126,9 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     # Create a dataframe from the data
     columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD',
-               'MOD_COL', 'MONTH']
+               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
+               'CLOUD_FRAC_0', 'CLOUD_FRAC_1', 'CLOUD_FRAC_2', 'CLOUD_FRAC_3',
+               'MONTH']
     data = pd.DataFrame(data, columns=columns)
 
     # Calculate blended albedo
@@ -136,7 +138,9 @@ if type(prior_run) == list:
 
     # Subset data
     data = data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT', 'OBS', 'MOD',
-                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO']]
+                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO',
+                 'CLOUD_FRAC_0', 'CLOUD_FRAC_1',
+                 'CLOUD_FRAC_2', 'CLOUD_FRAC_3']]
 
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
