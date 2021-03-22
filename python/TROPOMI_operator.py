@@ -168,7 +168,7 @@ def read_GC(data_dir, date):
                         'Met_PEDGE' : 'PEDGE'})
 
     # Flip order
-    data = data.transpose('time', 'lon', 'lat', 'lev', 'ilev')
+    data = data.transpose('time', 'lon', 'lat', 'lev', 'ilev', 'nfov')
 
     # Check that the data has all 24 hours
     if len(data.time) != 24:
