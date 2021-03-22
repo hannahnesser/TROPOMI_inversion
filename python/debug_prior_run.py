@@ -120,6 +120,8 @@ d = xr.open_dataset(join(data_dir, f))['SpeciesConc_CH4']
 d = gc.subset_data_latlon(d, *lat_e, *lon_e)
 d = d.sel(time='2019-12-18T12:00:00.000000000')
 
+print(len(d.lev))
+
 # d = d.sel(lev=lev)
 # for t in d.time:
 for t in d.lev:

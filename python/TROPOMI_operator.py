@@ -434,7 +434,7 @@ if __name__ == '__main__':
 
         # create an empty matrix to store TROPOMI CH4, GC CH4,
         # lon, lat, II, and JJ (GC indices)
-        temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
+        temp_obs_GC=np.zeros([NN, 15],dtype=np.float32)
 
         #================================
         #--- now compute sensitivity ---
