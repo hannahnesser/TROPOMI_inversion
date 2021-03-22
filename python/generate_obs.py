@@ -102,7 +102,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    data = np.array([]).reshape(0, 12)
+    data = np.array([]).reshape(0, 15)
     for file in prior_run:
         # Check if that file is in the data directory
         if file not in listdir(data_dir):

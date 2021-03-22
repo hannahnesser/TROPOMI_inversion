@@ -114,50 +114,48 @@ files.sort()
 
 # plt.show()
 
-f = files[17]
-print(f)
-d = xr.open_dataset(join(data_dir, f))['SpeciesConc_CH4']
-d = gc.subset_data_latlon(d, *lat_e, *lon_e)
-d = d.sel(time='2019-12-18T12:00:00.000000000')
-
-print(len(d.lev))
+for f in files:
+    d = xr.open_dataset(join(data_dir, f))['SpeciesConc_CH4']
+    d = gc.subset_data_latlon(d, *lat_e, *lon_e)
+    d = d.where(d.lev >= 0.19, drop=True)
+    print(f.split('.')[-2].split('_')[0], ':', d.max().values)
 
 # d = d.sel(lev=lev)
 # for t in d.time:
-for t in d.lev:
-    # data = d.sel(time=t)
-    if str(t.values)[:3] == '0.0':
-        data = d.sel(lev=t)
-        fig, ax = fp.get_figax(maps=True, lats=data.lat, lons=data.lon)
-        ax = fp.format_map(ax, lats=data.lat, lons=data.lon)
-        c = data.plot(ax=ax, cmap=fp.cmap_trans('viridis'),
-                      add_colorbar=False, vmin=0, vmax=0.0000025)
+# for t in d.lev:
+#     # data = d.sel(time=t)
+#     # if str(t.values)[:3] == '0.0':
+#     data = d.sel(lev=t)
+#     fig, ax = fp.get_figax(maps=True, lats=data.lat, lons=data.lon)
+#     ax = fp.format_map(ax, lats=data.lat, lons=data.lon)
+#     c = data.plot(ax=ax, cmap=fp.cmap_trans('viridis'),
+#                   add_colorbar=False, vmin=0, vmax=0.0000025)
 
-        # Add colorbar
-        cax = fp.add_cax(fig, ax)
-        cb = fig.colorbar(c, cax=cax)
-        cb = fp.format_cbar(cb, cbar_title='')
-        # print(t)
-        # title = str(t.values).split('T')[1].split(':')[0]
-        title = t.values
-        ax = fp.add_title(ax, f'{title}')
-        fp.save_fig(fig, data_dir, f'{title}')
-        plt.close()
-    # print(t)
+#     # Add colorbar
+#     cax = fp.add_cax(fig, ax)
+#     cb = fig.colorbar(c, cax=cax)
+#     cb = fp.format_cbar(cb, cbar_title='')
+#     # print(t)
+#     # title = str(t.values).split('T')[1].split(':')[0]
+#     title = t.values
+#     ax = fp.add_title(ax, f'{title}')
+#     fp.save_fig(fig, data_dir, f'{title}')
+#     plt.close()
+#     # print(t)
 
-# Create a gif
-images = []
-files = [f for f in listdir(data_dir) if (f[0] != '.') and
-                                         (f[-3:] == 'png') and
-                                         # (f[0].isdigit())]
-                                         (f[:3] == '0.0')]
-files.sort()
-files = files[::-1]
-print(files)
-for f in files:
-    images.append(imageio.imread(join(data_dir, f)))
-imageio.mimsave(join(data_dir, 'prior_bug_levels_12-18-12h.gif'),
-                images, duration=0.5)
+# # Create a gif
+# images = []
+# files = [f for f in listdir(data_dir) if (f[0] != '.') and
+#                                          (f[-3:] == 'png') and
+#                                          (f[0].isdigit())]
+#                                          # (f[:3] == '0.0')]
+# files.sort()
+# files = files[::-1]
+# print(files)
+# for f in files:
+#     images.append(imageio.imread(join(data_dir, f)))
+# imageio.mimsave(join(data_dir, 'prior_bug_levels_12-26-12h.gif'),
+#                 images, duration=0.5)
 
 # print(d)
 # for l in d.lev[:1]:
