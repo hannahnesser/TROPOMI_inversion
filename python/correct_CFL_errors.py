@@ -14,12 +14,12 @@ import imageio
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Local preferences
-input_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/gc_outputs/species_conc_halfstep'
-base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+input_dir = sys.argv[1]
+base_dir = sys.argv[2]
 # base_dir = sys.argv[1]
 # code_dir = sys.argv[2]
-data_dir = f'{base_dir}gc_outputs/species_conc'
-code_dir = f'{base_dir}python'
+data_dir = join(base_dir, 'OutputDir')
+code_dir = sys.argv[3]
 
 # Information about the files
 year = 2019
