@@ -2,7 +2,7 @@
 
 # Edit apply_TROPOMI_operator.sh to change settings.
 # Changed to 11 months because of December weirdness
-sbatch --array=12-12 apply_TROPOMI_operator.sh
+sbatch --array=1-12 apply_TROPOMI_operator.sh
 
 # months=( 5 7 8 9 11 12 )
 # #months=( 4 )

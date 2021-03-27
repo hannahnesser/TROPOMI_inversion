@@ -126,7 +126,7 @@ def process_tropomi(data, date):
                         'ch4_profile_apriori' : 'methane_profile_apriori'})
 
     # Transpose
-    data = data.transpose('nobs', 'nwin', 'nlayer', 'ilayer')
+    data = data.transpose('nobs', 'nwin', 'nfov', 'nlayer', 'ilayer')
 
     return data
 
@@ -434,7 +434,7 @@ if __name__ == '__main__':
 
         # create an empty matrix to store TROPOMI CH4, GC CH4,
         # lon, lat, II, and JJ (GC indices)
-        temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
+        temp_obs_GC=np.zeros([NN, 15],dtype=np.float32)
 
         #================================
         #--- now compute sensitivity ---
@@ -486,6 +486,10 @@ if __name__ == '__main__':
         temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
         temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
         temp_obs_GC[:, 10] = GC_COL
+        temp_obs_GC[:, 11] = TROPOMI['cloud_fraction'][:,0]
+        temp_obs_GC[:, 12] = TROPOMI['cloud_fraction'][:,1]
+        temp_obs_GC[:, 13] = TROPOMI['cloud_fraction'][:,2]
+        temp_obs_GC[:, 14] = TROPOMI['cloud_fraction'][:,3]
 
         result={}
         result['obs_GC'] = temp_obs_GC

@@ -11,17 +11,17 @@ Inputs:
                     The data can either be a list of files or an individual,
                     concatenated file
 '''
-
 from os.path import join
 from os import listdir
+import os
 import sys
 import copy
 import calendar as cal
-
 import xarray as xr
 import numpy as np
 from numpy.polynomial import polynomial as p
 import pandas as pd
+pd.set_option('display.max_columns', None)
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -102,7 +102,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    data = np.array([]).reshape(0, 12)
+    data = np.array([]).reshape(0, 15)
     for file in prior_run:
         # Check if that file is in the data directory
         if file not in listdir(data_dir):
@@ -114,9 +114,10 @@ if type(prior_run) == list:
 
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
-        # 10 MOD_COL
+        # 10 MOD_COL, 11 CLOUD FRAC 1, 12 CLOUD FRAC 2, 13 CLOUD FRAC 3,
+        # 14 CLOUD FRAC 4
         new_data = gc.load_obj(join(data_dir, file))['obs_GC']
-        new_data = np.insert(new_data, 11, month, axis=1) # add month
+        new_data = np.insert(new_data, 15, month, axis=1) # add month
 
         data = np.concatenate((data, new_data))
 
@@ -125,8 +126,9 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     # Create a dataframe from the data
     columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD',
-               'MOD_COL', 'MONTH']
+               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
+               'CLOUD_FRAC_0', 'CLOUD_FRAC_1', 'CLOUD_FRAC_2', 'CLOUD_FRAC_3',
+               'MONTH']
     data = pd.DataFrame(data, columns=columns)
 
     # Calculate blended albedo
@@ -134,10 +136,11 @@ if type(prior_run) == list:
                                                data['ALBEDO_SWIR'],
                                                data['ALBEDO_NIR'])
 
-
     # Subset data
     data = data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT', 'OBS', 'MOD',
-                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO']]
+                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO',
+                 'CLOUD_FRAC_0', 'CLOUD_FRAC_1',
+                 'CLOUD_FRAC_2', 'CLOUD_FRAC_3']]
 
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
@@ -145,9 +148,13 @@ if type(prior_run) == list:
     # Print out some statistics
     cols = ['LAT', 'LON', 'MONTH', 'MOD']
     print('MODEL MAXIMUM : ', data['MOD'].max())
+    print('MODEL MINIMUM : ', data['MOD'].min())
+    print('TROPOMI MAXIMUM : ', data['OBS'].max())
+    print('TROPOMI MINIMUM : ', data['OBS'].min())
+    print('DIFFERENCE MAXIMUM : ', data['DIFF'].max())
 
     # Save the data out
-    gc.save_obj(data, join(data_dir, f'{year}.pkl'))
+    gc.save_obj(data, join(output_dir, f'{year}.pkl'))
 
 else:
     ## ----------------------------------------- ##
@@ -185,7 +192,7 @@ if filter_on_blended_albedo:
     print(f'    {100*nobs/old_nobs:.1f}% of data is preserved.')
     print(f'    TROPOMI statistics:')
     summ = data.groupby('MONTH')[['OBS', 'DIFF']]
-    summ = pd.concat([summ.min(), summ.max()])
+    summ = pd.concat([summ.min(), summ.max()], axis=1)
     print(summ)
 
 if remove_latitudinal_bias:
@@ -200,12 +207,12 @@ if remove_latitudinal_bias:
     print(f'    y = {coef[0]:.2f} + {coef[1]:.2f}x')
     print(f'    Model statistics:')
     summ = data.groupby('MONTH')[['MOD', 'DIFF']]
-    summ = pd.concat([summ.min(), summ.max()])
+    summ = pd.concat([summ.min(), summ.max()], axis=1)
     print(summ)
 
 # Save out result
 if filter_on_blended_albedo or remove_latitudinal_bias:
-    gc.save_obj(data, join(data_dir, f'{year}_corrected.pkl'))
+    gc.save_obj(data, join(output_dir, f'{year}_corrected.pkl'))
 
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
@@ -344,7 +351,8 @@ if calculate_so:
     data['VAR'] = (data['RES_ERR'] - data['AVG_RES_ERR'])**2
     var = data.groupby(groupby).mean()[['VAR', 'OBS']].reset_index()
     var = var.rename(columns={'OBS' : 'AVG_OBS'})
-    var['STD'] = var['VAR']**0.5/var['AVG_OBS']
+    var['STD'] = var['VAR']**0.5/var['AVG_OBS'] # rrsd
+    # var['VAR'] is sigmasq
 
     # Merge these final variances back into the data (first removing
     # the initial variance calculation, since this was an intermediary)
@@ -352,7 +360,7 @@ if calculate_so:
     data = pd.merge(data, var, on=groupby, how='left')
 
     # Scale by the observations
-    data['VAR'] = data['VAR']*data['OBS']
+    data['VAR'] = (data['STD']*data['OBS'])**2
 
     # Where the variance calculated by the residual error method is less
     # than the precision squared value calculated above, set the error equal

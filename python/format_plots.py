@@ -116,13 +116,16 @@ def add_cax(fig, ax, cbar_pad_inches=0.25, horizontal=False):
         try:
             axis = ax[-1, -1]
             height = ax[0, -1].get_position().y1 - ax[-1, -1].get_position().y0
+            ax_width = ax[0, -1].get_position().x1 - ax[0, 0].get_position().x0
         except IndexError:
             axis = ax[-1]
             # height = ax[-1].get_position().height
             height = ax[0].get_position().y1 - ax[-1].get_position().y0
+            ax_width = ax[-1].get_position().x1 - ax[0].get_position().x0
         except TypeError:
             axis = ax
             height = ax.get_position().height
+            ax_width = ax.get_position().width
 
         # x0
         fig_width = fig.get_size_inches()[0]
