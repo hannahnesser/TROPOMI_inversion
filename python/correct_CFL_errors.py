@@ -27,7 +27,7 @@ days = np.arange(1, 32, 1)
 files = [f'GEOSChem.SpeciesConc.{year}{mm:02d}{dd:02d}_0000z.nc4'
          for mm in months for dd in days]
 files.sort()
-profile = join(input_dir, 'default_profile.nc')
+# profile = join(input_dir, 'default_profile.nc')
 
 # Information on the grid # I think this is irrelevant?
 lat_bins = np.arange(10, 65, 5)
@@ -59,7 +59,7 @@ import format_plots as fp
 profile = xr.open_dataset(profile)
 
 # Iterate through the correct files
-for file in files:
+for i, file in enumerate(files):
     # Open the file
     if file not in listdir(data_dir):
         print(f'{file} is not in the data directory.')
@@ -81,6 +81,9 @@ for file in files:
     # If so, replace those values
     if (diff >= 1).any():
         print(f'Replacing data in {file}')
+
+        # Check if there is a default profile
+
 
         # Move the original file
         os.rename(join(data_dir, file), join(data_dir, f'{file}_orig'))
