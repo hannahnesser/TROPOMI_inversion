@@ -1,29 +1,29 @@
 # ## ========================================================================== ## Creating big mem inversion class
 # # ## ==========================================================================
-# from os.path import join
-# import os
-# from copy import deepcopy
-# os.environ['OMP_NUM_THREADS'] = '1'
+from os.path import join
+import os
+from copy import deepcopy
+os.environ['OMP_NUM_THREADS'] = '1'
 
-# import numpy as np
-# import xarray as xr
-# import pickle
-# import os
-# import pandas as pd
-# import math
-# import numpy as np
-# from scipy.linalg import eigh
+import numpy as np
+import xarray as xr
+import pickle
+import os
+import pandas as pd
+import math
+import numpy as np
+from scipy.linalg import eigh
 
-# # Plotting
-# import matplotlib.pyplot as plt
-# from matplotlib import rcParams
+# Plotting
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
 
-# import sys
-# sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
-# import inversion as inv
-# import gcpy as gc
-# import invpy as ip
-# import format_plots as fp
+import sys
+sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
+import inversion as inv
+import gcpy as gc
+import invpy as ip
+import format_plots as fp
 
 # def open_k(file_name):
 #     try:
@@ -32,18 +32,33 @@
 #     except FileNotFoundError:
 #         print(f'{file_name} not found.')
 
+data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
 
-# # k = [join(output_dir, f) for f in listdir(output_dir) if f[:2] == 'k0']
-# # k.sort()
-# k0 = xr.open_mfdataset(k, chunks=1000, concat_dim='nobs')
+k = [join(data_dir, f) for f in listdir(data_dir) if (f[:2] == 'k0') and
+                                                     (f[-2:] == 'nc')]
+k.sort()
+k0 = xr.open_mfdataset(k, chunks=1000, concat_dim='nobs')
+k0 = k0.rename({'__xarray_dataarray_variable__' : 'k'})
+k0 = k0['k']
+
+# Need to convert all of these to netcdf to allow chunk reading
 # y = gc.load_obj('y.pkl')
-# y_base = gc.load_obj('kxa.pkl')
-# so_vec = gc.load_obj('so.pkl')
-# xa = gc.load_obj('xa.pkl')
-# sa_vec = gc.load_obj('sa.pkl')
+# y_base = gc.load_obj(join(data_dir, 'kxa.pkl'))
+# so_vec = gc.load_obj(join(data_dir, 'so.pkl'))
+# xa = gc.load_obj(join(data_dir, 'xa.pkl'))
+# sa_vec = gc.load_obj(join(data_dir, 'sa.pkl'))
 
-# nstate = xa.shape[0]
-# nobs = y.shape[0]
+y = xr.open_dataarray(join(data_dir, 'y.nc'), chunks=1000)
+y_base = xr.open_dataarray(join(data_dir, 'kxa.nc'), chunks=1000)
+so_vec = xr.open_dataarray(join(data_dir, 'so_vec.nc'), chunks=1000)
+xa = xr.open_dataarray(join(data_dir, 'xa.nc'), chunks=1000)
+sa_vec = xr.open_dataarray(join(data_dir, 'sa_vec.nc'), chunks=1000)
+
+nstate = xa.shape[0]
+nobs = y.shape[0]
+
+c = y_base - k0 @ xa
+c.to_netcdf(join(data_dir, 'c.nc'))
 
 # # kn = open_k(k[0])
 
@@ -70,26 +85,26 @@
 # t = 2
 # s = 3
 # print(f'{o: <10}{t: <15}{s: <15}')
-import xarray as xr
-import pandas as pd
+# import xarray as xr
+# import pandas as pd
 
-file = '/Users/hannahnesser/Downloads/s5p_l2_ch4_0014_15511.nc'
-d = xr.open_dataset(file, group='diagnostics')
-mask_qa = (d['qa_value'] <= 1)
+# file = '/Users/hannahnesser/Downloads/s5p_l2_ch4_0014_15511.nc'
+# d = xr.open_dataset(file, group='diagnostics')
+# mask_qa = (d['qa_value'] <= 1)
 
-tmp = xr.open_dataset(file,
-                      group='instrument')
-dates = pd.DataFrame(tmp['time'].values[mask_qa][:,:-1],
-                     columns=['year', 'month', 'day', 'hour', 'minute', 'second'])
-dates = pd.to_datetime(dates).dt.strftime('%Y%m%dT%H%M%S')
-start_date = dates.min()
-end_date = dates.max()
+# tmp = xr.open_dataset(file,
+#                       group='instrument')
+# dates = pd.DataFrame(tmp['time'].values[mask_qa][:,:-1],
+#                      columns=['year', 'month', 'day', 'hour', 'minute', 'second'])
+# dates = pd.to_datetime(dates).dt.strftime('%Y%m%dT%H%M%S')
+# start_date = dates.min()
+# end_date = dates.max()
 
-print(start_date)
-print(end_date)
+# print(start_date)
+# print(end_date)
 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
+# import matplotlib.pyplot as plt
+# import matplotlib as mpl
 
 # data = xb.open_bpchdataset(filename='trac_avg.merra2_4x5_CH4.201501010000',
 #                            tracerinfo_file='tracerinfo.dat',

@@ -83,6 +83,9 @@ for file in files:
     if (diff >= 1).any():
         print(f'Replacing data in {file}')
 
+        # Move the original file
+        os.rename(join(data_dir, file), join(data_dir, f'{file}_orig'))
+
         # The original file, only where the problem values are
         old = data['SpeciesConc_CH4'].where(diff >=1, drop=True).squeeze()
 
@@ -121,7 +124,7 @@ for file in files:
         fp.save_fig(fig, data_dir, title)
 
         # save out file
-        data.to_netcdf(join(data_dir, f'{file}_fixed.nc'))
+        data.to_netcdf(join(data_dir, file))
 
         # # Optional plotting
         # for t in data.time:
