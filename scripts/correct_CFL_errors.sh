@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -J TROPOMI_operator
+#SBATCH -J correct_CFL_errors
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 4
 #SBATCH -N 1
