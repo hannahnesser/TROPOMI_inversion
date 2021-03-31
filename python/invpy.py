@@ -62,8 +62,8 @@ def match_data_to_clusters(data, clusters, default_value=0):
 
     # use fancy indexing to map data to 2d cluster array
     cluster_index = clusters.squeeze().data.astype(int).tolist()
-    result = clusters.copy()            # has same shape/dims as clusters
-    result = data_lookup[cluster_index] # map data to clusters
+    result = clusters.copy().squeeze()         # has same shape/dims as clusters
+    result.values = data_lookup[cluster_index] # map data to clusters
 
     return result
 
@@ -77,7 +77,7 @@ def clusters_2d_to_1d(clusters, data):
                                  used in an analytical inversion. 
                                  Dimensions: ('lat','lon')
         data (xr.DataArray)    : Data on a 2d GEOS-Chem grid.
-                                 Dimensions: ('lat','lon') or similar. 
+                                 Dimensions: ('lat','lon') 
    '''
     # Data must be a dataarray
     assert type(data) == xr.core.dataarray.DataArray, \
@@ -202,9 +202,9 @@ def plot_state(data, clusters_plot, default_value=0, cbar=True,
     # Select one "layer" at a time
     # each "layer" corresponds to one "2d cluster file"
     # if you only have one layer in your dataset, you can skip this.
-    if any( (category is not None), (time is not None),
-            (category_list is not None), (time_list is not None),
-            (cluster_list is not None) ):
+    if ((category is not None) or (time is not None)
+        or (category_list is not None) or (time_list is not None)
+        or (cluster_list is not None) ):
         data_to_plot = get_one_statevec_layer(data_to_plot, category=category, time=time,
                                               category_list=category_list,
                                               time_list=time_list,
