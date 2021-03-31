@@ -56,8 +56,8 @@ It also defines the following plotting functions:
 '''
 
 class Inversion:
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec,
-                 rf=1, latres=1, lonres=1.25):
+    def __init__(self, k, xa, sa_vec, y, y_base, so_vec, c=None,
+                 regularization_factor=1, reduced_memory=False):
         '''
         Define an inversion object with the following required
         inputs:
@@ -78,24 +78,28 @@ class Inversion:
                             observations. This class is not currently written
                             to accept error covariances, though such a change
                             would be simple to implement
+        All inputs can either be arrays or arrays. Any arrays passed to the
+        class will be coerced into xarrays.
 
         The object also accepts the following inputs:
-            rf              A regularization factor gamma defined in the cost
-                            function as
-                                J(x) = (x-xa)T Sa (x-xa) + rf(y-Kx)T So (y-Kx).
-                            The regularization factor changes the weighting of
-                            the observational term relative to the prior term.
-                            The rf is functionally equivalent to dividing the
-                            observational error variances by rf.
-            latres          The latitudinal resolution of the state vector
-            lonres          The longitudinal resolution of the state vector
+            c                        An array or file name containing a vector
+                                     of dimension nobs that represents the
+                                     intercept of the forward model:
+                                            y = F(x) + c
+            regularization_factor    A regularization factor gamma defined in
+                                     the cost function as
+                            J(x) = (x-xa)T Sa (x-xa) + gamma(y-Kx)T So (y-Kx).
+                                     The regularization factor changes the
+                                     weighting of the observational term
+                                     relative to the prior term by reducing So
+                                     by a factor of gamma.
+            reduced_memory           This flag (default false) will determine
+                                     whether or not to read in the file or
+                                     arrays provided in chunks.
 
         The object then defines the following:
             nstate          The dimension of the state vector
             nobs            The dimension of the observation vector
-            state_vector    A vector containing an index for each state vector
-                            element (necessary for multiscale grid methods).
-            c               The constant defined as y = Kxa + c
             xhat            Empty, held for the posterior state vector
             shat            Empty, held for the posterior error
             a               Empty, held for the averaging kernel, a measure
@@ -113,9 +117,6 @@ class Inversion:
         # Define the state and observational dimensions
         self.nstate = xa.shape[0]
         self.nobs = y.shape[0]
-        self.latres = latres
-        self.lonres = lonres
-        self.state_vector = np.arange(1, self.nstate+1, 1)
 
         # Check whether all inputs have the right dimensions
         assert k.shape[1] == self.nstate, \
@@ -134,7 +135,7 @@ class Inversion:
         self.y = y
         self.y_base = y_base
         self.so_vec = so_vec
-        self.rf = rf
+        self.regularization_factor = regularization_factor
 
         # Force k to be positive
         if np.any(self.k < 0):
@@ -184,7 +185,7 @@ class Inversion:
     def cost_func(self, x):
         '''
         Calculate the value of the Bayesian cost function
-            J(x) = (x - xa)T Sa (x-xa) + rf(y - Kx)T So (y - Kx)
+            J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
         for a given x. Prints out that value and the contributions from
         the emission and observational terms.
 
@@ -196,7 +197,7 @@ class Inversion:
 
         # Calculate the observational component of the cost function
         cost_obs = self.obs_mod_diff(x).T \
-                   @ diags(self.rf/self.so_vec) @ self.obs_mod_diff(x)
+                   @ diags(self.regularization_factor/self.so_vec) @ self.obs_mod_diff(x)
 
         # Calculate the emissions/prior component of the cost function
         cost_emi = (x - self.xa).T @ diags(1/self.sa_vec) @ (x - self.xa)
@@ -224,11 +225,11 @@ class Inversion:
         # We use the inverse of both the prior and observational
         # error covariance matrices, so we save those as separate variables.
         # Here we convert the variance vectors into diagonal covariance
-        # matrices. We also apply the regularization factor rf to the
+        # matrices. We also apply the regularization factor regularization_factor to the
         # observational error covariance.
         # Note: This would change if error variances were redefined as
         # covariance matrices
-        so_inv = diags(self.rf/self.so_vec)
+        so_inv = diags(self.regularization_factor/self.so_vec)
         sa_inv = diags(1/self.sa_vec)
 
         # Calculate the cost function at the prior.
@@ -392,9 +393,9 @@ class ReducedRankInversion(Inversion):
         # Calculate the prior pre-conditioned Hessian assuming
         # that the errors are diagonal
         sa_sqrt = self.sa_vec**0.5
-        so_inv = self.rf/self.so_vec
+        so_inv = self.regularization_factor/self.so_vec
         pph = (self.sa_vec**0.5)*self.k.T
-        pph = np.dot(pph, ((self.rf/self.so_vec)*pph.T))
+        pph = np.dot(pph, ((self.regularization_factor/self.so_vec)*pph.T))
         print('Calculated PPH.')
         return pph
 
@@ -405,7 +406,7 @@ class ReducedRankInversion(Inversion):
         assert np.allclose(pph, pph.T, rtol=1e-5), \
                'The prior pre-conditioned Hessian is not symmetric.'
 
-        # Perform the eigendecomposition of the prior
+        # Peregularization_factororm the eigendecomposition of the prior
         # pre-conditioned Hessian
         # We return the evals of the projection, not of the
         # prior pre-conditioned Hessian.
@@ -482,8 +483,8 @@ class ReducedRankInversion(Inversion):
         # Calculate a few quantities that will be useful
         sa_sqrt = diags(self.sa_vec**0.5)
         sa_sqrt_inv = diags(1/self.sa_vec**0.5)
-        # so_vec = self.rf*self.so_vec
-        so_inv = diags(self.rf/self.so_vec)
+        # so_vec = self.regularization_factor*self.so_vec
+        so_inv = diags(self.regularization_factor/self.so_vec)
         # so_sqrt_inv = diags(1/so_vec**0.5)
 
         # Subset evecs and evals
@@ -527,7 +528,7 @@ class ReducedRankInversion(Inversion):
         print('... Solving full rank approximation inversion ...')
         self.solve_inversion_kproj(pct_of_info=pct_of_info, rank=rank)
 
-        so_inv = diags(self.rf/self.so_vec)
+        so_inv = diags(self.regularization_factor/self.so_vec)
         d = self.obs_mod_diff(self.xa)
 
         self.xhat_fr = self.shat_kproj @ self.k.T @ so_inv @ d
@@ -625,7 +626,7 @@ class ReducedRankJacobian(ReducedRankInversion):
                                   y_base=copy.deepcopy(self.y_base),
                                   so_vec=copy.deepcopy(self.so_vec))
         new.model_runs = copy.deepcopy(self.model_runs) + prolongation.shape[1]
-        new.rf = copy.deepcopy(self.rf)
+        new.regularization_factor = copy.deepcopy(self.regularization_factor)
 
         # Do the eigendecomposition
         new.edecomp()
@@ -671,9 +672,14 @@ class ReducedRankJacobian(ReducedRankInversion):
 
 class ReducedDimensionJacobian(ReducedRankInversion):
     def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
+
+        # state_vector    A vector containing an index for each state vector
+        #                 element (necessary for multiscale grid methods).
+
         # Inherit from the parent class.
         ReducedRankInversion.__init__(self, k, xa, sa_vec, y, y_base, so_vec)
 
+        self.state_vector = np.arange(1, self.nstate+1, 1)
         self.perturbed_cells = np.array([])
         self.model_runs = 0
 
@@ -878,7 +884,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         new.state_vector = copy.deepcopy(self.state_vector)
         new.dofs = copy.deepcopy(self.dofs)
         new.model_runs = copy.deepcopy(self.model_runs)
-        new.rf = copy.deepcopy(self.rf)
+        new.regularization_factor = copy.deepcopy(self.regularization_factor)
         _, counts = np.unique(self.state_vector, return_counts=True)
 
         # If previously optimized, set significance to 0
@@ -906,8 +912,8 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         new.calculate_k(forward_model)
         new.calculate_prior(xa_abs=xa_abs, sa_vec=sa_vec)
 
-        # Adjust the rf
-        new.rf = self.rf*new.nstate/self.nstate
+        # Adjust the regularization_factor
+        new.regularization_factor = self.regularization_factor*new.nstate/self.nstate
 
         # Update the value of c in the new instance
         new.calculate_c()
@@ -956,369 +962,369 @@ class ReducedDimensionJacobian(ReducedRankInversion):
 
         return fig, ax
 
-class ReducedMemoryInversion(ReducedRankInversion):
-    os.environ['OMP_NUM_THREADS'] = '1'
+# class ReducedMemoryInversion(ReducedRankInversion):
+#     os.environ['OMP_NUM_THREADS'] = '1'
 
-    def __init__(self, k_files, xa, sa_vec, y, y_base, so_vec, c=None,
-                 rf=1, latres=1, lonres=1.25):
-        print('... Initializing reduced memory inversion object ...')
+#     def __init__(self, k_files, xa, sa_vec, y, y_base, so_vec, c=None,
+#                  regularization_factor=1, latres=1, lonres=1.25):
+#         print('... Initializing reduced memory inversion object ...')
 
-        # Check that the data are all the same types
-        assert all(isinstance(z, np.ndarray)
-                   for z in [xa, sa_vec, y, so_vec]), \
-               'Input types aren\'t all numpy arrays.'
+#         # Check that the data are all the same types
+#         assert all(isinstance(z, np.ndarray)
+#                    for z in [xa, sa_vec, y, so_vec]), \
+#                'Input types aren\'t all numpy arrays.'
 
-        assert isinstance(k, list), 'Jacobian is not a list of files.'
+#         assert isinstance(k, list), 'Jacobian is not a list of files.'
 
-        # Define the state and observational dimensions
-        self.nstate = xa.shape[0]
-        self.nobs = y.shape[0]
-        self.latres = latres
-        self.lonres = lonres
-        self.state_vector = np.arange(1, self.nstate+1, 1)
+#         # Define the state and observational dimensions
+#         self.nstate = xa.shape[0]
+#         self.nobs = y.shape[0]
+#         self.latres = latres
+#         self.lonres = lonres
+#         self.state_vector = np.arange(1, self.nstate+1, 1)
 
-        # Check whether all inputs have the right dimensions
-        assert so_vec.shape[0] == self.nobs, \
-               'Dimension mismatch: observational error'
-        assert sa_vec.shape[0] == self.nstate, \
-               'Dimension mismatch: prior error.'
+#         # Check whether all inputs have the right dimensions
+#         assert so_vec.shape[0] == self.nobs, \
+#                'Dimension mismatch: observational error'
+#         assert sa_vec.shape[0] == self.nstate, \
+#                'Dimension mismatch: prior error.'
 
-        # If everything works out, then we create the instance.
-        self.k = k
-        self.xa = xa
-        self.sa_vec = sa_vec
-        self.y = y
-        self.y_base = y_base
-        self.so_vec = so_vec
-        self.rf = rf
+#         # If everything works out, then we create the instance.
+#         self.k = k
+#         self.xa = xa
+#         self.sa_vec = sa_vec
+#         self.y = y
+#         self.y_base = y_base
+#         self.so_vec = so_vec
+#         self.regularization_factor = regularization_factor
 
-        # # Solve for the constant c.
-        if c is None:
-            self.c = self.calculate_c()
-        else:
-            self.c = c
+#         # # Solve for the constant c.
+#         if c is None:
+#             self.c = self.calculate_c()
+#         else:
+#             self.c = c
 
-        # Now create some holding spaces for values that may be filled
-        # in the course of solving the inversion.
-        self.xhat = None
-        self.shat = None
-        self.a = None
-        self.y_out = None
+#         # Now create some holding spaces for values that may be filled
+#         # in the course of solving the inversion.
+#         self.xhat = None
+#         self.shat = None
+#         self.a = None
+#         self.y_out = None
 
-        print('... Complete ...\n')
+#         print('... Complete ...\n')
 
-    ####################################
-    ### STANDARD INVERSION FUNCTIONS ###
-    ####################################
-    @staticmethod
-    def open_k(file_name):
-        try:
-            k = gc.load_obj(file_name)
-            return k
-        except FileNotFoundError:
-            print(f'{file_name} not found.')
+#     ####################################
+#     ### STANDARD INVERSION FUNCTIONS ###
+#     ####################################
+#     @staticmethod
+#     def open_k(file_name):
+#         try:
+#             k = gc.load_obj(file_name)
+#             return k
+#         except FileNotFoundError:
+#             print(f'{file_name} not found.')
 
-    def multiply_kx(self, multiplier):
-        '''
-        Multiply the Jacobian by a vector x (multiplier)
-        '''
-        if len(multiplier.shape) == 1:
-            product = np.zeros(kn.shape[0])
-        else:
-            product = np.zeros(kn.shape[0], multiplier.shape[1])
-        i0 = 0
-        i1 = 0
-        for file_name in self.k:
-            kn = self.open_k(file_name)
-            i1 += kn.shape[0]
-            if len(multiplier.shape) == 1:
-                product[i0:i1] = np.matmul(kn, multiplier)
-            else:
-                product[i0:i1, :] = np.matmul(kn, multiplier)
-        del(kn)
-        return product
+#     def multiply_kx(self, multiplier):
+#         '''
+#         Multiply the Jacobian by a vector x (multiplier)
+#         '''
+#         if len(multiplier.shape) == 1:
+#             product = np.zeros(kn.shape[0])
+#         else:
+#             product = np.zeros(kn.shape[0], multiplier.shape[1])
+#         i0 = 0
+#         i1 = 0
+#         for file_name in self.k:
+#             kn = self.open_k(file_name)
+#             i1 += kn.shape[0]
+#             if len(multiplier.shape) == 1:
+#                 product[i0:i1] = np.matmul(kn, multiplier)
+#             else:
+#                 product[i0:i1, :] = np.matmul(kn, multiplier)
+#         del(kn)
+#         return product
 
-    def multiply_yk(self, multiplier):
+#     def multiply_yk(self, multiplier):
 
 
-    def calculate_innovation_matrix(self):
-        ...
+#     def calculate_innovation_matrix(self):
+#         ...
 
-    def calculate_c(self):
-        '''
-        Calculate c for the forward model, defined as ybase = Kxa + c.
-        Save c as an element of the object.
-        '''
-        kxa = self.multiply_kx(self.xa)
-        c = self.y_base - kxa
-        print('Remember to save out c to avoid recomputing.')
-        return c
+#     def calculate_c(self):
+#         '''
+#         Calculate c for the forward model, defined as ybase = Kxa + c.
+#         Save c as an element of the object.
+#         '''
+#         kxa = self.multiply_kx(self.xa)
+#         c = self.y_base - kxa
+#         print('Remember to save out c to avoid recomputing.')
+#         return c
 
-    def obs_mod_diff(self, x):
-        '''
-        Calculate the difference between the true observations y and the
-        simulated observations Kx + c for a given x. It returns this
-        difference as a vector.
+#     def obs_mod_diff(self, x):
+#         '''
+#         Calculate the difference between the true observations y and the
+#         simulated observations Kx + c for a given x. It returns this
+#         difference as a vector.
 
-        Parameters:
-            x      The state vector at which to evaluate the difference
-                   between the true and simulated observations
-        Returns:
-            diff   The difference between the true and simulated observations
-                   as a vector
-        '''
-        kx = self.multiply_kx(x)
-        diff = self.y - (kx + self.c)
-        return diff
+#         Parameters:
+#             x      The state vector at which to evaluate the difference
+#                    between the true and simulated observations
+#         Returns:
+#             diff   The difference between the true and simulated observations
+#                    as a vector
+#         '''
+#         kx = self.multiply_kx(x)
+#         diff = self.y - (kx + self.c)
+#         return diff
 
-    def cost_func(self, x):
-        '''
-        Calculate the value of the Bayesian cost function
-            J(x) = (x - xa)T Sa (x-xa) + rf(y - Kx)T So (y - Kx)
-        for a given x. Prints out that value and the contributions from
-        the emission and observational terms.
+#     def cost_func(self, x):
+#         '''
+#         Calculate the value of the Bayesian cost function
+#             J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
+#         for a given x. Prints out that value and the contributions from
+#         the emission and observational terms.
 
-        Parameters:
-            x      The state vector at which to evaluate the cost function
-        Returns:
-            cost   The value of the cost function at x
-        '''
+#         Parameters:
+#             x      The state vector at which to evaluate the cost function
+#         Returns:
+#             cost   The value of the cost function at x
+#         '''
 
-        # Calculate the observational component of the cost function
-        cost_obs = self.obs_mod_diff(x).T \
-                   @ diags(self.rf/self.so_vec) @ self.obs_mod_diff(x)
+#         # Calculate the observational component of the cost function
+#         cost_obs = self.obs_mod_diff(x).T \
+#                    @ diags(self.regularization_factor/self.so_vec) @ self.obs_mod_diff(x)
 
-        # Calculate the emissions/prior component of the cost function
-        cost_emi = (x - self.xa).T @ diags(1/self.sa_vec) @ (x - self.xa)
+#         # Calculate the emissions/prior component of the cost function
+#         cost_emi = (x - self.xa).T @ diags(1/self.sa_vec) @ (x - self.xa)
 
-        # Calculate the total cost, print out information on the cost, and
-        # return the total cost function value
-        cost = cost_obs + cost_emi
-        print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
-              % (cost, cost_emi, cost_obs))
-        return cost
+#         # Calculate the total cost, print out information on the cost, and
+#         # return the total cost function value
+#         cost = cost_obs + cost_emi
+#         print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
+#               % (cost, cost_emi, cost_obs))
+#         return cost
 
-    def solve_inversion(self, calculate_cost=False):
-        '''
-        Calculate the solution to an analytic Bayesian inversion for the
-        given Inversion object. The solution includes the posterior state
-        vector (xhat), the posterior error covariance matrix (shat), and
-        the averaging kernel (A). The function includes the option to print
-        out progress statements and information about the posterior solution,
-        including the value of the cost function at the prior and posterior,
-        the number of negative state vector elements in the posterior
-        solution, and the DOFS of the posterior solution.
-        '''
-        print('... Solving inversion ...')
+#     def solve_inversion(self, calculate_cost=False):
+#         '''
+#         Calculate the solution to an analytic Bayesian inversion for the
+#         given Inversion object. The solution includes the posterior state
+#         vector (xhat), the posterior error covariance matrix (shat), and
+#         the averaging kernel (A). The function includes the option to print
+#         out progress statements and information about the posterior solution,
+#         including the value of the cost function at the prior and posterior,
+#         the number of negative state vector elements in the posterior
+#         solution, and the DOFS of the posterior solution.
+#         '''
+#         print('... Solving inversion ...')
 
-        # We use the inverse of both the prior and observational
-        # error covariance matrices, so we save those as separate variables.
-        # To avoid memory constraints, we keep sa and so as vectors. This
-        # will need to be updated if covariances are used. We also apply the
-        #regularization factor rf to the observational error covariance.
-        so_inv = self.rf/self.so_vec
-        sa_inv = 1/self.sa_vec
+#         # We use the inverse of both the prior and observational
+#         # error covariance matrices, so we save those as separate variables.
+#         # To avoid memory constraints, we keep sa and so as vectors. This
+#         # will need to be updated if covariances are used. We also apply the
+#         #regularization factor regularization_factor to the observational error covariance.
+#         so_inv = self.regularization_factor/self.so_vec
+#         sa_inv = 1/self.sa_vec
 
-        # Calculate the cost function at the prior if requested
-        if calculate_cost:
-            print('Calculating the cost function at the prior mean.')
-            cost_prior = self.cost_func(self.xa)
+#         # Calculate the cost function at the prior if requested
+#         if calculate_cost:
+#             print('Calculating the cost function at the prior mean.')
+#             cost_prior = self.cost_func(self.xa)
 
-        # Calculate the posterior error.
-        print('Calculating the posterior error.')
-        self.shat = np.asarray(inv(self.k.T @ so_inv @ self.k + sa_inv))
+#         # Calculate the posterior error.
+#         print('Calculating the posterior error.')
+#         self.shat = np.asarray(inv(self.k.T @ so_inv @ self.k + sa_inv))
 
-        # Calculate the posterior mean
-        print('Calculating the posterior mean.')
-        gain = np.asarray(self.shat @ self.k.T @ so_inv)
-        self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
+#         # Calculate the posterior mean
+#         print('Calculating the posterior mean.')
+#         gain = np.asarray(self.shat @ self.k.T @ so_inv)
+#         self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
 
-        # Calculate the cost function at the posterior if requested
-        if calculate_cost:
-            print('Calculating the cost function at the posterior mean.')
-            cost_post = self.cost_func(self.xhat)
+#         # Calculate the cost function at the posterior if requested
+#         if calculate_cost:
+#             print('Calculating the cost function at the posterior mean.')
+#             cost_post = self.cost_func(self.xhat)
 
-        # Also calculate the number of negative cells as an indicator of
-        # inversion success.
-        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
+#         # Also calculate the number of negative cells as an indicator of
+#         # inversion success.
+#         print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
 
-        # Calculate the averaging kernel.
-        print('Calculating the averaging kernel.')
-        self.a = np.asarray(identity(self.nstate) - self.shat @ sa_inv)
-        self.dofs = np.diag(self.a)
-        print('     DOFS: %.2f' % np.trace(self.a))
+#         # Calculate the averaging kernel.
+#         print('Calculating the averaging kernel.')
+#         self.a = np.asarray(identity(self.nstate) - self.shat @ sa_inv)
+#         self.dofs = np.diag(self.a)
+#         print('     DOFS: %.2f' % np.trace(self.a))
 
-        # Calculate the new set of modeled observations.
-        print('Calculating updated modeled observations.')
-        self.y_out = self.k @ self.xhat + self.c
+#         # Calculate the new set of modeled observations.
+#         print('Calculating updated modeled observations.')
+#         self.y_out = self.k @ self.xhat + self.c
 
-        print('... Complete ...\n')
+#         print('... Complete ...\n')
 
-    # def get_rank(self, pct_of_info=None, rank=None, snr=None):
-    #     frac = np.cumsum(self.evals_q/self.evals_q.sum())
-    #     if sum(x is not None for x in [pct_of_info, rank, snr]) > 1:
-    #         raise AttributeError('Conflicting arguments provided to determine rank.')
-    #     elif sum(x is not None for x in [pct_of_info, rank, snr]) == 0:
-    #         raise AttributeError('Must provide one of pct_of_info, rank, or snr.')
-    #     elif pct_of_info is not None:
-    #         diff = np.abs(frac - pct_of_info)
-    #         rank = np.argwhere(diff == np.min(diff))[0][0]
-    #         print('Calculated rank from percent of information: %d' % rank)
-    #         print('     Percent of information: %.4f%%' % (100*pct_of_info))
-    #         print('     Signal-to-noise ratio: %.2f' % self.evals_h[rank])
-    #     elif snr is not None:
-    #         diff = np.abs(self.evals_h - snr)
-    #         rank = np.argwhere(diff == np.min(diff))[0][0]
-    #         print('Calculated rank from signal-to-noise ratio : %d' % rank)
-    #         print('     Percent of information: %.4f%%' % (100*frac[rank]))
-    #         print('     Signal-to-noise ratio: %.2f' % snr)
-    #     elif rank is not None:
-    #         print('Using defined rank: %d' % rank)
-    #         print('     Percent of information: %.4f%%' % (100*frac[rank]))
-    #         print('     Signal-to-noise ratio: %.2f' % self.evals_h[rank])
-    #     return rank
+#     # def get_rank(self, pct_of_info=None, rank=None, snr=None):
+#     #     frac = np.cumsum(self.evals_q/self.evals_q.sum())
+#     #     if sum(x is not None for x in [pct_of_info, rank, snr]) > 1:
+#     #         raise AttributeError('Conflicting arguments provided to determine rank.')
+#     #     elif sum(x is not None for x in [pct_of_info, rank, snr]) == 0:
+#     #         raise AttributeError('Must provide one of pct_of_info, rank, or snr.')
+#     #     elif pct_of_info is not None:
+#     #         diff = np.abs(frac - pct_of_info)
+#     #         rank = np.argwhere(diff == np.min(diff))[0][0]
+#     #         print('Calculated rank from percent of information: %d' % rank)
+#     #         print('     Percent of information: %.4f%%' % (100*pct_of_info))
+#     #         print('     Signal-to-noise ratio: %.2f' % self.evals_h[rank])
+#     #     elif snr is not None:
+#     #         diff = np.abs(self.evals_h - snr)
+#     #         rank = np.argwhere(diff == np.min(diff))[0][0]
+#     #         print('Calculated rank from signal-to-noise ratio : %d' % rank)
+#     #         print('     Percent of information: %.4f%%' % (100*frac[rank]))
+#     #         print('     Signal-to-noise ratio: %.2f' % snr)
+#     #     elif rank is not None:
+#     #         print('Using defined rank: %d' % rank)
+#     #         print('     Percent of information: %.4f%%' % (100*frac[rank]))
+#     #         print('     Signal-to-noise ratio: %.2f' % self.evals_h[rank])
+#     #     return rank
 
-    # def pph(self):
-    #     # Calculate the prior pre-conditioned Hessian assuming
-    #     # that the errors are diagonal
-    #     sa_sqrt = self.sa_vec**0.5
-    #     so_inv = self.rf/self.so_vec
-    #     pph = (self.sa_vec**0.5)*self.k.T
-    #     pph = np.dot(pph, ((self.rf/self.so_vec)*pph.T))
-    #     print('Calculated PPH.')
-    #     return pph
+#     # def pph(self):
+#     #     # Calculate the prior pre-conditioned Hessian assuming
+#     #     # that the errors are diagonal
+#     #     sa_sqrt = self.sa_vec**0.5
+#     #     so_inv = self.regularization_factor/self.so_vec
+#     #     pph = (self.sa_vec**0.5)*self.k.T
+#     #     pph = np.dot(pph, ((self.regularization_factor/self.so_vec)*pph.T))
+#     #     print('Calculated PPH.')
+#     #     return pph
 
-    # def edecomp(self, eval_threshold=None, number_of_evals=None):
-    #     print('... Calculating eigendecomposition ...')
-    #     # Calculate pph and require that it be symmetric
-    #     pph = self.pph()
-    #     assert np.allclose(pph, pph.T, rtol=1e-5), \
-    #            'The prior pre-conditioned Hessian is not symmetric.'
+#     # def edecomp(self, eval_threshold=None, number_of_evals=None):
+#     #     print('... Calculating eigendecomposition ...')
+#     #     # Calculate pph and require that it be symmetric
+#     #     pph = self.pph()
+#     #     assert np.allclose(pph, pph.T, rtol=1e-5), \
+#     #            'The prior pre-conditioned Hessian is not symmetric.'
 
-    #     # Perform the eigendecomposition of the prior
-    #     # pre-conditioned Hessian
-    #     # We return the evals of the projection, not of the
-    #     # prior pre-conditioned Hessian.
+#     #     # Peregularization_factororm the eigendecomposition of the prior
+#     #     # pre-conditioned Hessian
+#     #     # We return the evals of the projection, not of the
+#     #     # prior pre-conditioned Hessian.
 
-    #     if (eval_threshold is None) and (number_of_evals is None):
-    #          evals, evecs = eigh(pph)
-    #     elif (eval_threshold is None):
-    #         n = pph.shape[0]
-    #         evals, evecs = eigh(pph, subset_by_index=[n - number_of_evals,
-    #                                                   n - 1])
-    #     else:
-    #         evals, evecs = eigh(pph, subset_by_value=[eval_threshold, np.inf])
-    #     print('Eigendecomposition complete.')
+#     #     if (eval_threshold is None) and (number_of_evals is None):
+#     #          evals, evecs = eigh(pph)
+#     #     elif (eval_threshold is None):
+#     #         n = pph.shape[0]
+#     #         evals, evecs = eigh(pph, subset_by_index=[n - number_of_evals,
+#     #                                                   n - 1])
+#     #     else:
+#     #         evals, evecs = eigh(pph, subset_by_value=[eval_threshold, np.inf])
+#     #     print('Eigendecomposition complete.')
 
-    #     # Sort evals and evecs by eval
-    #     idx = np.argsort(evals)[::-1]
-    #     evals = evals[idx]
-    #     evecs = evecs[:,idx]
+#     #     # Sort evals and evecs by eval
+#     #     idx = np.argsort(evals)[::-1]
+#     #     evals = evals[idx]
+#     #     evecs = evecs[:,idx]
 
-    #     # Force all evals to be non-negative
-    #     if (evals < 0).sum() > 0:
-    #         print('Negative eigenvalues. Maximum negative value is %.2e. Setting negative eigenvalues to zero.' \
-    #             % (evals[evals < 0].min()))
-    #         evals[evals < 0] = 0
+#     #     # Force all evals to be non-negative
+#     #     if (evals < 0).sum() > 0:
+#     #         print('Negative eigenvalues. Maximum negative value is %.2e. Setting negative eigenvalues to zero.' \
+#     #             % (evals[evals < 0].min()))
+#     #         evals[evals < 0] = 0
 
-    #     # Check for imaginary eigenvector components and force all
-    #     # eigenvectors to be only the real component.
-    #     if np.any(np.iscomplex(evecs)):
-    #         print('Imaginary eigenvectors exist at index %d of %d. Forcing eigenvectors to real component alone.' \
-    #               % ((np.where(np.iscomplex(evecs))[1][0] - 1), len(evecs)))
-    #         evecs = np.real(evecs)
+#     #     # Check for imaginary eigenvector components and force all
+#     #     # eigenvectors to be only the real component.
+#     #     if np.any(np.iscomplex(evecs)):
+#     #         print('Imaginary eigenvectors exist at index %d of %d. Forcing eigenvectors to real component alone.' \
+#     #               % ((np.where(np.iscomplex(evecs))[1][0] - 1), len(evecs)))
+#     #         evecs = np.real(evecs)
 
-    #     # Saving result to our instance.
-    #     print('Saving eigenvalues and eigenvectors to instance.')
-    #     # self.evals = evals/(1 + evals)
-    #     self.evals_h = evals
-    #     self.evals_q = evals/(1 + evals)
-    #     self.evecs = evecs
-    #     print('... Complete ...\n')
+#     #     # Saving result to our instance.
+#     #     print('Saving eigenvalues and eigenvectors to instance.')
+#     #     # self.evals = evals/(1 + evals)
+#     #     self.evals_h = evals
+#     #     self.evals_q = evals/(1 + evals)
+#     #     self.evecs = evecs
+#     #     print('... Complete ...\n')
 
-    # def projection(self, pct_of_info=None, rank=None, snr=None):
-    #     # Conduct the eigendecomposition of the prior pre-conditioned
-    #     # Hessian
-    #     if ((self.evals_h is None) or
-    #         (self.evals_q is None) or
-    #         (self.evecs is None)):
-    #         self.edecomp()
+#     # def projection(self, pct_of_info=None, rank=None, snr=None):
+#     #     # Conduct the eigendecomposition of the prior pre-conditioned
+#     #     # Hessian
+#     #     if ((self.evals_h is None) or
+#     #         (self.evals_q is None) or
+#     #         (self.evecs is None)):
+#     #         self.edecomp()
 
-    #     # Subset the evecs according to the rank provided.
-    #     rank = self.get_rank(pct_of_info=pct_of_info, rank=rank, snr=snr)
-    #     evecs_subset = self.evecs[:,:rank]
+#     #     # Subset the evecs according to the rank provided.
+#     #     rank = self.get_rank(pct_of_info=pct_of_info, rank=rank, snr=snr)
+#     #     evecs_subset = self.evecs[:,:rank]
 
-    #     # Calculate the prolongation and reduction operators and
-    #     # the resulting projection operator.
-    #     prolongation = (evecs_subset.T * self.sa_vec**0.5).T
-    #     reduction = (1/self.sa_vec**0.5) * evecs_subset.T
-    #     projection = prolongation @ reduction
+#     #     # Calculate the prolongation and reduction operators and
+#     #     # the resulting projection operator.
+#     #     prolongation = (evecs_subset.T * self.sa_vec**0.5).T
+#     #     reduction = (1/self.sa_vec**0.5) * evecs_subset.T
+#     #     projection = prolongation @ reduction
 
-    #     return rank, prolongation, reduction, projection
+#     #     return rank, prolongation, reduction, projection
 
-    # # Need to add in cost function and other information here
-    # def solve_inversion_proj(self, pct_of_info=None, rank=None):
-    #     print('... Solving projected inversion ...')
-    #     # Conduct the eigendecomposition of the prior pre-conditioned
-    #     # Hessian
-    #     if ((self.evals_h is None) or
-    #         (self.evals_q is None) or
-    #         (self.evecs is None)):
-    #         self.edecomp()
+#     # # Need to add in cost function and other information here
+#     # def solve_inversion_proj(self, pct_of_info=None, rank=None):
+#     #     print('... Solving projected inversion ...')
+#     #     # Conduct the eigendecomposition of the prior pre-conditioned
+#     #     # Hessian
+#     #     if ((self.evals_h is None) or
+#     #         (self.evals_q is None) or
+#     #         (self.evecs is None)):
+#     #         self.edecomp()
 
-    #     # Subset the evecs according to the rank provided.
-    #     rank = self.get_rank(pct_of_info=pct_of_info, rank=rank)
+#     #     # Subset the evecs according to the rank provided.
+#     #     rank = self.get_rank(pct_of_info=pct_of_info, rank=rank)
 
-    #     # Calculate a few quantities that will be useful
-    #     sa_sqrt = diags(self.sa_vec**0.5)
-    #     sa_sqrt_inv = diags(1/self.sa_vec**0.5)
-    #     # so_vec = self.rf*self.so_vec
-    #     so_inv = diags(self.rf/self.so_vec)
-    #     # so_sqrt_inv = diags(1/so_vec**0.5)
+#     #     # Calculate a few quantities that will be useful
+#     #     sa_sqrt = diags(self.sa_vec**0.5)
+#     #     sa_sqrt_inv = diags(1/self.sa_vec**0.5)
+#     #     # so_vec = self.regularization_factor*self.so_vec
+#     #     so_inv = diags(self.regularization_factor/self.so_vec)
+#     #     # so_sqrt_inv = diags(1/so_vec**0.5)
 
-    #     # Subset evecs and evals
-    #     vk = self.evecs[:, :rank]
-    #     # wk = so_sqrt_inv @ self.k @ sa_sqrt @ vk
-    #     lk = self.evals_h[:rank].reshape((1, -1))
+#     #     # Subset evecs and evals
+#     #     vk = self.evecs[:, :rank]
+#     #     # wk = so_sqrt_inv @ self.k @ sa_sqrt @ vk
+#     #     lk = self.evals_h[:rank].reshape((1, -1))
 
-    #     # Make lk into a matrix
-    #     lk = np.repeat(lk, self.nstate, axis=0)
+#     #     # Make lk into a matrix
+#     #     lk = np.repeat(lk, self.nstate, axis=0)
 
-    #     # Calculate the solutions
-    #     self.xhat_proj = (np.asarray(sa_sqrt
-    #                                 @ ((vk/(1+lk)) @ vk.T)
-    #                                 @ sa_sqrt @ self.k.T @ so_inv
-    #                                 @ self.obs_mod_diff(self.xa))
-    #                      + self.xa)
-    #     self.shat_proj = np.asarray(sa_sqrt
-    #                                 @ (((1/(1+lk))*vk) @ vk.T)
-    #                                 @ sa_sqrt)
-    #     # self.shat_proj = sa_sqrt @ self.shat_proj_sum(rank) @ sa_sqrt
-    #     self.a_proj = np.asarray(sa_sqrt
-    #                              @ (((lk/(1+lk))*vk) @ vk.T)
-    #                              @ sa_sqrt_inv)
-    #     print('... Complete ...\n')
+#     #     # Calculate the solutions
+#     #     self.xhat_proj = (np.asarray(sa_sqrt
+#     #                                 @ ((vk/(1+lk)) @ vk.T)
+#     #                                 @ sa_sqrt @ self.k.T @ so_inv
+#     #                                 @ self.obs_mod_diff(self.xa))
+#     #                      + self.xa)
+#     #     self.shat_proj = np.asarray(sa_sqrt
+#     #                                 @ (((1/(1+lk))*vk) @ vk.T)
+#     #                                 @ sa_sqrt)
+#     #     # self.shat_proj = sa_sqrt @ self.shat_proj_sum(rank) @ sa_sqrt
+#     #     self.a_proj = np.asarray(sa_sqrt
+#     #                              @ (((lk/(1+lk))*vk) @ vk.T)
+#     #                              @ sa_sqrt_inv)
+#     #     print('... Complete ...\n')
 
-    # def solve_inversion_kproj(self, pct_of_info=None, rank=None):
-    #     print('... Solving projected Jacobian inversion ...')
-    #     # Get the projected solution
-    #     self.solve_inversion_proj(pct_of_info=pct_of_info, rank=rank)
+#     # def solve_inversion_kproj(self, pct_of_info=None, rank=None):
+#     #     print('... Solving projected Jacobian inversion ...')
+#     #     # Get the projected solution
+#     #     self.solve_inversion_proj(pct_of_info=pct_of_info, rank=rank)
 
-    #     # Calculate a few quantities that will be useful
-    #     sa = diags(self.sa_vec)
+#     #     # Calculate a few quantities that will be useful
+#     #     sa = diags(self.sa_vec)
 
-    #     # Calculate the solutions
-    #     self.xhat_kproj = self.xhat_proj
-    #     self.shat_kproj = np.asarray((identity(self.nstate) - self.a_proj) @ sa)
-    #     self.a_kproj = self.a_proj
-    #     print('... Complete ...\n')
+#     #     # Calculate the solutions
+#     #     self.xhat_kproj = self.xhat_proj
+#     #     self.shat_kproj = np.asarray((identity(self.nstate) - self.a_proj) @ sa)
+#     #     self.a_kproj = self.a_proj
+#     #     print('... Complete ...\n')
 
-    # def solve_inversion_fr(self, pct_of_info=None, rank=None):
-    #     print('... Solving full rank approximation inversion ...')
-    #     self.solve_inversion_kproj(pct_of_info=pct_of_info, rank=rank)
+#     # def solve_inversion_fr(self, pct_of_info=None, rank=None):
+#     #     print('... Solving full rank approximation inversion ...')
+#     #     self.solve_inversion_kproj(pct_of_info=pct_of_info, rank=rank)
 
-    #     so_inv = diags(self.rf/self.so_vec)
-    #     d = self.obs_mod_diff(self.xa)
+#     #     so_inv = diags(self.regularization_factor/self.so_vec)
+#     #     d = self.obs_mod_diff(self.xa)
 
-    #     self.xhat_fr = self.shat_kproj @ self.k.T @ so_inv @ d
-    #     print('... Complete ...\n')
+#     #     self.xhat_fr = self.shat_kproj @ self.k.T @ so_inv @ d
+#     #     print('... Complete ...\n')

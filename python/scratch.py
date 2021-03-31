@@ -2,8 +2,9 @@
 # # ## ==========================================================================
 from os.path import join
 import os
+from os import listdir
 from copy import deepcopy
-os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '6'
 
 import numpy as np
 import xarray as xr
@@ -20,10 +21,10 @@ from matplotlib import rcParams
 
 import sys
 sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
-import inversion as inv
+# import inversion as inv
 import gcpy as gc
 import invpy as ip
-import format_plots as fp
+# import format_plots as fp
 
 # def open_k(file_name):
 #     try:
@@ -32,12 +33,20 @@ import format_plots as fp
 #     except FileNotFoundError:
 #         print(f'{file_name} not found.')
 
+nstate_chunk = 23691
+# nobs_chunk = 4e4
+nobs_chunk = 3.5e4
+# nobs_chunk = 1.8
+
+
 data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
 
 k = [join(data_dir, f) for f in listdir(data_dir) if (f[:2] == 'k0') and
                                                      (f[-2:] == 'nc')]
 k.sort()
-k0 = xr.open_mfdataset(k, chunks=1000, concat_dim='nobs')
+k0 = xr.open_mfdataset(k,
+                       chunks={'nstate' : nstate_chunk, 'nobs' : nobs_chunk},
+                       concat_dim='nobs')
 k0 = k0.rename({'__xarray_dataarray_variable__' : 'k'})
 k0 = k0['k']
 
@@ -48,17 +57,23 @@ k0 = k0['k']
 # xa = gc.load_obj(join(data_dir, 'xa.pkl'))
 # sa_vec = gc.load_obj(join(data_dir, 'sa.pkl'))
 
-y = xr.open_dataarray(join(data_dir, 'y.nc'), chunks=1000)
-y_base = xr.open_dataarray(join(data_dir, 'kxa.nc'), chunks=1000)
-so_vec = xr.open_dataarray(join(data_dir, 'so_vec.nc'), chunks=1000)
-xa = xr.open_dataarray(join(data_dir, 'xa.nc'), chunks=1000)
-sa_vec = xr.open_dataarray(join(data_dir, 'sa_vec.nc'), chunks=1000)
+y = xr.open_dataarray(join(data_dir, 'y.nc'), chunks=nobs_chunk)
+y_base = xr.open_dataarray(join(data_dir, 'kxa.nc'), chunks=nobs_chunk)
+so_vec = xr.open_dataarray(join(data_dir, 'so_vec.nc'), chunks=nobs_chunk)
+xa = xr.open_dataarray(join(data_dir, 'xa.nc'), chunks=nstate_chunk)
+sa_vec = xr.open_dataarray(join(data_dir, 'sa_vec.nc'), chunks=nstate_chunk)
 
 nstate = xa.shape[0]
 nobs = y.shape[0]
 
 c = y_base - k0 @ xa
-c.to_netcdf(join(data_dir, 'c.nc'))
+# c = y_base - (k0*xa).sum(dim='nstate')
+c = c.astype('float32')
+c = c.chunk(nobs)
+
+from dask.diagnostics import ProgressBar
+with ProgressBar():
+    c.to_netcdf(join(data_dir, 'c.nc'))
 
 # # kn = open_k(k[0])
 
