@@ -54,6 +54,11 @@ It also defines the following plotting functions:
                             emissions grids
     plot_multiscale_grid    Plot the grid for a reduced dimension,
                             multiscale emissions state vector
+And the following utility functions:
+    to_xarray               Convert the inversion object to an xarray
+                            Dataset 
+    add_attr_to_dataset     Add a single attribute from Inversion to an
+                            xarray Dataset. Modifies Dataset inplace.
 '''
 
 class Inversion:
@@ -340,7 +345,7 @@ class Inversion:
     #########################
     def add_attr_to_dataset(self, ds:xr.Dataset, attr_str:str, dims:tuple):
         '''
-        Adds an attribute from Inversion instance to an xarray Dataset. Implicit method.
+        Adds an attribute from Inversion instance to an xarray Dataset. Modiefies Dataset inplace.
         '''
         attr = getattr(self,attr_str)
         if attr is None: 
