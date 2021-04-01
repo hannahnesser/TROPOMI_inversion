@@ -31,4 +31,4 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 echo "Initiating script"
-python -u ${CODE_DIR}/correct_CFL_errors.py $CORRECT_CFL_DIR $DATA_DIR $CODE_DIR
+python -u ${CODE_DIR}/preprocess_GC_output.py $CORRECT_CFL_DIR $DATA_DIR $CODE_DIR

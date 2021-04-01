@@ -16,7 +16,7 @@ YEAR="2019"
 # MONTH= months are set in the array variable
 
 # Check for unphysical stratospheric values
-jid1=$(sbatch correct_CFL_errors.sh ${PRIOR_DIR} ${CORRECT_CFL_DIR} ${CODE_DIR})
+jid1=$(sbatch preprocess_GC_output.sh ${PRIOR_DIR} ${CORRECT_CFL_DIR} ${CODE_DIR})
 
 # Apply the TROPOMI operator
 jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR})
