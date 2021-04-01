@@ -18,6 +18,12 @@ base_dir = sys.argv[2]
 data_dir = join(base_dir, 'OutputDir')
 code_dir = sys.argv[3]
 
+# input_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/'
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# data_dir = join(base_dir, 'OutputDir')
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+
+
 # Information about the files
 year = 2019
 months = np.arange(1, 13, 1)
@@ -60,7 +66,7 @@ for month in months:
         file = files.replace('YYYYMMDD', f'{year}{month:02d}{day:02d}')
 
         # Open the file
-        if file not in listdir(file.rpartition('/')[0]):
+        if file.split('/')[-1] not in listdir(file.rpartition('/')[0]):
             print(f'{file} is not in the data directory.')
             continue
         print(f'-'*75)
