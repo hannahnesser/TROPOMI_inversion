@@ -25,7 +25,7 @@ code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
 # Information about the files
 year = 2019
-months = np.arange(1, 13, 1)
+months = np.arange(7, 13, 1)
 days = np.arange(1, 32, 1)
 files = join(data_dir, 'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
 replacement_files = join(input_dir, 'halfstep_outputs',
@@ -86,12 +86,12 @@ for month in months:
 
         # Check if any values are more than 5x greater than or less than
         # the profile
-        print('Checking for anomalous values in all levels above L1.')
+        print('Checking for anomalous values in upper levels.')
         diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(5) -
                       xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
 
         # Replace the bottom level with 0s
-        diff = diff.where(diff.lev < 0.99, 0)
+        diff = diff.where(diff.lev < 0.9, 0)
 
         # If so, replace those values
         if (diff >= 1).any():
@@ -107,6 +107,7 @@ for month in months:
             rfile = replacement_files.replace('YYYYMMDD',
                                               f'{year}{month:02d}{day:02d}')
             new = xr.open_dataset(rfile)['SpeciesConc_CH4']
+
             # Check for time dimension
             if len(new.time) != 24:
                 print(f'Filling in first hour.')
