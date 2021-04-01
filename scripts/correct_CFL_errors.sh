@@ -14,7 +14,7 @@
 ## -------------------------------------------------------------------------##
 # Directories
 DATA_DIR="${1}"
-HALFSTEP_DIR="${2}" # Half step outputs
+CORRECT_CFL_DIR="${2}" # Half step outputs
 CODE_DIR="${3}"
 
 ## -------------------------------------------------------------------------##
@@ -31,4 +31,4 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 echo "Initiating script"
-python -u ${CODE_DIR}/correct_CFL_errors.py $HALFSTEP_DIR $DATA_DIR $CODE_DIR
+python -u ${CODE_DIR}/correct_CFL_errors.py $CORRECT_CFL_DIR $DATA_DIR $CODE_DIR
