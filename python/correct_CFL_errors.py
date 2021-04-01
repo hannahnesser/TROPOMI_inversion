@@ -21,7 +21,7 @@ code_dir = sys.argv[3]
 
 # Information about the files
 year = 2019
-months = np.arange(12, 13, 1)
+months = np.arange(1, 13, 1)
 days = np.arange(1, 32, 1)
 files = join(data_dir, 'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
 replacement_files = join(input_dir, 'halfstep_outputs',
@@ -61,7 +61,7 @@ for month in months:
         file = files.replace('YYYYMMDD', f'{year}{month:02d}{day:02d}')
 
         # Open the file
-        if file not in listdir(data_dir):
+        if file not in listdir(file.rpartition('/')[0]):
             print(f'{file} is not in the data directory.')
             continue
         print(f'-'*75)
