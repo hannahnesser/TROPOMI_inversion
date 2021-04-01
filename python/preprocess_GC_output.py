@@ -32,7 +32,7 @@ replacement_files = join(input_dir, 'halfstep_outputs',
                          'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
 profiles = join(input_dir, 'vertical_profiles', 'mean_profile_YYYYMM.nc')
 
-# Information on the grid # I think this is irrelevant?
+# Information on the grid
 lat_bins = np.arange(10, 65, 5)
 lat_min = 9.75
 lat_max = 60
@@ -41,6 +41,9 @@ lon_min = -130
 lon_max = -60
 lon_delta = 0.3125
 buffers = [3, 3, 3, 3]
+lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
+                                     lon_min, lon_max, lon_delta,
+                                     buffers)
 
 ## ------------------------------------------------------------------------ ##
 ## Import custom packages
@@ -74,9 +77,6 @@ for month in months:
 
         # Remove the buffer grid cells
         print('Removing buffer cells.')
-        lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
-                                             lon_min, lon_max, lon_delta,
-                                             buffers)
         data = gc.subset_data_latlon(data, *lat_e, *lon_e)
 
         # Check for time dimensiom
@@ -107,6 +107,7 @@ for month in months:
             rfile = replacement_files.replace('YYYYMMDD',
                                               f'{year}{month:02d}{day:02d}')
             new = xr.open_dataset(rfile)['SpeciesConc_CH4']
+            new = gc.subset_data_latlon(new, *lat_e, *lon_e)
 
             # Check for time dimension
             if len(new.time) != 24:
