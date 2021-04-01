@@ -25,7 +25,7 @@ code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
 # Information about the files
 year = 2019
-months = np.arange(7, 13, 1)
+months = np.arange(1, 13, 1)
 days = np.arange(1, 32, 1)
 files = join(data_dir, 'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
 replacement_files = join(input_dir, 'halfstep_outputs',
@@ -92,7 +92,7 @@ for month in months:
                       xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
 
         # Replace the bottom level with 0s
-        diff = diff.where(diff.lev < 0.9, 0)
+        diff = diff.where(diff.lev < 0.5, 0)
 
         # If so, replace those values
         if (diff >= 1).any():

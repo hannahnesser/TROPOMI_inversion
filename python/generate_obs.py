@@ -102,7 +102,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    data = np.array([]).reshape(0, 15)
+    data = np.array([]).reshape(0, 16)
     for file in prior_run:
         # Check if that file is in the data directory
         if file not in listdir(data_dir):
@@ -115,7 +115,7 @@ if type(prior_run) == list:
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
         # 10 MOD_COL, 11 CLOUD FRAC 1, 12 CLOUD FRAC 2, 13 CLOUD FRAC 3,
-        # 14 CLOUD FRAC 4
+        # 14 CLOUD FRAC 4 (15 total columns)
         new_data = gc.load_obj(join(data_dir, file))['obs_GC']
         new_data = np.insert(new_data, 15, month, axis=1) # add month
 
