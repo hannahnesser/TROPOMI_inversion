@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH -J TROPOMI_operator
-#SBATCH -o %x_%j_%a.out
+#SBATCH -J correct_CFL_errors
+#SBATCH -o %x_%j.out
 #SBATCH -c 4
 #SBATCH -N 1
 #SBATCH -p huce_intel
