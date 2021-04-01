@@ -14,7 +14,7 @@ repetition.
 from os.path import join
 import os
 from copy import deepcopy
-# os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
 
 import numpy as np
 import xarray as xr

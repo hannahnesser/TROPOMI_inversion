@@ -23,7 +23,6 @@ base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/T
 data_dir = join(base_dir, 'OutputDir')
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
-
 # Information about the files
 year = 2019
 months = np.arange(1, 13, 1)
@@ -33,7 +32,7 @@ replacement_files = join(input_dir, 'halfstep_outputs',
                          'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
 profiles = join(input_dir, 'vertical_profiles', 'mean_profile_YYYYMM.nc')
 
-# Information on the grid # I think this is irrelevant?
+# Information on the grid
 lat_bins = np.arange(10, 65, 5)
 lat_min = 9.75
 lat_max = 60
@@ -56,6 +55,10 @@ import format_plots as fp
 ## ------------------------------------------------------------------------ ##
 ## Replace stratosphere
 ## ------------------------------------------------------------------------ ##
+lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
+                                     lon_min, lon_max, lon_delta,
+                                     buffers)
+
 # Iterate through the correct files
 for month in months:
     # Open the default vertical profile
@@ -66,12 +69,16 @@ for month in months:
         file = files.replace('YYYYMMDD', f'{year}{month:02d}{day:02d}')
 
         # Open the file
-        if file not in listdir(file.rpartition('/')[0]):
+        print(f'-'*75)
+        print(f'Opening {file}')
+        if file.split('/')[-1] not in listdir(file.rpartition('/')[0]):
             print(f'{file} is not in the data directory.')
             continue
-        print(f'-'*75)
-        print(f'Checking for anomalous values in {file}')
         data = xr.open_dataset(join(data_dir, file))
+
+        # Remove the buffer grid cells
+        print('Removing buffer cells.')
+        data = gc.subset_data_latlon(data, *lat_e, *lon_e)
 
         # Check for time dimensiom
         if len(data.time) != 24:
@@ -80,8 +87,12 @@ for month in months:
 
         # Check if any values are more than 5x greater than or less than
         # the profile
+        print('Checking for anomalous values in upper levels.')
         diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(5) -
                       xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
+
+        # Replace the bottom level with 0s
+        diff = diff.where(diff.lev < 0.5, 0)
 
         # If so, replace those values
         if (diff >= 1).any():
@@ -97,6 +108,8 @@ for month in months:
             rfile = replacement_files.replace('YYYYMMDD',
                                               f'{year}{month:02d}{day:02d}')
             new = xr.open_dataset(rfile)['SpeciesConc_CH4']
+            new = gc.subset_data_latlon(new, *lat_e, *lon_e)
+
             # Check for time dimension
             if len(new.time) != 24:
                 print(f'Filling in first hour.')
@@ -113,25 +126,25 @@ for month in months:
                 new_dat = data.sel(lev=l)['SpeciesConc_CH4'].values
                 print(f'  {l:<12.2e}{np.nanmin(old_dat):<12.2e}{new_dat.min():<12.2e}{np.nanmax(old_dat):<12.2e}{new_dat.max():<12.2e}')
 
-            # Create a plot to check
-            data_summ = data['SpeciesConc_CH4'].mean(dim=['lat', 'lon'])
-            fig, ax = fp.get_figax()
-            ax.plot(profile['SpeciesConc_CH4'], profile.lev,
-                    c=fp.color(0), lw=3)
-            ax.plot(data_summ.T, data_summ.lev, c=fp.color(4),
-                    alpha=0.5, lw=0.5)
+            # # Create a plot to check
+            # data_summ = data['SpeciesConc_CH4'].mean(dim=['lat', 'lon'])
+            # fig, ax = fp.get_figax()
+            # ax.plot(profile['SpeciesConc_CH4'], profile.lev,
+            #         c=fp.color(0), lw=3)
+            # ax.plot(data_summ.T, data_summ.lev, c=fp.color(4),
+            #         alpha=0.5, lw=0.5)
 
-            title = file.split('_')[0].split('.')[-1]
-            ax = fp.add_title(ax, f'{title}')
-            ax = fp.add_labels(ax, r'XCH4 (mol mol$^{-1}$)',
-                               'Hybrid Level at Midpoints')
-            ax.set_xlim(0, 3e-6)
-            ax.set_ylim(1, 0)
+            # title = file.split('_')[0].split('.')[-1]
+            # ax = fp.add_title(ax, f'{title}')
+            # ax = fp.add_labels(ax, r'XCH4 (mol mol$^{-1}$)',
+            #                    'Hybrid Level at Midpoints')
+            # ax.set_xlim(0, 3e-6)
+            # ax.set_ylim(1, 0)
 
-            fp.save_fig(fig, data_dir, title)
+            # fp.save_fig(fig, data_dir, title)
 
             # save out file
-            data.to_netcdf(join(data_dir, file))
+        data.to_netcdf(join(data_dir, file))
 
             # # Optional plotting
             # for t in data.time:

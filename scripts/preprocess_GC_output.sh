@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH -J TROPOMI_operator
-#SBATCH -o %x_%j_%a.out
-#SBATCH -c 4
+#SBATCH -J preprocess_GC
+#SBATCH -o %x_%j.out
+#SBATCH -c 1
 #SBATCH -N 1
 #SBATCH -p huce_intel
-#SBATCH --mem 12000
-#SBATCH -t 0-00:40
+#SBATCH --mem 1200
+#SBATCH -t 0-00:30
 #SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
@@ -31,4 +31,4 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 echo "Initiating script"
-python -u ${CODE_DIR}/correct_CFL_errors.py $CORRECT_CFL_DIR $DATA_DIR $CODE_DIR
+python -u ${CODE_DIR}/preprocess_GC_output.py $CORRECT_CFL_DIR $DATA_DIR $CODE_DIR
