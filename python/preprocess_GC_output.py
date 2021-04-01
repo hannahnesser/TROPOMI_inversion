@@ -41,9 +41,6 @@ lon_min = -130
 lon_max = -60
 lon_delta = 0.3125
 buffers = [3, 3, 3, 3]
-lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
-                                     lon_min, lon_max, lon_delta,
-                                     buffers)
 
 ## ------------------------------------------------------------------------ ##
 ## Import custom packages
@@ -58,6 +55,10 @@ import format_plots as fp
 ## ------------------------------------------------------------------------ ##
 ## Replace stratosphere
 ## ------------------------------------------------------------------------ ##
+lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
+                                     lon_min, lon_max, lon_delta,
+                                     buffers)
+
 # Iterate through the correct files
 for month in months:
     # Open the default vertical profile
