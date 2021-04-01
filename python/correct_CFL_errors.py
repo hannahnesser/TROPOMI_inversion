@@ -8,16 +8,21 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import imageio
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Local preferences
-input_dir = sys.argv[1]
-base_dir = sys.argv[2]
+# input_dir = sys.argv[1]
+# base_dir = sys.argv[2]
+# data_dir = join(base_dir, 'OutputDir')
+# code_dir = sys.argv[3]
+
+input_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/'
+base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
 data_dir = join(base_dir, 'OutputDir')
-code_dir = sys.argv[3]
+code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+
 
 # Information about the files
 year = 2019
