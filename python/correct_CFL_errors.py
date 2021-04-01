@@ -13,15 +13,15 @@ import matplotlib.pyplot as plt
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Local preferences
-input_dir = sys.argv[1]
-base_dir = sys.argv[2]
-data_dir = join(base_dir, 'OutputDir')
-code_dir = sys.argv[3]
-
-# input_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/'
-# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# input_dir = sys.argv[1]
+# base_dir = sys.argv[2]
 # data_dir = join(base_dir, 'OutputDir')
-# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# code_dir = sys.argv[3]
+
+input_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/'
+base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+data_dir = join(base_dir, 'OutputDir')
+code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
 
 # Information about the files
@@ -69,9 +69,16 @@ for month in months:
         if file.split('/')[-1] not in listdir(file.rpartition('/')[0]):
             print(f'{file} is not in the data directory.')
             continue
-        print(f'-'*75)
-        print(f'Checking for anomalous values in {file}')
         data = xr.open_dataset(join(data_dir, file))
+
+        print(f'-'*75)
+
+        # Remove the buffer grid cells
+        print('Removing buffer cells')
+        lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
+                                             lon_min, lon_max, lon_delta,
+                                             buffers)
+        data = gc.subset_data_latlon(data, *lat_e, *lon_e)
 
         # Check for time dimensiom
         if len(data.time) != 24:
@@ -80,6 +87,7 @@ for month in months:
 
         # Check if any values are more than 5x greater than or less than
         # the profile
+        print(f'Checking for anomalous values in {file}')
         diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(5) -
                       xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
 
@@ -113,25 +121,25 @@ for month in months:
                 new_dat = data.sel(lev=l)['SpeciesConc_CH4'].values
                 print(f'  {l:<12.2e}{np.nanmin(old_dat):<12.2e}{new_dat.min():<12.2e}{np.nanmax(old_dat):<12.2e}{new_dat.max():<12.2e}')
 
-            # Create a plot to check
-            data_summ = data['SpeciesConc_CH4'].mean(dim=['lat', 'lon'])
-            fig, ax = fp.get_figax()
-            ax.plot(profile['SpeciesConc_CH4'], profile.lev,
-                    c=fp.color(0), lw=3)
-            ax.plot(data_summ.T, data_summ.lev, c=fp.color(4),
-                    alpha=0.5, lw=0.5)
+            # # Create a plot to check
+            # data_summ = data['SpeciesConc_CH4'].mean(dim=['lat', 'lon'])
+            # fig, ax = fp.get_figax()
+            # ax.plot(profile['SpeciesConc_CH4'], profile.lev,
+            #         c=fp.color(0), lw=3)
+            # ax.plot(data_summ.T, data_summ.lev, c=fp.color(4),
+            #         alpha=0.5, lw=0.5)
 
-            title = file.split('_')[0].split('.')[-1]
-            ax = fp.add_title(ax, f'{title}')
-            ax = fp.add_labels(ax, r'XCH4 (mol mol$^{-1}$)',
-                               'Hybrid Level at Midpoints')
-            ax.set_xlim(0, 3e-6)
-            ax.set_ylim(1, 0)
+            # title = file.split('_')[0].split('.')[-1]
+            # ax = fp.add_title(ax, f'{title}')
+            # ax = fp.add_labels(ax, r'XCH4 (mol mol$^{-1}$)',
+            #                    'Hybrid Level at Midpoints')
+            # ax.set_xlim(0, 3e-6)
+            # ax.set_ylim(1, 0)
 
-            fp.save_fig(fig, data_dir, title)
+            # fp.save_fig(fig, data_dir, title)
 
             # save out file
-            data.to_netcdf(join(data_dir, file))
+        data.to_netcdf(join(data_dir, file))
 
             # # Optional plotting
             # for t in data.time:

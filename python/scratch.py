@@ -3,23 +3,58 @@
 # t = 2
 # s = 3
 # print(f'{o: <10}{t: <15}{s: <15}')
+# import xarray as xr
+# import pandas as pd
+
+# file = '/Users/hannahnesser/Downloads/s5p_l2_ch4_0014_15511.nc'
+# d = xr.open_dataset(file, group='diagnostics')
+# mask_qa = (d['qa_value'] <= 1)
+
+# tmp = xr.open_dataset(file,
+#                       group='instrument')
+# dates = pd.DataFrame(tmp['time'].values[mask_qa][:,:-1],
+#                      columns=['year', 'month', 'day', 'hour', 'minute', 'second'])
+# dates = pd.to_datetime(dates).dt.strftime('%Y%m%dT%H%M%S')
+# start_date = dates.min()
+# end_date = dates.max()
+
+# print(start_date)
+# print(end_date)
+
 import xarray as xr
-import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-file = '/Users/hannahnesser/Downloads/s5p_l2_ch4_0014_15511.nc'
-d = xr.open_dataset(file, group='diagnostics')
-mask_qa = (d['qa_value'] <= 1)
+for m in range(1, 13):
+    file = f'../gc_outputs/vertical_profiles/mean_profile_2019{m:02d}.nc'
+    profile = xr.open_dataset(file)
 
-tmp = xr.open_dataset(file,
-                      group='instrument')
-dates = pd.DataFrame(tmp['time'].values[mask_qa][:,:-1],
-                     columns=['year', 'month', 'day', 'hour', 'minute', 'second'])
-dates = pd.to_datetime(dates).dt.strftime('%Y%m%dT%H%M%S')
-start_date = dates.min()
-end_date = dates.max()
+    plt.plot(profile['SpeciesConc_CH4'], profile.lev, c='black', alpha=0.5)
+    plt.plot(profile['SpeciesConc_CH4']*5, profile.lev, c='blue', alpha=0.5)
+    plt.plot(profile['SpeciesConc_CH4']/5, profile.lev, c='blue', alpha=0.5)
+    plt.ylim(1, 0)
 
-print(start_date)
-print(end_date)
+
+file = '../gc_outputs/species_conc/GEOSChem.SpeciesConc.20190101_0000z.nc4'
+data = xr.open_dataset(file)
+
+# Check if any values are more than 5x greater than or less than
+# the profile
+diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(5) -
+              xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
+
+print(diff.where(diff > 1, drop=True))
+
+# plt.show()
+# data2 = data2.mean(dim=['lat', 'lon'])
+# print(data2)
+# for t in data2.time:
+#     d = data2.sel(time=t)
+#     plt.plot(d, d.lev, c='blue', alpha=0.5)
+
+# print(data2)
+
+# plt.show()
 
 # print(mask_qa.shape)
 
