@@ -23,7 +23,6 @@ base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/T
 data_dir = join(base_dir, 'OutputDir')
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
-
 # Information about the files
 year = 2019
 months = np.arange(1, 13, 1)
@@ -66,15 +65,15 @@ for month in months:
         file = files.replace('YYYYMMDD', f'{year}{month:02d}{day:02d}')
 
         # Open the file
+        print(f'-'*75)
+        print(f'Opening {file}')
         if file.split('/')[-1] not in listdir(file.rpartition('/')[0]):
             print(f'{file} is not in the data directory.')
             continue
         data = xr.open_dataset(join(data_dir, file))
 
-        print(f'-'*75)
-
         # Remove the buffer grid cells
-        print('Removing buffer cells')
+        print('Removing buffer cells.')
         lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
                                              lon_min, lon_max, lon_delta,
                                              buffers)
@@ -87,9 +86,12 @@ for month in months:
 
         # Check if any values are more than 5x greater than or less than
         # the profile
-        print(f'Checking for anomalous values in {file}')
+        print('Checking for anomalous values in all levels above L1.')
         diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(5) -
                       xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
+
+        # Replace the bottom level with 0s
+        diff = diff.where(diff.lev < 0.99, 0)
 
         # If so, replace those values
         if (diff >= 1).any():

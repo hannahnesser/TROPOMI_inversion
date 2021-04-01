@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -J correct_CFL_errors
+#SBATCH -J preprocess_GC
 #SBATCH -o %x_%j.out
 #SBATCH -c 4
 #SBATCH -N 1

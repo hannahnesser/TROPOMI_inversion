@@ -25,25 +25,35 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 
-for m in range(1, 13):
-    file = f'../gc_outputs/vertical_profiles/mean_profile_2019{m:02d}.nc'
-    profile = xr.open_dataset(file)
+# for m in range(1, 13):
 
-    plt.plot(profile['SpeciesConc_CH4'], profile.lev, c='black', alpha=0.5)
-    plt.plot(profile['SpeciesConc_CH4']*5, profile.lev, c='blue', alpha=0.5)
-    plt.plot(profile['SpeciesConc_CH4']/5, profile.lev, c='blue', alpha=0.5)
-    plt.ylim(1, 0)
+file = f'../gc_outputs/vertical_profiles/mean_profile_201907.nc'
+profile = xr.open_dataset(file)
+
+plt.plot(profile['SpeciesConc_CH4'], profile.lev, c='black', alpha=0.5)
+plt.plot(profile['SpeciesConc_CH4']*5, profile.lev, c='blue', alpha=0.5)
+plt.plot(profile['SpeciesConc_CH4']/5, profile.lev, c='blue', alpha=0.5)
+plt.ylim(1, 0)
 
 
-file = '../gc_outputs/species_conc/GEOSChem.SpeciesConc.20190101_0000z.nc4'
+file = '../gc_outputs/species_conc/GEOSChem.SpeciesConc.20190715_0000z.nc4'
 data = xr.open_dataset(file)
 
 # Check if any values are more than 5x greater than or less than
 # the profile
 diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(5) -
               xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
+diff = diff.where(diff.lev < 0.99, 0)
 
-print(diff.where(diff > 1, drop=True))
+print(diff.lev.values)
+print(diff.sel(lev=diff.lev[0]))
+
+# print(data['SpeciesConc_CH4'].where(diff > 1, drop=True).lon.values)
+
+# emis = xr.open_dataset('../prior/total_emissions/HEMCO_diagnostics.201907010000.nc')
+# emis = emis.sel(lat=52.5, lon=-90.3125)
+# [print(var, emis[var].values[0]) for var in emis.keys() if var[:4] == 'Emis']
+
 
 # plt.show()
 # data2 = data2.mean(dim=['lat', 'lon'])
