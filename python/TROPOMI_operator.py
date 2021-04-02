@@ -366,7 +366,9 @@ if __name__ == '__main__':
     allfiles = glob.glob(sat_data_dir+'*.nc')
     allfiles.sort()
 
-    # Exclude the file associated with the 11427th orbit
+    # Exclude the file associated with the 11427th orbit. This orbit fails
+    # to remove cloudy scenes over coastal eastern Mexico on December 27th,
+    # resulting in very underestimated methane retrievals.
     allfiles = [f for f in allfiles if '_11427_' not in f]
 
     # Create empty list
