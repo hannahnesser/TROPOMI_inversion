@@ -72,6 +72,9 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
                        & (data['time'][:, 1] == int(date[4:6]))
                        & (data['time'][:, 2] == int(date[6:]))), drop=True)
 
+    # Filter on nan cloud fraction values
+    data = data.dropna(dim='nobs', how='any')
+
     return data
 
 def process_tropomi(data, date):
@@ -111,9 +114,9 @@ def process_tropomi(data, date):
     data = data.assign(pressures=pressures, pressures_mid=pressures_mid)
 
     # Remove irrelevant variables
-    data = data.drop(labels=['latitude_corners', 'longitude_corners',
-                             'glintflag', 'altitude_levels',
-                             'surface_altitude', 'time'])
+    data = data.drop(labels=['glintflag', 'altitude_levels',
+                             'surface_altitude', 'time',
+                             'cloud_fraction'])
 
     # Rename variables
     data = data.rename({'xch4_corrected' : 'methane',
@@ -126,7 +129,7 @@ def process_tropomi(data, date):
                         'ch4_profile_apriori' : 'methane_profile_apriori'})
 
     # Transpose
-    data = data.transpose('nobs', 'nwin', 'nfov', 'nlayer', 'ilayer')
+    data = data.transpose('nobs', 'nwin', 'ncorner', 'nlayer', 'ilayer')
 
     return data
 
@@ -440,7 +443,7 @@ if __name__ == '__main__':
 
         # create an empty matrix to store TROPOMI CH4, GC CH4,
         # lon, lat, II, and JJ (GC indices)
-        temp_obs_GC=np.zeros([NN, 15],dtype=np.float32)
+        temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
 
         #================================
         #--- now compute sensitivity ---
@@ -492,10 +495,6 @@ if __name__ == '__main__':
         temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
         temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
         temp_obs_GC[:, 10] = GC_COL
-        temp_obs_GC[:, 11] = TROPOMI['cloud_fraction'][:,0]
-        temp_obs_GC[:, 12] = TROPOMI['cloud_fraction'][:,1]
-        temp_obs_GC[:, 13] = TROPOMI['cloud_fraction'][:,2]
-        temp_obs_GC[:, 14] = TROPOMI['cloud_fraction'][:,3]
 
         result={}
         result['obs_GC'] = temp_obs_GC

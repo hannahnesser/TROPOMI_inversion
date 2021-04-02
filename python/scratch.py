@@ -23,33 +23,88 @@
 
 import gcpy as gc
 import format_plots as fp
+import xarray as xr
 import matplotlib.pyplot as plt
+import pandas as pd
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 10)
 
-data = gc.load_obj('../observations/20191227_GCtoTROPOMI.pkl')['obs_GC']
+# data = gc.load_obj('../observations/20191227_GCtoTROPOMI.pkl')['obs_GC']
+# Load data
+data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427.nc',
+                       group='target_product')
+xch4 = data['xch4_corrected']
 
-lat_min = 9.75
-lat_max = 60
-lat_delta = 0.25
-lon_min = -130
-lon_max = -60
-lon_delta = 0.3125
-buffers = [3, 3, 3, 3]
+data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427.nc',
+                       group='meteo', mask_and_scale=False)
+cirrus = data['cloud_fraction']
+
+data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427.nc',
+                       group='instrument')
+latlon = data[['latitude_center', 'longitude_center']]
+latlon = latlon.rename({'latitude_center' : 'lat', 'longitude_center' : 'lon'})
+
+data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427.nc',
+                       group='diagnostics')
+diag = data[['processing_quality_flags', 'error_id', 'qa_value']]
+
+# Combine
+data = xr.merge([xch4, latlon, diag, cirrus])
+# data = data.to_dataframe()
+
+# 897195
+print(data.dropna(dim='nobs', how='any'))
+
+# # Masks
+# lat_min = 9.75
+# lat_max = 60
+# lon_min = -130
+# lon_max = -60
+# data = data[data['xch4_corrected'] != 9.969210e36]
+# data = data[data['qa_value'] > 0.5]
+# data = data[(data['lat'] >= lat_min) & (data['lat'] <= lat_max) &
+#             (data['lon'] >= lon_min) & (data['lon'] <= lon_max)]
+
+# print(data)
+
+# data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427_proc.nc')
+
+# Now take a look at values less than 1700
+# data = data[data['xch4_corrected'] <= 1700]
+# data = data.to_dataframe()
+# plt.scatter(data['cirrus_reflectance'], data['xch4_corrected'], s=1, alpha=0.5,
+#             c='blue')
+# plt.xlabel('Cirrus Reflectance')
+# plt.ylabel('XCH4 Corrected')
+# plt.title('Just for Bram')
+# plt.show()
 
 
-fig, ax = fp.get_figax(maps=True,
-                       lats=[lat_min, lat_max], lons=[lon_min, lon_max])
 
-c = ax.scatter(data[:, 2], data[:, 3], c=data[:, 0], cmap='plasma',
-           vmin=1550, vmax=1900, s=2)
+# print(xch4)
+# print(latlon)
+# print(diag)
 
-ax = fp.format_map(ax, [lat_min, lat_max], [lon_min, lon_max])
-cax = fp.add_cax(fig, ax)
-cb = fig.colorbar(c, ax=ax, cax=cax)
-cb = fp.format_cbar(cb, 'XCH4 (ppb)')
+# Masks
 
-fp.save_fig(fig, '.', f'20211227_Mexico')
 
-plt.show()
+
+
+
+# fig, ax = fp.get_figax(maps=True,
+#                        lats=[lat_min, lat_max], lons=[lon_min, lon_max])
+
+# c = ax.scatter(data[:, 2], data[:, 3], c=data[:, 0], cmap='plasma',
+#            vmin=1550, vmax=1900, s=2)
+
+# ax = fp.format_map(ax, [lat_min, lat_max], [lon_min, lon_max])
+# cax = fp.add_cax(fig, ax)
+# cb = fig.colorbar(c, ax=ax, cax=cax)
+# cb = fp.format_cbar(cb, 'XCH4 (ppb)')
+
+# fp.save_fig(fig, '.', f'20211227_Mexico')
+
+# plt.show()
 
 
 # import xarray as xr

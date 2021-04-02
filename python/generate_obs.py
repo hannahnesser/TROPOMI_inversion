@@ -26,44 +26,48 @@ pd.set_option('display.max_columns', None)
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# # Local preferences
-# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-# code_dir = base_dir + 'python'
-# data_dir = base_dir + 'observations'
-# output_dir = base_dir + 'inversion_data'
-# plot_dir = base_dir + 'plots'
+# Local preferences
+base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+code_dir = base_dir + 'python'
+data_dir = base_dir + 'observations'
+output_dir = base_dir + 'inversion_data'
+plot_dir = base_dir + 'plots'
 
-# # Cannon preferences
+# Cannon preferences
 # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-
 # base_dir = sys.argv[1]
 # code_dir = sys.argv[2]
-data_dir = f'{base_dir}ProcessedDir'
-output_dir = f'{base_dir}SummaryDir'
-plot_dir = None
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = f'{base_dir}SummaryDir'
+# plot_dir = None
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
 months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-# prior_run = f'{year}.pkl'
-prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-             for mm in months for dd in days]
-prior_run.sort()
+prior_run = f'{year}.pkl'
+# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+#              for mm in months for dd in days]
+# prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
 blended_albedo_threshold = 1
 albedo_bins = np.arange(0, 1.1, 0.1)
 
+# Remove low values with 0 cloud fraction that may be misidentified
+# VIIRS missing data
+filter_on_cloud_fraction = True
+cloud_fraction_ppb_threshold = 1700
+
 # Remove latitudinal bias
 remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
 analyze_biases = False
-calculate_so = True
+calculate_so = False
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
@@ -147,9 +151,6 @@ if type(prior_run) == list:
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
 
-    # Filter out data with observations lower than
-
-
     # Print out some statistics
     cols = ['LAT', 'LON', 'MONTH', 'MOD']
     print('MODEL MAXIMUM : ', data['MOD'].max())
@@ -174,18 +175,18 @@ print('Data is loaded.')
 ## ----------------------------------------- ##
 if filter_on_blended_albedo:
     # Plot values
-    if plot_dir is not None:
-        for m in months:
-            d = data[data['MONTH'] == m]
-            fig, ax = fp.get_figax(aspect=1.75)
-            ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-                       c=fp.color(4), s=3, alpha=0.5)
-            ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
-            ax.set_xlim(0, 2)
-            ax = fp.add_title(ax, cal.month_name[m])
-            ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
-            fp.save_fig(fig, plot_dir,
-                        f'blended_albedo_filter_{m:02d}{suffix}')
+    # if plot_dir is not None:
+    #     for m in months:
+    #         d = data[data['MONTH'] == m]
+    #         fig, ax = fp.get_figax(aspect=1.75)
+    #         ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
+    #                    c=fp.color(4), s=3, alpha=0.5)
+    #         ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
+    #         ax.set_xlim(0, 2)
+    #         ax = fp.add_title(ax, cal.month_name[m])
+    #         ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
+    #         fp.save_fig(fig, plot_dir,
+    #                     f'blended_albedo_filter_{m:02d}{suffix}')
 
     # Apply the blended albedo filter
     old_nobs = data.shape[0]
@@ -200,9 +201,34 @@ if filter_on_blended_albedo:
     summ = pd.concat([summ.min(), summ.max()], axis=1)
     print(summ)
 
+if filter_on_cloud_fraction:
+    cloud_cond = (data[[f'CLOUD_FRAC_{i}' for i in range(4)]] == 0).all(axis=1)
+    old_nobs = data.shape[0]
+    data = data[cloud_cond & (data['OBS'] > cloud_fraction_ppb_threshold)]
+    nobs = data.shape[0]
+    # Print information
+    print(f'\nData is filtered to remove possible VIIRS errors.')
+    print(f'    {100*nobs/old_nobs:.1f}% of data is preserved.')
+    print(f'    TROPOMI statistics:')
+    summ = data.groupby('MONTH')[['OBS', 'DIFF']]
+    summ = pd.concat([summ.min(), summ.max()], axis=1)
+    print(summ)
+
 if remove_latitudinal_bias:
+    if plot_dir is not None:
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.scatter(data['LAT'], data['DIFF'],
+                   c=fp.color(4), s=1, alpha=0.1)
+        ax = fp.add_title(ax, 'Latitudinal Gradient')
+        ax = fp.add_labels(ax, 'Latitude', 'Model - Observation (ppb)')
+        fp.save_fig(fig, plot_dir,
+                    f'latitudinal_gradient{suffix}')
+
     # Correct the latitudinal bias
+    print('*'*75)
+    print(data[data['DIFF'].isnull()])
     coef = p.polyfit(data['LAT'], data['DIFF'], deg=1)
+    print(coef)
     bias_correction = p.polyval(data['LAT'], coef)
     data['MOD'] -= bias_correction
     data['DIFF'] -= bias_correction
