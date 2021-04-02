@@ -363,8 +363,11 @@ if __name__ == '__main__':
     ## List all satellite files for the year and date defined
     ## ---------------------------------------------------------------------##
     # List all raw netcdf TROPOMI files
-    allfiles=glob.glob(sat_data_dir+'*.nc')
+    allfiles = glob.glob(sat_data_dir+'*.nc')
     allfiles.sort()
+
+    # Exclude the file associated with the 11427th orbit
+    allfiles = [f for f in allfiles if '_11427_' not in f]
 
     # Create empty list
     Sat_files = {}

@@ -21,32 +21,63 @@
 # print(start_date)
 # print(end_date)
 
-import xarray as xr
-import numpy as np
+import gcpy as gc
+import format_plots as fp
 import matplotlib.pyplot as plt
 
-# for m in range(1, 13):
+data = gc.load_obj('../observations/20191227_GCtoTROPOMI.pkl')['obs_GC']
 
-file = f'../gc_outputs/vertical_profiles/mean_profile_201907.nc'
-profile = xr.open_dataset(file)
+lat_min = 9.75
+lat_max = 60
+lat_delta = 0.25
+lon_min = -130
+lon_max = -60
+lon_delta = 0.3125
+buffers = [3, 3, 3, 3]
 
-plt.plot(profile['SpeciesConc_CH4'], profile.lev, c='black', alpha=0.5)
-plt.plot(profile['SpeciesConc_CH4']*5, profile.lev, c='blue', alpha=0.5)
-plt.plot(profile['SpeciesConc_CH4']/5, profile.lev, c='blue', alpha=0.5)
-plt.ylim(1, 0)
+
+fig, ax = fp.get_figax(maps=True,
+                       lats=[lat_min, lat_max], lons=[lon_min, lon_max])
+
+c = ax.scatter(data[:, 2], data[:, 3], c=data[:, 0], cmap='plasma',
+           vmin=1550, vmax=1900, s=2)
+
+ax = fp.format_map(ax, [lat_min, lat_max], [lon_min, lon_max])
+cax = fp.add_cax(fig, ax)
+cb = fig.colorbar(c, ax=ax, cax=cax)
+cb = fp.format_cbar(cb, 'XCH4 (ppb)')
+
+fp.save_fig(fig, '.', f'20211227_Mexico')
+
+plt.show()
 
 
-file = '../gc_outputs/species_conc/GEOSChem.SpeciesConc.20190715_0000z.nc4'
-data = xr.open_dataset(file)
+# import xarray as xr
+# import numpy as np
+# import matplotlib.pyplot as plt
 
-# Check if any values are more than 5x greater than or less than
-# the profile
-diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(5) -
-              xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
-diff = diff.where(diff.lev < 0.99, 0)
+# # for m in range(1, 13):
 
-print(diff.lev.values)
-print(diff.sel(lev=diff.lev[0]))
+# file = f'../gc_outputs/vertical_profiles/mean_profile_201907.nc'
+# profile = xr.open_dataset(file)
+
+# plt.plot(profile['SpeciesConc_CH4'], profile.lev, c='black', alpha=0.5)
+# plt.plot(profile['SpeciesConc_CH4']*5, profile.lev, c='blue', alpha=0.5)
+# plt.plot(profile['SpeciesConc_CH4']/5, profile.lev, c='blue', alpha=0.5)
+# plt.ylim(1, 0)
+
+
+# file = '../gc_outputs/species_conc/GEOSChem.SpeciesConc.20190715_0000z.nc4'
+# data = xr.open_dataset(file)
+
+# # Check if any values are more than 5x greater than or less than
+# # the profile
+# diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(5) -
+#               xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(5))
+# diff = diff.where(diff.lev < 0.99, 0)
+
+# print(diff.lev.values)
+# print(diff.sel(lev=diff.lev[0]))
 
 # print(data['SpeciesConc_CH4'].where(diff > 1, drop=True).lon.values)
 

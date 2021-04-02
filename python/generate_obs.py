@@ -37,8 +37,8 @@ pd.set_option('display.max_columns', None)
 # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
-base_dir = sys.argv[1]
-code_dir = sys.argv[2]
+# base_dir = sys.argv[1]
+# code_dir = sys.argv[2]
 data_dir = f'{base_dir}ProcessedDir'
 output_dir = f'{base_dir}SummaryDir'
 plot_dir = None
@@ -102,7 +102,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    data = np.array([]).reshape(0, 16)
+    data = np.array([]).reshape(0, 17)
     for file in prior_run:
         # Check if that file is in the data directory
         if file not in listdir(data_dir):
@@ -111,6 +111,7 @@ if type(prior_run) == list:
 
         # Get the month
         month = int(file[4:6])
+        day = int(file[6:8])
 
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
@@ -118,6 +119,7 @@ if type(prior_run) == list:
         # 14 CLOUD FRAC 4 (15 total columns)
         new_data = gc.load_obj(join(data_dir, file))['obs_GC']
         new_data = np.insert(new_data, 15, month, axis=1) # add month
+        new_data = np.insert(new_data, 16, day, axis=1)
 
         data = np.concatenate((data, new_data))
 
@@ -128,7 +130,7 @@ if type(prior_run) == list:
     columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
                'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
                'CLOUD_FRAC_0', 'CLOUD_FRAC_1', 'CLOUD_FRAC_2', 'CLOUD_FRAC_3',
-               'MONTH']
+               'MONTH', 'DAY']
     data = pd.DataFrame(data, columns=columns)
 
     # Calculate blended albedo
@@ -137,13 +139,16 @@ if type(prior_run) == list:
                                                data['ALBEDO_NIR'])
 
     # Subset data
-    data = data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT', 'OBS', 'MOD',
+    data = data[['iGC', 'jGC', 'MONTH', 'DAY', 'LON', 'LAT', 'OBS', 'MOD',
                  'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO',
                  'CLOUD_FRAC_0', 'CLOUD_FRAC_1',
                  'CLOUD_FRAC_2', 'CLOUD_FRAC_3']]
 
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
+
+    # Filter out data with observations lower than
+
 
     # Print out some statistics
     cols = ['LAT', 'LON', 'MONTH', 'MOD']

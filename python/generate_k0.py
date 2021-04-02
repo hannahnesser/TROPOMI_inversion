@@ -49,7 +49,6 @@ k_nstate = f'{data_dir}k0_nstate.pkl' # None
 # Which analyses do you wish to perform?
 
 # Information on the grid
-lat_bins = np.arange(10, 65, 5)
 lat_min = 9.75
 lat_max = 60
 lat_delta = 0.25
