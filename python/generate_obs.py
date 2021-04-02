@@ -175,18 +175,18 @@ print('Data is loaded.')
 ## ----------------------------------------- ##
 if filter_on_blended_albedo:
     # Plot values
-    # if plot_dir is not None:
-    #     for m in months:
-    #         d = data[data['MONTH'] == m]
-    #         fig, ax = fp.get_figax(aspect=1.75)
-    #         ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-    #                    c=fp.color(4), s=3, alpha=0.5)
-    #         ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
-    #         ax.set_xlim(0, 2)
-    #         ax = fp.add_title(ax, cal.month_name[m])
-    #         ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
-    #         fp.save_fig(fig, plot_dir,
-    #                     f'blended_albedo_filter_{m:02d}{suffix}')
+    if plot_dir is not None:
+        for m in months:
+            d = data[data['MONTH'] == m]
+            fig, ax = fp.get_figax(aspect=1.75)
+            ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
+                       c=fp.color(4), s=3, alpha=0.5)
+            ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
+            ax.set_xlim(0, 2)
+            ax = fp.add_title(ax, cal.month_name[m])
+            ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
+            fp.save_fig(fig, plot_dir,
+                        f'blended_albedo_filter_{m:02d}{suffix}')
 
     # Apply the blended albedo filter
     old_nobs = data.shape[0]

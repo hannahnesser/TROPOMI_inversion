@@ -60,11 +60,11 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
     data = data.where(data['xch4_corrected'] != 9.96921e36, drop=True)
 
     # Filter on lat/lon domain
-    data = data.where((data['longitude_center'] >= lon_min-lon_delta/2) &
-                      (data['longitude_center'] <= lon_max+lon_delta/2),
+    data = data.where((data['longitude_center'] >= lon_min) &
+                      (data['longitude_center'] <= lon_max),
                       drop=True)
-    data = data.where((data['latitude_center'] >= lat_min-lat_delta/2) &
-                      (data['latitude_center'] <= lat_max+lat_delta/2),
+    data = data.where((data['latitude_center'] >= lat_min) &
+                      (data['latitude_center'] <= lat_max),
                       drop=True)
 
     # Filter on dates
