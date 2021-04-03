@@ -76,7 +76,7 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
     data = data.dropna(dim='nobs', how='any')
 
     # Filter on glint flag
-    data = data.where(data['glintflag'] == 0)
+    data = data.where(data['glintflag'] == 0, drop=True)
 
     return data
 
