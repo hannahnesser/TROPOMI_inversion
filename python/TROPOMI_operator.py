@@ -17,9 +17,9 @@ import gcpy as gc
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
-# sat_data_dir = "/n/seasasfs02/hnesser/TROPOMI/downloads_14_14/"
-# GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/OutputDir/"
-# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_pf_check/ProcessedDir/"
+# sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
+# GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
+# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
 
 # LON_MIN = -130
 # LON_MAX = -60
@@ -74,6 +74,9 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
 
     # Filter on nan cloud fraction values
     data = data.dropna(dim='nobs', how='any')
+
+    # Filter on glint flag
+    data = data.where(data['glintflag'] == 0)
 
     return data
 
