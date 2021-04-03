@@ -17,20 +17,20 @@ import gcpy as gc
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
-# sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-# GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
-# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
+sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
+GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
+output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
 
-# LON_MIN = -130
-# LON_MAX = -60
-# LON_DELTA = 0.3125
-# LAT_MIN = 9.75
-# LAT_MAX = 60
-# LAT_DELTA = 0.25
-# BUFFER = [3, 3, 3, 3] # [N S E W]
+LON_MIN = -130
+LON_MAX = -60
+LON_DELTA = 0.3125
+LAT_MIN = 9.75
+LAT_MAX = 60
+LAT_DELTA = 0.25
+BUFFER = [3, 3, 3, 3] # [N S E W]
 
-# YEAR = 2019
-# MONTH = 1
+YEAR = 2019
+MONTH = 1
 
 # ## -------------------------------------------------------------------------##
 # ## Remove buffer boxes
@@ -431,12 +431,12 @@ if __name__ == '__main__':
                                     chunks=10000,
                                     preprocess=preprocess,
                                     mask_and_scale=False)
-        TROPOMI = process_tropomi(TROPOMI, date)
-
-        if TROPOMI is None:
+        if len(TROPOMI.nobs) == 0:
             print('No observations remain.')
             print('================================')
             continue
+
+        TROPOMI = process_tropomi(TROPOMI, date)
 
         # Get observation dimension (number of good observations in that single
         # observation file)
