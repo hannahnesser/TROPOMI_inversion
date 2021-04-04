@@ -72,16 +72,8 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
                        & (data['time'][:, 1] == int(date[4:6]))
                        & (data['time'][:, 2] == int(date[6:]))), drop=True)
 
-    # We know everything above this works
-    print(f'After initial filtering, {len(data.nobs)} observations remain.')
-
     # Filter on nan cloud fraction values
     data = data.dropna(dim='nobs', how='any')
-    print(f'After cloud filtering, {len(data.nobs)} observations remain.')
-
-    # Filter on glint flag
-    data = data.where(data['glintflag'] == 0, drop=True)
-    print(f'After glint filtering, {len(data.nobs)} observations remain.')
 
     return data
 
@@ -122,8 +114,7 @@ def process_tropomi(data, date):
     data = data.assign(pressures=pressures, pressures_mid=pressures_mid)
 
     # Remove irrelevant variables
-    data = data.drop(labels=['glintflag', 'altitude_levels',
-                             'surface_altitude', 'time',
+    data = data.drop(labels=['altitude_levels', 'surface_altitude', 'time',
                              'cloud_fraction'])
 
     # Rename variables
@@ -134,7 +125,8 @@ def process_tropomi(data, date):
                         'surface_albedo' : 'albedo',
                         'aerosol_optical_thickness' : 'aerosol_optical_depth',
                         'xch4_column_averaging_kernel' : 'column_AK',
-                        'ch4_profile_apriori' : 'methane_profile_apriori'})
+                        'ch4_profile_apriori' : 'methane_profile_apriori',
+                        'glintflag' : 'glint'})
 
     # Transpose
     data = data.transpose('nobs', 'nwin', 'ncorner', 'nlayer', 'ilayer')
@@ -451,7 +443,7 @@ if __name__ == '__main__':
 
         # create an empty matrix to store TROPOMI CH4, GC CH4,
         # lon, lat, II, and JJ (GC indices)
-        temp_obs_GC=np.zeros([NN, 11],dtype=np.float32)
+        temp_obs_GC=np.zeros([NN, 12],dtype=np.float32)
 
         #================================
         #--- now compute sensitivity ---
@@ -502,7 +494,8 @@ if __name__ == '__main__':
         temp_obs_GC[:, 7] = TROPOMI['albedo'][:,1]
         temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
         temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
-        temp_obs_GC[:, 10] = GC_COL
+        temp_obs_GC[:, 10] = TROPOMI['glint']
+        temp_obs_GC[:, 11] = GC_COL
 
         result={}
         result['obs_GC'] = temp_obs_GC

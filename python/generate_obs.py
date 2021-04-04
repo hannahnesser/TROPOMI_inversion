@@ -171,7 +171,7 @@ if filter_on_blended_albedo:
             d = data[data['MONTH'] == m]
             fig, ax = fp.get_figax(aspect=1.75)
             ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-                       c=fp.color(4), s=3, alpha=0.5)
+                       c=fp.color(4), s=3, alpha=0.1)
             ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
             ax.set_xlim(0, 2)
             ax = fp.add_title(ax, cal.month_name[m])
@@ -193,6 +193,12 @@ if filter_on_blended_albedo:
     summ = data.groupby('MONTH')[['OBS', 'DIFF']]
     summ = pd.concat([summ.min(), summ.max()], axis=1)
     print(summ)
+
+fig, ax = fp.get_figax(maps=True, lats=[lat_min, lat_max],
+                       lons=[lon_min, lon_max])
+ax.scatter(data['LON'], data['LAT'], c=data['OBS'], s=1,
+           cmap='plasma', vmin=1800, vmax=2000)
+plt.show()
 
 if remove_latitudinal_bias:
     # if plot_dir is not None:
