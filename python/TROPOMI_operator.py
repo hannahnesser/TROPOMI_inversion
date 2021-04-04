@@ -17,20 +17,20 @@ import gcpy as gc
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
-sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
-output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
+# sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
+# GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
+# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
 
-LON_MIN = -130
-LON_MAX = -60
-LON_DELTA = 0.3125
-LAT_MIN = 9.75
-LAT_MAX = 60
-LAT_DELTA = 0.25
-BUFFER = [3, 3, 3, 3] # [N S E W]
+# LON_MIN = -130
+# LON_MAX = -60
+# LON_DELTA = 0.3125
+# LAT_MIN = 9.75
+# LAT_MAX = 60
+# LAT_DELTA = 0.25
+# BUFFER = [3, 3, 3, 3] # [N S E W]
 
-YEAR = 2019
-MONTH = 1
+# YEAR = 2019
+# MONTH = 1
 
 # ## -------------------------------------------------------------------------##
 # ## Remove buffer boxes
@@ -72,11 +72,16 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
                        & (data['time'][:, 1] == int(date[4:6]))
                        & (data['time'][:, 2] == int(date[6:]))), drop=True)
 
+    # We know everything above this works
+    print(f'After initial filtering, {data.shape[0]} observations remain.')
+
     # Filter on nan cloud fraction values
     data = data.dropna(dim='nobs', how='any')
+    print(f'After cloud filtering, {data.shape[0]} observations remain.')
 
     # Filter on glint flag
     data = data.where(data['glintflag'] == 0, drop=True)
+    print(f'After glint filtering, {data.shape[0]} observations remain.')
 
     return data
 
