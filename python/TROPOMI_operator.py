@@ -73,15 +73,15 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
                        & (data['time'][:, 2] == int(date[6:]))), drop=True)
 
     # We know everything above this works
-    print(f'After initial filtering, {data.shape[0]} observations remain.')
+    print(f'After initial filtering, {len(data.nobs)} observations remain.')
 
     # Filter on nan cloud fraction values
     data = data.dropna(dim='nobs', how='any')
-    print(f'After cloud filtering, {data.shape[0]} observations remain.')
+    print(f'After cloud filtering, {len(data.nobs)} observations remain.')
 
     # Filter on glint flag
     data = data.where(data['glintflag'] == 0, drop=True)
-    print(f'After glint filtering, {data.shape[0]} observations remain.')
+    print(f'After glint filtering, {len(data.nobs)} observations remain.')
 
     return data
 
