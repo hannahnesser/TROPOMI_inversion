@@ -22,6 +22,7 @@ import numpy as np
 from numpy.polynomial import polynomial as p
 import pandas as pd
 import matplotlib.pyplot as plt
+pd.set_option('display.max_columns', 10)
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -55,7 +56,7 @@ prior_run = f'{year}.pkl'
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
 blended_albedo_threshold = 1.1
-albedo_bins = np.arange(0, 1.1, 0.1)
+albedo_bins = np.arange(0, 1.1, 0.05)
 
 # Define a plain old albedo threshold
 filter_on_albedo = True
@@ -69,10 +70,10 @@ remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
 analyze_biases = True
-calculate_so = True
+calculate_so = False
 
 # Information on the grid
-lat_bins = np.arange(10, 65, 2.5)
+lat_bins = np.arange(10, 65, 5)
 lat_min = 9.75
 lat_max = 60
 lat_delta = 0.25
@@ -118,7 +119,7 @@ def apply_filter(data, criteria, filter_name):
     print(f'    {100*new_nobs/old_nobs:.1f}% of data is preserved.')
     print(f'    {new_nobs} observations remain.')
     print(f'    Statistics:')
-    summ = data[['OBS', 'DIFF']]
+    summ = data.groupby('MONTH')[['MOD', 'OBS', 'DIFF']]
     summ = pd.concat([summ.min(), summ.max()], axis=1)
     print(summ)
 

@@ -3,6 +3,8 @@ import format_plots as fp
 import xarray as xr
 import matplotlib.pyplot as plt
 import pandas as pd
+import glob
+import imageio
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 10)
 lat_min = 9.75
@@ -16,21 +18,31 @@ lon_delta = 0.3125
 buffers = [3, 3, 3, 3]
 
 
-data = gc.load_obj('../observations/2019.pkl')
-# print(data)
+# Create a gif
+images = []
+files = glob.glob('../plots/blended_albedo_filter*')
+files.sort()
+# files = files[::-1]
+print(files)
+for f in files:
+    images.append(imageio.imread(f))
+imageio.mimsave('../plots/blended_albedo_filter.gif', images, duration=1)
 
-for i in range(2):
-    print(i)
-    data_glint = data[data['GLINT'] == i]
-    fig1, ax = fp.get_figax(maps=True, lats=lats, lons=lons)
-    c = ax.scatter(data_glint['LON'], data_glint['LAT'], c=data_glint['OBS'],
-               s=0.1, cmap='plasma', vmin=1800, vmax=2000)
-    cax = fp.add_cax(fig1, ax)
-    cb = fig1.colorbar(c, ax=ax, cax=cax)
-    cb = fp.format_cbar(cb, 'XCH4')
-    ax = fp.format_map(ax, lats, lons)
-    ax = fp.add_title(ax, f'Glint == {i}')
-    fp.save_fig(fig1, '../plots/', f'glint{i}')
+# data = gc.load_obj('../observations/2019.pkl')
+# # print(data)
+
+# for i in range(2):
+#     print(i)
+#     data_glint = data[data['GLINT'] == i]
+#     fig1, ax = fp.get_figax(maps=True, lats=lats, lons=lons)
+#     c = ax.scatter(data_glint['LON'], data_glint['LAT'], c=data_glint['OBS'],
+#                s=0.1, cmap='plasma', vmin=1800, vmax=2000)
+#     cax = fp.add_cax(fig1, ax)
+#     cb = fig1.colorbar(c, ax=ax, cax=cax)
+#     cb = fp.format_cbar(cb, 'XCH4')
+#     ax = fp.format_map(ax, lats, lons)
+#     ax = fp.add_title(ax, f'Glint == {i}')
+#     fp.save_fig(fig1, '../plots/', f'glint{i}')
 
 
 # # Masks
