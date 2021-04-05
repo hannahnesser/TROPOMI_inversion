@@ -70,7 +70,7 @@ remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
 analyze_biases = True
-calculate_so = False
+calculate_so = True
 
 # Information on the grid
 lat_bins = np.arange(10, 65, 5)
