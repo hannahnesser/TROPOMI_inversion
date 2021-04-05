@@ -21,48 +21,55 @@ import xarray as xr
 import numpy as np
 from numpy.polynomial import polynomial as p
 import pandas as pd
-pd.set_option('display.max_columns', None)
+import matplotlib.pyplot as plt
+pd.set_option('display.max_columns', 10)
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# # Local preferences
-# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-# code_dir = base_dir + 'python'
-# data_dir = base_dir + 'observations'
-# output_dir = base_dir + 'inversion_data'
-# plot_dir = base_dir + 'plots'
+# Local preferences
+base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+code_dir = base_dir + 'python'
+data_dir = base_dir + 'observations'
+output_dir = base_dir + 'inversion_data'
+plot_dir = base_dir + 'plots'
 
 # # Cannon preferences
 # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-
-base_dir = sys.argv[1]
-code_dir = sys.argv[2]
-data_dir = f'{base_dir}ProcessedDir'
-output_dir = f'{base_dir}SummaryDir'
-plot_dir = None
+# # base_dir = sys.argv[1]
+# # code_dir = sys.argv[2]
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = f'{base_dir}SummaryDir'
+# plot_dir = None
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 year = 2019
 months = np.arange(1, 13, 1) # excluding December for now
 days = np.arange(1, 32, 1)
-# prior_run = f'{year}.pkl'
-prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-             for mm in months for dd in days]
-prior_run.sort()
+prior_run = f'{year}.pkl'
+# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+#              for mm in months for dd in days]
+# prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
-blended_albedo_threshold = 1
-albedo_bins = np.arange(0, 1.1, 0.1)
+blended_albedo_threshold = 1.1
+albedo_bins = np.arange(0, 1.1, 0.05)
+
+# Define a plain old albedo threshold
+filter_on_albedo = True
+albedo_threshold = 0.05
+
+# Define a seasonal latitudinal filter
+filter_on_seasonal_latitude = True
 
 # Remove latitudinal bias
 remove_latitudinal_bias = True
 
 # Which analyses do you wish to perform?
-analyze_biases = False
+analyze_biases = True
 calculate_so = True
 
 # Information on the grid
@@ -81,9 +88,9 @@ buffers = [3, 3, 3, 3]
 # Custom packages
 sys.path.append(code_dir)
 import config
-# config.SCALE = config.PRES_SCALE
-# config.BASE_WIDTH = config.PRES_WIDTH
-# config.BASE_HEIGHT = config.PRES_HEIGHT
+config.SCALE = config.PRES_SCALE
+config.BASE_WIDTH = config.PRES_WIDTH
+config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
 import troppy as tp
 import format_plots as fp
@@ -92,8 +99,31 @@ import format_plots as fp
 suffix = ''
 if filter_on_blended_albedo:
     suffix += '_BAF'
+if filter_on_albedo:
+    suffix += '_AF'
+if filter_on_seasonal_latitude:
+    suffix += '_LF'
 if remove_latitudinal_bias:
     suffix += '_BC'
+
+## ------------------------------------------------------------------------ ##
+## Define functions
+## ------------------------------------------------------------------------ ##
+def apply_filter(data, criteria, filter_name):
+    old_nobs = data.shape[0]
+    data = data[criteria]
+    new_nobs = data.shape[0]
+
+    # Print information
+    print(f'\nData is filtered on {filter_name}.')
+    print(f'    {100*new_nobs/old_nobs:.1f}% of data is preserved.')
+    print(f'    {new_nobs} observations remain.')
+    print(f'    Statistics:')
+    summ = data.groupby('MONTH')[['MOD', 'OBS', 'DIFF']]
+    summ = pd.concat([summ.min(), summ.max()], axis=1)
+    print(summ)
+
+    return data
 
 ## ------------------------------------------------------------------------ ##
 ## Calculate y
@@ -102,7 +132,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    data = np.array([]).reshape(0, 16)
+    data = np.array([]).reshape(0, 14)
     for file in prior_run:
         # Check if that file is in the data directory
         if file not in listdir(data_dir):
@@ -111,13 +141,14 @@ if type(prior_run) == list:
 
         # Get the month
         month = int(file[4:6])
+        day = int(file[6:8])
 
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
-        # 10 MOD_COL, 11 CLOUD FRAC 1, 12 CLOUD FRAC 2, 13 CLOUD FRAC 3,
-        # 14 CLOUD FRAC 4 (15 total columns)
+        # 10 GLINT, 11 MOD_COL(12 total columns)
         new_data = gc.load_obj(join(data_dir, file))['obs_GC']
-        new_data = np.insert(new_data, 15, month, axis=1) # add month
+        new_data = np.insert(new_data, 12, month, axis=1) # add month
+        new_data = np.insert(new_data, 13, day, axis=1)
 
         data = np.concatenate((data, new_data))
 
@@ -126,9 +157,8 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     # Create a dataframe from the data
     columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
-               'CLOUD_FRAC_0', 'CLOUD_FRAC_1', 'CLOUD_FRAC_2', 'CLOUD_FRAC_3',
-               'MONTH']
+               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'GLINT', 'MOD_COL',
+               'MONTH', 'DAY']
     data = pd.DataFrame(data, columns=columns)
 
     # Calculate blended albedo
@@ -137,10 +167,8 @@ if type(prior_run) == list:
                                                data['ALBEDO_NIR'])
 
     # Subset data
-    data = data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT', 'OBS', 'MOD',
-                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO',
-                 'CLOUD_FRAC_0', 'CLOUD_FRAC_1',
-                 'CLOUD_FRAC_2', 'CLOUD_FRAC_3']]
+    data = data[['iGC', 'jGC', 'MONTH', 'DAY', 'LON', 'LAT', 'OBS', 'MOD',
+                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'GLINT']]
 
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
@@ -151,7 +179,7 @@ if type(prior_run) == list:
     print('MODEL MINIMUM : ', data['MOD'].min())
     print('TROPOMI MAXIMUM : ', data['OBS'].max())
     print('TROPOMI MINIMUM : ', data['OBS'].min())
-    print('DIFFERENCE MAXIMUM : ', data['DIFF'].max())
+    print('DIFFERENCE MAXIMUM : ', np.abs(data['DIFF']).max())
 
     # Save the data out
     gc.save_obj(data, join(output_dir, f'{year}.pkl'))
@@ -169,35 +197,38 @@ print('Data is loaded.')
 ## ----------------------------------------- ##
 if filter_on_blended_albedo:
     # Plot values
-    if plot_dir is not None:
-        for m in months:
-            d = data[data['MONTH'] == m]
-            fig, ax = fp.get_figax(aspect=1.75)
-            ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-                       c=fp.color(4), s=3, alpha=0.5)
-            ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
-            ax.set_xlim(0, 2)
-            ax = fp.add_title(ax, cal.month_name[m])
-            ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
-            fp.save_fig(fig, plot_dir,
-                        f'blended_albedo_filter_{m:02d}{suffix}')
+    # if plot_dir is not None:
+    #     for m in months:
+    #         d = data[data['MONTH'] == m]
+    #         fig, ax = fp.get_figax(aspect=1.75)
+    #         ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
+    #                    c=fp.color(4), s=3, alpha=0.1)
+    #         ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
+    #         ax.set_xlim(0, 2)
+    #         ax = fp.add_title(ax, cal.month_name[m])
+    #         ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
+    #         fp.save_fig(fig, plot_dir,
+    #                     f'blended_albedo_filter_{m:02d}{suffix}')
+    #         plt.close()
 
     # Apply the blended albedo filter
-    old_nobs = data.shape[0]
-    data = data[data['BLENDED_ALBEDO'] < blended_albedo_threshold]
-    nobs = data.shape[0]
+    BAF_filter = (data['BLENDED_ALBEDO'] < blended_albedo_threshold)
+    data = apply_filter(data, BAF_filter, 'blended albedo')
 
-    # Print information
-    print(f'\nData is filtered on blended albedo < {blended_albedo_threshold}.')
-    print(f'    {100*nobs/old_nobs:.1f}% of data is preserved.')
-    print(f'    TROPOMI statistics:')
-    summ = data.groupby('MONTH')[['OBS', 'DIFF']]
-    summ = pd.concat([summ.min(), summ.max()], axis=1)
-    print(summ)
+if filter_on_albedo:
+    albedo_filter = (data['ALBEDO_SWIR'] > albedo_threshold)
+    data = apply_filter(data, albedo_filter, 'albedo')
+
+if filter_on_seasonal_latitude:
+    latitude_filter = ((data['MONTH'].isin(np.arange(3, 12, 1))) |
+                       (data['LAT'] <= 50))
+    data = apply_filter(data, latitude_filter, 'winter latitude')
+    print(np.arange(3, 12, 1))
 
 if remove_latitudinal_bias:
     # Correct the latitudinal bias
     coef = p.polyfit(data['LAT'], data['DIFF'], deg=1)
+    print(coef)
     bias_correction = p.polyval(data['LAT'], coef)
     data['MOD'] -= bias_correction
     data['DIFF'] -= bias_correction
@@ -211,8 +242,10 @@ if remove_latitudinal_bias:
     print(summ)
 
 # Save out result
-if filter_on_blended_albedo or remove_latitudinal_bias:
+if filter_on_blended_albedo or filter_on_albedo or remove_latitudinal_bias:
     gc.save_obj(data, join(output_dir, f'{year}_corrected.pkl'))
+
+nobs = data.shape[0]
 
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
@@ -246,6 +279,14 @@ if analyze_biases:
     m_b = gc.group_data(data, groupby=['MONTH'])
     print('Monthly bias analyzed.')
 
+    ## Latitudinal bias and seasonality
+    data.loc[:, 'SEASON'] = 'DJF'
+    data.loc[data['MONTH'].isin([3, 4, 5]), 'SEASON'] = 'MAM'
+    data.loc[data['MONTH'].isin([6, 7, 8]), 'SEASON'] = 'JJA'
+    data.loc[data['MONTH'].isin([9, 10, 11]), 'SEASON'] = 'SON'
+    lm_b = gc.group_data(data, groupby=['LAT_BIN', 'SEASON'])
+    print('Seasonal latitudinal bias analyzed.')
+
     ## Albedo
     data['ALBEDO_BIN'] = pd.cut(data['ALBEDO_SWIR'], albedo_bins)
     a_b = gc.group_data(data, groupby=['ALBEDO_BIN'])
@@ -264,6 +305,7 @@ if analyze_biases:
     ax.set_xticks(np.arange(1750, 2000, 100))
     ax.set_yticks(np.arange(1750, 2000, 100))
     fp.save_fig(fig, plot_dir, f'prior_bias{suffix}')
+    plt.close()
 
     ## ----------------------------------------- ##
     ## Spatial bias
@@ -276,6 +318,7 @@ if analyze_biases:
     ax = fp.format_map(ax, s_b.lats, s_b.lons)
     ax = fp.add_title(ax, 'Spatial Bias in Prior Run')
     fp.save_fig(fig, plot_dir, f'prior_spatial_bias{suffix}')
+    plt.close()
 
     ## ----------------------------------------- ##
     ## Latitudinal bias
@@ -298,6 +341,26 @@ if analyze_biases:
     ax = fp.add_labels(ax, 'Month', 'Model - Observation')
     ax = fp.add_title(ax, 'Seasonal Bias in Prior Run')
     fp.save_fig(fig, plot_dir, f'prior_seasonal_bias{suffix}')
+    plt.close()
+
+    ## ----------------------------------------- ##
+    ## Seasonal latitudinal bias
+    ## ----------------------------------------- ##
+    lm_b['LAT'] = lm_b['LAT_BIN'].apply(lambda x: x.mid)
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'], color=fp.color(4))
+    ax.set_xticks(np.arange(10, 70, 10))
+    ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
+    ax = fp.add_title(ax, f'Latitudinal Bias in Prior Run')
+    linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
+    for i, season in enumerate(np.unique(lm_b['SEASON'])):
+        d = lm_b[lm_b['SEASON'] == season]
+        ax.plot(d['LAT'].values, d['mean'].values, color=fp.color(4),
+                label=season, ls=linestyles[i], lw=0.5)
+    fp.add_legend(ax)
+    fp.save_fig(fig, plot_dir,
+                f'prior_seasonal_latitudinal_bias{suffix}')
+    plt.close()
 
     ## ----------------------------------------- ##
     ## Albedo bias
@@ -309,6 +372,7 @@ if analyze_biases:
     ax = fp.add_labels(ax, 'Albedo', 'Model - Observation')
     ax = fp.add_title(ax, 'Albedo Bias in Prior Run')
     fp.save_fig(fig, plot_dir, f'prior_albedo_bias{suffix}')
+    plt.close()
 
 ## ------------------------------------------------------------------------ ##
 ## Calculate So
@@ -372,7 +436,7 @@ if calculate_so:
 ## ------------------------------------------------------------------------ ##
 ## Plots
 ## ------------------------------------------------------------------------ ##
-if plot_dir is not None:
+if (plot_dir is not None) and calculate_so:
     plot_data = copy.deepcopy(data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT',
                                     'OBS', 'MOD', 'DIFF', 'PREC',
                                     'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'SO']])
@@ -432,7 +496,7 @@ if plot_dir is not None:
     plot_data['VAR'] = (plot_data['RES_ERR'] - plot_data['AVG_RES_ERR'])**2
     d_p = plot_data.groupby(groupby).mean()[['VAR', 'OBS']]#.reset_index()
     d_p = d_p.rename(columns={'OBS' : 'AVG_OBS'})
-    d_p['STD'] = d_p['VAR']**0.5#/var['AVG_OBS']
+    d_p['STD'] = d_p['VAR']**0.5#/d_p['AVG_OBS']
     d_p = d_p[['STD', 'AVG_OBS']].to_xarray().rename({'LAT_CENTER' : 'lats',
                                                       'LON_CENTER' : 'lons'})
 
