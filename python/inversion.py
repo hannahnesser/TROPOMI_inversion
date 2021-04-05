@@ -8,6 +8,7 @@ from scipy.stats import linregress
 from scipy.linalg import eigh
 import pandas as pd
 import copy
+import warnings
 
 # clustering
 from sklearn.cluster import KMeans
@@ -53,6 +54,11 @@ It also defines the following plotting functions:
                             emissions grids
     plot_multiscale_grid    Plot the grid for a reduced dimension,
                             multiscale emissions state vector
+And the following utility functions:
+    to_xarray               Convert the inversion object to an xarray
+                            Dataset 
+    add_attr_to_dataset     Add a single attribute from Inversion to an
+                            xarray Dataset. Modifies Dataset inplace.
 '''
 
 class Inversion:
@@ -150,6 +156,7 @@ class Inversion:
         self.shat = None
         self.a = None
         self.y_out = None
+        self.dofs = None
 
         print('... Complete ...\n')
 
@@ -333,7 +340,60 @@ class Inversion:
 
         return fig, ax, c
 
-class ReducedRankInversion(Inversion, ReducedMemoryInversion):
+    #########################
+    ### Utility functions ###
+    #########################
+    def add_attr_to_dataset(self, ds:xr.Dataset, attr_str:str, dims:tuple):
+        '''
+        Adds an attribute from Inversion instance to an xarray Dataset. Modiefies Dataset inplace.
+        '''
+        attr = getattr(self,attr_str)
+        if attr is None: 
+            print(f'{attr_str} has not been assigned yet - skipping.')
+        else:
+            if dims is None: # for 0-d attributes
+                ds = ds.assign_attrs({attr_str : attr})
+            else:
+                ds[attr_str] = xr.DataArray(data=attr, dims=dims)      
+
+    def to_xarray(self):
+        '''
+        Convert an instance of the Inversion object to an xarray Dataset. 
+        Vectors are stored as DataArrays, and scalars are stored 
+        as attributes in the Dataset.
+        '''
+        # warn that there is no custom implementation for each subclass
+        if type(self)!=Inversion:
+            warnings.warn('Inversion.to_xarray will only export attributes present in the Inversion class. Specialized attributes from subclasses (e.g. ReducedRankInversion) are not currently exported to the dataset, so some attributes might be missing. If you would like to add individual attributes to your dataset, you can use the add_attrs_to_dataset method.', stacklevel=2)
+        
+        # intialize datasets
+        ds = xr.Dataset()
+    
+        # store vectors as DataArrays
+        # inputs
+        self.add_attr_to_dataset(ds, 'state_vector', ('nstate'))
+        self.add_attr_to_dataset(ds, 'k',            ('nobs','nstate'))
+        self.add_attr_to_dataset(ds, 'xa',           ('nstate'))
+        self.add_attr_to_dataset(ds, 'sa_vec',       ('nstate'))
+        self.add_attr_to_dataset(ds, 'y',            ('nobs'))
+        self.add_attr_to_dataset(ds, 'y_base',       ('nobs'))
+        self.add_attr_to_dataset(ds, 'so_vec',       ('nobs'))
+        # outputs
+        self.add_attr_to_dataset(ds, 'c',     ('nobs'))
+        self.add_attr_to_dataset(ds, 'xhat',  ('nstate'))
+        self.add_attr_to_dataset(ds, 'shat',  ('nstate','nstate'))
+        self.add_attr_to_dataset(ds, 'a',     ('nstate','nstate'))
+        self.add_attr_to_dataset(ds, 'y_out', ('nobs'))
+        self.add_attr_to_dataset(ds, 'dofs',  ('nstate'))
+        # scalar values (stored as attributes, dims=None)
+        self.add_attr_to_dataset(ds, 'latres', None)
+        self.add_attr_to_dataset(ds, 'lonres', None)
+        self.add_attr_to_dataset(ds, 'rf',     None)
+    
+        return ds
+
+
+class ReducedRankInversion(Inversion):
     # class variables shared by all instances
 
     def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
