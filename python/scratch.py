@@ -1,26 +1,3 @@
-
-# o = 1
-# t = 2
-# s = 3
-# print(f'{o: <10}{t: <15}{s: <15}')
-# import xarray as xr
-# import pandas as pd
-
-# file = '/Users/hannahnesser/Downloads/s5p_l2_ch4_0014_15511.nc'
-# d = xr.open_dataset(file, group='diagnostics')
-# mask_qa = (d['qa_value'] <= 1)
-
-# tmp = xr.open_dataset(file,
-#                       group='instrument')
-# dates = pd.DataFrame(tmp['time'].values[mask_qa][:,:-1],
-#                      columns=['year', 'month', 'day', 'hour', 'minute', 'second'])
-# dates = pd.to_datetime(dates).dt.strftime('%Y%m%dT%H%M%S')
-# start_date = dates.min()
-# end_date = dates.max()
-
-# print(start_date)
-# print(end_date)
-
 import gcpy as gc
 import format_plots as fp
 import xarray as xr
@@ -28,32 +5,33 @@ import matplotlib.pyplot as plt
 import pandas as pd
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 10)
+lat_min = 9.75
+lat_max = 60
+lats = [lat_min, lat_max]
+lat_delta = 0.25
+lon_min = -130
+lon_max = -60
+lons = [lon_min, lon_max]
+lon_delta = 0.3125
+buffers = [3, 3, 3, 3]
 
-# data = gc.load_obj('../observations/20191227_GCtoTROPOMI.pkl')['obs_GC']
-# Load data
-data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427.nc',
-                       group='target_product')
-xch4 = data['xch4_corrected']
 
-data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427.nc',
-                       group='meteo', mask_and_scale=False)
-cirrus = data['cloud_fraction']
+data = gc.load_obj('../observations/2019.pkl')
+# print(data)
 
-data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427.nc',
-                       group='instrument')
-latlon = data[['latitude_center', 'longitude_center']]
-latlon = latlon.rename({'latitude_center' : 'lat', 'longitude_center' : 'lon'})
+for i in range(2):
+    print(i)
+    data_glint = data[data['GLINT'] == i]
+    fig1, ax = fp.get_figax(maps=True, lats=lats, lons=lons)
+    c = ax.scatter(data_glint['LON'], data_glint['LAT'], c=data_glint['OBS'],
+               s=0.1, cmap='plasma', vmin=1800, vmax=2000)
+    cax = fp.add_cax(fig1, ax)
+    cb = fig1.colorbar(c, ax=ax, cax=cax)
+    cb = fp.format_cbar(cb, 'XCH4')
+    ax = fp.format_map(ax, lats, lons)
+    ax = fp.add_title(ax, f'Glint == {i}')
+    fp.save_fig(fig1, '../plots/', f'glint{i}')
 
-data = xr.open_dataset('../observations/s5p_l2_ch4_0014_11427.nc',
-                       group='diagnostics')
-diag = data[['processing_quality_flags', 'error_id', 'qa_value']]
-
-# Combine
-data = xr.merge([xch4, latlon, diag, cirrus])
-# data = data.to_dataframe()
-
-# 897195
-print(data.dropna(dim='nobs', how='any'))
 
 # # Masks
 # lat_min = 9.75

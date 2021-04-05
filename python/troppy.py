@@ -14,5 +14,3 @@ def blended_albedo(data, data_swir, data_nir):
     ba = (2.4*data_nir - 1.13*data_swir)
     #print('The filter preserves %f%% of data.' % (100*filt.sum()/len(filt)))
     return ba
-
-
