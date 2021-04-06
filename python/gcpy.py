@@ -41,6 +41,17 @@ rcParams['axes.titlepad'] = 0
 ## -------------------------------------------------------------------------##
 ## Loading functions
 ## -------------------------------------------------------------------------##
+def file_exists(file_name):
+    '''
+    Check for the existence of a file/
+    '''
+    data_dir = file_name.rpartition('/')[0]
+    if file_name in listdir(data_dir):
+        return True
+    else:
+        print(f'{file} is not in the data directory.')
+        return False
+
 def save_obj(obj, name, big_mem=False):
     '''
     This is a generic function to save a data object using
@@ -57,19 +68,80 @@ def save_obj(obj, name, big_mem=False):
         with open(name , 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
-def load_obj(name, big_mem=False):
-    '''
-    This is a generic function to open a data object using
-    pickle, which reduces the memory requirements.
-    '''
-    if big_mem:
-        h5f = h5py.File(name, 'r')
-        d = h5f['data']
-        x = da.from_array(d)
-        return x
+def load_obj(file_name):
+    # Open a generic file using pickle
+    with open(file_name, 'rb') as f:
+        return pickle.load(f)
+
+def read_file(file_name, chunk_size=None):
+    # Require that the file exists
+    assert file_exists(file_name), f'{file_name} does not exist.'
+
+    # Define the file suffix
+    file_suffix = file_name.split('.')[-1]
+
+    # If a netcdf, read it using xarray
+    if file_suffix[:2] == 'nc':
+        file = read_netcdf_file(file_name, chunk_size)
+    # Else, read it using a generic function
     else:
-        with open( name, 'rb') as f:
-            return pickle.load(f)
+        if chunk_size is not None:
+            print('NOTE: Chunk sizes were provided, but the file')
+            print('is not a netcdf. Chunk size is ignored.')
+        file = read_generic_file(file_name)
+
+    return file
+
+def read_generic_file(file_name):
+    # Open a generic file using pickle
+    with open(file_name, 'rb') as f:
+        return pickle.load(f)
+
+def read_netcdf_file(file_name, chunk_size):
+    # Open a dataset
+    file = xr.open_dataset(file_name, chunks=chunk_size)
+
+    # If there is only one variable, convert to a dataarray
+    variables = list(files.keys())
+    if len(variables) == 1:
+        file = file[variables[0]]
+
+    # Return the file
+    return file
+
+def calculate_chunk_size(available_memory_GB, dtype='float32'):
+    '''
+    This function returns a number that gives the total number of
+    elements that should be held in a chunk. It does not specify the exact
+    chunks for specific dimensions.
+    '''
+
+    # Get the number of active threads
+    omp_num_threads = int(os.environ['OMP_NUM_THREADS'])
+
+    # Approximate the number of chunks that are held in memory simultaneously
+    # by dask (reference: https://docs.dask.org/en/latest/array-best-practices.html#:~:text=Orient%20your%20chunks,-When%20reading%20data&text=If%20your%20Dask%20array%20chunks,closer%20to%201MB%20than%20100MB.)
+    chunks_in_memory = 2*omp_num_threads
+
+    # Calculate the memory that is available per chunk (in GB)
+    mem_per_chunk = available_memory_GB/chunks_in_memory
+
+    # Define the number of bytes required for each element
+    if dtype == 'float32':
+        bytes_per_element = 4
+    elif dtype == 'float64':
+        bytes_per_element = 8
+    else:
+        print('Data type is not recognized. Defaulting to reserving 8 bytes')
+        print('per element.')
+        bytes_per_element = 8
+
+    # Calculate the number of elements that can be held in the available
+    # memory for each chunk
+    number_of_elements = mem_per_chunk*1e9/bytes_per_element
+
+    # Scale the number of elements down by 10% to allow for wiggle room.
+    return int(0.9*number_of_elements)
 
 ## -------------------------------------------------------------------------##
 ## Statistics functions

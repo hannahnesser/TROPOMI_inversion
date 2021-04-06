@@ -56,8 +56,9 @@ It also defines the following plotting functions:
 '''
 
 class Inversion:
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec, c=None,
-                 regularization_factor=1, reduced_memory=False):
+    def __init__(self, k, xa, sa_vec, y, ya, so_vec, c=None,
+                 regularization_factor=1, reduced_memory=False,
+                 available_memory_GB=None):
         '''
         Define an inversion object with the following required
         inputs:
@@ -71,7 +72,7 @@ class Inversion:
                             covariances (such a change would be simple to
                             implement).
             y               The observations
-            y_base          The simulated observations generated from the prior
+            ya              The simulated observations generated from the prior
                             state vector
             so_vec          The observational error variances as a vector,
                             including errors from the forward model and the
@@ -96,6 +97,9 @@ class Inversion:
             reduced_memory           This flag (default false) will determine
                                      whether or not to read in the file or
                                      arrays provided in chunks.
+            available_memory_GB         If reduced_memory is True, both the number
+                                     of cores and the memory available (in
+                                     gigabytes) must be provided.
 
         The object then defines the following:
             nstate          The dimension of the state vector
@@ -104,19 +108,55 @@ class Inversion:
             shat            Empty, held for the posterior error
             a               Empty, held for the averaging kernel, a measure
                             of the information content of the inverse system
-            y_out           Empty, the updated simulated observations, defined
+            yhat            Empty, the updated simulated observations, defined
                             as y = Kxhat + c
         '''
         print('... Initializing inversion object ...')
 
-        # Check that the data are all the same types
-        assert all(isinstance(z, np.ndarray)
-                   for z in [k, xa, sa_vec, y, so_vec]), \
-               'Input types aren\'t all numpy arrays.'
+        # Define the easy elements of the inversion object
+        self.regularization_factor = regularization_factor
+        self.reduced_memory = reduced_memory
 
-        # Define the state and observational dimensions
-        self.nstate = xa.shape[0]
-        self.nobs = y.shape[0]
+        # Set up general reduced memory needs
+        if self.reduced_memory:
+            # Check that available memory is provided
+            assert available_memory_GB is not None, \
+                   'Available memory is not provided.'
+
+            # Print out a reminder to set the number of threads
+            print('*********************************************************')
+            print('NOTE: To allow for reduced memory procesesing, it is')
+            print('recommended that OMP_NUM_THREADS be set to half the')
+            print('available cores in a session. You can do this by running')
+            print('  >> export OMP_NUM_THREADS=[N]')
+            print('where [N] is an integer about equal to half the available')
+            print('cores. After running this command, rerun any scripts that')
+            print('call the Inversion class using reduced_memory=True.')
+            print('*********************************************************')
+
+            # Calculate the number of elements that should be included in a
+            # chunk
+            chunks = {'nstate' : -1, 'nobs' : None}
+        else:
+            chunks = {'nstate' : None, 'nobs' : None}
+
+        # Read in the elements of the inversion
+        # Read in the prior elements first because that allows us to calculate
+        # nstate and thus the chunk size in that dimension
+        self.xa = self.read(xa, chunks['nstate'])
+        self.sa_vec = self.read(sa_vec, chunks['nstate'])
+        self.nstate = self.xa.shape[0]
+
+        # Update the chunks for the nobs dimension accordingly
+        if self.reduced_memory:
+            max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
+            chunks['nobs'] = int(max_chunk_size/self.nstate)
+
+        self.k = self.read(k, chunks)
+        self.y = self.read(y, chunks['nobs'])
+        self.ya = self.read(ya, chunks['nobs'])
+        self.so_vec = self.read(so_vec, chunks['nobs'])
+        self.nobs = self.y.shape[0]
 
         # Check whether all inputs have the right dimensions
         assert k.shape[1] == self.nstate, \
@@ -128,14 +168,14 @@ class Inversion:
         assert sa_vec.shape[0] == self.nstate, \
                'Dimension mismatch: prior error.'
 
-        # If everything works out, then we create the instance.
-        self.k = k
-        self.xa = xa
-        self.sa_vec = sa_vec
-        self.y = y
-        self.y_base = y_base
-        self.so_vec = so_vec
-        self.regularization_factor = regularization_factor
+        # Check that the data are all the same types
+        assert all(isinstance(z, type(self.k))
+                   for z in [xa, sa_vec, y, so_vec]), \
+               'Input types aren\'t all equivalent types.'
+        if reduced_memory:
+            assert all(isinstance(z, xr.core.dataarray.DataArray)), \
+                   'Input types are not xarray dataarrays, which are \
+                    needed for the reduced_memory option.'
 
         # Force k to be positive
         if np.any(self.k < 0):
@@ -143,16 +183,29 @@ class Inversion:
             self.k[self.k < 0] = 0
 
         # Solve for the constant c.
-        self.c = self.calculate_c()
+        if c is None:
+            self.c = self.calculate_c()
+        else:
+            self.c = self.read(c, chunks['nobs'])
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
         self.xhat = None
         self.shat = None
         self.a = None
-        self.y_out = None
+        self.yhat = None
 
         print('... Complete ...\n')
+
+    #######################
+    ### BASIC FUNCTIONS ###
+    #######################
+    @staticmethod
+    def read(item, chunk_size=None):
+        # If item is a string, load the file
+        if type(item) == 'string':
+            item = gc.read_file(item, chunk_size)
+        return item
 
     ####################################
     ### STANDARD INVERSION FUNCTIONS ###
@@ -163,7 +216,7 @@ class Inversion:
         Calculate c for the forward model, defined as ybase = Kxa + c.
         Save c as an element of the object.
         '''
-        c = self.y_base - self.k @ self.xa
+        c = self.ya - self.k @ self.xa
         return c
 
     def obs_mod_diff(self, x):
@@ -261,7 +314,7 @@ class Inversion:
 
         # Calculate the new set of modeled observations.
         print('Calculating updated modeled observations.')
-        self.y_out = self.k @ self.xhat + self.c
+        self.yhat = self.k @ self.xhat + self.c
 
         print('... Complete ...\n')
 
@@ -337,10 +390,10 @@ class Inversion:
 class ReducedRankInversion(Inversion):
     # class variables shared by all instances
 
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
+    def __init__(self, k, xa, sa_vec, y, ya, so_vec):
         # We inherit from the inversion class and create space for
         # the reduced rank solutions.
-        Inversion.__init__(self, k, xa, sa_vec, y, y_base, so_vec)
+        Inversion.__init__(self, k, xa, sa_vec, y, ya, so_vec)
 
         # We create space for the rank
         self.rank = None
@@ -581,9 +634,9 @@ class ReducedRankInversion(Inversion):
         return fig, ax
 
 class ReducedRankJacobian(ReducedRankInversion):
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
+    def __init__(self, k, xa, sa_vec, y, ya, so_vec):
         # Inherit from the parent class.
-        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, y_base, so_vec)
+        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, ya, so_vec)
 
         self.perturbed_cells = np.array([])
         self.model_runs = 0
@@ -623,7 +676,7 @@ class ReducedRankJacobian(ReducedRankInversion):
                                   xa=copy.deepcopy(self.xa),
                                   sa_vec=copy.deepcopy(self.sa_vec),
                                   y=copy.deepcopy(self.y),
-                                  y_base=copy.deepcopy(self.y_base),
+                                  ya=copy.deepcopy(self.ya),
                                   so_vec=copy.deepcopy(self.so_vec))
         new.model_runs = copy.deepcopy(self.model_runs) + prolongation.shape[1]
         new.regularization_factor = copy.deepcopy(self.regularization_factor)
@@ -671,13 +724,13 @@ class ReducedRankJacobian(ReducedRankInversion):
         return self_f, true_f
 
 class ReducedDimensionJacobian(ReducedRankInversion):
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
+    def __init__(self, k, xa, sa_vec, y, ya, so_vec):
 
         # state_vector    A vector containing an index for each state vector
         #                 element (necessary for multiscale grid methods).
 
         # Inherit from the parent class.
-        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, y_base, so_vec)
+        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, ya, so_vec)
 
         self.state_vector = np.arange(1, self.nstate+1, 1)
         self.perturbed_cells = np.array([])
@@ -879,7 +932,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
                                   xa=copy.deepcopy(self.xa),
                                   sa_vec=copy.deepcopy(self.sa_vec),
                                   y=copy.deepcopy(self.y),
-                                  y_base=copy.deepcopy(self.y_base),
+                                  ya=copy.deepcopy(self.ya),
                                   so_vec=copy.deepcopy(self.so_vec))
         new.state_vector = copy.deepcopy(self.state_vector)
         new.dofs = copy.deepcopy(self.dofs)
@@ -965,7 +1018,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
 # class ReducedMemoryInversion(ReducedRankInversion):
 #     os.environ['OMP_NUM_THREADS'] = '1'
 
-#     def __init__(self, k_files, xa, sa_vec, y, y_base, so_vec, c=None,
+#     def __init__(self, k_files, xa, sa_vec, y, ya, so_vec, c=None,
 #                  regularization_factor=1, latres=1, lonres=1.25):
 #         print('... Initializing reduced memory inversion object ...')
 
@@ -994,7 +1047,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
 #         self.xa = xa
 #         self.sa_vec = sa_vec
 #         self.y = y
-#         self.y_base = y_base
+#         self.ya = ya
 #         self.so_vec = so_vec
 #         self.regularization_factor = regularization_factor
 
@@ -1009,7 +1062,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
 #         self.xhat = None
 #         self.shat = None
 #         self.a = None
-#         self.y_out = None
+#         self.yhat = None
 
 #         print('... Complete ...\n')
 
@@ -1056,7 +1109,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
 #         Save c as an element of the object.
 #         '''
 #         kxa = self.multiply_kx(self.xa)
-#         c = self.y_base - kxa
+#         c = self.ya - kxa
 #         print('Remember to save out c to avoid recomputing.')
 #         return c
 
@@ -1156,7 +1209,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
 
 #         # Calculate the new set of modeled observations.
 #         print('Calculating updated modeled observations.')
-#         self.y_out = self.k @ self.xhat + self.c
+#         self.yhat = self.k @ self.xhat + self.c
 
 #         print('... Complete ...\n')
 
