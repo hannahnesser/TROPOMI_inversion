@@ -5,39 +5,26 @@ TROPOMI observations over North America.
 
 ## Inversion procedure
 1. Run generate_clusters.py
+
    **Description**
 
    This script generates a cluster file that meets HEMCO requirements for use in inversions. The file maps a unique integer key for every grid cell contained in the state vector to the latitude-longitude grid used in the forward model. A grid cell is included in the state vector if it meets either the `emis_threshold` or `land_threshold` criteria.
 
    **Inputs**
 
-   | ----------------- | -------------------------------------------------- |
    | Input             | Description                                        |
    | ----------------- | -------------------------------------------------- |
-   | emis_file         | A file or files containing information on methane  |
-   |                   | emissions from the prior run. This is typically    |
-   |                   | given by HEMCO_diagnostics. The input here can be  |
-   |                   | either a list of monthly files or a single file    |
-   |                   | with an annual average.                            |
+   | emis_file | A file or files containing information on methane emissions from the prior run. This is typically given by HEMCO_diagnostics. The input here can be either a list of monthly files or a single file with an annual average. |
    | ----------------- | -------------------------------------------------- |
-   | land_file         | A file containing information on land cover for    |
-   |                   | inversion domain. This can be provided by the land |
-   |                   | cover file referenced by HEMCO_Config.rc.          |
+   | land_file | A file containing information on land cover for inversion domain. This can be provided by the land cover file referenced by HEMCO_Config.rc. |
    | ----------------- | -------------------------------------------------- |
-   | emis_threshold    | An emission threshold in Mg/km2/yr that gives the  |
-   |                   | minimum anthropogenic emissions needed in a grid   |
-   |                   | cell for its inclusion in the cluster file. The    |
-   |                   | default value is 0.1.                              |
+   | emis_threshold | An emission threshold in Mg/km2/yr that gives the minimum anthropogenic emissions needed in a grid cell for its inclusion in the cluster file. The default value is 0.1. |
    | ----------------- | -------------------------------------------------- |
-   | land_threshold    | A fractional land threshold that gives the minimum |
-   |                   | fraction of a grid cell that must be land covered  |
-   |                   | for inclusion in the cluster file. The default     |
-   |                   | value is 0.25.                                     |
+   | land_threshold | A fractional land threshold that gives the minimum fraction of a grid cell that must be land covered for inclusion in the cluster file. The default value is 0.25. |
    | ----------------- | -------------------------------------------------- |
 
    **Outputs**
 
-   | ----------------- | -------------------------------------------------- |
    | Output            | Description                                        |
    | ----------------- | -------------------------------------------------- |
    | clusters.nc       | A HEMCO-ready cluster file that maps a unique      |
