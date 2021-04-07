@@ -1,4 +1,5 @@
 import xarray as xr
+from dask.diagnostics import ProgressBar
 import numpy as np
 # from numpy import diag as diags
 # from numpy import identity
@@ -97,7 +98,7 @@ class Inversion:
             reduced_memory           This flag (default false) will determine
                                      whether or not to read in the file or
                                      arrays provided in chunks.
-            available_memory_GB         If reduced_memory is True, both the number
+            available_memory_GB      If reduced_memory is True, both the number
                                      of cores and the memory available (in
                                      gigabytes) must be provided.
 
@@ -143,8 +144,8 @@ class Inversion:
         # Read in the elements of the inversion
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension
-        self.xa = self.read(xa, chunks['nstate'])
-        self.sa_vec = self.read(sa_vec, chunks['nstate'])
+        self.xa = self.read(xa, chunks['nstate'], dims=('nstate'))
+        self.sa_vec = self.read(sa_vec, chunks['nstate'], dims=('nstate'))
         self.nstate = self.xa.shape[0]
 
         # Update the chunks for the nobs dimension accordingly
@@ -152,10 +153,10 @@ class Inversion:
             max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
             chunks['nobs'] = int(max_chunk_size/self.nstate)
 
-        self.k = self.read(k, chunks)
-        self.y = self.read(y, chunks['nobs'])
-        self.ya = self.read(ya, chunks['nobs'])
-        self.so_vec = self.read(so_vec, chunks['nobs'])
+        self.k = self.read(k, chunks, dims=('nobs', 'nstate'))
+        self.y = self.read(y, chunks['nobs'], dims=('nobs'))
+        self.ya = self.read(ya, chunks['nobs'], dims=('nobs'))
+        self.so_vec = self.read(so_vec, chunks['nobs'], dims=('nobs'))
         self.nobs = self.y.shape[0]
 
         # Check whether all inputs have the right dimensions
@@ -197,15 +198,91 @@ class Inversion:
 
         print('... Complete ...\n')
 
-    #######################
-    ### BASIC FUNCTIONS ###
-    #######################
+    #########################
+    ### UTILITY FUNCTIONS ###
+    #########################
     @staticmethod
-    def read(item, chunk_size=None):
+    def read(self, item, chunk_size=None, dims=None, dtype='float32'):
         # If item is a string, load the file
         if type(item) == 'string':
             item = gc.read_file(item, chunk_size)
+
+        # Force the items to be dataarrays
+        if type(item) != xr.core.dataarray.DataArray:
+            # If it's a dataset, require that there be only one variable
+            if type(item) == xr.core.dataset.Dataset:
+                variables = list(item.keys())
+                assert len(variables) == 1, \
+                      'A dataset with multiple variables was provided. This \
+                       class requires that any datasets contain only one \
+                       variable.'
+                item = item[variables[0]]
+            else:
+                item = xr.DataArray(item, dims=dims)
+
+        # Return
         return item
+
+    def save(self, attribute:str, file_name=None):
+        item = getattr(self, attribute)
+
+        # Get file name
+        if file_name is None:
+            file_name = attribute
+
+        # Save using progress bar if reduced_memory
+        if self.reduced_memory():
+            with ProgressBar():
+                item.to_netcdf(f'{file_name}.nc')
+        else:
+            item.to_netcdf(f'{file_name}.nc')
+
+    def add_attr_to_dataset(self, ds:xr.Dataset, attr_str:str, dims:tuple):
+        '''
+        Adds an attribute from Inversion instance to an xarray Dataset. Modiefies Dataset inplace.
+        '''
+        attr = getattr(self, attr_str)
+        if attr is None:
+            print(f'{attr_str} has not been assigned yet - skipping.')
+        else:
+            if dims is None: # for 0-d attributes
+                ds = ds.assign_attrs({attr_str : attr})
+            else:
+                ds[attr_str] = xr.DataArray(data=attr, dims=dims)
+
+    def to_dataset(self):
+        '''
+        Convert an instance of the Inversion object to an xarray Dataset.
+        Vectors are stored as DataArrays, and scalars are stored
+        as attributes in the Dataset.
+        '''
+        # warn that there is no custom implementation for each subclass
+        if type(self)!=Inversion:
+            warnings.warn('Inversion.to_xarray will only export attributes present in the Inversion class. Specialized attributes from subclasses (e.g. ReducedRankInversion) are not currently exported to the dataset, so some attributes might be missing. If you would like to add individual attributes to your dataset, you can use the add_attrs_to_dataset method.', stacklevel=2)
+
+        # intialize dataset
+        ds = xr.Dataset()
+
+        # store vectors as DataArrays
+        # inputs
+        self.add_attr_to_dataset(ds, 'state_vector', ('nstate'))
+        self.add_attr_to_dataset(ds, 'k',            ('nobs','nstate'))
+        self.add_attr_to_dataset(ds, 'xa',           ('nstate'))
+        self.add_attr_to_dataset(ds, 'sa_vec',       ('nstate'))
+        self.add_attr_to_dataset(ds, 'y',            ('nobs'))
+        self.add_attr_to_dataset(ds, 'y_base',       ('nobs'))
+        self.add_attr_to_dataset(ds, 'so_vec',       ('nobs'))
+        # outputs
+        self.add_attr_to_dataset(ds, 'c',     ('nobs'))
+        self.add_attr_to_dataset(ds, 'xhat',  ('nstate'))
+        self.add_attr_to_dataset(ds, 'shat',  ('nstate','nstate'))
+        self.add_attr_to_dataset(ds, 'a',     ('nstate','nstate'))
+        self.add_attr_to_dataset(ds, 'y_out', ('nobs'))
+        self.add_attr_to_dataset(ds, 'dofs',  ('nstate'))
+        # scalar values (stored as attributes, dims=None)
+        self.add_attr_to_dataset(ds, 'rf',     None)
+
+        return ds
 
     ####################################
     ### STANDARD INVERSION FUNCTIONS ###
