@@ -97,17 +97,20 @@ def read_generic_file(file_name):
     with open(file_name, 'rb') as f:
         return pickle.load(f)
 
-def read_netcdf_file(file_name, chunk_size):
+def read_netcdf_file(*file_names, chunk_size=None):
     # Open a dataset
-    file = xr.open_dataset(file_name, chunks=chunk_size)
+    if len(*file_names) > 1:
+        data = xr.open_mfdataset(*file_names, chunks=chunk_size)
+    else:
+        data = xr.open_dataset(file_names[0], chunks=chunk_size)
 
     # If there is only one variable, convert to a dataarray
-    variables = list(files.keys())
+    variables = list(data.keys())
     if len(variables) == 1:
-        file = file[variables[0]]
+        data = data[variables[0]]
 
     # Return the file
-    return file
+    return data
 
 def calculate_chunk_size(available_memory_GB, dtype='float32'):
     '''
@@ -245,20 +248,6 @@ def fill_GC_first_hour(data):
     return data
 
 ## -------------------------------------------------------------------------##
-## GEOS-Chem output-processing functions
-## -------------------------------------------------------------------------##
-def load_files(*files, **kwargs):
-    '''
-    A function that will load one or more files
-    '''
-    if len(*files) > 1:
-        data = xr.open_mfdataset(*files)
-    else:
-        data = xr.open_dataset(files[0])
-
-    return data
-
-## -------------------------------------------------------------------------##
 ## HEMCO input functions
 ## -------------------------------------------------------------------------##
 def define_HEMCO_std_attributes(data, name=None):
@@ -294,8 +283,8 @@ def define_HEMCO_var_attributes(data, var, long_name, units):
     data[var].attrs = {'long_name' : long_name, 'units' : units}
     return data
 
-def save_HEMCO_netcdf(data, data_dir, file_name):
-    encoding = {'_FillValue' : None, 'dtype' : 'float32'}
+def save_HEMCO_netcdf(data, data_dir, file_name, dtype='float32'):
+    encoding = {'_FillValue' : None, 'dtype' : dtype}
     var = {k : encoding for k in data.keys()}
     coord = {k : encoding for k in data.coords}
     var.update(coord)
