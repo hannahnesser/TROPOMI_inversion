@@ -1,19 +1,105 @@
 '''
-This python script generates the observation vector and the observational
-error covariance matrix.
+This script generates the observation vector, the prior observation vector (i.e. F(xa)), and the observational error variances. It applies filters on albedo, latitude, and seaason to remove problematic TROPOMI observations. The variances are calcualted using the residual error method.
 
-Inputs:
-    prior_run       This contains the output of the prior run simulation
-                    after processing to apply the TROPOMI averaging kernel.
-                    The data has not yet been filtered or bias corrected
-                    other than removing the qa < 0.5 data.
+   **Inputs**
 
-                    The data can either be a list of files or an individual,
-                    concatenated file
+   | ----------------- | -------------------------------------------------- |
+   | Input             | Description                                        |
+   | ----------------- | -------------------------------------------------- |
+   | prior_run         | A file or files containing the processed output of |
+   |                   | the prior run of the forward model (after applying |
+   |                   | the satellite averaging kernel. The input here can |
+   |                   | be either a list of daily files or a single file   |
+   |                   | containing all observations for the year.          |
+   | ----------------- | -------------------------------------------------- |
+   | filter_on_\       | A boolean flag indicating whether or not to filter |
+   | blended_albedo    | on blended albedo, which should remove snow and    |
+   |                   | ice covered scenes, as recommended by Lorente et   |
+   |                   | al. 2021 and described in Wunch et al. 2011.       |
+   | ----------------- | -------------------------------------------------- |
+   | blended_albedo_ \ | The blended albedo threshold above which           |
+   | threshold         | are removed from the observation vector. Lorente   |
+   |                   | et al. find a value of 0.85 and Wunch et al. find  |
+   |                   | a value of about 1. We use 1.1.                    |
+   | ----------------- | -------------------------------------------------- |
+   | filter_on_albedo  | A boolean flag indicating whether or not to filter |
+   |                   | out scenes below the albedo_threshold, following   |
+   |                   | the recommendation of de Gouw et al. 2020.         |
+   | ----------------- | -------------------------------------------------- |
+   | albedo_threshold  | The albedo threshold below which observations are  |
+   |                   | removed. De Gouw et al. use 0.05. We do too.       |
+   | ----------------- | -------------------------------------------------- |
+   | filter_on_ \      | A boolean flag indicating whether or not to remove |
+   | seaasonal_ \      | observations north of 50 degrees N during winter   |
+   | latitude          | (DJF) months to further remove snow- and ice-      |
+   |                   | covered scenes.                                    |
+   | ----------------- | -------------------------------------------------- |
+   | remove_ \         | A boolean flag indicating whether or not to remove |
+   | latitudinal_bias  | the latitudinal bias in the model - observation    |
+   |                   | difference with a first order polynomial.          |
+   | ----------------- | -------------------------------------------------- |
+   | analyze_biases    | A boolean flag indicating whether or not to        |
+   |                   | analyze and plot spatial, latitudinal, seasonal,   |
+   |                   | and albedinal, biases in the model - observation   |
+   |                   | difference.                                        |
+   | ----------------- | -------------------------------------------------- |
+   | albedo_bins       | The albedo increments in which to bin the model -  |
+   |                   | observation difference for statistical analysis.   |
+   | ----------------- | -------------------------------------------------- |
+   | lat_bins          | The latitude increments in which to bin the model  |
+   |                   | - observation difference for statistical analysis. |
+   | ----------------- | -------------------------------------------------- |
+   | calculate_so      | A boolean flag indicating whether or not to        |
+   |                   | calculate the observational error variances using  |
+   |                   | the residual error method (Heald et al. 2004).     |
+   | ----------------- | -------------------------------------------------- |
+
+   **Outputs**
+
+   | ----------------- | -------------------------------------------------- |
+   | Output            | Description                                        |
+   | ----------------- | -------------------------------------------------- |
+   | y.nc              | The observation vector containing bias-corrected   |
+   |                   | TROPOMI observations.                              |
+   | ----------------- | -------------------------------------------------- |
+   | ya.nc             | The prior observation vector containing the output |
+   |                   | of the prior simulation, i.e. F(xa).               |
+   | ----------------- | -------------------------------------------------- |
+   | so.nc             | The observational error variances calculated using |
+   |                   | the residual error method.                         |
+   | ----------------- | -------------------------------------------------- |
+   | blended_albedo_ \ | Monthly plots of observed XCH4 vs. blended albedo. |
+   | filter_mm*.png    |                                                    |
+   | ----------------- | -------------------------------------------------- |
+   | prior_bias*.png   | Scatter plot of model vs. observation.             |
+   | ----------------- | -------------------------------------------------- |
+   | prior_spatial_ \  | Map of the model - observation bias on the inverse |
+   | bias*.png         | grid.                                              |
+   | ----------------- | -------------------------------------------------- |
+   | prior_ \          | Plot of the mean and standard deviation of the     |
+   | latitudinal_ \    | model - observation bias binned by lat_bin.        |
+   | bias*.png         |                                                    |
+   | ----------------- | -------------------------------------------------- |
+   | prior_seasonal \  | Plot of the mean and standard deviation of the     |
+   | bias*.png         | model - observation bias binned by month.          |
+   | ----------------- | -------------------------------------------------- |
+   | prior_seasonal \  | Plot of the mean and standard deviation of the     |
+   | latitudinal_ \    | model - observation bias binned by lat_bin and     |
+   | bias*.png         | month.                                             |
+   | ----------------- | -------------------------------------------------- |
+   | prior_albedo_ \   | Plot of the mean and standard deviation of the     |
+   | bias*.png         | model - observation bias binned by albedo_bin.     |
+   | ----------------- | -------------------------------------------------- |
+   | observations*.png | Seasonal plots of the observations averaged over   |
+   |                   | the inversion grid.                                |
+   | ----------------- | -------------------------------------------------- |
+   | errors*.png       | Seaasonal plots of the standard deviation averaged |
+   |                   | over the inversion grid.                           |
+   | ----------------- | -------------------------------------------------- |
 '''
+
 from os.path import join
 from os import listdir
-import os
 import sys
 import copy
 import calendar as cal
@@ -23,6 +109,17 @@ from numpy.polynomial import polynomial as p
 import pandas as pd
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', 10)
+
+# Custom packages
+sys.path.append('.')
+import config
+config.SCALE = config.PRES_SCALE
+config.BASE_WIDTH = config.PRES_WIDTH
+config.BASE_HEIGHT = config.PRES_HEIGHT
+import gcpy as gc
+import troppy as tp
+import format_plots as fp
+import inversion_settings as settings
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -45,18 +142,15 @@ plot_dir = base_dir + 'plots'
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
-year = 2019
-months = np.arange(1, 13, 1) # excluding December for now
-days = np.arange(1, 32, 1)
-prior_run = f'{year}.pkl'
-# prior_run = [f'{year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-#              for mm in months for dd in days]
+prior_run = f'{settings.year}.pkl'
+# prior_run = [f'{settings.year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+#              for mm in settings.months
+#              for dd in settings.days]
 # prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
 blended_albedo_threshold = 1.1
-albedo_bins = np.arange(0, 1.1, 0.05)
 
 # Define a plain old albedo threshold
 filter_on_albedo = True
@@ -67,34 +161,19 @@ filter_on_seasonal_latitude = True
 
 # Remove latitudinal bias
 remove_latitudinal_bias = True
+lat_bins = np.arange(10, 65, 5)
 
 # Which analyses do you wish to perform?
 analyze_biases = True
+albedo_bins = np.arange(0, 1.1, 0.05)
+lat_bins = np.arange(10, 65, 5)
+
+# Calculate the error variances?
 calculate_so = True
 
-# Information on the grid
-lat_bins = np.arange(10, 65, 5)
-lat_min = 9.75
-lat_max = 60
-lat_delta = 0.25
-lon_min = -130
-lon_max = -60
-lon_delta = 0.3125
-buffers = [3, 3, 3, 3]
-
 ## ------------------------------------------------------------------------ ##
-## Import custom packages
+## Define functions
 ## ------------------------------------------------------------------------ ##
-# Custom packages
-sys.path.append(code_dir)
-import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
-import gcpy as gc
-import troppy as tp
-import format_plots as fp
-
 # Define an empty suffix for file names
 suffix = ''
 if filter_on_blended_albedo:
@@ -106,9 +185,6 @@ if filter_on_seasonal_latitude:
 if remove_latitudinal_bias:
     suffix += '_BC'
 
-## ------------------------------------------------------------------------ ##
-## Define functions
-## ------------------------------------------------------------------------ ##
 def apply_filter(data, criteria, filter_name):
     old_nobs = data.shape[0]
     data = data[criteria]
@@ -182,7 +258,7 @@ if type(prior_run) == list:
     print('DIFFERENCE MAXIMUM : ', np.abs(data['DIFF']).max())
 
     # Save the data out
-    gc.save_obj(data, join(output_dir, f'{year}.pkl'))
+    gc.save_obj(data, join(output_dir, f'{settings.years[0]}.pkl'))
 
 else:
     ## ----------------------------------------- ##
@@ -197,19 +273,19 @@ print('Data is loaded.')
 ## ----------------------------------------- ##
 if filter_on_blended_albedo:
     # Plot values
-    # if plot_dir is not None:
-    #     for m in months:
-    #         d = data[data['MONTH'] == m]
-    #         fig, ax = fp.get_figax(aspect=1.75)
-    #         ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-    #                    c=fp.color(4), s=3, alpha=0.1)
-    #         ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
-    #         ax.set_xlim(0, 2)
-    #         ax = fp.add_title(ax, cal.month_name[m])
-    #         ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
-    #         fp.save_fig(fig, plot_dir,
-    #                     f'blended_albedo_filter_{m:02d}{suffix}')
-    #         plt.close()
+    if plot_dir is not None:
+        for m in settings.months:
+            d = data[data['MONTH'] == m]
+            fig, ax = fp.get_figax(aspect=1.75)
+            ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
+                       c=fp.color(4), s=3, alpha=0.1)
+            ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
+            ax.set_xlim(0, 2)
+            ax = fp.add_title(ax, cal.month_name[m])
+            ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
+            fp.save_fig(fig, plot_dir,
+                        f'blended_albedo_filter_{m:02d}{suffix}')
+            plt.close()
 
     # Apply the blended albedo filter
     BAF_filter = (data['BLENDED_ALBEDO'] < blended_albedo_threshold)
@@ -242,8 +318,9 @@ if remove_latitudinal_bias:
     print(summ)
 
 # Save out result
-if filter_on_blended_albedo or filter_on_albedo or remove_latitudinal_bias:
-    gc.save_obj(data, join(output_dir, f'{year}_corrected.pkl'))
+if (filter_on_blended_albedo or filter_on_albedo or
+    filter_on_seasonal_latitude or remove_latitudinal_bias):
+    gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
 nobs = data.shape[0]
 
@@ -252,12 +329,9 @@ nobs = data.shape[0]
 ## ------------------------------------------------------------------------ ##
 if analyze_biases:
     ## Spatial bias
-    # Get information on the lats and lons (edges of the domain)
-    lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
-                                         lon_min, lon_max, lon_delta, buffers)
-
     # Generate a grid on which to save out average difference
-    lats, lons = gc.create_gc_grid(*lat_e, lat_delta, *lon_e, lon_delta,
+    lats, lons = gc.create_gc_grid(*settings.lats, settings.lat_delta,
+                                   *settings.lons, settings.lon_delta,
                                    centers=False, return_xarray=False)
 
     # Save nearest latitude and longitude centers
@@ -441,13 +515,9 @@ if (plot_dir is not None) and calculate_so:
                                     'OBS', 'MOD', 'DIFF', 'PREC',
                                     'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'SO']])
 
-    # Observations grouped on the grid
-    # Get information on the lats and lons (edges of the domain)
-    lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
-                                         lon_min, lon_max, lon_delta, buffers)
-
     # Generate a grid on which to save out average difference
-    lats, lons = gc.create_gc_grid(*lat_e, lat_delta, *lon_e, lon_delta,
+    lats, lons = gc.create_gc_grid(*settings.lats, settings.lat_delta,
+                                   *settings.lons, settings.lon_delta,
                                    centers=False, return_xarray=False)
 
     # Save nearest latitude and longitude centers
@@ -527,15 +597,15 @@ if (plot_dir is not None) and calculate_so:
 ## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities
 ## ------------------------------------------------------------------------ ##
-gc.save_obj(data['OBS'], join(output_dir, 'y.pkl'))
-gc.save_obj(data['MOD'], join(output_dir, 'kxa.pkl'))
+y = xr.DataArray(data['OBS'], dims=('nobs'))
+y.to_netcdf(join(output_dir, 'y.nc'))
+
+ya = xr.DataArray(data['MOD'], dims=('nobs'))
+ya.to_netcdf(join(output_dir, 'ya.nc'))
+
 if calculate_so:
-    gc.save_obj(data['SO'], join(output_dir, 'so.pkl'))
+    so = xr.DataArray(data['SO'], dims=('nobs'))
+    so.to_netcdf(join(output_dir, 'so.nc'))
 
-# print(data['OBS'])
-# print(data['SO'])
-
-# # print(data)
-nobs = data['OBS'].shape[0]
 print(f'Number of observations : {nobs}')
 print('=== CODE COMPLETE ====')
