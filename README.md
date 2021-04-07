@@ -24,7 +24,6 @@ TROPOMI observations over North America.
    | Output            | Description                                        |
    | ----------------- | -------------------------------------------------- |
    | clusters.nc | A HEMCO-ready cluster file that maps a unique key for every grid cell contained in the state vector to the latitude-longitude grid used in the forward model. |
-   | clusters.png | A plot of the clusters. |
 
    To do:
    - [ ] Move inputs to one directory
@@ -56,8 +55,26 @@ TROPOMI observations over North America.
    To do:
    - [ ] Move inputs to one directory
 
-3. Run generate_obs.py
-   I
+4. Run generate_obs.py
+   This script generates the observation vector, the prior observation vector (i.e. F(xa)), and the observational error variances. It applies filters on albedo, latitude, and seaason to remove problematic TROPOMI observations. The variances are calcualted using the residual error method.
+
+   **Inputs**
+
+   | Input             | Description                                        |
+   | ----------------- | -------------------------------------------------- |
+   | prior_run | A file or files containing the processed output of the prior run of the forward model (after applying the satellite averaging kernel. The input here can be either a list of daily files or a single file containing all observations for the year. |
+   | filter_on_blended_albedo | A boolean flag indicating whether or not to filter on blended albedo, which should remove snow and ice covered scenes, as recommended by Lorente et al. 2021 and described in Wunch et al. 2011. Lorente et al. find a value of 0.85 and Wunch et al. find a value of about 1. We use 1.1. |
+   | filter_on_albedo | A boolean flag indicating whether or not to filter out scenes below the albedo_threshold, following the recommendation of de Gouw et al. 2020. De Gouw et al. use 0.05. We do too. |
+   | filter_on_seasonal_latitude | A boolean flag indicating whether or not to remove observations north of 50 degrees N during winter (DJF) months to further remove snow- and ice-covered scenes. |
+   | remove_latitudinal_bias | A boolean flag indicating whether or not to remove the latitudinal bias in the model - observation difference with a first order polynomial. |
+
+   **Outputs**
+
+   | Output            | Description                                        |
+   | ----------------- | -------------------------------------------------- |
+   | y.nc | The observation vector containing bias-corrected TROPOMI observations. |
+   | ya.nc | The prior observation vector containing the output of the prior simulation, i.e. F(xa). |
+   | so.nc | The observational error variances calculated using the residual error method. |
 
 ## To do
 - [ ] Rewrite to_dataset() (in inversion.py) to automatically identify elements of object
