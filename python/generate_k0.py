@@ -13,71 +13,39 @@ import sys
 import calendar as cal
 
 import xarray as xr
+from dask.diagnostics import ProgressBar
 import numpy as np
-from numpy.polynomial import polynomial as p
 import pandas as pd
 
 import matplotlib.pyplot as plt
 
+# Custom packages
+sys.path.append('.')
+# import config
+# config.SCALE = config.PRES_SCALE
+# config.BASE_WIDTH = config.PRES_WIDTH
+# config.BASE_HEIGHT = config.PRES_HEIGHT
+import gcpy as gc
+# import troppy as tp
+# import format_plots as fp
+# import inversion_settings as settings
+
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# # Local
-# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-# code_dir = f'{base_dir}python/'
-# data_dir = f'{base_dir}inversion_data/'
-# plot_dir = f'{base_dir}plots/'
-
 # Cannon
 base_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
 data_dir = f'{base_dir}inversion_data/'
 output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
 
-# The prior_run can either be a list of files or a single file
-# with all of the data for simulation
-year = 2019
-months = np.arange(1, 13, 1) # excluding December for now
-days = np.arange(1, 32, 1)
-
 # Files
+year = 2019
+month = sys.argv[1]
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{year}.nc'
 obs_file = f'{base_dir}observations/{year}_corrected.pkl'
-cluster_file = f'{data_dir}clusters_0.25x0.3125.nc'
-k_nstate = f'{data_dir}k0_nstate.pkl' # None
-
-# Which analyses do you wish to perform?
-
-# Information on the grid
-lat_bins = np.arange(10, 65, 5)
-lat_min = 9.75
-lat_max = 60
-lat_delta = 0.25
-lon_min = -130
-lon_max = -60
-lon_delta = 0.3125
-buffers = [3, 3, 3, 3]
-
-## ------------------------------------------------------------------------ ##
-## Import custom packages
-## ------------------------------------------------------------------------ ##
-# Custom packages
-sys.path.append(code_dir)
-import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
-import gcpy as gc
-import troppy as tp
-import format_plots as fp
-
-## ------------------------------------------------------------------------ ##
-## Define the inversion grid
-## ------------------------------------------------------------------------ ##
-# Get information on the lats and lons (edges of the domain) (this means
-# removing the buffer grid cells)
-lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
-                                     lon_min, lon_max, lon_delta, buffers)
+cluster_file = f'{data_dir}clusters.nc'
+k_nstate = f'{data_dir}k0_nstate.nc' # None
 
 ## ------------------------------------------------------------------------ ##
 ## Load the clusters
@@ -92,7 +60,7 @@ print(f'Number of state vector elements : {nstate}')
 emis = gc.load_files(emis_file)
 
 # Remove emissions from buffer grid cells
-emis = gc.subset_data_latlon(emis, *lat_e, *lon_e)
+emis = gc.subset_data_latlon(emis, *settings.lats, *settings.lons)
 
 # Separate out total methane emissions by removing soil absorption
 # to ask Daniel: should we only consider emissions (i.e. not the sink?)
@@ -146,7 +114,7 @@ obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
 ## ------------------------------------------------------------------------ ##
 ## Build the Jacobian
 ## ------------------------------------------------------------------------ ##
-def get_zone_emissions(emissions, ncells, emis_fraction):
+def get_zone_conc(emissions, ncells, emis_fraction):
     '''
     This function calculates the emissions allocated to each grid cell in
     successive rings (zones) from the source grid cell. Zone 0 corresponds
@@ -231,7 +199,7 @@ if k_nstate is None:
     f = np.array([10, 6, 4, 3, 2.5])
     f /= f.sum()
 
-    # Iterate through the columns
+    # Iterate through the state vector elements
     for i in range(1, nstate+1):
         # Get the emissions for that grid cell
         emis_i = emis.where(emis['Clusters'] == i, drop=True)['EmisCH4_ppb']
@@ -242,33 +210,29 @@ if k_nstate is None:
             # given zone
             idx_z = get_zone_indices(emis, grid_cell_index=i, zone=z)
 
-            # Calculate the emissions to be allocated to each of the grid cells
-            # in the zone if there are grid cells in the zone
+            # Calculate the emissions (as observation) to be allocated to each
+            # of the grid cells in the zone if there are grid cells in the zone
             if len(idx_z) > 0:
-                emis_z = get_zone_emissions(emis_i, ncells=len(idx_z),
-                                            emis_fraction=f[z])
+                conc_z = get_zone_conc(emis_i, ncells=len(idx_z),
+                                       emis_fraction=f[z])
 
-            # Place those emissions in the nstate x nstate x months Jacobian
-            k_nstate[i-1, idx_z-1, :] = emis_z
+            # Place those concentrations in the nstate x nstate x months
+            # Jacobian
+            k_nstate[i-1, idx_z-1, :] = conc_z
 
         # Keep track of progress
         if i % 1000 == 0:
             print(f'{i:-6d}/{nstate}', '-'*int(20*i/nstate))
 
     # Save
-    # gc.save_obj(k_nstate, join(data_dir, f'k0_nstate.pkl'))
-    k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'))
+    k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'),
+                       dims=('nstate', 'nobs', 'month'))
 
 else:
-    # big_mem = False
-    # if k_nstate.split('.')[-1] == 'hdf5':
-    #     big_mem=True
-    # k_nstate = gc.load_obj(join(data_dir, k_nstate), big_mem=big_mem)
-
     k_nstate = xr.open_dataarray(join(data_dir, 'k0_nstate.nc'),
-                                 chunks={'nstate' : 1000,
-                                         'nstate_1' : 1000,
-                                         'months' : 12})
+                                 chunks={'nobs' : 1000,
+                                         'nstate' : -1,
+                                         'month' : 12})
 
 print('k0_nstate is loaded.')
 
@@ -276,23 +240,14 @@ print('k0_nstate is loaded.')
 del(emis)
 del(clusters)
 obs = obs[['CLUSTER', 'MONTH']]
+obs = obs[obs['MONTH'] == month]
 
-# Now create a Jacobian for each chunk of 30,000 observations (the full
-# Jacobian is something like 3e6 x 2e4 and requires 300 GB even with float32)
-i = 0
-count = 0
-nchunk = int(5e4)
-state_vector_elements_remain = True
-while state_vector_elements_remain:
-    print(count)
-    o = obs[i:i+nchunk]
-    k_m = k_nstate[obs['CLUSTER'].values, :, (obs['MONTH'].values-1)]
-    gc.save_obj(k_m, join(output_dir, f'k0_{count:03d}.pkl'))
-    del(k_m)
-    i += nchunk
-    count += 1
-    if i > nobs:
-        state_vector_elements_remain = False
+# Fancy slicing isn't allowed by dask, so we'll create monthly Jacobians
+chunks={'nstate' : -1, 'nobs' : 3.5e4}
+k_m = k[obs['CLUSTER'].values, :, (month-1)]
+k_m = k_m.chunk(chunks)
+with ProgressBar():
+    k_m.to_netcdf(f'k0_m{month:02d}.nc')
 
 # EASY CHECK: USE THIS SCRIPT TO BUILD THE JACOBIAN FOR MY TEST CASE
 
