@@ -30,4 +30,6 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 echo "Initiating script"
-python -u generate_k0.py $MONTH
+
+python_dir=$(dirname `pwd`)
+python -u ${python_dir}/python/generate_k0.py $MONTH
