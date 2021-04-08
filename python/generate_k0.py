@@ -30,7 +30,7 @@ data_dir = f'{base_dir}inversion_data/'
 output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
 
 # Files
-month = sys.argv[1]
+month = int(sys.argv[1])
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
 obs_file = f'{base_dir}observations/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
@@ -229,7 +229,7 @@ print('k0_nstate is loaded.')
 del(emis)
 del(clusters)
 obs = obs[['CLUSTER', 'MONTH']]
-obs = obs.loc[obs['MONTH'] == month]
+obs = obs[obs['MONTH'] == month]
 print(f'In month {month}, there are {obs.shape[0]} observations.')
 
 # Fancy slicing isn't allowed by dask, so we'll create monthly Jacobians
