@@ -498,7 +498,8 @@ if calculate_so:
     data = pd.merge(data, var, on=groupby, how='left')
 
     # Scale by the observations
-    data['VAR'] = (data['STD']*data['OBS'])**2
+    data['STD'] *= data['OBS']
+    data['VAR'] = data['STD']**2
 
     # Where the variance calculated by the residual error method is less
     # than the precision squared value calculated above, set the error equal
@@ -506,6 +507,9 @@ if calculate_so:
     cond = data['VAR'] < data['PREC_SQ']
     data.loc[:, 'SO'] = data['VAR']
     data.loc[cond, 'SO'] = data.loc[cond, 'PREC_SQ']
+
+    # Save out the data
+    gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
 ## ------------------------------------------------------------------------ ##
 ## Plots
@@ -593,6 +597,14 @@ if (plot_dir is not None) and calculate_so:
     cb_e = fig.colorbar(c_e, ax=ax_e, cax=cax_e)
     cb_e = fp.format_cbar(cb_e, 'St. Dev. (ppb)')
     fp.save_fig(fig_e, plot_dir, f'errors{suffix}')
+
+    # Now plot the histogram
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.hist(data['STD'], bins=250, density=True, color=fp.color(4))
+    ax.set_xlim(0, 25)
+    ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+    ax = fp.add_title(ax, 'Observational Error')
+    fp.save_fig(fig, plot_dir, 'observational_error.png')
 
 ## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities

@@ -1,79 +1,43 @@
-# ## ========================================================================== ## Creating big mem inversion class
-# # ## ==========================================================================
-from os.path import join
-import os
-from os import listdir
-from copy import deepcopy
-os.environ['OMP_NUM_THREADS'] = '6'
-
-import numpy as np
 import xarray as xr
-import pickle
-import os
-import pandas as pd
-import math
 import numpy as np
-from scipy.linalg import eigh
-
-# Plotting
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
-
 import sys
-sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
-# import inversion as inv
+sys.path.append('.')
 import gcpy as gc
-import invpy as ip
-# import format_plots as fp
+import format_plots as fp
 
-# def open_k(file_name):
-#     try:
-#         k = gc.load_obj(file_name)
-#         return k
-#     except FileNotFoundError:
-#         print(f'{file_name} not found.')
-
-nstate_chunk = 23691
-# nobs_chunk = 4e4
-nobs_chunk = 3.5e4
-# nobs_chunk = 1.8
+import pandas as pd
+pd.set_option('display.max_columns', 100)
 
 
-data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
+data = gc.load_obj('../inversion_data/2019_corrected.pkl')
+data['STD'] = data['SO']**0.5
 
-k = [join(data_dir, f) for f in listdir(data_dir) if (f[:2] == 'k0') and
-                                                     (f[-2:] == 'nc')]
-k.sort()
-k0 = xr.open_mfdataset(k,
-                       chunks={'nstate' : nstate_chunk, 'nobs' : nobs_chunk},
-                       concat_dim='nobs')
-k0 = k0.rename({'__xarray_dataarray_variable__' : 'k'})
-k0 = k0['k']
+# bins = np.arange(0, 41)
+# data['STD_BIN'] = pd.cut(data['STD'], bins)
 
-# Need to convert all of these to netcdf to allow chunk reading
-# y = gc.load_obj('y.pkl')
-# y_base = gc.load_obj(join(data_dir, 'kxa.pkl'))
-# so_vec = gc.load_obj(join(data_dir, 'so.pkl'))
-# xa = gc.load_obj(join(data_dir, 'xa.pkl'))
-# sa_vec = gc.load_obj(join(data_dir, 'sa.pkl'))
+# labels = np.arange(0.5, 40.5, 1)
+# bottom = np.zeros(len(labels))
+# Local preferences
+base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+code_dir = base_dir + 'python'
+data_dir = base_dir + 'observations'
+output_dir = base_dir + 'inversion_data'
+plot_dir = base_dir + 'plots'
 
-y = xr.open_dataarray(join(data_dir, 'y.nc'), chunks=nobs_chunk)
-y_base = xr.open_dataarray(join(data_dir, 'kxa.nc'), chunks=nobs_chunk)
-so_vec = xr.open_dataarray(join(data_dir, 'so_vec.nc'), chunks=nobs_chunk)
-xa = xr.open_dataarray(join(data_dir, 'xa.nc'), chunks=nstate_chunk)
-sa_vec = xr.open_dataarray(join(data_dir, 'sa_vec.nc'), chunks=nstate_chunk)
+fig, ax = fp.get_figax(aspect=1.75)
+ax.hist(data['STD'], bins=250, density=True, color=fp.color(4))
+ax.set_xlim(0, 25)
+ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+ax = fp.add_title(ax, 'Observational Error')
+fp.save_fig(fig, plot_dir, 'observational_error.png')
+# for season in np.unique(data['SEASON']):
+#     hist_data = data[data['SEASON'] == season]
+#     hist_data = hist_data.groupby(['STD_BIN']).count()['OBS']
 
-nstate = xa.shape[0]
-nobs = y.shape[0]
-
-c = y_base - k0 @ xa
-# c = y_base - (k0*xa).sum(dim='nstate')
-c = c.astype('float32')
-c = c.chunk(nobs)
-
-from dask.diagnostics import ProgressBar
-with ProgressBar():
-    c.to_netcdf(join(data_dir, 'c.nc'))
+#     ax.bar(labels, hist_data.values, bottom=bottom)
+#     bottom += hist_data.values
+# plt.show()
 
 # # kn = open_k(k[0])
 
@@ -142,73 +106,6 @@ with ProgressBar():
 # output_dir = f'{base_dir}SummaryDir'
 # plot_dir = None
 
-
-
-# Information on the grid
-lat_bins = np.arange(10, 65, 5)
-lat_min = 9.75
-lat_max = 60
-lat_delta = 0.25
-lon_min = -130
-lon_max = -60
-lon_delta = 0.3125
-buffers = [3, 3, 3, 3]
-
-## ------------------------------------------------------------------------ ##
-## Import custom packages
-## ------------------------------------------------------------------------ ##
-# Custom packages
-sys.path.append('.')
-import config
-import gcpy as gc
-import troppy as tp
-import format_plots as fp
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = r'\usepackage{cmbright}'
-
-# data
-year = 2019
-month = 12
-days = np.arange(1, 32, 1)
-files = [f'{year}{month}{dd:02d}_GCtoTROPOMI.pkl' for dd in days]
-data_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/observations'
-
-data = np.array([]).reshape(0, 13)
-for f in files:
-    month = int(f[4:6])
-    day = int(f[6:8])
-    new_data = gc.load_obj(join(data_dir, f))['obs_GC']
-    new_data = np.insert(new_data, 11, month, axis=1)
-    new_data = np.insert(new_data, 12, day, axis=1)
-    data = np.concatenate((data, new_data))
-
-columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-           'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
-           'MONTH', 'DAY']
-data = pd.DataFrame(data, columns=columns)
-data['DIFF'] = data['MOD'] - data['OBS']
-data['BLENDED_ALBEDO'] = tp.blended_albedo(data,
-                                           data['ALBEDO_SWIR'],
-                                           data['ALBEDO_NIR'])
-data = data[data['BLENDED_ALBEDO'] < 1]
-
-pd.set_option('display.max_columns', None)
-summ_max = data.groupby('DAY').max()[['AOD']]
-print(summ_max)
-summ_min = data.groupby('DAY').min()[['AOD']]
-print(summ_min)
-
-test = data[data['DAY'] == 27]
-print(test[test['DIFF'] == test['DIFF'].max()])
-
-fig, ax = fp.get_figax(maps=True, lats=[lat_min, lat_max],
-                       lons=[lon_min, lon_max])
-ax = fp.format_map(ax, lats=[lat_min, lat_max], lons=[lon_min, lon_max])
-cax = fp.add_cax(fig, ax)
-c = ax.scatter(test['LON'], test['LAT'], c=test['OBS'], cmap='plasma',
-               vmin=1600, vmax=1800, s=3)
-cb = fig.colorbar(c, ax=ax, cax=cax)
-plt.show()
 
 # # print(data)
 

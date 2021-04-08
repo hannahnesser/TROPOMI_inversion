@@ -28,7 +28,7 @@ sys.path.append('.')
 import gcpy as gc
 # import troppy as tp
 # import format_plots as fp
-# import inversion_settings as settings
+import inversion_settings as settings
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -40,10 +40,9 @@ data_dir = f'{base_dir}inversion_data/'
 output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
 
 # Files
-year = 2019
 month = sys.argv[1]
-emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{year}.nc'
-obs_file = f'{base_dir}observations/{year}_corrected.pkl'
+emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
+obs_file = f'{base_dir}observations/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
 k_nstate = f'{data_dir}k0_nstate.nc' # None
 
@@ -57,7 +56,7 @@ print(f'Number of state vector elements : {nstate}')
 ## ------------------------------------------------------------------------ ##
 ## Load and process the emissions
 ## ------------------------------------------------------------------------ ##
-emis = gc.load_files(emis_file)
+emis = gc.read_netcdf_file(emis_file)
 
 # Remove emissions from buffer grid cells
 emis = gc.subset_data_latlon(emis, *settings.lats, *settings.lons)
@@ -95,7 +94,7 @@ emis = emis[['Clusters', 'EmisCH4_ppb']]
 ## Load and process the observations
 ## ------------------------------------------------------------------------ ##
 obs = gc.load_obj(obs_file)[['LON', 'LAT', 'MONTH']]
-nobs = int(obs.shape[0] + 1)
+nobs = int(obs.shape[0])
 print(f'Number of observations : {nobs}')
 
 # Find the indices that correspond to each observation (i.e. the grid
