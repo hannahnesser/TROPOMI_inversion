@@ -237,7 +237,7 @@ chunks={'nstate' : -1, 'nobs' : 3.5e4}
 k_m = k_nstate[obs['CLUSTER'].values, :, (month-1)]
 k_m = k_m.chunk(chunks)
 with ProgressBar():
-    k_m.to_netcdf(f'k0_m{month:02d}.nc')
+    k_m.to_netcdf(join(output_dir, f'k0_m{month:02d}.nc'))
 
 # EASY CHECK: USE THIS SCRIPT TO BUILD THE JACOBIAN FOR MY TEST CASE
 

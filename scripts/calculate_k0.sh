@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sbatch --array=2-3 calculate_k0_monthly.sh
+sbatch --array=4-12 calculate_k0_monthly.sh
