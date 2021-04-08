@@ -8,26 +8,16 @@ Inputs:
 '''
 
 from os.path import join
-from os import listdir
 import sys
-import calendar as cal
 
 import xarray as xr
 from dask.diagnostics import ProgressBar
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
-
 # Custom packages
 sys.path.append('.')
-# import config
-# config.SCALE = config.PRES_SCALE
-# config.BASE_WIDTH = config.PRES_WIDTH
-# config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
-# import troppy as tp
-# import format_plots as fp
 import inversion_settings as settings
 
 ## ------------------------------------------------------------------------ ##
@@ -239,11 +229,12 @@ print('k0_nstate is loaded.')
 del(emis)
 del(clusters)
 obs = obs[['CLUSTER', 'MONTH']]
-obs = obs[obs['MONTH'] == month]
+obs = obs.loc[obs['MONTH'] == month]
+print(f'In month {month}, there are {obs.shape[0]} observations.')
 
 # Fancy slicing isn't allowed by dask, so we'll create monthly Jacobians
 chunks={'nstate' : -1, 'nobs' : 3.5e4}
-k_m = k[obs['CLUSTER'].values, :, (month-1)]
+k_m = k_nstate[obs['CLUSTER'].values, :, (month-1)]
 k_m = k_m.chunk(chunks)
 with ProgressBar():
     k_m.to_netcdf(f'k0_m{month:02d}.nc')
