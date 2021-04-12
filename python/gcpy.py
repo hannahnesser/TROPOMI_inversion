@@ -14,6 +14,7 @@ import dask.array as da
 
 from os.path import join
 from os import listdir
+import os
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -124,7 +125,7 @@ def calculate_chunk_size(available_memory_GB, dtype='float32'):
 
     # Approximate the number of chunks that are held in memory simultaneously
     # by dask (reference: https://docs.dask.org/en/latest/array-best-practices.html#:~:text=Orient%20your%20chunks,-When%20reading%20data&text=If%20your%20Dask%20array%20chunks,closer%20to%201MB%20than%20100MB.)
-    chunks_in_memory = 2*omp_num_threads
+    chunks_in_memory = 10*omp_num_threads
 
     # Calculate the memory that is available per chunk (in GB)
     mem_per_chunk = available_memory_GB/chunks_in_memory
@@ -144,7 +145,7 @@ def calculate_chunk_size(available_memory_GB, dtype='float32'):
     number_of_elements = mem_per_chunk*1e9/bytes_per_element
 
     # Scale the number of elements down by 10% to allow for wiggle room.
-    return int(0.9*number_of_elements)
+    return int(number_of_elements)
 
 ## -------------------------------------------------------------------------##
 ## Statistics functions
