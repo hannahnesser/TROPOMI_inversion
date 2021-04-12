@@ -36,6 +36,9 @@ obs_file = f'{base_dir}observations/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
 k_nstate = f'{data_dir}k0_nstate.nc' # None
 
+# Memory constraints
+available_memory_GB = int(sys.argv[2])
+
 ## ------------------------------------------------------------------------ ##
 ## Load the clusters
 ## ------------------------------------------------------------------------ ##
@@ -230,10 +233,16 @@ del(emis)
 del(clusters)
 obs = obs[['CLUSTER', 'MONTH']]
 obs = obs[obs['MONTH'] == month]
-print(f'In month {month}, there are {obs.shape[0]} observations.')
+nobs = obs.shape[0]
+print(f'In month {month}, there are {nobs} observations.')
 
 # Fancy slicing isn't allowed by dask, so we'll create monthly Jacobians
-chunks={'nstate' : -1, 'nobs' : 3.5e4}
+max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
+nstate = len(k_nstate.nstate)
+nobs_clusters = int(max_chunk_size/nstate)
+chunks={'nstate' : -1, 'nobs' : nobs_clusters}
+print('CHUNK SIZE')
+print(chunks)
 k_m = k_nstate[obs['CLUSTER'].values, :, (month-1)]
 k_m = k_m.chunk(chunks)
 with ProgressBar():
