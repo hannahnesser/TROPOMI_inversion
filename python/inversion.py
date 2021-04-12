@@ -153,6 +153,7 @@ class Inversion:
             max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
             chunks['nobs'] = int(max_chunk_size/self.nstate)
 
+        # Load observational data
         self.k = self.read(k, chunks, dims=('nobs', 'nstate'))
         self.y = self.read(y, chunks['nobs'], dims=('nobs'))
         self.ya = self.read(ya, chunks['nobs'], dims=('nobs'))
