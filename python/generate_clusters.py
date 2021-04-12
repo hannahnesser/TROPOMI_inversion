@@ -55,9 +55,9 @@ import matplotlib.pyplot as plt
 # Custom packages
 sys.path.append('.')
 import config
-# config.SCALE = config.PRES_SCALE
-# config.BASE_WIDTH = config.PRES_WIDTH
-# config.BASE_HEIGHT = config.PRES_HEIGHT
+config.SCALE = config.PRES_SCALE
+config.BASE_WIDTH = config.PRES_WIDTH
+config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
 import troppy as tp
 import format_plots as fp
@@ -137,35 +137,40 @@ lc = (lc['FRLAKE'] + lc['FRLAND'] + lc['FRLANDIC']).drop('time').squeeze()
 ## -------------------------------------------------------------------------##
 # Where the emissions are larger than the threshold, set the values to nan
 # so that we can use iterate through them. Elsewhere, set the value to 0.
-emis = emis.where((emis < emis_threshold) & (lc < land_threshold))
-emis = emis.where(emis.isnull(), 0)
+clusters = emis.where((emis < emis_threshold) & (lc < land_threshold))
+clusters = clusters.where(clusters.isnull(), 0)
 
 # Fill in the cluster values
-emis_vals = emis.values
-emis_vals[emis.isnull()] = np.arange(1, emis.isnull().sum()+1)[::-1]
-emis.values = emis_vals
+clusters_vals = clusters.values
+clusters_vals[clusters.isnull()] = np.arange(1, clusters.isnull().sum()+1)[::-1]
+clusters.values = clusters_vals
 
 # Print information about clusters
-print(f'The inversion will optimize {int(emis.max().values)} clusters.')
+print(f'The inversion will optimize {int(clusters.max().values)} clusters.')
 
 # Format for HEMCO
-emis = gc.define_HEMCO_std_attributes(emis, name='Clusters')
-emis = gc.define_HEMCO_var_attributes(emis, 'Clusters',
+clusters = gc.define_HEMCO_std_attributes(clusters, name='Clusters')
+clusters = gc.define_HEMCO_var_attributes(clusters, 'Clusters',
                                       long_name='Clusters generated for analytical inversion',
                                       units='none')
-emis.attrs = {'Title' : 'Clusters generated for analytical inversion'}
+clusters.attrs = {'Title' : 'Clusters generated for analytical inversion'}
 
 # Save out clusters
-gc.save_HEMCO_netcdf(emis, output_dir, 'clusters.nc')
+gc.save_HEMCO_netcdf(clusters, output_dir, 'clusters.nc')
+
+# Print information on clusters
+emis_tot = emis.sum().values
+cluster_tot = emis.where(clusters['Clusters'] > 0).sum().values
+print(cluster_tot, emis_tot, cluster_tot/emis_tot)
 
 ## -------------------------------------------------------------------------##
 ## Plot the result
 ## -------------------------------------------------------------------------##
-fig, ax = fp.get_figax(maps=True, lats=emis.lat, lons=emis.lon)
-cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
-ax = fp.format_map(ax, lats=emis.lat, lons=emis.lon)
-c = emis['Clusters'].plot(ax=ax, cmap=fp.cmap_trans('jet_r', nalpha=5),
+fig, ax = fp.get_figax(maps=True, lats=clusters.lat, lons=clusters.lon)
+ax = fp.format_map(ax, lats=clusters.lat, lons=clusters.lon)
+c = clusters['Clusters'].plot(ax=ax, cmap=fp.cmap_trans('jet_r', nalpha=5),
                           add_colorbar=False, vmin=1)
+cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
 cb = fig.colorbar(c, cax=cax)
 cb = fp.format_cbar(cb, cbar_title=r'Cluster Number')
 ax = fp.add_title(ax, 'Clusters')

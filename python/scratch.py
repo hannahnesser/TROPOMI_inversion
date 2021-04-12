@@ -3,6 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('.')
+import config
+config.SCALE = config.PRES_SCALE
+config.BASE_WIDTH = config.PRES_WIDTH
+config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
 import format_plots as fp
 
@@ -26,14 +30,64 @@ output_dir = base_dir + 'inversion_data'
 plot_dir = base_dir + 'plots'
 
 fig, ax = fp.get_figax(aspect=1.75)
-ax.hist(data['STD'], bins=250, density=True, color=fp.color(4))
 ax.set_xlim(0, 25)
 ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
 ax = fp.add_title(ax, 'Observational Error')
-fp.save_fig(fig, plot_dir, 'observational_error.png')
-# for season in np.unique(data['SEASON']):
-#     hist_data = data[data['SEASON'] == season]
-#     hist_data = hist_data.groupby(['STD_BIN']).count()['OBS']
+for i, season in enumerate(np.unique(data['SEASON'])):
+    hist_data = data[data['SEASON'] == season]['STD']
+    ax.hist(hist_data, histtype='step', bins=275, label=season,
+            color=fp.color(2+2*i), lw=1)
+    ax.axvline(hist_data.mean(), color=fp.color(2+2*i), lw=1, ls=':')
+ax = fp.add_legend(ax)
+fp.save_fig(fig, plot_dir, 'observational_error_seasonal')
+
+# LATITUDE
+# Update lat bins
+lat_bins = np.arange(10, 65, 10)
+data['LAT_BIN'] = pd.cut(data['LAT'], lat_bins)
+
+fig, ax = fp.get_figax(aspect=1.75)
+ax.set_xlim(0, 25)
+ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+ax = fp.add_title(ax, 'Observational Error')
+for i, lat_bin in enumerate(np.unique(data['LAT_BIN'])):
+    hist_data = data[data['LAT_BIN'] == lat_bin]['STD']
+    ax.hist(hist_data, histtype='step', bins=275, label=lat_bin,
+            color=fp.color(2*i), lw=1)
+    ax.axvline(hist_data.mean(), color=fp.color(2*i), lw=1, ls=':')
+
+ax = fp.add_legend(ax)
+fp.save_fig(fig, plot_dir, 'observational_error_latitude_hist')
+
+fig, ax = fp.get_figax(aspect=1.75)
+ax.scatter(data['LAT'], data['STD'], c=fp.color(4), s=2, alpha=0.1)
+ax = fp.add_labels(ax, 'Latitude', 'Observational Error (ppb)')
+ax = fp.add_title(ax, 'Observational Error')
+fp.save_fig(fig, plot_dir, 'observational_error_latitude_scatter')
+
+# ALBEDO
+# Update albedo bins
+albedo_bins = np.arange(0, 1, 0.1)
+data['ALBEDO_BIN'] = pd.cut(data['ALBEDO_SWIR'], albedo_bins)
+
+fig, ax = fp.get_figax(aspect=1.75)
+ax.set_xlim(0, 25)
+ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+ax = fp.add_title(ax, 'Observational Error')
+for i, alb_bin in enumerate(np.unique(data['ALBEDO_BIN'])):
+    hist_data = data[data['ALBEDO_BIN'] == alb_bin]['STD']
+    ax.hist(hist_data, histtype='step', bins=275, label=alb_bin,
+            color=fp.color(2*i), lw=1)
+    ax.axvline(hist_data.mean(), color=fp.color(2*i), lw=1, ls=':')
+
+ax = fp.add_legend(ax)
+fp.save_fig(fig, plot_dir, 'observational_error_albedo_hist')
+
+fig, ax = fp.get_figax(aspect=1.75)
+ax.scatter(data['ALBEDO_SWIR'], data['STD'], c=fp.color(4), s=2, alpha=0.1)
+ax = fp.add_labels(ax, 'Albedo', 'Observational Error (ppb)')
+ax = fp.add_title(ax, 'Observational Error')
+fp.save_fig(fig, plot_dir, 'observational_error_albedo_scatter')
 
 #     ax.bar(labels, hist_data.values, bottom=bottom)
 #     bottom += hist_data.values

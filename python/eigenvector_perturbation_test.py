@@ -49,9 +49,15 @@ data_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_JDM'
 run_dir = '/n/holyscratch01/jacob_lab/hnesser/eigenvector_perturbation_test_JDM/'
 RF = 0.05
 year = 2015
-evec_scaling = ['0', '1']#, '1e-6', '1e-7']
+evec_scaling = ['0', '1', '1e-6', '1e-7']
 prior_dir = join(run_dir, 'prior_dir')
-pert_dir = [join(run_dir, f'pert_dir_{s}') for s in evec_scaling]
+pert_dir = [join(run_dir, f'pert_dir_{s}') for s in evec_scaling[1:]]
+
+## -------------------------------------------------------------------------##
+## Define functions
+## -------------------------------------------------------------------------##
+def read_sat_obs(file, cols=['model', 'GLINT', 'LAT']):
+    return pd.read_csv(file, delim_whitespace=True, header=0, usecols=cols)
 
 ## -------------------------------------------------------------------------##
 ## Calculate eigenvectors
@@ -189,61 +195,82 @@ if CompareResults:
     ## Calculate Jacobian column from K and eigenvectors
     ## ---------------------------------------------------------------------##
     k_file = 'k.pkl'
-    prolongation_file = 'gamma_star.csv'
+    xa_abs_file = 'xa_abs.nc'
+    # area_file = 'HEMCO_diagnostics.201502010000.nc'
+    # prolongation_file = 'gamma_star.csv'
+    evec_gridded_file = 'evec_pert_0001_1.nc'
+    cluster_file = 'clusters.nc'
+    y_base_file = 'y_base.pkl'
 
-    # Load Jacobian and eigenvectors
-    k_true = gc.load_obj(join(data_dir, k_file))
-    evec = pd.read_csv(join(data_dir, prolongation_file),
-                       header=None, usecols=[0])
+    # Load needed files
+    k_true_rel = gc.load_obj(join(data_dir, k_file))
+    xa_abs = xr.open_dataarray(join(data_dir, xa_abs_file)).values
+    evec_gridded = xr.open_dataarray(join(data_dir, evec_gridded_file))
+    # evec = pd.read_csv(join(data_dir, prolongation_file),
+    #                    header=None, usecols=[0])
+    # area = xr.open_dataarray(join(pert_dir[0], area_file))
+    clusters = xr.open_dataarray(join(data_dir, cluster_file))
+    y_base = gc.load_obj(join(data_dir, y_base_file))
+
+    # Calculate c
+    c = y_base - k_true_rel.sum(axis=1)
+
+    # Calculate the absolute Jacobian (probably in units ppb/(molec cm-2 s-1))
+    k_true_abs = k_true_rel/xa_abs
+
+    # Convert evec from kg m-2 s-1 to molec cm-2 s-1
+    evec_gridded *= (1e3/16.04*6.022e23)*(1/100)**2
+    evec_gridded.attrs['units'] = ['molec/cm2/s']
+
+    # Flatten evec
+    evec = ip.clusters_2d_to_1d(clusters, evec_gridded)
 
     # Multiply the two
-    kw_true = np.dot(k_true, evec.values)
+    kw_true = np.dot(k_true_abs, evec) + c
 
     # Subset
-    subset = ~np.isnan(kw_true).reshape(-1,)
-    kw_true = kw_true[subset]
+    # subset = ~np.isnan(kw_true).reshape(-1,)
+    # kw_true = kw_true[subset]
 
     # Clear up memory
-    del(k_true)
-    del(evec)
+    # del(k_true)
+    # del(evec)
 
     ## ---------------------------------------------------------------------##
     ## Calculate Jacobian column from forward model and compare
     ## ---------------------------------------------------------------------##
     # Read prior
-    prior = pd.read_csv(join(prior_dir, 'sat_obs.gosat.00.m'),
-                        delim_whitespace=True, header=0,
-                        usecols=['model', 'GLINT', 'LAT'],
-                        low_memory=True)
+    prior = read_sat_obs(join(prior_dir, 'sat_obs.gosat.00.m'))
     cond = ((prior['LAT'] < 60) & (prior['GLINT'] < 0.5))
-    prior = prior[cond]['model'].values.reshape(-1,)
+    prior = prior[cond]['model'].values
 
     # Read perturbations
-    for p in pert_dir[1:2]:
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    for i, p in enumerate(pert_dir):
         scale_factor = p.split('_')[-1]
+        print('-'*20)
         print(scale_factor)
-        pert = pd.read_csv(join(p, 'sat_obs.gosat.00.m'),
-                           delim_whitespace=True, header=0,
-                           usecols=['model', 'GLINT', 'LAT'],
-                           low_memory=True)
-        cond = ((pert['LAT'] < 60) & (pert['GLINT'] < 0.5))
+        pert = read_sat_obs(join(p, 'sat_obs.gosat.00.m'))
         pert = pert[cond]['model'].values
-        kw_gc = (pert - prior)#/float(scale_factor)
-        print(p)
-        print(kw_gc)
-        # kw_gc = kw_gc[subset]
+        kw_gc = (pert - prior)/float(scale_factor)
+        print(f'GEOS-Chem minimum: {kw_gc.min()}')
+        print(f'Linear algebra minimum: {(kw_true/1e9).min()}')
+        print(f'GEOS-Chem maximum: {kw_gc.max()}')
+        print(f'Linear algebra maximum: {(kw_true/1e9).max()}')
 
         ## Plot the comparison
         # Get square axis limits
-        xlim, ylim, _, _, _ = fp.get_square_limits(kw_true, kw_gc)
+        xlim, ylim, _, _, _ = fp.get_square_limits(kw_true/1e9, kw_gc)
 
-        fig, ax = plt.subplots(figsize=(10, 10))
-        ax.scatter(kw_true, kw_gc)
-        ax.set_title(scale_factor)
+        ax.scatter(kw_true/1e9, kw_gc, c=fp.color(2+2*i), alpha=0.2, s=2,
+                   label=scale_factor)
+        # ax.set_title(scale_factor)
         ax.set_xlabel('Linear Algebra')
         ax.set_ylabel('Forward Model')
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
+        ax.legend()
 
-        plt.show()
+    plt.show()
 
