@@ -20,12 +20,10 @@ so_vec = f'{data_dir}so.nc'
 c = None
 
 
-def read(item, chunk_size=None, combine=None, concat_dim=None,
-         dims=None, dtype='float32'):
+def read(item, dims=None, **kwargs):
     # If item is a string, load the file
     if type(item) in [str, list]:
-        item = gc.read_file(item, chunk_size, combine=combine,
-                            concat_dim=concat_dim)
+        item = gc.read_file(item, **kwargs)
 
     # Force the items to be dataarrays
     if type(item) != xr.core.dataarray.DataArray:
@@ -43,64 +41,7 @@ def read(item, chunk_size=None, combine=None, concat_dim=None,
     # Return
     return item
 
-def read_file(file_name, chunk_size=None, **kwargs):
-    # Require that the file exists
-    if type(file_name) == list:
-        print('Opening a list of files.')
-        file_suffix = file_name[0].split('.')[-1]
-        for f in file_name:
-            assert file_exists(f), f'{f} does not exist.'
-            assert f.split('.')[-1] == file_suffix, \
-                   'Variable file types provided.'
-            assert file_suffix[:2] == 'nc', 'Files are not netcdfs.'
-    else:
-        print('Opening a single file.')
-        file_suffix = file_name.split('.')[-1]
-        assert file_exists(file_name), f'{file_name} does not exist.'
-
-    # If a netcdf, read it using xarray
-    if file_suffix[:2] == 'nc':
-        print('Reading file as a netcdf.')
-        file = read_netcdf_file(file_name, chunk_size=chunk_size, **kwargs)
-    # Else, read it using a generic function
-    else:
-        if chunk_size is not None:
-            print('NOTE: Chunk sizes were provided, but the file')
-            print('is not a netcdf. Chunk size is ignored.')
-        file = gc.read_generic_file(file_name, **kwargs)
-
-    return file
-
-def read_netcdf_file(*file_names, chunk_size=None, **kwargs):
-    # Open a dataset
-    if len(*file_names) > 1:
-        nc_kw = {}
-        nc_kw['combine'] = kwargs.pop('combine', None)
-        nc_kw['concat_dim'] = kwargs.pop('concat_dim', None)
-        data = xr.open_mfdataset(*file_names, chunks=chunk_size)
-    else:
-        data = xr.open_dataset(file_names[0], chunks=chunk_size)
-
-    # If there is only one variable, convert to a dataarray
-    variables = list(data.keys())
-    if len(variables) == 1:
-        data = data[variables[0]]
-
-    # Return the file
-    return data
-
-def file_exists(file_name):
-    '''
-    Check for the existence of a file/
-    '''
-    data_dir = file_name.rpartition('/')[0]
-    if file_name.split('/')[-1] in listdir(data_dir):
-        return True
-    else:
-        print(f'{file_name} is not in the data directory.')
-        return False
-
-xa = read(xa, chunks['nstate'], dims=('nstate'))
+xa = read(xa, dims=('nstate'), chunks=chunks['nstate'])
 sa_vec = read(sa_vec, chunks['nstate'], dims=('nstate'))
 nstate = xa.shape[0]
 
