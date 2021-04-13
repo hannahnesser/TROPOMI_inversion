@@ -203,10 +203,12 @@ class Inversion:
     ### UTILITY FUNCTIONS ###
     #########################
     @staticmethod
-    def read(self, item, chunk_size=None, dims=None, dtype='float32'):
+    def read(self, item, chunk_size=None, combine=None, concat_dim=None,
+             dims=None, dtype='float32'):
         # If item is a string, load the file
-        if type(item) == 'string':
-            item = gc.read_file(item, chunk_size)
+        if type(item) in [str, list]:
+            item = gc.read_file(item, chunk_size, combine=combine,
+                                concat_dim=concat_dim)
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:

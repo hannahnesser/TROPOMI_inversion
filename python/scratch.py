@@ -1,93 +1,209 @@
 import xarray as xr
-import numpy as np
-import matplotlib.pyplot as plt
 import sys
-sys.path.append('.')
-import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
+sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
 import gcpy as gc
-import format_plots as fp
 
-import pandas as pd
-pd.set_option('display.max_columns', 100)
+regularization_factor = 1
+reduced_memory = True
+available_memory_GB = 45
+
+chunks = {'nstate' : -1, 'nobs' : None}
+
+data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
+
+k = [f'{data_dir}k0_m{i:02d}.nc' for i in range(1, 13)]
+xa = f'{data_dir}xa.nc'
+sa_vec = f'{data_dir}sa.nc'
+y = f'{data_dir}y.nc'
+ya = f'{data_dir}ya.nc'
+so_vec = f'{data_dir}so.nc'
+c = None
 
 
-data = gc.load_obj('../inversion_data/2019_corrected.pkl')
-data['STD'] = data['SO']**0.5
+def read(item, chunk_size=None, combine=None, concat_dim=None,
+         dims=None, dtype='float32'):
+    # If item is a string, load the file
+    if type(item) in [str, list]:
+        item = gc.read_file(item, chunk_size, combine=combine,
+                            concat_dim=concat_dim)
 
-# bins = np.arange(0, 41)
-# data['STD_BIN'] = pd.cut(data['STD'], bins)
+    # Force the items to be dataarrays
+    if type(item) != xr.core.dataarray.DataArray:
+        # If it's a dataset, require that there be only one variable
+        if type(item) == xr.core.dataset.Dataset:
+            variables = list(item.keys())
+            assert len(variables) == 1, \
+                  'A dataset with multiple variables was provided. This \
+                   class requires that any datasets contain only one \
+                   variable.'
+            item = item[variables[0]]
+        else:
+            item = xr.DataArray(item, dims=dims)
 
-# labels = np.arange(0.5, 40.5, 1)
-# bottom = np.zeros(len(labels))
-# Local preferences
-base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-code_dir = base_dir + 'python'
-data_dir = base_dir + 'observations'
-output_dir = base_dir + 'inversion_data'
-plot_dir = base_dir + 'plots'
+    # Return
+    return item
 
-fig, ax = fp.get_figax(aspect=1.75)
-ax.set_xlim(0, 25)
-ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
-ax = fp.add_title(ax, 'Observational Error')
-for i, season in enumerate(np.unique(data['SEASON'])):
-    hist_data = data[data['SEASON'] == season]['STD']
-    ax.hist(hist_data, histtype='step', bins=275, label=season,
-            color=fp.color(2+2*i), lw=1)
-    ax.axvline(hist_data.mean(), color=fp.color(2+2*i), lw=1, ls=':')
-ax = fp.add_legend(ax)
-fp.save_fig(fig, plot_dir, 'observational_error_seasonal')
+def read_file(file_name, chunk_size=None, **kwargs):
+    # Require that the file exists
+    if type(file_name) == list:
+        print('Opening a list of files.')
+        file_suffix = file_name[0].split('.')[-1]
+        for f in file_name:
+            assert file_exists(f), f'{f} does not exist.'
+            assert f.split('.')[-1] == file_suffix, \
+                   'Variable file types provided.'
+            assert file_suffix[:2] == 'nc', 'Files are not netcdfs.'
+    else:
+        print('Opening a single file.')
+        file_suffix = file_name.split('.')[-1]
+        assert file_exists(file_name), f'{file_name} does not exist.'
 
-# LATITUDE
-# Update lat bins
-lat_bins = np.arange(10, 65, 10)
-data['LAT_BIN'] = pd.cut(data['LAT'], lat_bins)
+    # If a netcdf, read it using xarray
+    if file_suffix[:2] == 'nc':
+        print('Reading file as a netcdf.')
+        file = read_netcdf_file(file_name, chunk_size=chunk_size, **kwargs)
+    # Else, read it using a generic function
+    else:
+        if chunk_size is not None:
+            print('NOTE: Chunk sizes were provided, but the file')
+            print('is not a netcdf. Chunk size is ignored.')
+        file = gc.read_generic_file(file_name, **kwargs)
 
-fig, ax = fp.get_figax(aspect=1.75)
-ax.set_xlim(0, 25)
-ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
-ax = fp.add_title(ax, 'Observational Error')
-for i, lat_bin in enumerate(np.unique(data['LAT_BIN'])):
-    hist_data = data[data['LAT_BIN'] == lat_bin]['STD']
-    ax.hist(hist_data, histtype='step', bins=275, label=lat_bin,
-            color=fp.color(2*i), lw=1)
-    ax.axvline(hist_data.mean(), color=fp.color(2*i), lw=1, ls=':')
+    return file
 
-ax = fp.add_legend(ax)
-fp.save_fig(fig, plot_dir, 'observational_error_latitude_hist')
+def read_netcdf_file(*file_names, chunk_size=None, **kwargs):
+    # Open a dataset
+    if len(*file_names) > 1:
+        nc_kw = {}
+        nc_kw['combine'] = kwargs.pop('combine', None)
+        nc_kw['concat_dim'] = kwargs.pop('concat_dim', None)
+        data = xr.open_mfdataset(*file_names, chunks=chunk_size)
+    else:
+        data = xr.open_dataset(file_names[0], chunks=chunk_size)
 
-fig, ax = fp.get_figax(aspect=1.75)
-ax.scatter(data['LAT'], data['STD'], c=fp.color(4), s=2, alpha=0.1)
-ax = fp.add_labels(ax, 'Latitude', 'Observational Error (ppb)')
-ax = fp.add_title(ax, 'Observational Error')
-fp.save_fig(fig, plot_dir, 'observational_error_latitude_scatter')
+    # If there is only one variable, convert to a dataarray
+    variables = list(data.keys())
+    if len(variables) == 1:
+        data = data[variables[0]]
 
-# ALBEDO
-# Update albedo bins
-albedo_bins = np.arange(0, 1, 0.1)
-data['ALBEDO_BIN'] = pd.cut(data['ALBEDO_SWIR'], albedo_bins)
+    # Return the file
+    return data
 
-fig, ax = fp.get_figax(aspect=1.75)
-ax.set_xlim(0, 25)
-ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
-ax = fp.add_title(ax, 'Observational Error')
-for i, alb_bin in enumerate(np.unique(data['ALBEDO_BIN'])):
-    hist_data = data[data['ALBEDO_BIN'] == alb_bin]['STD']
-    ax.hist(hist_data, histtype='step', bins=275, label=alb_bin,
-            color=fp.color(2*i), lw=1)
-    ax.axvline(hist_data.mean(), color=fp.color(2*i), lw=1, ls=':')
+def file_exists(file_name):
+    '''
+    Check for the existence of a file/
+    '''
+    data_dir = file_name.rpartition('/')[0]
+    if file_name.split('/')[-1] in listdir(data_dir):
+        return True
+    else:
+        print(f'{file_name} is not in the data directory.')
+        return False
 
-ax = fp.add_legend(ax)
-fp.save_fig(fig, plot_dir, 'observational_error_albedo_hist')
+xa = read(xa, chunks['nstate'], dims=('nstate'))
+sa_vec = read(sa_vec, chunks['nstate'], dims=('nstate'))
+nstate = xa.shape[0]
 
-fig, ax = fp.get_figax(aspect=1.75)
-ax.scatter(data['ALBEDO_SWIR'], data['STD'], c=fp.color(4), s=2, alpha=0.1)
-ax = fp.add_labels(ax, 'Albedo', 'Observational Error (ppb)')
-ax = fp.add_title(ax, 'Observational Error')
-fp.save_fig(fig, plot_dir, 'observational_error_albedo_scatter')
+max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
+chunks['nobs'] = int(max_chunk_size/nstate)
+
+# Load observational data
+k = read(k, chunks, dims=('nobs', 'nstate'))
+y = read(y, chunks['nobs'], dims=('nobs'))
+ya = read(ya, chunks['nobs'], dims=('nobs'))
+so_vec = read(so_vec, chunks['nobs'], dims=('nobs'))
+nobs = y.shape[0]
+
+# import xarray as xr
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import sys
+# sys.path.append('.')
+# import config
+# config.SCALE = config.PRES_SCALE
+# config.BASE_WIDTH = config.PRES_WIDTH
+# config.BASE_HEIGHT = config.PRES_HEIGHT
+# import gcpy as gc
+# import format_plots as fp
+
+# import pandas as pd
+# pd.set_option('display.max_columns', 100)
+
+
+# data = gc.load_obj('../inversion_data/2019_corrected.pkl')
+# data['STD'] = data['SO']**0.5
+
+# # bins = np.arange(0, 41)
+# # data['STD_BIN'] = pd.cut(data['STD'], bins)
+
+# # labels = np.arange(0.5, 40.5, 1)
+# # bottom = np.zeros(len(labels))
+# # Local preferences
+# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+# code_dir = base_dir + 'python'
+# data_dir = base_dir + 'observations'
+# output_dir = base_dir + 'inversion_data'
+# plot_dir = base_dir + 'plots'
+
+# fig, ax = fp.get_figax(aspect=1.75)
+# ax.set_xlim(0, 25)
+# ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+# ax = fp.add_title(ax, 'Observational Error')
+# for i, season in enumerate(np.unique(data['SEASON'])):
+#     hist_data = data[data['SEASON'] == season]['STD']
+#     ax.hist(hist_data, histtype='step', bins=275, label=season,
+#             color=fp.color(2+2*i), lw=1)
+#     ax.axvline(hist_data.mean(), color=fp.color(2+2*i), lw=1, ls=':')
+# ax = fp.add_legend(ax)
+# fp.save_fig(fig, plot_dir, 'observational_error_seasonal')
+
+# # LATITUDE
+# # Update lat bins
+# lat_bins = np.arange(10, 65, 10)
+# data['LAT_BIN'] = pd.cut(data['LAT'], lat_bins)
+
+# fig, ax = fp.get_figax(aspect=1.75)
+# ax.set_xlim(0, 25)
+# ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+# ax = fp.add_title(ax, 'Observational Error')
+# for i, lat_bin in enumerate(np.unique(data['LAT_BIN'])):
+#     hist_data = data[data['LAT_BIN'] == lat_bin]['STD']
+#     ax.hist(hist_data, histtype='step', bins=275, label=lat_bin,
+#             color=fp.color(2*i), lw=1)
+#     ax.axvline(hist_data.mean(), color=fp.color(2*i), lw=1, ls=':')
+
+# ax = fp.add_legend(ax)
+# fp.save_fig(fig, plot_dir, 'observational_error_latitude_hist')
+
+# fig, ax = fp.get_figax(aspect=1.75)
+# ax.scatter(data['LAT'], data['STD'], c=fp.color(4), s=2, alpha=0.1)
+# ax = fp.add_labels(ax, 'Latitude', 'Observational Error (ppb)')
+# ax = fp.add_title(ax, 'Observational Error')
+# fp.save_fig(fig, plot_dir, 'observational_error_latitude_scatter')
+
+# # ALBEDO
+# # Update albedo bins
+# albedo_bins = np.arange(0, 1, 0.1)
+# data['ALBEDO_BIN'] = pd.cut(data['ALBEDO_SWIR'], albedo_bins)
+
+# fig, ax = fp.get_figax(aspect=1.75)
+# ax.set_xlim(0, 25)
+# ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+# ax = fp.add_title(ax, 'Observational Error')
+# for i, alb_bin in enumerate(np.unique(data['ALBEDO_BIN'])):
+#     hist_data = data[data['ALBEDO_BIN'] == alb_bin]['STD']
+#     ax.hist(hist_data, histtype='step', bins=275, label=alb_bin,
+#             color=fp.color(2*i), lw=1)
+#     ax.axvline(hist_data.mean(), color=fp.color(2*i), lw=1, ls=':')
+
+# ax = fp.add_legend(ax)
+# fp.save_fig(fig, plot_dir, 'observational_error_albedo_hist')
+
+# fig, ax = fp.get_figax(aspect=1.75)
+# ax.scatter(data['ALBEDO_SWIR'], data['STD'], c=fp.color(4), s=2, alpha=0.1)
+# ax = fp.add_labels(ax, 'Albedo', 'Observational Error (ppb)')
+# ax = fp.add_title(ax, 'Observational Error')
+# fp.save_fig(fig, plot_dir, 'observational_error_albedo_scatter')
 
 #     ax.bar(labels, hist_data.values, bottom=bottom)
 #     bottom += hist_data.values
