@@ -8,6 +8,10 @@ reduced_memory = True
 available_memory_GB = 45
 
 chunks = {'nstate' : -1, 'nobs' : None}
+# First, define a dictionary of tuples with dimensions
+dims = {'xa' : ['nstate'], 'sa' : ['nstate'],
+        'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs'],
+        'k' : ['nobs', 'nstate']}
 
 data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
 
@@ -19,10 +23,18 @@ ya = f'{data_dir}ya.nc'
 so_vec = f'{data_dir}so.nc'
 c = None
 
-
 def read(item, dims=None, **kwargs):
+    # This function assumes that chunks is in the list of kwargs.
+
     # If item is a string, load the file
     if type(item) in [str, list]:
+        kwargs['chunks'] = {k : kwargs['chunks'][k] for k in dims}
+        if type(item) == list:
+            # If it's a list, set some specific settings for open_mfdataset
+            kwargs['combine'] = 'nested'
+            kwargs['concat_dim'] = dims
+            if len(dims) > 1:
+                item = [[i] for i in item]
         item = gc.read_file(item, **kwargs)
 
     # Force the items to be dataarrays
@@ -36,26 +48,24 @@ def read(item, dims=None, **kwargs):
                    variable.'
             item = item[variables[0]]
         else:
-            item = xr.DataArray(item, dims=dims)
+            assert dims is not None, \
+                   'Creating an xarray dataset and dims is not provided.'
+            item = xr.DataArray(item, dims=tuple(dims))
 
-    # Return
     return item
 
-xa = read(xa, dims=tuple(dims['xa']), **kw_func('xa')[simple_type(xa)])
-sa_vec = read(sa_vec, dims=tuple(dims['sa']),
-                                **kw_func('sa')[simple_type(sa_vec)])
+xa = read(xa, dims=dims['xa'], chunks=chunks)
+sa_vec = read(sa_vec, dims=dims['sa'], chunks=chunks)
 nstate = xa.shape[0]
 
 max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
 chunks['nobs'] = int(max_chunk_size/nstate)
 
 # Load observational data
-k = read([[f] for f in k], dims=('nobs', 'nstate'),
-         chunks=chunks, combine='nested',
-         concat_dim=['nobs', 'nstate'])
-y = read(y, chunks['nobs'], dims=('nobs'))
-ya = read(ya, chunks['nobs'], dims=('nobs'))
-so_vec = read(so_vec, chunks['nobs'], dims=('nobs'))
+k = read(k, dims=dims['k'], chunks=chunks)
+y = read(y, dims=dims['y'], chunks=chunks)
+ya = read(ya, dims=dims['ya'], chunks=chunks)
+so_vec = read(so_vec, dims=dims['so'], chunks=chunks)
 nobs = y.shape[0]
 
 # import xarray as xr

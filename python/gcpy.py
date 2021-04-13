@@ -106,7 +106,12 @@ def read_generic_file(file_name):
 
 def read_netcdf_file(*file_names, **kwargs):
     # Open a dataset
-    if len(*file_names) > 1:
+    if len(file_names) > 1:
+        # Currently assumes that we are stacking the files
+        # vertically
+        if 'concat_dim' in kwargs:
+            if len(kwargs['concat_dim']) > 1:
+                file_names = [[f] for f in file_names]
         data = xr.open_mfdataset(*file_names, **kwargs)
     else:
         data = xr.open_dataset(file_names[0], **kwargs)
