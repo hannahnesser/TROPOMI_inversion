@@ -76,6 +76,7 @@ def load_obj(file_name):
         return pickle.load(f)
 
 def read_file(*file_names, **kwargs):
+    print(file_names[0])
     file_suffix = file_names[0].split('.')[-1]
     # Require that the file exists
     for f in file_names:
@@ -89,7 +90,7 @@ def read_file(*file_names, **kwargs):
 
     # If a netcdf, read it using xarray
     if file_suffix[:2] == 'nc':
-        file = read_netcdf_file(file_names, **kwargs)
+        file = read_netcdf_file(*file_names, **kwargs)
     # Else, read it using a generic function
     else:
         if 'chunks' in kwargs:
@@ -111,7 +112,7 @@ def read_netcdf_file(*file_names, **kwargs):
         if 'concat_dim' in kwargs:
             if len(kwargs['concat_dim']) > 1:
                 file_names = [[f] for f in file_names]
-        data = xr.open_mfdataset(*file_names, **kwargs)
+        data = xr.open_mfdataset(file_names, **kwargs)
     else:
         data = xr.open_dataset(file_names[0], **kwargs)
 

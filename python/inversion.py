@@ -221,8 +221,10 @@ class Inversion:
             # which was an oopsy when making the K0 datasets.
             kwargs['combine'] = 'nested'
             kwargs['concat_dim'] = dims
+        else:
+            item = list(item)
 
-        item = gc.read_file(item, **kwargs)
+        item = gc.read_file(*item, **kwargs)
         return item
 
     @staticmethod
