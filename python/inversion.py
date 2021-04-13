@@ -199,36 +199,49 @@ class Inversion:
     ### UTILITY FUNCTIONS ###
     #########################
     @staticmethod
-    def read(self, item, dims=None:list, **kwargs):
-        # This function assumes that chunks is in the list of kwargs.
-
-        # If item is a string, load the file
+    def read(self, item, dims=None, chunks={}, **kwargs):
+        # If item is a string or a list, load the file
         if type(item) in [str, list]:
-            kwargs['chunks'] = {k : kwargs['chunks'][k] for k in dims}
-            if type(item) == list:
-                # If it's a list, set some specific settings for open_mfdataset
-                kwargs['combine'] = 'nested'
-                kwargs['concat_dim'] = dims
-                if len(dims) > 1:
-                    item = [[i] for i in item]
-            item = gc.read_file(item, **kwargs)
+            item = self._load(item, dims=dims, chunks=chunks, **kwargs)
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
-            # If it's a dataset, require that there be only one variable
-            if type(item) == xr.core.dataset.Dataset:
-                variables = list(item.keys())
-                assert len(variables) == 1, \
-                      'A dataset with multiple variables was provided. This \
-                       class requires that any datasets contain only one \
-                       variable.'
-                item = item[variables[0]]
-            else:
-                assert dims is not None, \
-                       'Creating an xarray dataset and dims is not provided.'
-                item = xr.DataArray(item, dims=tuple(dims))
+            item = self._to_dataarray(item, dims=dims, chunks=chunks)
 
         return item
+
+    @staticmethod
+    def _load(self, item, dims, chunks, **kwargs):
+        # This function is only called by read()
+        # Add chunks to kwargs.
+        kwargs['chunks'] = {k : chunks[k] for k in dims}
+        if type(item) == list:
+            # If it's a list, set some specific settings for open_mfdataset
+            # This currently assumes that the coords are not properly set,
+            # which was an oopsy when making the K0 datasets.
+            kwargs['combine'] = 'nested'
+            kwargs['concat_dim'] = dims
+
+        item = gc.read_file(item, **kwargs)
+        return item
+
+    @staticmethod
+    def _to_dataarray(self, item, dims):
+        # If it's a dataset, require that there be only one variable
+        if type(item) == xr.core.dataset.Dataset:
+            variables = list(item.keys())
+            assert len(variables) == 1, \
+                  'A dataset with multiple variables was provided. This \
+                   class requires that any datasets contain only one \
+                   variable.'
+            item = item[variables[0]]
+        # Else convert to a dataarray
+        else:
+            assert dims is not None, \
+                   'Creating an xarray dataset and dims is not provided.'
+            item = xr.DataArray(item, dims=tuple(dims))
+        return item
+
 
     def save(self, attribute:str, file_name=None):
         item = getattr(self, attribute)
