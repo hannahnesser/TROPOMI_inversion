@@ -9,6 +9,7 @@ from scipy.stats import linregress
 from scipy.linalg import eigh
 import pandas as pd
 import copy
+import warnings
 
 # clustering
 from sklearn.cluster import KMeans
@@ -203,12 +204,10 @@ class Inversion:
     ### UTILITY FUNCTIONS ###
     #########################
     @staticmethod
-    def read(self, item, chunk_size=None, combine=None, concat_dim=None,
-             dims=None, dtype='float32'):
+    def read(self, item, dims=None, **kwargs):
         # If item is a string, load the file
         if type(item) in [str, list]:
-            item = gc.read_file(item, chunk_size, combine=combine,
-                                concat_dim=concat_dim)
+            item = gc.read_file(item, **kwargs)
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
@@ -221,9 +220,10 @@ class Inversion:
                        variable.'
                 item = item[variables[0]]
             else:
+                assert dims is not None, \
+                       'Creating an xarray dataset and dims is not provided.'
                 item = xr.DataArray(item, dims=dims)
 
-        # Return
         return item
 
     def save(self, attribute:str, file_name=None):

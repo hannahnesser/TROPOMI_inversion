@@ -15,6 +15,7 @@ import dask.array as da
 from os.path import join
 from os import listdir
 import os
+import warnings
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -74,7 +75,7 @@ def load_obj(file_name):
     with open(file_name, 'rb') as f:
         return pickle.load(f)
 
-def read_file(file_name, chunk_size=None, **kwargs):
+def read_file(file_name, **kwargs):
     # Require that the file exists
     if type(file_name) == list:
         file_suffix = file_name[0].split('.')[-1]
@@ -89,12 +90,11 @@ def read_file(file_name, chunk_size=None, **kwargs):
 
     # If a netcdf, read it using xarray
     if file_suffix[:2] == 'nc':
-        file = read_netcdf_file(file_name, chunk_size=chunk_size, **kwargs)
+        file = read_netcdf_file(file_name, **kwargs)
     # Else, read it using a generic function
     else:
-        if chunk_size is not None:
-            print('NOTE: Chunk sizes were provided, but the file')
-            print('is not a netcdf. Chunk size is ignored.')
+        if 'chunks' in kwargs:
+            warnings.warn('NOTE: Chunk sizes were provided, but the file is not a netcdf. Chunk size is ignored.', stacklevel=2)
         file = read_generic_file(file_name, **kwargs)
 
     return file
@@ -104,17 +104,12 @@ def read_generic_file(file_name):
     with open(file_name, 'rb') as f:
         return pickle.load(f)
 
-def read_netcdf_file(*file_names, chunk_size=None, **kwargs):
+def read_netcdf_file(*file_names, **kwargs):
     # Open a dataset
     if len(*file_names) > 1:
-        # This is currently written assuming that only K will be read in
-        # chunks....
-        nc_kw = {}
-        nc_kw['combine'] = kwargs.pop('combine', None)
-        nc_kw['concat_dim'] = kwargs.pop('concat_dim', None)
-        data = xr.open_mfdataset(*file_names, chunks=chunk_size, **nc_kw)
+        data = xr.open_mfdataset(*file_names, **kwargs)
     else:
-        data = xr.open_dataset(file_names[0], chunks=chunk_size)
+        data = xr.open_dataset(file_names[0], **kwargs)
 
     # If there is only one variable, convert to a dataarray
     variables = list(data.keys())
