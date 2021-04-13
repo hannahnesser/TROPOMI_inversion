@@ -143,10 +143,16 @@ class Inversion:
             chunks = {'nstate' : None, 'nobs' : None}
 
         # Read in the elements of the inversion
+
+        # First, define a dictionary of tuples with dimensions
+        dims = {'xa' : ['nstate'], 'sa' : ['nstate'],
+                'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs'],
+                'k' : ['nobs', 'nstate']}
+
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension
-        self.xa = self.read(xa, chunks['nstate'], dims=('nstate'))
-        self.sa_vec = self.read(sa_vec, chunks['nstate'], dims=('nstate'))
+        self.xa = self.read(xa, dims=dims['xa'], chunks=chunks)
+        self.sa_vec = self.read(sa_vec, dims=dims['sa'], chunks=chunks)
         self.nstate = self.xa.shape[0]
 
         # Update the chunks for the nobs dimension accordingly
@@ -155,30 +161,19 @@ class Inversion:
             chunks['nobs'] = int(max_chunk_size/self.nstate)
 
         # Load observational data
-        self.k = self.read(k, chunks, dims=('nobs', 'nstate'))
-        self.y = self.read(y, chunks['nobs'], dims=('nobs'))
-        self.ya = self.read(ya, chunks['nobs'], dims=('nobs'))
-        self.so_vec = self.read(so_vec, chunks['nobs'], dims=('nobs'))
+        self.k = self.read(k, dims=dims['k'], chunks=chunks)
+        self.y = self.read(y, dims=dims['y'], chunks=chunks)
+        self.ya = self.read(ya, dims=dims['ya'], chunks=chunks)
+        self.so_vec = self.read(so_vec, dims=dims['so'], chunks=chunks)
         self.nobs = self.y.shape[0]
 
-        # Check whether all inputs have the right dimensions
-        assert k.shape[1] == self.nstate, \
-               'Dimension mismatch: Jacobian and prior.'
-        assert k.shape[0] == self.nobs, \
-               'Dimension mismatch: Jacobian and observations.'
-        assert so_vec.shape[0] == self.nobs, \
-               'Dimension mismatch: observational error'
-        assert sa_vec.shape[0] == self.nstate, \
-               'Dimension mismatch: prior error.'
+        # Check that the diimensions match up
+        self.check_dimensions()
 
-        # Check that the data are all the same types
-        assert all(isinstance(z, type(self.k))
-                   for z in [xa, sa_vec, y, so_vec]), \
-               'Input types aren\'t all equivalent types.'
-        if reduced_memory:
-            assert all(isinstance(z, xr.core.dataarray.DataArray)), \
-                   'Input types are not xarray dataarrays, which are \
-                    needed for the reduced_memory option.'
+        # Check that the data are all data arrays
+        assert all(isinstance(z, xr.core.dataarray.DataArray)), \
+               'Input types are not xarray dataarrays, which are \
+                needed for the reduced_memory option.'
 
         # Force k to be positive
         if np.any(self.k < 0):
@@ -204,9 +199,18 @@ class Inversion:
     ### UTILITY FUNCTIONS ###
     #########################
     @staticmethod
-    def read(self, item, dims=None, **kwargs):
+    def read(self, item, dims=None:list, **kwargs):
+        # This function assumes that chunks is in the list of kwargs.
+
         # If item is a string, load the file
         if type(item) in [str, list]:
+            kwargs['chunks'] = {k : kwargs['chunks'][k] for k in dims}
+            if type(item) == list:
+                # If it's a list, set some specific settings for open_mfdataset
+                kwargs['combine'] = 'nested'
+                kwargs['concat_dim'] = dims
+                if len(dims) > 1:
+                    item = [[i] for i in item]
             item = gc.read_file(item, **kwargs)
 
         # Force the items to be dataarrays
@@ -222,7 +226,7 @@ class Inversion:
             else:
                 assert dims is not None, \
                        'Creating an xarray dataset and dims is not provided.'
-                item = xr.DataArray(item, dims=dims)
+                item = xr.DataArray(item, dims=tuple(dims))
 
         return item
 
@@ -286,6 +290,17 @@ class Inversion:
         self.add_attr_to_dataset(ds, 'rf',     None)
 
         return ds
+
+    def check_dimensions(self):
+                # Check whether all inputs have the right dimensions
+        assert self.k.shape[1] == self.nstate, \
+               'Dimension mismatch: Jacobian and prior.'
+        assert self.k.shape[0] == self.nobs, \
+               'Dimension mismatch: Jacobian and observations.'
+        assert self.so_vec.shape[0] == self.nobs, \
+               'Dimension mismatch: observational error'
+        assert self.sa_vec.shape[0] == self.nstate, \
+               'Dimension mismatch: prior error.'
 
     ####################################
     ### STANDARD INVERSION FUNCTIONS ###
