@@ -2,11 +2,11 @@
 
 #SBATCH -J save_k0
 #SBATCH -o %x_%j_%a.out
-#SBATCH -c 16
+#SBATCH -c 8
 #SBATCH -N 1
 #SBATCH -p huce_intel
-#SBATCH --mem 60000
-#SBATCH -t 0-01:00
+#SBATCH --mem 30000
+#SBATCH -t 0-00:30
 #SBATCH --mail-type=END
 
 # 30 GB should be big enough for most months. Adaptive
@@ -18,8 +18,8 @@
 ## -------------------------------------------------------------------------##
 YEAR="2019"
 MONTH="${SLURM_ARRAY_TASK_ID}"
-MEMORY_GB=60
-export OMP_NUM_THREADS=8
+MEMORY_GB=30
+export OMP_NUM_THREADS=4
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
