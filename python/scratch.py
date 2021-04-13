@@ -41,15 +41,18 @@ def read(item, dims=None, **kwargs):
     # Return
     return item
 
-xa = read(xa, dims=('nstate'), chunks=chunks['nstate'])
-sa_vec = read(sa_vec, chunks['nstate'], dims=('nstate'))
+xa = read(xa, dims=tuple(dims['xa']), **kw_func('xa')[simple_type(xa)])
+sa_vec = read(sa_vec, dims=tuple(dims['sa']),
+                                **kw_func('sa')[simple_type(sa_vec)])
 nstate = xa.shape[0]
 
 max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
 chunks['nobs'] = int(max_chunk_size/nstate)
 
 # Load observational data
-k = read(k, chunks, dims=('nobs', 'nstate'))
+k = read([[f] for f in k], dims=('nobs', 'nstate'),
+         chunks=chunks, combine='nested',
+         concat_dim=['nobs', 'nstate'])
 y = read(y, chunks['nobs'], dims=('nobs'))
 ya = read(ya, chunks['nobs'], dims=('nobs'))
 so_vec = read(so_vec, chunks['nobs'], dims=('nobs'))
