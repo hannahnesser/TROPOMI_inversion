@@ -50,7 +50,7 @@ def _load(item, dims, chunks, **kwargs):
     item = read_file(*item, **kwargs)
     return item
 
-def _to_dataarray(item, dims):
+def _to_dataarray(item, dims, chunks):
     # If it's a dataset, require that there be only one variable
     if type(item) == xr.core.dataset.Dataset:
         variables = list(item.keys())
@@ -63,7 +63,9 @@ def _to_dataarray(item, dims):
     else:
         assert dims is not None, \
                'Creating an xarray dataset and dims is not provided.'
+        chunks = {k : chunks[k] for k in dims}
         item = xr.DataArray(item, dims=tuple(dims))
+        item = item.chunk(chunks)
     return item
 
 xa = read(xa, dims=dims['xa'], chunks=chunks)

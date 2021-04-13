@@ -228,7 +228,7 @@ class Inversion:
         return item
 
     @staticmethod
-    def _to_dataarray(self, item, dims):
+    def _to_dataarray(self, item, dims, chunks):
         # If it's a dataset, require that there be only one variable
         if type(item) == xr.core.dataset.Dataset:
             variables = list(item.keys())
@@ -241,7 +241,10 @@ class Inversion:
         else:
             assert dims is not None, \
                    'Creating an xarray dataset and dims is not provided.'
+            chunks = {k : chunks[k] for k in dims}
             item = xr.DataArray(item, dims=tuple(dims))
+            if len(chunks) > 0:
+                item = item.chunk(chunks)
         return item
 
 
