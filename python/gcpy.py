@@ -75,27 +75,26 @@ def load_obj(file_name):
     with open(file_name, 'rb') as f:
         return pickle.load(f)
 
-def read_file(file_name, **kwargs):
+def read_file(*file_names, **kwargs):
+    file_suffix = file_names[0].split('.')[-1]
     # Require that the file exists
-    if type(file_name) == list:
-        file_suffix = file_name[0].split('.')[-1]
-        for f in file_name:
-            assert file_exists(f), f'{f} does not exist.'
-            assert f.split('.')[-1] == file_suffix, \
-                   'Variable file types provided.'
-            assert file_suffix[:2] == 'nc', 'Files are not netcdfs.'
-    else:
-        file_suffix = file_name.split('.')[-1]
-        assert file_exists(file_name), f'{file_name} does not exist.'
+    for f in file_names:
+        # Require that the files exist
+        assert file_exists(f), f'{f} does not exist.'
+        assert f.split('.')[-1] == file_suffix, \
+               'Variable file types provided.'
+        if len(file_names) > 1:
+            assert file_suffix[:2] == 'nc', \
+                   'Multiple files are provided that are not netcdfs.'
 
     # If a netcdf, read it using xarray
     if file_suffix[:2] == 'nc':
-        file = read_netcdf_file(file_name, **kwargs)
+        file = read_netcdf_file(file_names, **kwargs)
     # Else, read it using a generic function
     else:
         if 'chunks' in kwargs:
             warnings.warn('NOTE: Chunk sizes were provided, but the file is not a netcdf. Chunk size is ignored.', stacklevel=2)
-        file = read_generic_file(file_name, **kwargs)
+        file = read_generic_file(file_names, **kwargs)
 
     return file
 
