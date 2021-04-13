@@ -21,7 +21,7 @@ sa_vec = f'{data_dir}sa.nc'
 y = f'{data_dir}y.nc'
 ya = f'{data_dir}ya.nc'
 so_vec = f'{data_dir}so.nc'
-c = None
+c = f'{data_dir}c.nc'
 
 def read(item, dims=None, chunks={}, **kwargs):
     # If item is a string or a list, load the file
@@ -47,7 +47,7 @@ def _load(item, dims, chunks, **kwargs):
     else:
         item = [item]
 
-    item = read_file(*item, **kwargs)
+    item = gc.read_file(*item, **kwargs)
     return item
 
 def _to_dataarray(item, dims, chunks):
@@ -80,29 +80,10 @@ k = read(k, dims=dims['k'], chunks=chunks)
 y = read(y, dims=dims['y'], chunks=chunks)
 ya = read(ya, dims=dims['ya'], chunks=chunks)
 so_vec = read(so_vec, dims=dims['so'], chunks=chunks)
+c = read(c, dims=dims['c'], chunks=chunks)
 nobs = y.shape[0]
 
-def check_dimensions():
-            # Check whether all inputs have the right dimensions
-    assert k.shape[1] == nstate, \
-           'Dimension mismatch: Jacobian and prior.'
-    assert k.shape[0] == nobs, \
-           'Dimension mismatch: Jacobian and observations.'
-    assert so_vec.shape[0] == nobs, \
-           'Dimension mismatch: observational error'
-    assert sa_vec.shape[0] == nstate, \
-           'Dimension mismatch: prior error.'
-
-# Force k to be positive
-if np.any(k < 0):
-    print('Forcing negative values of the Jacobian to 0.')
-    k = k.where(k > 0, 0)
-
-# Solve for the constant c.
-if c is None:
-    c = calculate_c()
-else:
-    c = read(c, chunks['nobs'])
+so_vec /= regularization_factor
 
 # Now create some holding spaces for values that may be filled
 # in the course of solving the inversion.

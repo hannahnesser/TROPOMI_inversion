@@ -147,7 +147,7 @@ class Inversion:
         # First, define a dictionary of tuples with dimensions
         dims = {'xa' : ['nstate'], 'sa' : ['nstate'],
                 'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs'],
-                'k' : ['nobs', 'nstate']}
+                'c' : ['nobs'], 'k' : ['nobs', 'nstate']}
 
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension
@@ -167,6 +167,9 @@ class Inversion:
         self.so_vec = self.read(so_vec, dims=dims['so'], chunks=chunks)
         self.nobs = self.y.shape[0]
 
+        # Modify so by the regularization factor
+        self.so_vec /= self.regularization_factor
+
         # Check that the diimensions match up
         self.check_dimensions()
 
@@ -177,7 +180,7 @@ class Inversion:
                     needed for the reduced_memory option.'
 
         # Force k to be positive
-        if np.any(self.k < 0):
+        if (self.k < 0).any():
             print('Forcing negative values of the Jacobian to 0.')
             self.k = self.k.where(self.k > 0, 0)
 
@@ -185,7 +188,7 @@ class Inversion:
         if c is None:
             self.c = self.calculate_c()
         else:
-            self.c = self.read(c, chunks['nobs'])
+            self.c = self.read(c, dims=dims['c'], chunks=chunks)
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -396,7 +399,7 @@ class Inversion:
         # observational error covariance.
         # Note: This would change if error variances were redefined as
         # covariance matrices
-        so_inv = diags(self.regularization_factor/self.so_vec)
+        so_inv = diags(1/self.so_vec)
         sa_inv = diags(1/self.sa_vec)
 
         # Calculate the cost function at the prior.
