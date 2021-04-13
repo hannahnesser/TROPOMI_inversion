@@ -171,14 +171,15 @@ class Inversion:
         self.check_dimensions()
 
         # Check that the data are all data arrays
-        assert all(isinstance(z, xr.core.dataarray.DataArray)), \
-               'Input types are not xarray dataarrays, which are \
-                needed for the reduced_memory option.'
+        for k, d in dims.items():
+            assert isinstance(getattr(self, k), xr.core.dataarray.DataArray), \
+                   'Input types are not xarray dataarrays, which are \
+                    needed for the reduced_memory option.'
 
         # Force k to be positive
         if np.any(self.k < 0):
             print('Forcing negative values of the Jacobian to 0.')
-            self.k[self.k < 0] = 0
+            self.k = self.k.where(self.k > 0, 0)
 
         # Solve for the constant c.
         if c is None:
@@ -222,7 +223,7 @@ class Inversion:
             kwargs['combine'] = 'nested'
             kwargs['concat_dim'] = dims
         else:
-            item = list(item)
+            item = [item]
 
         item = gc.read_file(*item, **kwargs)
         return item

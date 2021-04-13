@@ -76,7 +76,6 @@ def load_obj(file_name):
         return pickle.load(f)
 
 def read_file(*file_names, **kwargs):
-    print(file_names[0])
     file_suffix = file_names[0].split('.')[-1]
     # Require that the file exists
     for f in file_names:
