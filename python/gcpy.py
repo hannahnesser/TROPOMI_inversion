@@ -47,10 +47,10 @@ def file_exists(file_name):
     Check for the existence of a file/
     '''
     data_dir = file_name.rpartition('/')[0]
-    if file_name in listdir(data_dir):
+    if file_name.split('/')[-1] in listdir(data_dir):
         return True
     else:
-        print(f'{file} is not in the data directory.')
+        print(f'{file_name} is not in the data directory.')
         return False
 
 def save_obj(obj, name, big_mem=False):
@@ -74,22 +74,28 @@ def load_obj(file_name):
     with open(file_name, 'rb') as f:
         return pickle.load(f)
 
-def read_file(file_name, chunk_size=None):
+def read_file(file_name, chunk_size=None, **kwargs):
     # Require that the file exists
-    assert file_exists(file_name), f'{file_name} does not exist.'
-
-    # Define the file suffix
-    file_suffix = file_name.split('.')[-1]
+    if type(file_name) == list:
+        file_suffix = file_name[0].split('.')[-1]
+        for f in file_name:
+            assert file_exists(f), f'{f} does not exist.'
+            assert f.split('.')[-1] == file_suffix, \
+                   'Variable file types provided.'
+            assert file_suffix[:2] == 'nc', 'Files are not netcdfs.'
+    else:
+        file_suffix = file_name.split('.')[-1]
+        assert file_exists(file_name), f'{file_name} does not exist.'
 
     # If a netcdf, read it using xarray
     if file_suffix[:2] == 'nc':
-        file = read_netcdf_file(file_name, chunk_size)
+        file = read_netcdf_file(file_name, chunk_size=chunk_size, **kwargs)
     # Else, read it using a generic function
     else:
         if chunk_size is not None:
             print('NOTE: Chunk sizes were provided, but the file')
             print('is not a netcdf. Chunk size is ignored.')
-        file = read_generic_file(file_name)
+        file = read_generic_file(file_name, **kwargs)
 
     return file
 
@@ -98,10 +104,15 @@ def read_generic_file(file_name):
     with open(file_name, 'rb') as f:
         return pickle.load(f)
 
-def read_netcdf_file(*file_names, chunk_size=None):
+def read_netcdf_file(*file_names, chunk_size=None, **kwargs):
     # Open a dataset
     if len(*file_names) > 1:
-        data = xr.open_mfdataset(*file_names, chunks=chunk_size)
+        # This is currently written assuming that only K will be read in
+        # chunks....
+        nc_kw = {}
+        nc_kw['combine'] = kwargs.pop('combine', None)
+        nc_kw['concat_dim'] = kwargs.pop('concat_dim', None)
+        data = xr.open_mfdataset(*file_names, chunks=chunk_size, **nc_kw)
     else:
         data = xr.open_dataset(file_names[0], chunks=chunk_size)
 

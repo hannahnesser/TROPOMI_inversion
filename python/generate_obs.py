@@ -108,6 +108,7 @@ import numpy as np
 from numpy.polynomial import polynomial as p
 import pandas as pd
 import matplotlib.pyplot as plt
+import imageio
 pd.set_option('display.max_columns', 10)
 
 # Custom packages
@@ -281,11 +282,13 @@ if filter_on_blended_albedo:
                        c=fp.color(4), s=3, alpha=0.1)
             ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
             ax.set_xlim(0, 2)
+            ax.set_ylim(1750, 1950)
             ax = fp.add_title(ax, cal.month_name[m])
             ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
             fp.save_fig(fig, plot_dir,
                         f'blended_albedo_filter_{m:02d}{suffix}')
             plt.close()
+
 
     # Apply the blended albedo filter
     BAF_filter = (data['BLENDED_ALBEDO'] < blended_albedo_threshold)
@@ -605,6 +608,59 @@ if (plot_dir is not None) and calculate_so:
     ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
     ax = fp.add_title(ax, 'Observational Error')
     fp.save_fig(fig, plot_dir, 'observational_error.png')
+
+    # SEASONAL
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.set_xlim(0, 25)
+    ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+    ax = fp.add_title(ax, 'Observational Error')
+    for i, season in enumerate(np.unique(data['SEASON'])):
+        hist_data = data[data['SEASON'] == season]['STD']
+        ax.hist(hist_data, histtype='step', bins=275, label=season,
+                color=fp.color(2+2*i), lw=1)
+        ax.axvline(hist_data.mean(), color=fp.color(2+2*i), lw=1, ls=':')
+    ax = fp.add_legend(ax)
+    fp.save_fig(fig, plot_dir, 'observational_error_seasonal')
+
+    # LATITUDE
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.set_xlim(0, 25)
+    ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+    ax = fp.add_title(ax, 'Observational Error')
+    for i, lat_bin in enumerate(np.unique(data['LAT_BIN'])):
+        hist_data = data[data['LAT_BIN'] == lat_bin]['STD']
+        ax.hist(hist_data, histtype='step', bins=275, label=lat_bin,
+                color=fp.color(2*i), lw=1)
+        ax.axvline(hist_data.mean(), color=fp.color(2*i), lw=1, ls=':')
+
+    ax = fp.add_legend(ax)
+    fp.save_fig(fig, plot_dir, 'observational_error_latitude_hist')
+
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.scatter(data['LAT'], data['STD'], c=fp.color(4), s=2, alpha=0.1)
+    ax = fp.add_labels(ax, 'Latitude', 'Observational Error (ppb)')
+    ax = fp.add_title(ax, 'Observational Error')
+    fp.save_fig(fig, plot_dir, 'observational_error_latitude_scatter')
+
+    # ALBEDO
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.set_xlim(0, 25)
+    ax = fp.add_labels(ax, 'Observational Error (ppb)', 'Count')
+    ax = fp.add_title(ax, 'Observational Error')
+    for i, alb_bin in enumerate(np.unique(data['ALBEDO_BIN'])):
+        hist_data = data[data['ALBEDO_BIN'] == alb_bin]['STD']
+        ax.hist(hist_data, histtype='step', bins=275, label=alb_bin,
+                color=fp.color(2*i), lw=1)
+        ax.axvline(hist_data.mean(), color=fp.color(2*i), lw=1, ls=':')
+
+    ax = fp.add_legend(ax)
+    fp.save_fig(fig, plot_dir, 'observational_error_albedo_hist')
+
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.scatter(data['ALBEDO_SWIR'], data['STD'], c=fp.color(4), s=2, alpha=0.1)
+    ax = fp.add_labels(ax, 'Albedo', 'Observational Error (ppb)')
+    ax = fp.add_title(ax, 'Observational Error')
+    fp.save_fig(fig, plot_dir, 'observational_error_albedo_scatter')
 
 ## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities
