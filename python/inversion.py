@@ -62,7 +62,7 @@ It also defines the following plotting functions:
 class Inversion:
     def __init__(self, k, xa, sa, y, ya, so, c=None,
                  regularization_factor=1, reduced_memory=False,
-                 available_memory_GB=None):
+                 available_memory_GB=None, k_is_positive=False):
         '''
         Define an inversion object with the following required
         inputs:
@@ -104,6 +104,9 @@ class Inversion:
             available_memory_GB      If reduced_memory is True, both the number
                                      of cores and the memory available (in
                                      gigabytes) must be provided.
+            k_is_positive            A flag indicating whether the Jacobian
+                                     has already been checked for negative
+                                     elements. Default is False.
 
         The object then defines the following:
             nstate          The dimension of the state vector
@@ -128,15 +131,15 @@ class Inversion:
                    'Available memory is not provided.'
 
             # Print out a reminder to set the number of threads
-            print('*********************************************************')
-            print('NOTE: To allow for reduced memory procesesing, it is')
-            print('recommended that OMP_NUM_THREADS be set to half the')
-            print('available cores in a session. You can do this by running')
+            print('*'*60)
+            print('NOTE: REDUCED_MEMORY = TRUE')
+            print('It is recommended that OMP_NUM_THREADS be set to half the')
+            print('available cores. You can do this by running')
             print('  >> export OMP_NUM_THREADS=[N]')
             print('where [N] is an integer about equal to half the available')
             print('cores. After running this command, rerun any scripts that')
             print('call the Inversion class using reduced_memory=True.')
-            print('*********************************************************')
+            print('*'*60)
 
             # Calculate the number of elements that should be included in a
             # chunk
@@ -186,9 +189,10 @@ class Inversion:
                     needed for the reduced_memory option.'
 
         # Force k to be positive
-        if (self.k < 0).any():
-            print('Forcing negative values of the Jacobian to 0.')
-            self.k = self.k.where(self.k > 0, 0)
+        if ~k_is_positive:
+            if (self.k < 0).any():
+                print('Forcing negative values of the Jacobian to 0.')
+                self.k = self.k.where(self.k > 0, 0)
 
         # Solve for the constant c.
         if c is None:
