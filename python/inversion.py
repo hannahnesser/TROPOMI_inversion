@@ -184,8 +184,12 @@ class Inversion:
         # Modify so by the regularization factor
         self.so /= self.regularization_factor
 
+        print('Check 1')
+
         # Check that the dimensions match up
         self._check_dimensions(dims)
+
+        print('Check 2')
 
         # Check that the data are all data arrays
         for k in ['xa', 'sa', 'y', 'ya', 'so', 'k']:
@@ -193,17 +197,25 @@ class Inversion:
                    'Input types are not xarray dataarrays, which are \
                     needed for the reduced_memory option.'
 
+        print('Check 3')
+
         # Force k to be positive
         if ~k_is_positive:
+            print('Checking the Jacobian for negative values.')
             if (self.k < 0).any():
-                print('Forcing negative values of the Jacobian to 0.')
+                print('Forcing negative values of the Jacobian to 0.\n')
                 self.k = self.k.where(self.k > 0, 0)
+
+        print('Check 4')
 
         # Solve for the constant c.
         if c is None:
+            print('Calculating c as c = y - F(xa) = y - ya')
             self.c = self.calculate_c()
         else:
             self.c = self.read(c, dims=dims['c'], chunks=chunks)
+
+        print('Check 5')
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.

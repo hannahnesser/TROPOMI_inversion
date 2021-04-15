@@ -24,7 +24,7 @@ ya  = f'{data_dir}ya.nc'
 so  = f'{data_dir}so.nc'
 c   = f'{data_dir}c.nc'
 
-data = inv.Inversion(k, xa, sa, y, ya, so, c,
+data = Inversion(k, xa, sa, y, ya, so, c,
                      regularization_factor=1, reduced_memory=True,
                      available_memory_GB=45)
 
