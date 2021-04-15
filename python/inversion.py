@@ -209,7 +209,7 @@ class Inversion:
     ### UTILITY FUNCTIONS ###
     #########################
     @staticmethod
-    def read(self, item, dims=None, chunks={}, **kwargs):
+    def read(item, dims=None, chunks={}, **kwargs):
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
             item = self._load(item, dims=dims, chunks=chunks, **kwargs)
@@ -221,7 +221,7 @@ class Inversion:
         return item
 
     @staticmethod
-    def _load(self, item, dims, chunks, **kwargs):
+    def _load(item, dims, chunks, **kwargs):
         # This function is only called by read()
         # Add chunks to kwargs.
         kwargs['chunks'] = {k : chunks[k] for k in dims}
@@ -238,7 +238,7 @@ class Inversion:
         return item
 
     @staticmethod
-    def _to_dataarray(self, item, dims, chunks):
+    def _to_dataarray(item, dims, chunks):
         # If it's a dataset, require that there be only one variable
         if type(item) == xr.core.dataset.Dataset:
             variables = list(item.keys())
@@ -333,7 +333,7 @@ class Inversion:
                'Dimension mismatch: prior error.'
 
     @staticmethod
-    def _find_dimension(self, data):
+    def _find_dimension(data):
         if len(data.shape) == 1:
             return 1
         elif data.shape[1] == 1:

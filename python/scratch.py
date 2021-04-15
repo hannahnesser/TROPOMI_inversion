@@ -2,6 +2,7 @@ import xarray as xr
 import sys
 sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
 import gcpy as gc
+import inversion as inv
 
 regularization_factor = 1
 reduced_memory = True
@@ -17,11 +18,15 @@ data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversi
 
 k = [f'{data_dir}k0_m{i:02d}.nc' for i in range(1, 13)]
 xa = f'{data_dir}xa.nc'
-sa_vec = f'{data_dir}sa.nc'
+sa = f'{data_dir}sa.nc'
 y = f'{data_dir}y.nc'
 ya = f'{data_dir}ya.nc'
-so_vec = f'{data_dir}so.nc'
+so = f'{data_dir}so.nc'
 c = f'{data_dir}c.nc'
+
+data = inv.Inversion(k, xa, sa, y, ya, so, c,
+                     regularization_factor=1, reduced_memory=True,
+                     available_memory_GB=45)
 
 def read(item, dims=None, chunks={}, **kwargs):
     # If item is a string or a list, load the file
@@ -69,7 +74,7 @@ def _to_dataarray(item, dims, chunks):
     return item
 
 xa = read(xa, dims=dims['xa'], chunks=chunks)
-sa_vec = read(sa_vec, dims=dims['sa'], chunks=chunks)
+sa = read(sa, dims=dims['sa'], chunks=chunks)
 nstate = xa.shape[0]
 
 max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
@@ -79,14 +84,14 @@ chunks['nobs'] = int(max_chunk_size/nstate)
 k = read(k, dims=dims['k'], chunks=chunks)
 y = read(y, dims=dims['y'], chunks=chunks)
 ya = read(ya, dims=dims['ya'], chunks=chunks)
-so_vec = read(so_vec, dims=dims['so'], chunks=chunks)
+so = read(so, dims=dims['so'], chunks=chunks)
 c = read(c, dims=dims['c'], chunks=chunks)
 nobs = y.shape[0]
 
-so_vec /= regularization_factor
+so /= regularization_factor
 
-so_inv = diags(1/so_vec)
-sa_inv = diags(1/sa_vec)
+so_inv = diags(1/so)
+sa_inv = diags(1/sa)
 
 # Now create some holding spaces for values that may be filled
 # in the course of solving the inversion.
