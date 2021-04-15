@@ -26,7 +26,7 @@ c   = f'{data_dir}c.nc'
 
 data = inv.Inversion(k, xa, sa, y, ya, so, c,
                      regularization_factor=1, reduced_memory=True,
-                     available_memory_GB=45)
+                     available_memory_GB=45, k_is_positive=True)
 
 def read(item, dims=None, chunks={}, **kwargs):
     # If item is a string or a list, load the file
