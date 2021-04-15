@@ -152,8 +152,8 @@ class Inversion:
 
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension
-        self.xa = self.read(xa, dims=dims['xa'], chunks=chunks)
-        self.sa = self.read(sa, dims=dims['sa'], chunks=chunks)
+        self.xa = read(xa, dims=dims['xa'], chunks=chunks)
+        self.sa = read(sa, dims=dims['sa'], chunks=chunks)
 
         # Save out the state vector dimension
         self.nstate = self.xa.shape[0]
@@ -164,10 +164,10 @@ class Inversion:
             chunks['nobs'] = int(max_chunk_size/self.nstate)
 
         # Load observational data
-        self.k = self.read(k, dims=dims['k'], chunks=chunks)
-        self.y = self.read(y, dims=dims['y'], chunks=chunks)
-        self.ya = self.read(ya, dims=dims['ya'], chunks=chunks)
-        self.so = self.read(so, dims=dims['so'], chunks=chunks)
+        self.k = read(k, dims=dims['k'], chunks=chunks)
+        self.y = read(y, dims=dims['y'], chunks=chunks)
+        self.ya = read(ya, dims=dims['ya'], chunks=chunks)
+        self.so = read(so, dims=dims['so'], chunks=chunks)
 
         # Save out the observation vector dimension
         self.nobs = self.y.shape[0]
@@ -193,7 +193,7 @@ class Inversion:
         if c is None:
             self.c = self.calculate_c()
         else:
-            self.c = self.read(c, dims=dims['c'], chunks=chunks)
+            self.c = read(c, dims=dims['c'], chunks=chunks)
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -212,11 +212,11 @@ class Inversion:
     def read(item, dims=None, chunks={}, **kwargs):
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
-            item = self._load(item, dims=dims, chunks=chunks, **kwargs)
+            item = _load(item, dims=dims, chunks=chunks, **kwargs)
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
-            item = self._to_dataarray(item, dims=dims, chunks=chunks)
+            item = _to_dataarray(item, dims=dims, chunks=chunks)
 
         return item
 

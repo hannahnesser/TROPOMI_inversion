@@ -16,13 +16,13 @@ dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
 
 data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
 
-k = [f'{data_dir}k0_m{i:02d}.nc' for i in range(1, 13)]
-xa = f'{data_dir}xa.nc'
-sa = f'{data_dir}sa.nc'
-y = f'{data_dir}y.nc'
-ya = f'{data_dir}ya.nc'
-so = f'{data_dir}so.nc'
-c = f'{data_dir}c.nc'
+k   = [f'{data_dir}k0_m{i:02d}.nc' for i in range(1, 13)]
+xa  = f'{data_dir}xa.nc'
+sa  = f'{data_dir}sa.nc'
+y   = f'{data_dir}y.nc'
+ya  = f'{data_dir}ya.nc'
+so  = f'{data_dir}so.nc'
+c   = f'{data_dir}c.nc'
 
 data = inv.Inversion(k, xa, sa, y, ya, so, c,
                      regularization_factor=1, reduced_memory=True,
