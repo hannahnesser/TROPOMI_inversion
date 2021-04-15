@@ -134,12 +134,13 @@ class Inversion:
             print('*'*60)
             print('NOTE: REDUCED_MEMORY = TRUE')
             print('It is recommended that OMP_NUM_THREADS be set to half the')
-            print('available cores. You can do this by running')
+            print('available cores by running')
             print('  >> export OMP_NUM_THREADS=[N]')
             print('where [N] is an integer about equal to half the available')
             print('cores. After running this command, rerun any scripts that')
             print('call the Inversion class using reduced_memory=True.')
             print('*'*60)
+            print('')
 
             # Calculate the number of elements that should be included in a
             # chunk
@@ -156,11 +157,13 @@ class Inversion:
 
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension
+        print('Loading the prior and prior error.')
         self.xa = self.read(xa, dims=dims['xa'], chunks=chunks)
         self.sa = self.read(sa, dims=dims['sa'], chunks=chunks)
 
         # Save out the state vector dimension
         self.nstate = self.xa.shape[0]
+        print(f'State vector dimension : {self.nstate}\n')
 
         # Update the chunks for the nobs dimension accordingly
         if self.reduced_memory:
@@ -168,6 +171,7 @@ class Inversion:
             chunks['nobs'] = int(max_chunk_size/self.nstate)
 
         # Load observational data
+        print('Loading the Jacobian, observations, and observational error.')
         self.k = self.read(k, dims=dims['k'], chunks=chunks)
         self.y = self.read(y, dims=dims['y'], chunks=chunks)
         self.ya = self.read(ya, dims=dims['ya'], chunks=chunks)
@@ -175,6 +179,7 @@ class Inversion:
 
         # Save out the observation vector dimension
         self.nobs = self.y.shape[0]
+        print(f'Observation vector dimension : {self.nobs}\n')
 
         # Modify so by the regularization factor
         self.so /= self.regularization_factor
