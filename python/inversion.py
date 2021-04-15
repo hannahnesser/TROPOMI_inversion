@@ -1,5 +1,6 @@
 import xarray as xr
 from dask.diagnostics import ProgressBar
+import dask.array as da
 import numpy as np
 # from numpy import diag as diags
 # from numpy import identity
@@ -58,7 +59,7 @@ It also defines the following plotting functions:
 '''
 
 class Inversion:
-    def __init__(self, k, xa, sa_vec, y, ya, so_vec, c=None,
+    def __init__(self, k, xa, sa, y, ya, so, c=None,
                  regularization_factor=1, reduced_memory=False,
                  available_memory_GB=None):
         '''
@@ -69,14 +70,14 @@ class Inversion:
                             simulated observations to each element of the
                             state vector
             xa              The prior for the state vector
-            sa_vec          The prior error variances as a vector. This class
+            sa              The prior error variances as a vector. This class
                             is not currently written to accept error
                             covariances (such a change would be simple to
                             implement).
             y               The observations
             ya              The simulated observations generated from the prior
                             state vector
-            so_vec          The observational error variances as a vector,
+            so              The observational error variances as a vector,
                             including errors from the forward model and the
                             observations. This class is not currently written
                             to accept error covariances, though such a change
@@ -144,15 +145,17 @@ class Inversion:
 
         # Read in the elements of the inversion
 
-        # First, define a dictionary of tuples with dimensions
-        dims = {'xa' : ['nstate'], 'sa' : ['nstate'],
-                'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs'],
+        # First, define a dictionary of tuples with dimensions.
+        dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
+                'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
                 'c' : ['nobs'], 'k' : ['nobs', 'nstate']}
 
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension
         self.xa = self.read(xa, dims=dims['xa'], chunks=chunks)
-        self.sa_vec = self.read(sa_vec, dims=dims['sa'], chunks=chunks)
+        self.sa = self.read(sa, dims=dims['sa'], chunks=chunks)
+
+        # Save out the state vector dimension
         self.nstate = self.xa.shape[0]
 
         # Update the chunks for the nobs dimension accordingly
@@ -164,14 +167,16 @@ class Inversion:
         self.k = self.read(k, dims=dims['k'], chunks=chunks)
         self.y = self.read(y, dims=dims['y'], chunks=chunks)
         self.ya = self.read(ya, dims=dims['ya'], chunks=chunks)
-        self.so_vec = self.read(so_vec, dims=dims['so'], chunks=chunks)
+        self.so = self.read(so, dims=dims['so'], chunks=chunks)
+
+        # Save out the observation vector dimension
         self.nobs = self.y.shape[0]
 
         # Modify so by the regularization factor
-        self.so_vec /= self.regularization_factor
+        self.so /= self.regularization_factor
 
-        # Check that the diimensions match up
-        self.check_dimensions()
+        # Check that the dimensions match up
+        self._check_dimensions(dims)
 
         # Check that the data are all data arrays
         for k, d in dims.items():
@@ -195,6 +200,7 @@ class Inversion:
         self.xhat = None
         self.shat = None
         self.a = None
+        self.dofs = None # diagonal elements of A
         self.yhat = None
 
         print('... Complete ...\n')
@@ -251,7 +257,6 @@ class Inversion:
                 item = item.chunk(chunks)
         return item
 
-
     def save(self, attribute:str, file_name=None):
         item = getattr(self, attribute)
 
@@ -297,10 +302,10 @@ class Inversion:
         self.add_attr_to_dataset(ds, 'state_vector', ('nstate'))
         self.add_attr_to_dataset(ds, 'k',            ('nobs','nstate'))
         self.add_attr_to_dataset(ds, 'xa',           ('nstate'))
-        self.add_attr_to_dataset(ds, 'sa_vec',       ('nstate'))
+        self.add_attr_to_dataset(ds, 'sa',       ('nstate'))
         self.add_attr_to_dataset(ds, 'y',            ('nobs'))
         self.add_attr_to_dataset(ds, 'y_base',       ('nobs'))
-        self.add_attr_to_dataset(ds, 'so_vec',       ('nobs'))
+        self.add_attr_to_dataset(ds, 'so',       ('nobs'))
         # outputs
         self.add_attr_to_dataset(ds, 'c',     ('nobs'))
         self.add_attr_to_dataset(ds, 'xhat',  ('nstate'))
@@ -313,21 +318,33 @@ class Inversion:
 
         return ds
 
-    def check_dimensions(self):
-                # Check whether all inputs have the right dimensions
+    def _check_dimensions(self, dims):
+        # Check whether the items in the object match the dimensions
+
+
+        # Check whether all inputs have the right dimensions
         assert self.k.shape[1] == self.nstate, \
                'Dimension mismatch: Jacobian and prior.'
         assert self.k.shape[0] == self.nobs, \
                'Dimension mismatch: Jacobian and observations.'
-        assert self.so_vec.shape[0] == self.nobs, \
+        assert self.so.shape[0] == self.nobs, \
                'Dimension mismatch: observational error'
-        assert self.sa_vec.shape[0] == self.nstate, \
+        assert self.sa.shape[0] == self.nstate, \
                'Dimension mismatch: prior error.'
+
+    @staticmethod
+    def _find_dimension(self, data):
+        if len(data.shape) == 1:
+            return 1
+        elif data.shape[1] == 1:
+            return 1
+        else:
+            return 2
+
 
     ####################################
     ### STANDARD INVERSION FUNCTIONS ###
     ####################################
-
     def calculate_c(self):
         '''
         Calculate c for the forward model, defined as ybase = Kxa + c.
@@ -367,10 +384,10 @@ class Inversion:
 
         # Calculate the observational component of the cost function
         cost_obs = self.obs_mod_diff(x).T \
-                   @ diags(self.regularization_factor/self.so_vec) @ self.obs_mod_diff(x)
+                   @ diags(1/self.so) @ self.obs_mod_diff(x)
 
         # Calculate the emissions/prior component of the cost function
-        cost_emi = (x - self.xa).T @ diags(1/self.sa_vec) @ (x - self.xa)
+        cost_emi = (x - self.xa).T @ diags(1/self.sa) @ (x - self.xa)
 
         # Calculate the total cost, print out information on the cost, and
         # return the total cost function value
@@ -399,20 +416,21 @@ class Inversion:
         # observational error covariance.
         # Note: This would change if error variances were redefined as
         # covariance matrices
-        so_inv = diags(1/self.so_vec)
-        sa_inv = diags(1/self.sa_vec)
+        so_inv = diags(1/self.so)
+        sa_inv = diags(1/self.sa)
 
+        # We commented this out because of computational cost concerns
         # Calculate the cost function at the prior.
-        print('Calculating the cost function at the prior mean.')
-        cost_prior = self.cost_func(self.xa)
+        # print('Calculating the cost function at the prior mean.')
+        # cost_prior = self.cost_func(self.xa)
 
         # Calculate the posterior error.
         print('Calculating the posterior error.')
-        self.shat = np.asarray(inv(self.k.T @ so_inv @ self.k + sa_inv))
+        self.shat = inv(self.k.T @ so_inv @ self.k + sa_inv)
 
         # Calculate the posterior mean
         print('Calculating the posterior mean.')
-        gain = np.asarray(self.shat @ self.k.T @ so_inv)
+        gain = self.shat @ self.k.T @ so_inv
         self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
 
         # Calculate the cost function at the posterior. Also
@@ -424,8 +442,7 @@ class Inversion:
 
         # Calculate the averaging kernel.
         print('Calculating the averaging kernel.')
-        self.a = np.asarray(identity(self.nstate) \
-                            - self.shat @ sa_inv)
+        self.a = identity(self.nstate) - self.shat @ sa_inv
         self.dofs = np.diag(self.a)
         print('     DOFS: %.2f' % np.trace(self.a))
 
@@ -507,10 +524,10 @@ class Inversion:
 class ReducedRankInversion(Inversion):
     # class variables shared by all instances
 
-    def __init__(self, k, xa, sa_vec, y, ya, so_vec):
+    def __init__(self, k, xa, sa, y, ya, so):
         # We inherit from the inversion class and create space for
         # the reduced rank solutions.
-        Inversion.__init__(self, k, xa, sa_vec, y, ya, so_vec)
+        Inversion.__init__(self, k, xa, sa, y, ya, so)
 
         # We create space for the rank
         self.rank = None
@@ -562,10 +579,10 @@ class ReducedRankInversion(Inversion):
     def pph(self):
         # Calculate the prior pre-conditioned Hessian assuming
         # that the errors are diagonal
-        sa_sqrt = self.sa_vec**0.5
-        so_inv = self.regularization_factor/self.so_vec
-        pph = (self.sa_vec**0.5)*self.k.T
-        pph = np.dot(pph, ((self.regularization_factor/self.so_vec)*pph.T))
+        sa_sqrt = self.sa**0.5
+        so_inv = 1/self.so
+        pph = (self.sa**0.5)*self.k.T
+        pph = np.dot(pph, ((1/self.so)*pph.T))
         print('Calculated PPH.')
         return pph
 
@@ -631,8 +648,8 @@ class ReducedRankInversion(Inversion):
 
         # Calculate the prolongation and reduction operators and
         # the resulting projection operator.
-        prolongation = (evecs_subset.T * self.sa_vec**0.5).T
-        reduction = (1/self.sa_vec**0.5) * evecs_subset.T
+        prolongation = (evecs_subset.T * self.sa**0.5).T
+        reduction = (1/self.sa**0.5) * evecs_subset.T
         projection = prolongation @ reduction
 
         return rank, prolongation, reduction, projection
@@ -651,11 +668,11 @@ class ReducedRankInversion(Inversion):
         rank = self.get_rank(pct_of_info=pct_of_info, rank=rank)
 
         # Calculate a few quantities that will be useful
-        sa_sqrt = diags(self.sa_vec**0.5)
-        sa_sqrt_inv = diags(1/self.sa_vec**0.5)
-        # so_vec = self.regularization_factor*self.so_vec
-        so_inv = diags(self.regularization_factor/self.so_vec)
-        # so_sqrt_inv = diags(1/so_vec**0.5)
+        sa_sqrt = diags(self.sa**0.5)
+        sa_sqrt_inv = diags(1/self.sa**0.5)
+        # so = self.regularization_factor*self.so
+        so_inv = diags(1/self.so)
+        # so_sqrt_inv = diags(1/so**0.5)
 
         # Subset evecs and evals
         vk = self.evecs[:, :rank]
@@ -686,7 +703,7 @@ class ReducedRankInversion(Inversion):
         self.solve_inversion_proj(pct_of_info=pct_of_info, rank=rank)
 
         # Calculate a few quantities that will be useful
-        sa = diags(self.sa_vec)
+        sa = diags(self.sa)
 
         # Calculate the solutions
         self.xhat_kproj = self.xhat_proj
@@ -698,7 +715,7 @@ class ReducedRankInversion(Inversion):
         print('... Solving full rank approximation inversion ...')
         self.solve_inversion_kproj(pct_of_info=pct_of_info, rank=rank)
 
-        so_inv = diags(self.regularization_factor/self.so_vec)
+        so_inv = diags(1/self.so)
         d = self.obs_mod_diff(self.xa)
 
         self.xhat_fr = self.shat_kproj @ self.k.T @ so_inv @ d
@@ -751,11 +768,9 @@ class ReducedRankInversion(Inversion):
         return fig, ax
 
 class ReducedRankJacobian(ReducedRankInversion):
-    def __init__(self, k, xa, sa_vec, y, ya, so_vec):
+    def __init__(self, k, xa, sa, y, ya, so):
         # Inherit from the parent class.
-        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, ya, so_vec)
-
-        self.perturbed_cells = np.array([])
+        ReducedRankInversion.__init__(self, k, xa, sa, y, ya, so)
         self.model_runs = 0
 
     # Rewrite to take any prolongation matrix?
@@ -791,12 +806,12 @@ class ReducedRankJacobian(ReducedRankInversion):
         # Save to a new instance
         new = ReducedRankJacobian(k=k,
                                   xa=copy.deepcopy(self.xa),
-                                  sa_vec=copy.deepcopy(self.sa_vec),
+                                  sa=copy.deepcopy(self.sa),
                                   y=copy.deepcopy(self.y),
                                   ya=copy.deepcopy(self.ya),
-                                  so_vec=copy.deepcopy(self.so_vec))
+                                  so=copy.deepcopy(self.so),
+                                  regularization_factor=self.regularization_factor)
         new.model_runs = copy.deepcopy(self.model_runs) + prolongation.shape[1]
-        new.regularization_factor = copy.deepcopy(self.regularization_factor)
 
         # Do the eigendecomposition
         new.edecomp()
@@ -841,13 +856,13 @@ class ReducedRankJacobian(ReducedRankInversion):
         return self_f, true_f
 
 class ReducedDimensionJacobian(ReducedRankInversion):
-    def __init__(self, k, xa, sa_vec, y, ya, so_vec):
+    def __init__(self, k, xa, sa, y, ya, so):
 
         # state_vector    A vector containing an index for each state vector
         #                 element (necessary for multiscale grid methods).
 
         # Inherit from the parent class.
-        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, ya, so_vec)
+        ReducedRankInversion.__init__(self, k, xa, sa, y, ya, so)
 
         self.state_vector = np.arange(1, self.nstate+1, 1)
         self.perturbed_cells = np.array([])
@@ -989,18 +1004,18 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         k_ms = k_ms.groupby(self.state_vector, axis=1).sum()
         self.k = np.array(k_ms)
 
-    def calculate_prior(self, xa_abs, sa_vec):
+    def calculate_prior(self, xa_abs, sa):
         xa_abs_ms = pd.DataFrame(xa_abs).groupby(self.state_vector).sum()
 
-        sa_vec_abs = pd.DataFrame(sa_vec*xa_abs)
-        sa_vec_abs_ms = (sa_vec_abs**2).groupby(self.state_vector).sum()**0.5
-        sa_vec_ms = sa_vec_abs_ms/xa_abs_ms
+        sa_abs = pd.DataFrame(sa*xa_abs)
+        sa_abs_ms = (sa_abs**2).groupby(self.state_vector).sum()**0.5
+        sa_ms = sa_abs_ms/xa_abs_ms
 
         self.xa_abs = np.array(xa_abs_ms).reshape(-1,)
         self.xa = np.ones(self.nstate).reshape(-1,)
-        self.sa_vec = np.array(sa_vec_ms).reshape(-1,)
+        self.sa = np.array(sa_ms).reshape(-1,)
 
-    def update_jacobian_rd(self, forward_model, xa_abs, sa_vec, clusters_plot,
+    def update_jacobian_rd(self, forward_model, xa_abs, sa, clusters_plot,
                            pct_of_info=None, rank=None, snr=None,
                            n_cells=[100, 200],
                            n_cluster_size=[1, 2],
@@ -1047,10 +1062,10 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         # is where
         new = ReducedRankJacobian(k=k_base,
                                   xa=copy.deepcopy(self.xa),
-                                  sa_vec=copy.deepcopy(self.sa_vec),
+                                  sa=copy.deepcopy(self.sa),
                                   y=copy.deepcopy(self.y),
                                   ya=copy.deepcopy(self.ya),
-                                  so_vec=copy.deepcopy(self.so_vec))
+                                  so=copy.deepcopy(self.so))
         new.state_vector = copy.deepcopy(self.state_vector)
         new.dofs = copy.deepcopy(self.dofs)
         new.model_runs = copy.deepcopy(self.model_runs)
@@ -1080,10 +1095,12 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         # # Now update the Jacobian
         new.nstate = len(elements)
         new.calculate_k(forward_model)
-        new.calculate_prior(xa_abs=xa_abs, sa_vec=sa_vec)
+        new.calculate_prior(xa_abs=xa_abs, sa=sa)
 
         # Adjust the regularization_factor
         new.regularization_factor = self.regularization_factor*new.nstate/self.nstate
+        # THIS NEEDS TO BE FIXED NOW THAT WE DEFINE SO/REG FACTOR IN
+        # INITIALIZATION
 
         # Update the value of c in the new instance
         new.calculate_c()
@@ -1131,3 +1148,10 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         ax = fp.format_map(ax, data.lat, data.lon, **map_kwargs)
 
         return fig, ax
+
+# class ReducedMemoryInversion(ReducedRankJacobian):
+#     def __init__(self, k, xa, sa, y, ya, so):
+#         # Inherit from the parent class.
+#         ReducedRankJacobian.__init__(self, k, xa, sa, y, ya, so)
+
+#         # Convert objects to dask arrays.

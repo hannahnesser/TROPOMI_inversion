@@ -9,8 +9,8 @@ available_memory_GB = 45
 
 chunks = {'nstate' : -1, 'nobs' : None}
 # First, define a dictionary of tuples with dimensions
-dims = {'xa' : ['nstate'], 'sa' : ['nstate'],
-        'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs'],
+dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
+        'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
         'k' : ['nobs', 'nstate']}
 
 data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
@@ -84,6 +84,9 @@ c = read(c, dims=dims['c'], chunks=chunks)
 nobs = y.shape[0]
 
 so_vec /= regularization_factor
+
+so_inv = diags(1/so_vec)
+sa_inv = diags(1/sa_vec)
 
 # Now create some holding spaces for values that may be filled
 # in the course of solving the inversion.
