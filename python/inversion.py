@@ -594,25 +594,32 @@ class ReducedRankInversion(Inversion):
     def pph(self):
         # Calculate the prior pre-conditioned Hessian assuming
         # that the errors are diagonal
-        sa_sqrt = self.sa**0.5
-        so_inv = 1/self.so
-        pph = (self.sa**0.5)*self.k.T
-        pph = np.dot(pph, ((1/self.so)*pph.T))
+        if (self._find_dimension(self.sa) == 1) and
+           (self._find_dimension(self.so) == 1):
+            pph = (data.sa**0.5)*data.k.T
+            pph = pph @ (pph.T/data.so)
+        elif self._find_dimension(self.sa) == 1:
+            pph = (data.sa**0.5)*data.k.T
+            pph = pph @ inv(data.so) @ pph.T
+        else:
+            pph = data.sa**0.5 @ data.k.T
+            pph = pph @ inv(data.so) @ pph.T
         print('Calculated PPH.')
         return pph
 
-    def edecomp(self, eval_threshold=None, number_of_evals=None):
+    def edecomp(self, pph=None, eval_threshold=None, number_of_evals=None):
         print('... Calculating eigendecomposition ...')
-        # Calculate pph and require that it be symmetric
-        pph = self.pph()
+        # Calculate the prior pre-conditioned Hessian
+        if pph is None:
+            pph = self.pph()
+
+        # Check that the PPH is symmetric
         assert np.allclose(pph, pph.T, rtol=1e-5), \
                'The prior pre-conditioned Hessian is not symmetric.'
 
-        # Peregularization_factororm the eigendecomposition of the prior
-        # pre-conditioned Hessian
+        # Perform the eigendecomposition of the prior pre-conditioned Hessian
         # We return the evals of the projection, not of the
         # prior pre-conditioned Hessian.
-
         if (eval_threshold is None) and (number_of_evals is None):
              evals, evecs = eigh(pph)
         elif (eval_threshold is None):

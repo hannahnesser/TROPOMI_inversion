@@ -28,70 +28,14 @@ data = inv.ReducedRankInversion(k, xa, sa, y, ya, so, c,
                      regularization_factor=1, reduced_memory=True,
                      available_memory_GB=45, k_is_positive=True)
 
-def read(item, dims=None, chunks={}, **kwargs):
-    # If item is a string or a list, load the file
-    if type(item) in [str, list]:
-        item = _load(item, dims=dims, chunks=chunks, **kwargs)
+pph = (data.sa**0.5)*data.k.T
+pph = pph @ (pph.T/data.so)
 
-    # Force the items to be dataarrays
-    if type(item) != xr.core.dataarray.DataArray:
-        item = _to_dataarray(item, dims=dims, chunks=chunks)
+from dask.diagnostics import ProgressBar
+from os.path import join
 
-    return item
-
-def _load(item, dims, chunks, **kwargs):
-    # This function is only called by read()
-    # Add chunks to kwargs.
-    kwargs['chunks'] = {k : chunks[k] for k in dims}
-    if type(item) == list:
-        # If it's a list, set some specific settings for open_mfdataset
-        # This currently assumes that the coords are not properly set,
-        # which was an oopsy when making the K0 datasets.
-        kwargs['combine'] = 'nested'
-        kwargs['concat_dim'] = dims
-    else:
-        item = [item]
-
-    item = gc.read_file(*item, **kwargs)
-    return item
-
-def _to_dataarray(item, dims, chunks):
-    # If it's a dataset, require that there be only one variable
-    if type(item) == xr.core.dataset.Dataset:
-        variables = list(item.keys())
-        assert len(variables) == 1, \
-              'A dataset with multiple variables was provided. This \
-               class requires that any datasets contain only one \
-               variable.'
-        item = item[variables[0]]
-    # Else convert to a dataarray
-    else:
-        assert dims is not None, \
-               'Creating an xarray dataset and dims is not provided.'
-        chunks = {k : chunks[k] for k in dims}
-        item = xr.DataArray(item, dims=tuple(dims))
-        item = item.chunk(chunks)
-    return item
-
-xa = read(xa, dims=dims['xa'], chunks=chunks)
-sa = read(sa, dims=dims['sa'], chunks=chunks)
-nstate = xa.shape[0]
-
-max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
-chunks['nobs'] = int(max_chunk_size/nstate)
-
-# Load observational data
-k = read(k, dims=dims['k'], chunks=chunks)
-y = read(y, dims=dims['y'], chunks=chunks)
-ya = read(ya, dims=dims['ya'], chunks=chunks)
-so = read(so, dims=dims['so'], chunks=chunks)
-c = read(c, dims=dims['c'], chunks=chunks)
-nobs = y.shape[0]
-
-so /= regularization_factor
-
-so_inv = diags(1/so)
-sa_inv = diags(1/sa)
+with ProgressBar():
+    pph.to_netcdf(join(data_dir, 'pph0.nc'))
 
 # Now create some holding spaces for values that may be filled
 # in the course of solving the inversion.
