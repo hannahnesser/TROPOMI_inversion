@@ -208,15 +208,14 @@ class Inversion:
     #########################
     ### UTILITY FUNCTIONS ###
     #########################
-    @staticmethod
-    def read(item, dims=None, chunks={}, **kwargs):
+    def read(self, item, dims=None, chunks={}, **kwargs):
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
-            item = _load(item, dims=dims, chunks=chunks, **kwargs)
+            item = self._load(item, dims=dims, chunks=chunks, **kwargs)
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
-            item = _to_dataarray(item, dims=dims, chunks=chunks)
+            item = self._to_dataarray(item, dims=dims, chunks=chunks)
 
         return item
 
