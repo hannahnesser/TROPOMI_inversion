@@ -535,13 +535,18 @@ class Inversion:
 class ReducedRankInversion(Inversion):
     # class variables shared by all instances
 
-    def __init__(self, k, xa, sa, y, ya, so):
+    def __init__(self, k, xa, sa, y, ya, so, c=None,
+                 regularization_factor=1, reduced_memory=False,
+                 available_memory_GB=None, k_is_positive=False,
+                 rank=None):
         # We inherit from the inversion class and create space for
         # the reduced rank solutions.
-        Inversion.__init__(self, k, xa, sa, y, ya, so)
+        Inversion.__init__(self, k, xa, sa, y, ya, so, c,
+                           regularization_factor, reduced_memory,
+                           available_memory_GB, k_is_positive)
 
         # We create space for the rank
-        self.rank = None
+        self.rank = rank
 
         # We also want to save the eigendecomposition values
         self.evals_q = None
@@ -562,7 +567,6 @@ class ReducedRankInversion(Inversion):
     ########################################
     ### REDUCED RANK INVERSION FUNCTIONS ###
     ########################################
-
     def get_rank(self, pct_of_info=None, rank=None, snr=None):
         frac = np.cumsum(self.evals_q/self.evals_q.sum())
         if sum(x is not None for x in [pct_of_info, rank, snr]) > 1:
@@ -779,9 +783,15 @@ class ReducedRankInversion(Inversion):
         return fig, ax
 
 class ReducedRankJacobian(ReducedRankInversion):
-    def __init__(self, k, xa, sa, y, ya, so):
+    def __init__(self, k, xa, sa, y, ya, so, c=None,
+                 regularization_factor=1, reduced_memory=False,
+                 available_memory_GB=None, k_is_positive=False,
+                 rank=None):
         # Inherit from the parent class.
-        ReducedRankInversion.__init__(self, k, xa, sa, y, ya, so)
+        ReducedRankInversion.__init__(self, k, xa, sa, y, ya, so, c,
+                                      regularization_factor, reduced_memory,
+                                      available_memory_GB, k_is_positive,
+                                      rank)
         self.model_runs = 0
 
     # Rewrite to take any prolongation matrix?
@@ -867,13 +877,19 @@ class ReducedRankJacobian(ReducedRankInversion):
         return self_f, true_f
 
 class ReducedDimensionJacobian(ReducedRankInversion):
-    def __init__(self, k, xa, sa, y, ya, so):
+    def __init__(self, k, xa, sa, y, ya, so, c=None,
+                 regularization_factor=1, reduced_memory=False,
+                 available_memory_GB=None, k_is_positive=False,
+                 rank=None):
 
         # state_vector    A vector containing an index for each state vector
         #                 element (necessary for multiscale grid methods).
 
         # Inherit from the parent class.
-        ReducedRankInversion.__init__(self, k, xa, sa, y, ya, so)
+        ReducedRankInversion.__init__(self, k, xa, sa, y, ya, so, c,
+                                      regularization_factor, reduced_memory,
+                                      available_memory_GB, k_is_positive,
+                                      rank)
 
         self.state_vector = np.arange(1, self.nstate+1, 1)
         self.perturbed_cells = np.array([])
