@@ -180,7 +180,7 @@ class Inversion:
         self._check_dimensions(dims)
 
         # Check that the data are all data arrays
-        for k, d in dims.items():
+        for k in ['xa', 'sa', 'y', 'ya', 'so', 'k']:
             assert isinstance(getattr(self, k), xr.core.dataarray.DataArray), \
                    'Input types are not xarray dataarrays, which are \
                     needed for the reduced_memory option.'
