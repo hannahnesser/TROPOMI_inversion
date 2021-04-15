@@ -200,7 +200,7 @@ class Inversion:
         print('Check 3')
 
         # Force k to be positive
-        if ~k_is_positive:
+        if not k_is_positive:
             print('Checking the Jacobian for negative values.')
             if (self.k < 0).any():
                 print('Forcing negative values of the Jacobian to 0.\n')
