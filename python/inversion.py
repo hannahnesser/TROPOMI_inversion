@@ -29,6 +29,7 @@ import cartopy
 import config
 import format_plots as fp
 import invpy as ip
+import gcpy as gc
 
 # Other font details
 rcParams['font.family'] = 'sans-serif'
