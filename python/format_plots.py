@@ -260,7 +260,10 @@ def format_map(ax, lats, lons,
     ax.set_xlim(min(lons), max(lons))
     ax.add_feature(cartopy.feature.OCEAN, facecolor='0.98', linewidth=0.5)
     ax.add_feature(cartopy.feature.LAND, facecolor='0.98', linewidth=0.5)
-    ax.coastlines(color='grey', linewidth=0.5)
+    ax.add_feature(cartopy.feature.STATES, edgecolor='0.3', linewidth=0.2)
+    ax.add_feature(cartopy.feature.LAKES, facecolor='none', edgecolor='0.3 ',
+                   linewidth=0.2)
+    ax.coastlines(color='0.2', linewidth=0.5)
 
     # gl = ax.gridlines(**gridline_kwargs)
     # gl.xlabel_style = {'fontsize' : fontsize}

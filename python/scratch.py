@@ -1,18 +1,21 @@
+# from dask_jobqueue import SLURMCluster
+# cluster = SLURMCluster(queue='huce_intel', cores=12, memory='45GB')
+# cluster.scale(jobs=2)
+
+# To do this run
+# xterm & // conda activate TROPOMI_inversion // dask-scheduler
+# xterm & // conda activate TROPOMI_inversion // dask-worker localhost:8786 --nprocs 6 --nthreads 2
+
+from dask.distributed import Client, LocalCluster, progress
+cluster = LocalCluster(local_directory='.')
+client = Client(cluster)
+
 import xarray as xr
+import dask.array as da
+from dask.diagnostics import ProgressBar
 import sys
 sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python')
-import gcpy as gc
 import inversion as inv
-
-regularization_factor = 1
-reduced_memory = True
-available_memory_GB = 45
-
-chunks = {'nstate' : -1, 'nobs' : None}
-# First, define a dictionary of tuples with dimensions
-dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
-        'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
-        'k' : ['nobs', 'nstate']}
 
 data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
 
@@ -24,25 +27,61 @@ ya  = f'{data_dir}ya.nc'
 so  = f'{data_dir}so.nc'
 c   = f'{data_dir}c.nc'
 
-data = inv.ReducedRankInversion(k, xa, sa, y, ya, so, c,
+data = inv.Inversion(k, xa, sa, y, ya, so, c,
                      regularization_factor=1, reduced_memory=True,
                      available_memory_GB=45, k_is_positive=True)
 
-pph = (data.sa**0.5)*data.k.T
-pph = pph @ (pph.T/data.so)
+# data.so = data.so.drop('nobs')
+data.sa = data.sa.rename('sa')
 
-from dask.diagnostics import ProgressBar
-from os.path import join
+data.sa = data.sa.compute()
+data.so = data.so.compute()
 
-with ProgressBar():
-    pph.to_netcdf(join(data_dir, 'pph0.nc'))
+# pph_l = (data.sa**0.5)*data.k.T
+# pph_l = pph_l.chunk((1e4, 7e3))
+# pph_r = pph_l.T/data.so
+# pph_r = pph_r.chunk((7e3, 1e4))
 
-# Now create some holding spaces for values that may be filled
-# in the course of solving the inversion.
-# xhat = None
-# shat = None
-# a = None
-# yhat = None
+#
+nstate_chunk = -1
+nobs_chunk = 5.3e3
+
+sa_sqrt = data.sa**0.5
+# pph_temp = (data.sa**0.5)*data.k.T
+
+# pph_temp = pph_temp.chunk((nstate_chunk, nobs_chunk))
+# data.so = data.so.chunk(nobs_chunk)
+pph = da.einsum('ij,jk', sa_sqrt*data.k.T, data.k*sa_sqrt/data.so)
+# pph = pph.rechunk((1e4, 1e3))
+
+pph = client.persist(pph)
+progress(pph)
+
+client.cancel(pph)
+client.restart()
+del(pph)
+
+
+k01 = xr.open_dataarray(k[0], chunks={'nobs' : 7914, 'nstate' : -1})
+so01 = xr.open_dataarray(so)[:227721]
+sa01 = xr.open_dataarray(sa)
+pph_temp = (sa01**0.5)*k01.T
+# pph_temp = pph_temp.chunk((nstate_chunk, nobs_chunk))
+# so = so.chunk(nobs_chunk)
+pph = da.einsum('ij,jk', pph_temp, pph_temp.T/so01)
+
+
+# with ProgressBar():
+#     pph = pph.compute()
+
+pph = xr.DataArray(pph, dims=('nstate', 'nstate'), name='pph')
+
+
+# from os.path import join
+
+
+    # pph.to_netcdf(join(data_dir, 'pph0.nc'))
+
 
 # import xarray as xr
 # import numpy as np
