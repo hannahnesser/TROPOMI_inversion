@@ -125,7 +125,7 @@ class Inversion:
         # nstate and thus the chunk size in that dimension
         print('Loading the prior and prior error.')
         self.xa = self.read(xa, dims=Inversion.dims['xa'])
-        #self.sa = self.read(sa, dims=Inversion.dims['sa'])
+        self.sa = self.read(sa, dims=Inversion.dims['sa'])
 
         # Save out the state vector dimension
         self.nstate = self.xa.shape[0]
