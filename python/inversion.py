@@ -525,8 +525,8 @@ class ReducedRankInversion(Inversion):
     def pph(self):
         # Calculate the prior pre-conditioned Hessian assuming
         # that the errors are diagonal
-        if (self._find_dimension(self.sa) == 1) and
-           (self._find_dimension(self.so) == 1):
+        if ((self._find_dimension(self.sa) == 1) and
+            (self._find_dimension(self.so) == 1)):
             pph = (data.sa**0.5)*data.k.T
             pph = xr.dot(pph, (pph.T/data.so))
         elif self._find_dimension(self.sa) == 1:
