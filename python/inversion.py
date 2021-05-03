@@ -125,7 +125,7 @@ class Inversion:
         # nstate and thus the chunk size in that dimension
         print('Loading the prior and prior error.')
         self.xa = self.read(xa, dims=Inversion.dims['xa'])
-        self.sa = self.read(sa, dims=Inversion.dims['sa'])
+        #self.sa = self.read(sa, dims=Inversion.dims['sa'])
 
         # Save out the state vector dimension
         self.nstate = self.xa.shape[0]
@@ -147,7 +147,7 @@ class Inversion:
             self.so /= self.regularization_factor
 
         # Check that the dimensions match up
-        self._check_dimensions(dims)
+        self._check_dimensions()
 
         # Check that the data are all data arrays
         for k in ['xa', 'sa', 'y', 'ya', 'so', 'k']:
@@ -187,8 +187,8 @@ class Inversion:
         if type(item) == str:
             item = gc.read_file(*[item], **kwargs)
         # Force the items to be dataarrays
-        if type(item) != xr.core.dataarray.DataArray:
-            item = self._to_dataarray(item, dims=Inversion.dims)
+        elif type(item) != xr.core.dataarray.DataArray:
+            item = self._to_dataarray(item, dims=dims)
 
         return item
 
@@ -265,7 +265,7 @@ class Inversion:
 
         return ds
 
-    def _check_dimensions(self, dims):
+    def _check_dimensions(self):
         # Check whether the items in the object match the dimensions
 
 
