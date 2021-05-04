@@ -60,11 +60,11 @@ It also defines the following plotting functions:
 '''
 
 class Inversion:
-    # Set global class attributes
+### todo temp
+    # Set global variables
     dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
             'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
             'c' : ['nobs'], 'k' : ['nobs', 'nstate']}
-
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
                  k_is_positive=False):
         '''
@@ -118,14 +118,18 @@ class Inversion:
         '''
         print('... Initializing inversion object ...')
 
+# todo temp erp
+        # Get dimensions for the input (allowing 1D vector inputs for sa and so)
+        self.dims = self._get_dims(sa,so)
+        
         # Read in the elements of the inversion
         self.regularization_factor = regularization_factor
 
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension
         print('Loading the prior and prior error.')
-        self.xa = self.read(xa, dims=Inversion.dims['xa'])
-        self.sa = self.read(sa, dims=Inversion.dims['sa'])
+        self.xa = self.read(xa, dims=self.dims['xa'])
+        self.sa = self.read(sa, dims=self.dims['sa'])
 
         # Save out the state vector dimension
         self.nstate = self.xa.shape[0]
@@ -133,10 +137,10 @@ class Inversion:
 
         # Load observational data
         print('Loading the Jacobian, observations, and observational error.')
-        self.k = self.read(k, dims=Inversion.dims['k'])
-        self.y = self.read(y, dims=Inversion.dims['y'])
-        self.ya = self.read(ya, dims=Inversion.dims['ya'])
-        self.so = self.read(so, dims=Inversion.dims['so'])
+        self.k = self.read(k, dims=self.dims['k'])
+        self.y = self.read(y, dims=self.dims['y'])
+        self.ya = self.read(ya, dims=self.dims['ya'])
+        self.so = self.read(so, dims=self.dims['so'])
 
         # Save out the observation vector dimension
         self.nobs = self.y.shape[0]
@@ -149,25 +153,27 @@ class Inversion:
         # Check that the dimensions match up
         self._check_dimensions()
 
-        # Check that the data are all data arrays
-        for k in ['xa', 'sa', 'y', 'ya', 'so', 'k']:
-            assert isinstance(getattr(self, k), xr.core.dataarray.DataArray), \
-                   'Input types are not xarray dataarrays, which are \
-                    needed for the reduced_memory option.'
+### todo temp commented out (erp)
+#        # Check that the data are all data arrays
+#        for k in ['xa', 'sa', 'y', 'ya', 'so', 'k']:
+#            assert isinstance(getattr(self, k), xr.core.dataarray.DataArray), \
+#                   f'Input {k} is not an xarray dataarray, which is \
+#                    needed for the reduced_memory option.'
 
-        # Force k to be positive
-        if not k_is_positive:
-            print('Checking the Jacobian for negative values.')
-            if (self.k < 0).any():
-                print('Forcing negative values of the Jacobian to 0.\n')
-                self.k = self.k.where(self.k > 0, 0)
+# todo temp forcing K to be positive is not great for OH simulations
+#        # Force k to be positive
+#        if not k_is_positive:
+#            print('Checking the Jacobian for negative values.')
+#            if (self.k < 0).any():
+#                print('Forcing negative values of the Jacobian to 0.\n')
+#                self.k = self.k.where(self.k > 0, 0)
 
         # Solve for the constant c.
         if c is None:
             print('Calculating c as c = y - F(xa) = y - ya')
             self.c = self.calculate_c()
         else:
-            self.c = self.read(c, dims=Inversion.dims['c'], chunks=chunks)
+            self.c = self.read(c, dims=self.dims['c'], chunks=chunks)
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -182,13 +188,35 @@ class Inversion:
     #########################
     ### UTILITY FUNCTIONS ###
     #########################
+    def _get_dims(self,sa,so):
+        # Get dimensions for an xarray dataset 
+        dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
+                'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
+                'c' : ['nobs'], 'k' : ['nobs', 'nstate']}
+        # check if prior error is a 1D vector
+        # todo: this will break if you have a list of filenames :/ but self.read currently breaks on this condition so I'll fix it if we decide to fix that.
+        if type(sa) == str: 
+            pass # filenames don't need dims b/c they are read to datasets
+        elif len(sa.shape) == 1:
+            dims['sa'] = ['nstate']
+        # check if observation error is a 1D vector
+        if type(so) == str: 
+            pass # filenames don't need dims b/c they are read to datasets
+        elif len(so.shape) == 1:
+            dims['so'] = ['nobs']
+        return dims
+
+# todo temp (erp) - some things commented out            
     def read(self, item, dims=None, **kwargs):
         # If item is a string or a list, load the file
         if type(item) == str:
-            item = gc.read_file(*[item], **kwargs)
+#            item = gc.read_file(*[item], **kwargs)
+            item = np.array(gc.read_file(*[item], **kwargs))        # Force the items to be dataarrays
         # Force the items to be dataarrays
-        elif type(item) != xr.core.dataarray.DataArray:
-            item = self._to_dataarray(item, dims=dims)
+        elif type(item) != np.ndarray:
+            item = np.array(item)
+#        elif type(item) != xr.core.dataarray.DataArray:
+#            item = self._to_dataarray(item, dims=dims)
 
         return item
 
@@ -1150,6 +1178,10 @@ class ReducedMemoryInversion(ReducedRankJacobian):
 
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension.
+        
+        # Get dimensions for the input (allowing 1D vector inputs for sa and so)
+        dims = self._get_dims(sa,so)
+        
         print('Loading the prior and prior error.')
         xa = self.read(xa, dims=Inversion.dims['xa'], chunks=chunks)
         sa = self.read(sa, dims=Inversion.dims['sa'], chunks=chunks)
@@ -1180,12 +1212,12 @@ class ReducedMemoryInversion(ReducedRankJacobian):
     def read(self, item, dims=None, chunks={}, **kwargs):
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
-            item = self._load(item, dims=Inversion.dims, chunks=chunks,
+            item = self._load(item, dims=dims, chunks=chunks,
                               **kwargs)
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
-            item = self._to_dataarray(item, dims=Inversion.dims, chunks=chunks)
+            item = self._to_dataarray(item, dims=dims, chunks=chunks)
 
         return item
 
