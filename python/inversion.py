@@ -1154,6 +1154,10 @@ class ReducedMemoryInversion(ReducedRankJacobian):
         xa = self.read(xa, dims=Inversion.dims['xa'], chunks=chunks)
         sa = self.read(sa, dims=Inversion.dims['sa'], chunks=chunks)
 
+        # Save out the state vector dimension
+        self.nstate = xa.shape[0]
+        print(f'State vector dimension : {self.nstate}\n')
+
         # Update the chunks for the nobs dimension accordingly
         max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
         chunks['nobs'] = int(max_chunk_size/self.nstate)
@@ -1180,12 +1184,12 @@ class ReducedMemoryInversion(ReducedRankJacobian):
     def read(self, item, dims=None, chunks={}, **kwargs):
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
-            item = self._load(item, dims=Inversion.dims, chunks=chunks,
+            item = self._load(item, dims=dims, chunks=chunks,
                               **kwargs)
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
-            item = self._to_dataarray(item, dims=Inversion.dims, chunks=chunks)
+            item = self._to_dataarray(item, dims=dims, chunks=chunks)
 
         return item
 
