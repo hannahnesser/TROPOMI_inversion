@@ -60,7 +60,7 @@ It also defines the following plotting functions:
 '''
 
 class Inversion:
-### todo temp
+### todo: this should really be set in each class that needs it
     # Set global variables
     dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
             'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
@@ -104,7 +104,10 @@ class Inversion:
                                      by a factor of gamma.
             k_is_positive            A flag indicating whether the Jacobian
                                      has already been checked for negative
-                                     elements. Default is False.
+                                     elements. Set to true if you have already
+                                     checked for negative elements, or if you 
+                                     want to keep negative elements (e.g. OH). 
+                                     Default is False.
 
         The object then defines the following:
             nstate          The dimension of the state vector
@@ -118,10 +121,6 @@ class Inversion:
         '''
         print('... Initializing inversion object ...')
 
-# todo temp erp
-        # Get dimensions for the input (allowing 1D vector inputs for sa and so)
-        self.dims = self._get_dims(sa,so)
-        
         # Read in the elements of the inversion
         self.regularization_factor = regularization_factor
 
@@ -153,20 +152,12 @@ class Inversion:
         # Check that the dimensions match up
         self._check_dimensions()
 
-### todo temp commented out (erp)
-#        # Check that the data are all data arrays
-#        for k in ['xa', 'sa', 'y', 'ya', 'so', 'k']:
-#            assert isinstance(getattr(self, k), xr.core.dataarray.DataArray), \
-#                   f'Input {k} is not an xarray dataarray, which is \
-#                    needed for the reduced_memory option.'
-
-# todo temp forcing K to be positive is not great for OH simulations
-#        # Force k to be positive
-#        if not k_is_positive:
-#            print('Checking the Jacobian for negative values.')
-#            if (self.k < 0).any():
-#                print('Forcing negative values of the Jacobian to 0.\n')
-#                self.k = self.k.where(self.k > 0, 0)
+        # Force k to be positive
+        if not k_is_positive:
+            print('Checking the Jacobian for negative values.')
+            if (self.k < 0).any():
+                print('Forcing negative values of the Jacobian to 0.\n')
+                self.k = np.where(self.k > 0, self.k, 0)
 
         # Solve for the constant c.
         if c is None:
@@ -188,6 +179,7 @@ class Inversion:
     #########################
     ### UTILITY FUNCTIONS ###
     #########################
+    # todo: likely will want to move this to the big_mem version
     def _get_dims(self,sa,so):
         # Get dimensions for an xarray dataset 
         dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
@@ -206,18 +198,13 @@ class Inversion:
             dims['so'] = ['nobs']
         return dims
 
-# todo temp (erp) - some things commented out            
     def read(self, item, dims=None, **kwargs):
         # If item is a string or a list, load the file
         if type(item) == str:
-#            item = gc.read_file(*[item], **kwargs)
-            item = np.array(gc.read_file(*[item], **kwargs))        # Force the items to be dataarrays
+            item = np.array(gc.read_file(*[item], **kwargs))        # Force the items to np.arrays
         # Force the items to be dataarrays
         elif type(item) != np.ndarray:
             item = np.array(item)
-#        elif type(item) != xr.core.dataarray.DataArray:
-#            item = self._to_dataarray(item, dims=dims)
-
         return item
 
     @staticmethod
@@ -446,7 +433,7 @@ class Inversion:
         kw['title'] = kw.get('title', attribute_str)
 
         # Match the data to lat/lon data
-        fig, ax, c = ip.plot_state(data, clusters_plot,
+        fig, ax, c = ip.plot_state(np.array(data).squeeze(), clusters_plot,
                                    default_value, cbar, **kw)
         return fig, ax, c
 
