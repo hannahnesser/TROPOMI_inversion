@@ -237,7 +237,7 @@ class Inversion:
         '''
         Adds an attribute from Inversion instance to an xarray Dataset. Modiefies Dataset inplace.
         '''
-        attr = getattr(self, attr_str)
+        attr = getattr(self, attr_str).squeeze()
         if attr is None:
             print(f'{attr_str} has not been assigned yet - skipping.')
         else:
@@ -266,7 +266,7 @@ class Inversion:
         self.add_attr_to_dataset(ds, 'xa',           ('nstate'))
         self.add_attr_to_dataset(ds, 'sa',       ('nstate'))
         self.add_attr_to_dataset(ds, 'y',            ('nobs'))
-        self.add_attr_to_dataset(ds, 'y_base',       ('nobs'))
+        self.add_attr_to_dataset(ds, 'ya',       ('nobs'))
         self.add_attr_to_dataset(ds, 'so',       ('nobs'))
         # outputs
         self.add_attr_to_dataset(ds, 'c',     ('nobs'))
@@ -383,6 +383,13 @@ class Inversion:
         else:
             kTsoinv = self.k.T @ inv(self.so)
 
+        # Reshape y, ya, xa, and c to include the trailing 1
+        # this is required to play nice with sparse matrix
+        self.y  = self.y.reshape(-1,1)
+        self.ya = self.ya.reshape(-1,1)
+        self.xa = self.xa.reshape(-1,1)
+        self.c  = self.c.reshape(-1,1)
+        
         # Calculate the cost function at the prior.
         print('Calculating the cost function at the prior mean.')
         cost_prior = self.cost_func(self.xa)
