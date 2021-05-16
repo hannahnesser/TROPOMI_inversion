@@ -1173,6 +1173,10 @@ class ReducedMemoryInversion(ReducedRankJacobian):
         xa = self.read(xa, dims=Inversion.dims['xa'], chunks=chunks)
         sa = self.read(sa, dims=Inversion.dims['sa'], chunks=chunks)
 
+        # Save out the state vector dimension
+        self.nstate = xa.shape[0]
+        print(f'State vector dimension : {self.nstate}\n')
+
         # Update the chunks for the nobs dimension accordingly
         max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
         chunks['nobs'] = int(max_chunk_size/self.nstate)
