@@ -201,8 +201,8 @@ class Inversion:
     def read(self, item, dims=None, **kwargs):
         # If item is a string or a list, load the file
         if type(item) == str:
-            item = np.array(gc.read_file(*[item], **kwargs))        # Force the items to np.arrays
-        # Force the items to be dataarrays
+            item = np.array(gc.read_file(*[item], **kwargs))        
+        # Force the items to np.arrays
         elif type(item) != np.ndarray:
             item = np.array(item)
         return item
@@ -315,23 +315,7 @@ class Inversion:
         c = self.ya - self.k @ self.xa
         return c
 
-    def obs_mod_diff(self, x):
-        '''
-        Calculate the difference between the true observations y and the
-        simulated observations Kx + c for a given x. It returns this
-        difference as a vector.
-
-        Parameters:
-            x      The state vector at which to evaluate the difference
-                   between the true and simulated observations
-        Returns:
-            diff   The difference between the true and simulated observations
-                   as a vector
-        '''
-        diff = self.y - (self.k @ x + self.c)
-        return diff
-
-    def cost_func(self, x):
+    def cost_func(self, x, y):
         '''
         Calculate the value of the Bayesian cost function
             J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
@@ -340,13 +324,15 @@ class Inversion:
 
         Parameters:
             x      The state vector at which to evaluate the cost function
+            y      The observations vector at which to evaluate the cost function 
+                   Note that by definition y=Kx+c, so: ya=Kxa+c, and yhat=Kxhat+c
         Returns:
             cost   The value of the cost function at x
         '''
 
         # Calculate the observational component of the cost function
-        cost_obs = self.obs_mod_diff(x).T \
-                   @ diags(1/self.so) @ self.obs_mod_diff(x)
+        cost_obs = (self.y - y).T \
+                   @ diags(1/self.so) @ (self.y-y) 
 
         # Calculate the emissions/prior component of the cost function
         cost_emi = (x - self.xa).T @ diags(1/self.sa) @ (x - self.xa)
@@ -392,7 +378,7 @@ class Inversion:
         
         # Calculate the cost function at the prior.
         print('Calculating the cost function at the prior mean.')
-        cost_prior = self.cost_func(self.xa)
+        cost_prior = self.cost_func(self.xa, self.ya)
 
         # Calculate the posterior error.
         print('Calculating the posterior error.')
@@ -401,15 +387,9 @@ class Inversion:
         # Calculate the posterior mean
         print('Calculating the posterior mean.')
         gain = self.shat @ kTsoinv
-        self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
+        self.xhat = self.xa + (gain @ (self.y - self.ya))
 
-        # Calculate the cost function at the posterior. Also calculate the
-        # number of negative cells as an indicator of inversion success.
-        print('Calculating the cost function at the posterior mean.')
-        cost_post = self.cost_func(self.xhat)
-        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
-
-        # Calculate the averaging kernel.
+                # Calculate the averaging kernel.
         print('Calculating the averaging kernel.')
         self.a = identity(self.nstate) - self.shat @ sainv
         self.dofs = np.diag(self.a)
@@ -419,7 +399,13 @@ class Inversion:
         print('Calculating updated modeled observations.')
         self.yhat = self.k @ self.xhat + self.c
 
-        print('... Complete ...\n')
+        # Calculate the cost function at the posterior. Also calculate the
+        # number of negative cells as an indicator of inversion success.
+        print('Calculating the cost function at the posterior mean.')
+        cost_post = self.cost_func(self.xhat, self.yhat)
+        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
+
+       print('... Complete ...\n')
 
     ##########################
     ### PLOTTING FUNCTIONS ###
