@@ -386,10 +386,9 @@ class Inversion:
 
         # Calculate the posterior mean
         print('Calculating the posterior mean.')
-        gain = self.shat @ kTsoinv
-        self.xhat = self.xa + (gain @ (self.y - self.ya))
+        self.xhat = self.xa + (self.shat @ kTsoinv @ (self.y - self.ya))
 
-                # Calculate the averaging kernel.
+        # Calculate the averaging kernel.
         print('Calculating the averaging kernel.')
         self.a = identity(self.nstate) - self.shat @ sainv
         self.dofs = np.diag(self.a)
