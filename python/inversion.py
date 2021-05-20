@@ -201,10 +201,10 @@ class Inversion:
     def read(self, item, dims=None, **kwargs):
         # If item is a string or a list, load the file
         if type(item) == str:
-            item = np.array(gc.read_file(*[item], **kwargs))        
-        # Force the items to np.arrays
-        elif type(item) != np.ndarray:
-            item = np.array(item)
+            item = np.array(gc.read_file(*[item], **kwargs),dtype=np.float32)        
+        # Force the items to np.arrays with float32 (to save memory)
+        else:
+            item = np.array(item,dtype=float32)
         return item
 
     @staticmethod
@@ -404,7 +404,7 @@ class Inversion:
         cost_post = self.cost_func(self.xhat, self.yhat)
         print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
 
-       print('... Complete ...\n')
+        print('... Complete ...\n')
 
     ##########################
     ### PLOTTING FUNCTIONS ###
