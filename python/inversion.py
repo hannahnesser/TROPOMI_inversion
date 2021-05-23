@@ -164,7 +164,7 @@ class Inversion:
             print('Calculating c as c = y - F(xa) = y - ya')
             self.c = self.calculate_c()
         else:
-            self.c = self.read(c, dims=self.dims['c'], chunks=chunks)
+            self.c = self.read(c, dims=self.dims['c'])
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -179,32 +179,13 @@ class Inversion:
     #########################
     ### UTILITY FUNCTIONS ###
     #########################
-    # todo: likely will want to move this to the big_mem version
-    def _get_dims(self,sa,so):
-        # Get dimensions for an xarray dataset 
-        dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
-                'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
-                'c' : ['nobs'], 'k' : ['nobs', 'nstate']}
-        # check if prior error is a 1D vector
-        # todo: this will break if you have a list of filenames :/ but self.read currently breaks on this condition so I'll fix it if we decide to fix that.
-        if type(sa) == str: 
-            pass # filenames don't need dims b/c they are read to datasets
-        elif len(sa.shape) == 1:
-            dims['sa'] = ['nstate']
-        # check if observation error is a 1D vector
-        if type(so) == str: 
-            pass # filenames don't need dims b/c they are read to datasets
-        elif len(so.shape) == 1:
-            dims['so'] = ['nobs']
-        return dims
-
     def read(self, item, dims=None, **kwargs):
         # If item is a string or a list, load the file
         if type(item) == str:
             item = np.array(gc.read_file(*[item], **kwargs),dtype=np.float32)        
         # Force the items to np.arrays with float32 (to save memory)
         else:
-            item = np.array(item,dtype=float32)
+            item = np.array(item,dtype=np.float32)
         return item
 
     @staticmethod
@@ -1158,9 +1139,6 @@ class ReducedMemoryInversion(ReducedRankJacobian):
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension.
         
-        # Get dimensions for the input (allowing 1D vector inputs for sa and so)
-        dims = self._get_dims(sa,so)
-        
         print('Loading the prior and prior error.')
         xa = self.read(xa, dims=Inversion.dims['xa'], chunks=chunks)
         sa = self.read(sa, dims=Inversion.dims['sa'], chunks=chunks)
@@ -1181,8 +1159,7 @@ class ReducedMemoryInversion(ReducedRankJacobian):
 
         # Inherit from the parent class.
         ReducedRankJacobian.__init__(self, k, xa, sa, y, ya, so, c,
-                                     regularization_factor, reduced_memory,
-                                     available_memory_GB, k_is_positive,
+                                     regularization_factor, k_is_positive,
                                      rank)
 
         # Save out chunks
@@ -1192,6 +1169,15 @@ class ReducedMemoryInversion(ReducedRankJacobian):
     #########################
     ### UTILITY FUNCTIONS ###
     #########################
+    @staticmethod
+    def make_dims_1d_if_diagonal(item,dims):
+        # check if item is a diagonal of a square matrix (2D w/ same dim twice) 
+        item_is_diag = (len(dims) == 2) and (dims[0] == dims[1]) and \
+                       (len(item.shape) == 1)
+        if item_is_diag: 
+            dims = [dims[0]]
+        return dims
+
     def read(self, item, dims=None, chunks={}, **kwargs):
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
@@ -1200,6 +1186,7 @@ class ReducedMemoryInversion(ReducedRankJacobian):
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
+            dims = self.make_dims_1d_if_diagonal(item, dims) # replace with 1d dims if diagonal
             item = self._to_dataarray(item, dims=dims, chunks=chunks)
 
         return item
