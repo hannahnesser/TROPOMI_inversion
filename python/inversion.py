@@ -164,7 +164,7 @@ class Inversion:
             print('Calculating c as c = y - F(xa) = y - ya')
             self.c = self.calculate_c()
         else:
-            self.c = self.read(c, dims=self.dims['c'], chunks=chunks)
+            self.c = self.read(c, dims=self.dims['c'])
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -179,32 +179,13 @@ class Inversion:
     #########################
     ### UTILITY FUNCTIONS ###
     #########################
-    # todo: likely will want to move this to the big_mem version
-    def _get_dims(self,sa,so):
-        # Get dimensions for an xarray dataset 
-        dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
-                'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
-                'c' : ['nobs'], 'k' : ['nobs', 'nstate']}
-        # check if prior error is a 1D vector
-        # todo: this will break if you have a list of filenames :/ but self.read currently breaks on this condition so I'll fix it if we decide to fix that.
-        if type(sa) == str: 
-            pass # filenames don't need dims b/c they are read to datasets
-        elif len(sa.shape) == 1:
-            dims['sa'] = ['nstate']
-        # check if observation error is a 1D vector
-        if type(so) == str: 
-            pass # filenames don't need dims b/c they are read to datasets
-        elif len(so.shape) == 1:
-            dims['so'] = ['nobs']
-        return dims
-
     def read(self, item, dims=None, **kwargs):
         # If item is a string or a list, load the file
-        if (type(item) == str) or (type(item) == list):
-            item = np.array(gc.read_file(*[item], **kwargs))        # Force the items to np.arrays
-        # Force the items to be dataarrays
-        elif type(item) != np.ndarray:
-            item = np.array(item)
+        if type(item) == str:
+            item = np.array(gc.read_file(*[item], **kwargs),dtype=np.float32)        
+        # Force the items to np.arrays with float32 (to save memory)
+        else:
+            item = np.array(item,dtype=np.float32)
         return item
 
     @staticmethod
@@ -315,23 +296,7 @@ class Inversion:
         c = self.ya - self.k @ self.xa
         return c
 
-    def obs_mod_diff(self, x):
-        '''
-        Calculate the difference between the true observations y and the
-        simulated observations Kx + c for a given x. It returns this
-        difference as a vector.
-
-        Parameters:
-            x      The state vector at which to evaluate the difference
-                   between the true and simulated observations
-        Returns:
-            diff   The difference between the true and simulated observations
-                   as a vector
-        '''
-        diff = self.y - (self.k @ x + self.c)
-        return diff
-
-    def cost_func(self, x):
+    def cost_func(self, x, y):
         '''
         Calculate the value of the Bayesian cost function
             J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
@@ -340,13 +305,15 @@ class Inversion:
 
         Parameters:
             x      The state vector at which to evaluate the cost function
+            y      The observations vector at which to evaluate the cost function 
+                   Note that by definition y=Kx+c, so: ya=Kxa+c, and yhat=Kxhat+c
         Returns:
             cost   The value of the cost function at x
         '''
 
         # Calculate the observational component of the cost function
-        cost_obs = self.obs_mod_diff(x).T \
-                   @ diags(1/self.so) @ self.obs_mod_diff(x)
+        cost_obs = (self.y - y).T \
+                   @ diags(1/self.so) @ (self.y-y) 
 
         # Calculate the emissions/prior component of the cost function
         cost_emi = (x - self.xa).T @ diags(1/self.sa) @ (x - self.xa)
@@ -392,7 +359,7 @@ class Inversion:
         
         # Calculate the cost function at the prior.
         print('Calculating the cost function at the prior mean.')
-        cost_prior = self.cost_func(self.xa)
+        cost_prior = self.cost_func(self.xa, self.ya)
 
         # Calculate the posterior error.
         print('Calculating the posterior error.')
@@ -400,15 +367,7 @@ class Inversion:
 
         # Calculate the posterior mean
         print('Calculating the posterior mean.')
-        #gain = self.shat @ kTsoinv
-        #self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
-        self.xhat = self.xa + (self.shat @ kTsoinv @ self.obs_mod_diff(self.xa))
-
-        # Calculate the cost function at the posterior. Also calculate the
-        # number of negative cells as an indicator of inversion success.
-        print('Calculating the cost function at the posterior mean.')
-        cost_post = self.cost_func(self.xhat)
-        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
+        self.xhat = self.xa + (self.shat @ kTsoinv @ (self.y - self.ya))
 
         # Calculate the averaging kernel.
         print('Calculating the averaging kernel.')
@@ -419,6 +378,12 @@ class Inversion:
         # Calculate the new set of modeled observations.
         print('Calculating updated modeled observations.')
         self.yhat = self.k @ self.xhat + self.c
+
+        # Calculate the cost function at the posterior. Also calculate the
+        # number of negative cells as an indicator of inversion success.
+        print('Calculating the cost function at the posterior mean.')
+        cost_post = self.cost_func(self.xhat, self.yhat)
+        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
 
         print('... Complete ...\n')
 
@@ -1294,9 +1259,6 @@ class ReducedMemoryInversion(ReducedRankJacobian):
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension.
         
-        # Get dimensions for the input (allowing 1D vector inputs for sa and so)
-        dims = self._get_dims(sa,so)
-        
         print('Loading the prior and prior error.')
         xa = self.read(xa, dims=Inversion.dims['xa'], chunks=chunks)
         sa = self.read(sa, dims=Inversion.dims['sa'], chunks=chunks)
@@ -1317,8 +1279,7 @@ class ReducedMemoryInversion(ReducedRankJacobian):
 
         # Inherit from the parent class.
         ReducedRankJacobian.__init__(self, k, xa, sa, y, ya, so, c,
-                                     regularization_factor, reduced_memory,
-                                     available_memory_GB, k_is_positive,
+                                     regularization_factor, k_is_positive,
                                      rank)
 
         # Save out chunks
@@ -1328,6 +1289,15 @@ class ReducedMemoryInversion(ReducedRankJacobian):
     #########################
     ### UTILITY FUNCTIONS ###
     #########################
+    @staticmethod
+    def make_dims_1d_if_diagonal(item,dims):
+        # check if item is a diagonal of a square matrix (2D w/ same dim twice) 
+        item_is_diag = (len(dims) == 2) and (dims[0] == dims[1]) and \
+                       (len(item.shape) == 1)
+        if item_is_diag: 
+            dims = [dims[0]]
+        return dims
+
     def read(self, item, dims=None, chunks={}, **kwargs):
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
@@ -1336,6 +1306,7 @@ class ReducedMemoryInversion(ReducedRankJacobian):
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
+            dims = self.make_dims_1d_if_diagonal(item, dims) # replace with 1d dims if diagonal
             item = self._to_dataarray(item, dims=dims, chunks=chunks)
 
         return item
