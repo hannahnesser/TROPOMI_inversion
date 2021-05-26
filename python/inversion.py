@@ -218,14 +218,18 @@ class Inversion:
         '''
         Adds an attribute from Inversion instance to an xarray Dataset. Modiefies Dataset inplace.
         '''
-        attr = getattr(self, attr_str).squeeze()
+        attr = getattr(self, attr_str)
         if attr is None:
             print(f'{attr_str} has not been assigned yet - skipping.')
         else:
+            try: 
+                attr = attr.squeeze()
+            except Exception: 
+                pass
             if dims is None: # for 0-d attributes
                 ds = ds.assign_attrs({attr_str : attr})
             else:
-                ds[attr_str] = xr.DataArray(data=attr, dims=Inversion.dims)
+                ds[attr_str] = xr.DataArray(data=attr, dims=dims)
 
     def to_dataset(self):
         '''
@@ -242,7 +246,6 @@ class Inversion:
 
         # store vectors as DataArrays
         # inputs
-        self.add_attr_to_dataset(ds, 'state_vector', ('nstate'))
         self.add_attr_to_dataset(ds, 'k',            ('nobs','nstate'))
         self.add_attr_to_dataset(ds, 'xa',           ('nstate'))
         self.add_attr_to_dataset(ds, 'sa',       ('nstate'))
@@ -254,10 +257,10 @@ class Inversion:
         self.add_attr_to_dataset(ds, 'xhat',  ('nstate'))
         self.add_attr_to_dataset(ds, 'shat',  ('nstate','nstate'))
         self.add_attr_to_dataset(ds, 'a',     ('nstate','nstate'))
-        self.add_attr_to_dataset(ds, 'y_out', ('nobs'))
+        self.add_attr_to_dataset(ds, 'ya', ('nobs'))
         self.add_attr_to_dataset(ds, 'dofs',  ('nstate'))
         # scalar values (stored as attributes, dims=None)
-        self.add_attr_to_dataset(ds, 'rf',     None)
+        self.add_attr_to_dataset(ds, 'regularization_factor',     None)
 
         return ds
 
@@ -460,36 +463,63 @@ class InversionLoop(Inversion):
     """
     TODO - errors MUST be diagonal.
     """
-    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
-                 k_is_positive=False):
-        super.__init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
-                 k_is_positive=False)
-        # check that k is a list of filenames
-        assert (type(self.k) == list), ('k is not a list. '
-                                        'k must be a list of nstate filenames, '
-                                        'where each file is a column of k')
-        assert (len(self.k) == self.nstate), (f'k has {len(self.k)} elements but should have {self.nstate}. '
-                                              'k must be a list of nstate filenames, '
-                                              'where each file is a column of k')
-        # todo: assert diagonal vector-type errors
+#    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+#                 k_is_positive=False):
+#        super().__init__(k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+#                 k_is_positive=False)
     
-    # Slightly different read function for InversionLoop 
-    # Keeps lists unread. Instead they are read while you solve to conserve memory.
-    def read(self, item, dims=None, **kwargs):
-        # If item is a list, leave it (we will loop over it later)
-        if type(item) == list:
-            pass
-        # If item is a string, load the file
-        elif type(item) == str:
-            item = np.array(gc.read_file(*[item], **kwargs))        
-        # Force the items to np.arrays
-        elif type(item) != np.ndarray:
-            item = np.array(item)
-        return item    
-    
-    # We don't use c in this version of the code.  
-    def calculate_c(self):
-        return None
+    # Use the read functions from ReducedMemoryInversion
+    # Don't inherit because that function is changing too rapidly.  
+    @staticmethod
+    def make_dims_1d_if_diagonal(item,dims):
+        # check if item is a diagonal of a square matrix (2D w/ same dim twice) 
+        item_is_diag = (len(dims) == 2) and (dims[0] == dims[1]) and \
+                       (len(item.shape) == 1)
+        if item_is_diag: 
+            dims = [dims[0]]
+        return dims
+
+    def read(self, item, dims=None, chunks={}, **kwargs):
+        # If item is a string or a list, load the file
+        if type(item) in [str, list]:
+            item = self._load(item, dims=dims, **kwargs)
+
+        # Force the items to be dataarrays
+        if type(item) != xr.core.dataarray.DataArray:
+            dims = self.make_dims_1d_if_diagonal(item, dims) # replace with 1d dims if diagonal
+            item = self._to_dataarray(item, dims=dims) 
+
+        return item
+
+    def cost_func(self, x, y):
+        '''
+        Calculate the value of the Bayesian cost function
+            J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
+        for a given x. Prints out that value and the contributions from
+        the emission and observational terms. This cost function 
+
+        Parameters:
+            x      The state vector at which to evaluate the cost function
+            y      The observations vector at which to evaluate the cost function 
+                   Note that by definition y=Kx+c, so: ya=Kxa+c, and yhat=Kxhat+c
+        Returns:
+            cost   The value of the cost function at x
+        '''
+
+        # Calculate the observational component of the cost function
+        cost_obs = (self.y.data - y.data).T \
+                   @ diags(1/self.so.data) @ (self.y.data-y.data)
+
+        # Calculate the emissions/prior component of the cost function
+        cost_emi = (x.data - self.xa.data).T \
+                  @ diags(1/self.sa.data) @ (x.data - self.xa.data)
+
+        # Calculate the total cost, print out information on the cost, and
+        # return the total cost function value
+        cost = cost_obs + cost_emi
+        print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
+              % (cost, cost_emi, cost_obs))
+        return cost
 
     # Code taken Lu Shen & Daniel Varon's TROPOMI_Inversion script
     def solve_inversion(self):
@@ -538,6 +568,7 @@ class InversionLoop(Inversion):
 # but the files they loop over are... days???
 # so they are adding in ~ a few hundred observations each loop. 
 # oh :( 
+# no big deal! we will just select subsets with dask you dolt! :)
 
             # Measurement-model mismatch: TROPOMI columns minus GEOS-Chem virtual TROPOMI columns
             # This is (y - F(xA)), or (y - (K*xA + O)), or (y - K*xA) in shorthand
@@ -559,7 +590,7 @@ class InversionLoop(Inversion):
             KT_invSo_ydiff_j = KT_invSo@ydiff        # K^T*inv(S_o)*(y-K*xA)
        
             # Add each column to running sums 
-            KT_invSo_K    += KT_invSo_K_j
+            KT_invSo_K     += KT_invSo_K_j
             KT_invSo_ydiff += KT_invSo_K_j
                
             # todo: is sa already squared?? 
@@ -581,7 +612,7 @@ class ReducedRankInversion(Inversion):
                  k_is_positive=False, rank=None):
         # We inherit from the inversion class and create space for
         # the reduced rank solutions.
-        Inversion.__init__(self, k, xa, sa, y, ya, so, c,
+        Inversion.__init__(k, xa, sa, y, ya, so, c,
                            regularization_factor, k_is_positive)
 
         # We create space for the rank
