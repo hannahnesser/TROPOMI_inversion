@@ -388,6 +388,12 @@ class Inversion:
         cost_post = self.cost_func(self.xhat, self.yhat)
         print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
 
+        # Convert results back to numpy array (some are sparse matrices)
+        self.xhat = np.array(self.xhat)
+        self.yhat = np.array(self.yhat)
+        self.shat = np.array(self.shat)
+        self.a    = np.array(self.a)
+
         print('... Complete ...\n')
 
     ##########################
