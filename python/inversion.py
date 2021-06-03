@@ -508,10 +508,10 @@ class InversionLoop(Inversion):
         return dims
 
     def read(self, item, dims=None, chunks={}, **kwargs):
-    """
-    We use a modified read function which uses data arrays instead of numpy arrays.
-    It also ensures that diagonal errors have correct (1d) dimensions. 
-    """
+        """
+        We use a modified read function which uses data arrays instead of numpy arrays.
+        It also ensures that diagonal errors have correct (1d) dimensions. 
+        """
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
             item = self._load(item, dims=dims, **kwargs)
