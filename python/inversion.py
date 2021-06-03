@@ -183,10 +183,10 @@ class Inversion:
     def read(self, item, dims=None, **kwargs):
         # If item is a string or a list, load the file
         if type(item) == str:
-            item = np.array(gc.read_file(*[item], **kwargs),dtype=np.float64)# temp todo .float32)        
+            item = np.array(gc.read_file(*[item], **kwargs),dtype=np.float32)        
         # Force the items to np.arrays with float32 (to save memory)
         else:
-            item = np.array(item,dtype=np.float64)# temp todo float32)
+            item = np.array(item,dtype=np.float32)
         return item
 
     @staticmethod
@@ -247,21 +247,21 @@ class Inversion:
 
         # store vectors as DataArrays
         # inputs
-        self.add_attr_to_dataset(ds, 'k',            ('nobs','nstate'))
-        self.add_attr_to_dataset(ds, 'xa',           ('nstate'))
-        self.add_attr_to_dataset(ds, 'sa',       ('nstate'))
-        self.add_attr_to_dataset(ds, 'y',            ('nobs'))
-        self.add_attr_to_dataset(ds, 'ya',       ('nobs'))
-        self.add_attr_to_dataset(ds, 'so',       ('nobs'))
+        self.add_attr_to_dataset(ds, 'k',     ('nobs','nstate'))
+        self.add_attr_to_dataset(ds, 'xa',    ('nstate'))
+        self.add_attr_to_dataset(ds, 'sa',    ('nstate'))
+        self.add_attr_to_dataset(ds, 'y',     ('nobs'))
+        self.add_attr_to_dataset(ds, 'ya',    ('nobs'))
+        self.add_attr_to_dataset(ds, 'so',    ('nobs'))
         # outputs
         self.add_attr_to_dataset(ds, 'c',     ('nobs'))
         self.add_attr_to_dataset(ds, 'xhat',  ('nstate'))
         self.add_attr_to_dataset(ds, 'shat',  ('nstate','nstate'))
         self.add_attr_to_dataset(ds, 'a',     ('nstate','nstate'))
-        self.add_attr_to_dataset(ds, 'ya', ('nobs'))
+        self.add_attr_to_dataset(ds, 'ya',    ('nobs'))
         self.add_attr_to_dataset(ds, 'dofs',  ('nstate'))
         # scalar values (stored as attributes, dims=None)
-        self.add_attr_to_dataset(ds, 'regularization_factor',     None)
+        self.add_attr_to_dataset(ds, 'regularization_factor', None)
 
         return ds
 
@@ -468,12 +468,16 @@ class Inversion:
 
 class InversionLoop(Inversion):
     """
-    TODO - errors MUST be diagonal.
+    TODO - obs. errors MUST be diagonal.
     """
-#    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
-#                 k_is_positive=False):
-#        super().__init__(k, xa, sa, y, ya, so, c=None, regularization_factor=1,
-#                 k_is_positive=False)
+    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+                k_is_positive=False, obs_subset_size=300000):
+        super().__init__(k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+                         k_is_positive=False)
+        # save obs_subset_size, the size of chunks you want your inversion processed in
+        self.obs_subset_size = obs_subset_size
+        # require diagonal observational errors
+        assert len(so.squeeze().shape)==1, 'Observation errors (so) must be diagonal.'
     
     # Use the read functions from ReducedMemoryInversion
     # Don't inherit because that function is changing too rapidly.  
@@ -529,15 +533,17 @@ class InversionLoop(Inversion):
         return cost
 
     # Code taken Lu Shen & Daniel Varon's TROPOMI_Inversion script
-    def solve_inversion(self):
+    def solve_inversion(self): 
         # Initialize slicing array to read in a few observations at a time
-        ind_slice  = np.append(np.arange(0,self.nobs,obs_subset_size),self.nobs)
+        ind_slice  = np.append(np.arange(0,self.nobs,self.obs_subset_size),self.nobs)
         # Initialize two parts of the inversion equation
         KT_invSo_K     = np.zeros([self.nstate,self.nstate], dtype=float) 
         KT_invSo_ydiff = np.zeros([self.nstate], dtype=float) 
 
         # Inverse of prior error covariance matrix, inv(S_a)
         invSa = diags(1/self.sa.data)   # Inverse of prior error covariance matrix 
+        # Define gamma for convenience s
+        gamma = self.regularization_factor
 
         # ==========================================================================================
         # Now we will assemble different terms of the analytical inversion.
