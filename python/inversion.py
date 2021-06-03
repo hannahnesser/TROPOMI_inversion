@@ -1,7 +1,7 @@
 import xarray as xr
 from dask.diagnostics import ProgressBar
 import dask.array as da
-import dask.is_dask_collection
+from dask import is_dask_collection
 import numpy as np
 # from numpy import diag as diags
 # from numpy import identity
@@ -62,10 +62,13 @@ It also defines the following plotting functions:
 
 class Inversion:
 ### todo: this should really be set in each class that needs it
-    # Set global variables
-    dims = {'xa' : ['nstate'], 'sa' : ['nstate', 'nstate'],
-            'y' : ['nobs'], 'ya' : ['nobs'], 'so' : ['nobs', 'nobs'],
-            'c' : ['nobs'], 'k' : ['nobs', 'nstate']}
+    # Set global variables 
+    dims = {'xa'   : ['nstate'], 'sa'   : ['nstate', 'nstate'],
+            'y'    : ['nobs'],   'so'   : ['nobs', 'nobs'],     
+            'ya'   : ['nobs'],   'k'    : ['nobs', 'nstate'],  
+            'c'    : ['nobs'],   'xhat' : ['nstate'],
+            'yhat' : ['nobs'],   'shat' : ['nstate', 'nstate'],
+            'dofs' : ['nstate'], 'a'    : ['nstate', 'nstate']}
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
                  k_is_positive=False):
         '''
@@ -468,16 +471,30 @@ class Inversion:
 
 class InversionLoop(Inversion):
     """
-    TODO - obs. errors MUST be diagonal.
+    Exactly the same as Inversion, but implements a simple loop for solve_inversion.
+    Can only handle diagonal (1D) s_o values. Loop is based on Lu & Danny's code.
+
+    This function can handle a K which does not fit in memory. Just make sure to 
+    read it in as list of filepaths, which will force use of Dask. 
+
+    Unique Parameters:
+        obs_subset_size     The number of observations which are processed in each 
+                            iteration of the loop. The optimal size for this appears
+                            to depend on the number of processors/memory you are
+                            using so if it's taking more than ~5 minutes per loop you
+                            may want to adjust. 
     """
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
                 k_is_positive=False, obs_subset_size=300000):
-        super().__init__(k, xa, sa, y, ya, so, c=None, regularization_factor=1,
-                         k_is_positive=False)
+        super().__init__(k, xa, sa, y, ya, so, c=c, 
+                         regularization_factor=regularization_factor,
+                         k_is_positive=k_is_positive)
         # save obs_subset_size, the size of chunks you want your inversion processed in
         self.obs_subset_size = obs_subset_size
         # require diagonal observational errors
         assert len(so.squeeze().shape)==1, 'Observation errors (so) must be diagonal.'
+        # todo: relax the SA is diagonal requirment using Dask.
+        assert len(sa.squeeze().shape)==1, 'Prior errors (sa) must be diagonal.'
     
     # Use the read functions from ReducedMemoryInversion
     # Don't inherit because that function is changing too rapidly.  
@@ -491,6 +508,10 @@ class InversionLoop(Inversion):
         return dims
 
     def read(self, item, dims=None, chunks={}, **kwargs):
+    """
+    We use a modified read function which uses data arrays instead of numpy arrays.
+    It also ensures that diagonal errors have correct (1d) dimensions. 
+    """
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
             item = self._load(item, dims=dims, **kwargs)
@@ -504,6 +525,8 @@ class InversionLoop(Inversion):
 
     def cost_func(self, x, y):
         '''
+        Modified from Inversion.cost_func to use numpy arrays only. 
+
         Calculate the value of the Bayesian cost function
             J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
         for a given x. Prints out that value and the contributions from
@@ -542,7 +565,7 @@ class InversionLoop(Inversion):
 
         # Inverse of prior error covariance matrix, inv(S_a)
         invSa = diags(1/self.sa.data)   # Inverse of prior error covariance matrix 
-        # Define gamma for convenience s
+        # Define gamma for convenience 
         gamma = self.regularization_factor
 
         # ==========================================================================================
@@ -563,7 +586,7 @@ class InversionLoop(Inversion):
         for islice in np.arange(len(ind_slice)-1): 
             istart = ind_slice[islice] 
             iend   = ind_slice[islice+1] 
-            print(f'Processing observations {istart}-{iend} out of {nobs}...')
+            print(f'Processing observations {istart}-{iend} out of {self.nobs}...')
 
             # grab just this subset of the observations
             K  = self.k[istart:iend,:].load().data
@@ -593,31 +616,31 @@ class InversionLoop(Inversion):
         print('Calculating the posterior error.')
         self.shat = inv(KT_invSo_K + invSa) 
 
-    # Calculate the new set of modeled observations.
-    print('Calculating updated modeled observations.')
-    self.yhat = self.k@self.xhat + self.c 
-    if is_dask_collection(self.yhat): self.yhat = self.yhat.compute().load()
+        # Calculate the new set of modeled observations.
+        print('Calculating updated modeled observations.')
+        self.yhat = self.k@self.xhat + self.c 
+        if is_dask_collection(self.yhat): self.yhat = self.yhat.compute().load()
 
-    # Calculate the averaging kernel.
-    print('Calculating the averaging kernel.')
-    a = identity(self.nstate) - self.shat @ invSa
-    self.a = self._to_dataarray(np.array(a).squeeze(),dims=Inversion.dims['a']) 
+        # Calculate the averaging kernel.
+        print('Calculating the averaging kernel.')
+        a = identity(self.nstate) - self.shat @ invSa
+        self.a = self._to_dataarray(np.array(a).squeeze(),dims=Inversion.dims['a']) 
 
-    # Calculate DOFS
-    self.dofs = np.diag(self.a.data)
-    print('     DOFS: %.2f' % np.trace(self.a))
+        # Calculate DOFS
+        self.dofs = np.diag(self.a.data)
+        print('     DOFS: %.2f' % np.trace(self.a))
 
-    # Calculate the cost function at the prior.
-    print('Calculating the cost function at the prior mean.')
-    cost_prior = self.cost_func(self.xa, self.ya)  
+        # Calculate the cost function at the prior.
+        print('Calculating the cost function at the prior mean.')
+        cost_prior = self.cost_func(self.xa, self.ya)  
 
-    # Calculate the cost function at the posterior. 
-    print('Calculating the cost function at the posterior mean.')
-    cost_post = self.cost_func(self.xhat, self.yhat)
+        # Calculate the cost function at the posterior. 
+        print('Calculating the cost function at the posterior mean.')
+        cost_post = self.cost_func(self.xhat, self.yhat)
 
-    # Calculate the # of negative cells as an indicator of inversion success. 
-    print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
-    print('... Complete ...\n')
+        # Calculate the # of negative cells as an indicator of inversion success. 
+        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
+        print('... Complete ...\n')
 
 class ReducedRankInversion(Inversion):
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
