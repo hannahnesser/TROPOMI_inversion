@@ -123,6 +123,73 @@ def read_netcdf_file(*file_names, **kwargs):
     # Return the file
     return data
 
+def read_satobs(satobs_file, nrows='all', removebaddata=True):
+    """
+    Reads a satobs file generated from a GEOS-Chem observation operator, such as gosat_ch4_mod.F or airs_ch4_mod.F.
+    Filters out data beyond 60 deg, and sunglint data, by default. 
+    Does not modify any variable names or convert any units.
+    """
+    if nrows=='all':
+        df_orig = pd.read_csv(satobs_file, delim_whitespace=True)
+    else:
+        df_orig = pd.read_csv(satobs_file, delim_whitespace=True, nrows=nrows)
+    df = df_orig.copy()
+    
+    # remove data not used in my inversion setup by default
+    if removebaddata:
+        # remove measurements outside of -60 to 60
+        df = df[(df['LAT']<=60.)&(df['LAT']>=-60.)]
+        # remove sunglint data from GOSAT
+        if 'GLINT' in list(df.keys()): 
+            df = df[df['GLINT']==0] # 0 = not sunglint, 1 = sunglint
+    
+    # convert to an xarray
+    df = df.to_xarray()
+    df = df.rename({'index':'n'})
+
+    return df
+
+def read_satobs_for_generate_obs(satobs_file, nrows='all', removebaddata=True):
+    """
+    Read satobs file **and change variable names to match those in generate_obs.py**
+    
+    Reads a satobs file generated from a GEOS-Chem observation operator, such as gosat_ch4_mod.F or airs_ch4_mod.F.
+    Filters out data beyond 60 deg, and sunglint data, by default. 
+    """
+    # Read satobs file
+    df = read_satobs(satobs_file, nrows=nrows, removebaddata=removebaddata)
+    # Convert from xarray to pandas
+    df = df.to_dataframe()
+    # Get the name of the observations column - this is the satellite name, 'GOSAT' or 'AIRS'
+    if 'GOSAT' in list(df.keys()):
+        obs_col = 'GOSAT'
+    elif 'AIRS' in list(df.keys()):
+        obs_col = 'AIRS'
+        # AIRS observation errors are in percentage - convert to mixing ratio
+        print('Converting AIRS errors from percentage to mixing ratio...')
+        df['S_OBS'] = df['S_OBS']*df['model']
+    else:
+        raise NameError('No column named GOSAT or AIRS - is it possible you are ' 
+                        'missing your observation column, or using a different '
+                        'satellite product?')
+    # Rename columns to match generate_obs.py
+    df = df.rename(columns={
+                            obs_col : 'OBS',
+                            'model' : 'MOD',
+                            'S_OBS' : 'PREC',
+                            'I'     : 'iGC',
+                             'J'     : 'jGC',
+                            })
+    # Calculate DIFF - not already included for satobs files
+    df['DIFF'] = df['MOD'] - df['OBS']
+    # Create month - use YYYYMM format so each year/month combo is unique.
+    #     This will ensure calculate_so is correct even if you input more 
+    #     than 1 year at a time. However, most other functions in generate_obs will 
+    #     break (plotting, for example).
+    df['MONTH'] = df['YYYY']*100+df['MM']
+    df['MONTH'] = df['MONTH'].astype(int)
+    return df
+
 def calculate_chunk_size(available_memory_GB, omp_num_threads=None,
                          dtype='float32'):
     '''
