@@ -45,7 +45,7 @@ rcParams['axes.titlepad'] = 0
 ## -------------------------------------------------------------------------##
 def file_exists(file_name):
     '''
-    Check for the existence of a file/
+    Check for the existence of a file
     '''
     data_dir = file_name.rpartition('/')[0]
     if file_name.split('/')[-1] in listdir(data_dir):
@@ -54,19 +54,7 @@ def file_exists(file_name):
         print(f'{file_name} is not in the data directory.')
         return False
 
-def save_obj(obj, name, big_mem=False):
-    '''
-    This is a generic function to save a data object using
-    pickle, which reduces the memory requirements.
-    '''
-    if big_mem:
-        if str(type(obj)).split('\'')[1].split('.')[0] == 'dask':
-            obj.to_hdf5(name)
-        else:
-            h5f = h5py.File(name, 'w')
-            h5f.create_dataset('data', data=obj)
-            h5f.close()
-    else:
+def save_obj(obj, name):
         with open(name , 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
@@ -79,10 +67,13 @@ def read_file(*file_names, **kwargs):
     file_suffix = file_names[0].split('.')[-1]
     # Require that the file exists
     for f in file_names:
-        # Require that the files exist
+        # Require that the files exist and that all files are the
+        # same type
         assert file_exists(f), f'{f} does not exist.'
         assert f.split('.')[-1] == file_suffix, \
                'Variable file types provided.'
+
+        # If multiple files are provided, require that they are netcdfs
         if len(file_names) > 1:
             assert file_suffix[:2] == 'nc', \
                    'Multiple files are provided that are not netcdfs.'
@@ -113,6 +104,8 @@ def read_netcdf_file(*file_names, **kwargs):
                 file_names = [[f] for f in file_names]
         data = xr.open_mfdataset(file_names, **kwargs)
     else:
+        if 'dims' in kwargs:
+            del kwargs['dims']
         data = xr.open_dataset(file_names[0], **kwargs)
 
     # If there is only one variable, convert to a dataarray
@@ -157,7 +150,7 @@ def calculate_chunk_size(available_memory_GB, omp_num_threads=None,
     number_of_elements = mem_per_chunk*1e9/bytes_per_element
 
     # Scale the number of elements down by 10% to allow for wiggle room.
-    return int(number_of_elements)
+    return int(0.9*number_of_elements)
 
 ## -------------------------------------------------------------------------##
 ## Statistics functions

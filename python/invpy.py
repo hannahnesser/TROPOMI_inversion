@@ -75,7 +75,7 @@ def clusters_2d_to_1d(clusters, data):
 ## Plotting functions : state vectors
 ## -------------------------------------------------------------------------##
 def plot_state(data, clusters_plot, default_value=0, cbar=True, **kw):
-        # Match the data to lat/lon data
+    # Match the data to lat/lon data
     data = match_data_to_clusters(data, clusters_plot, default_value)
 
     # Plot

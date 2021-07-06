@@ -151,7 +151,7 @@ prior_run = f'{settings.year}.pkl'
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
-blended_albedo_threshold = 1.1
+blended_albedo_threshold = 0.75
 
 # Define a plain old albedo threshold
 filter_on_albedo = True
@@ -279,11 +279,15 @@ if filter_on_blended_albedo:
         for m in settings.months:
             d = data[data['MONTH'] == m]
             fig, ax = fp.get_figax(aspect=1.75)
-            ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-                       c=fp.color(4), s=3, alpha=0.1)
+            c = ax.hexbin(d['BLENDED_ALBEDO'], d['OBS'],
+                          cmap=fp.cmap_trans('plasma_r'),
+                          bins=np.arange(0, 2000),
+                          vmin=0, vmax=2000)
             ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
             ax.set_xlim(0, 2)
             ax.set_ylim(1750, 1950)
+            cax = fp.add_cax(fig, ax)
+            cbar = fig.colorbar(c, cax=cax)
             ax = fp.add_title(ax, cal.month_name[m])
             ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
             fp.save_fig(fig, plot_dir,
@@ -292,7 +296,8 @@ if filter_on_blended_albedo:
 
 
     # Apply the blended albedo filter
-    BAF_filter = (data['BLENDED_ALBEDO'] < blended_albedo_threshold)
+    BAF_filter = ((data['MONTH'].isin(np.arange(5, 11, 1))) |
+                  (data['BLENDED_ALBEDO'] < blended_albedo_threshold))
     data = apply_filter(data, BAF_filter, 'blended albedo')
 
 if filter_on_albedo:
@@ -514,6 +519,9 @@ if calculate_so:
     # and then update std
     data.loc[:, 'STD'] = data['SO']**0.5
 
+    err_mean = data['STD'].mean()
+    print(f'We find a mean error of {err_mean:.2f} ppb.' )
+
     # Save out the data
     gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
@@ -578,13 +586,10 @@ if (plot_dir is not None) and calculate_so:
                                           'OBS' : 'mean',
                                           'DIFF' : 'count'})
 
-    print(d_p.reset_index())
-    # print(d_p['VAR'])
     d_p = d_p.rename(columns={'OBS' : 'AVG_OBS', 'DIFF' : 'COUNT'})
     d_p['STD'] = d_p['VAR']**0.5#/d_p['AVG_OBS']
     d_p = d_p[['STD', 'AVG_OBS', 'COUNT']].to_xarray().rename({'LAT_CENTER' : 'lats',
                                                       'LON_CENTER' : 'lons'})
-    print(d_p)
 
     fig, ax = fp.get_figax(rows=1, cols=4, maps=True,
                            lats=d_p.lats, lons=d_p.lons)

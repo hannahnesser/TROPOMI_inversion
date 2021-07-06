@@ -30,12 +30,12 @@ tau = 1/j
 print('Lifetime (hrs): ', tau/3600)
 
 # Dimensions of the inversion quantities
-nstate = 6 # state vector
-nobs_per_cell = 10
+nstate = 20 # state vector
+nobs_per_cell = 30
 nobs = nobs_per_cell*nstate # observation vector
 
 # Define the times at which we sample the forward model
-t = np.arange(0, nobs_per_cell*0.9*L/U, 0.9*L/U)
+t = np.arange(0, (nobs_per_cell+1)*0.9*L/U, 0.9*L/U)
 print('Times (hrs): ', t/3600)
 
 # Define the true and prior emissions, including the boundary conditions
@@ -49,9 +49,6 @@ print('  Prior: ', x_a*3600)
 
 # Define the prior error
 s_a = 0.25*np.identity(nstate)
-
-# Define true boundary condition (ppb)
-BC_true = 1900
 
 # Define steady state concentrations
 # These will be both our initial condition and serve as the starting
@@ -73,11 +70,6 @@ y = y_ss.reshape(-1,1) + random_noise
 
 # Define the observational errror
 s_o = 4**2*np.identity(nobs)
-
-# Define the forward model
-# Matrix of transfer coefficients
-J = np.diag(j*np.ones(nstate-1), -1)
-np.fill_diagonal(J, -j)
 
 ## -------------------------------------------------------------------------##
 # Define forward model and inversion functions
@@ -155,8 +147,12 @@ def forward_model_lw(x, y_init, BC, times, U, L):
     # Iterate through the time steps
     delta_t = np.diff(times)
     for i, dt in enumerate(delta_t):
+        try:
+            bc = BC[i]
+        except:
+            bc = BC
         y_new = do_emissions(x, ys[:, i], dt)
-        ys[:, i+1] = do_advection(x, y_new, BC, dt, U, L)
+        ys[:, i+1] = do_advection(x, y_new, bc, dt, U, L)
     return ys[:, 1:]
 
 def do_emissions(x, y_prev, delta_t):
@@ -171,9 +167,14 @@ def do_advection(x, y_prev, BC, delta_t, U, L):
     C = U*delta_t/L
 
     # Append the boundary conditions
-    y_prev = np.append(BC, y_prev)
-    y_prev = np.append(y_prev, BC)
-    print(y_prev)
+    try:
+        LBC = BC[0]
+        RBC = BC[1]
+    except:
+        LBC = BC
+        RBC = BC
+    y_prev = np.append(LBC, y_prev)
+    y_prev = np.append(y_prev, RBC)
 
     # Calculate the next time step
     y_new = (y_prev[1:-1]
@@ -182,9 +183,9 @@ def do_advection(x, y_prev, BC, delta_t, U, L):
 
     return y_new
 
-def build_jacobian(x_a, y_init, BC, J, time):
-    F = lambda x : forward_model(x=x, y_init=y_init, BC=BC,
-                                 J=J, time=time).flatten()
+def build_jacobian(x_a, y_init, BC, times, U, L):
+    F = lambda x : forward_model_lw(x=x, y_init=y_init, BC=BC,
+                                    times=times, U=U, L=L).flatten()
 
     # Calculate prior observations
     y_a = F(x_a)
@@ -213,115 +214,105 @@ def solve_inversion(x_a, s_a, y, y_a, s_o, k):
              + s_hat @ k.T @ np.linalg.inv(s_o) @ (y - k @ x_a - c))
     return x_hat, s_hat, a
 
+def plot_inversion(x_a, x_hat, x_true):
+    fig, ax = format_plot(nstate)
+
+    xp = np.arange(1, nstate+1)
+    ax.plot(xp, 3600*24*x_a, c=fp.color(5), marker='.', markersize=10,
+            label='Prior')
+    ax.plot(xp, 3600*24*x_a*x_hat, c=fp.color(8), marker='*', markersize=10,
+               label='Posterior')
+    ax.plot(xp, 3600*24*x_true, c=fp.color(3), ls='--', label='Truth')
+    ax = fp.add_legend(ax, bbox_to_anchor=(0.5, 1.05), loc='lower center',
+                       ncol=3)
+    ax = fp.add_labels(ax, 'State Vector Element', 'Emissions (ppb/day)')
+    ax.set_ylim(0, 200)
+
+    return fig, ax
+
+def plot_obs(nstate, y, y_a, y_ss):
+    # Plot observations
+    fig, ax = format_plot(nstate)
+
+    xp = np.arange(1, nstate+1)
+    ax.plot(xp, y_a, c=fp.color(3), lw=1, ls=':',
+            label='Modeled')
+    ax.plot(xp, y, c=fp.color(5), lw=1, marker='.', markersize=10,
+            label='Observed')
+    ax.plot(xp, y_ss, c=fp.color(8), lw=3,
+            label='Steady State')
+    # ax = fp.add_legend(ax, bbox_to_anchor=(0.5, 1.05), loc='lower center',
+    #                    ncol=3)
+    ax = fp.add_labels(ax, 'State Vector Element', 'XCH4 (ppb)')
+    ax.set_ylim(1800, 2100)
+
+    return fig, ax
+
+def format_plot(nstate):
+    fig, ax = fp.get_figax(aspect=3)
+    for i in range(nstate+2):
+        ax.axvline(i-0.5, c=fp.color(1), alpha=0.2, ls=':')
+    ax.set_xlim(0.5, nstate+0.5)
+    return fig, ax
+
 ## -------------------------------------------------------------------------##
 # Solve the inversion with a variety of boundary conditions
 ## -------------------------------------------------------------------------##
-# Test 1: BC = BC_true
+# Test 1: BC = constant (1900)
 BC_a = BC_true
-BC_a_input = BC_a*j
-# K = build_jacobian(x_a, y_init, BC_a_input, J, t)
-# x, y_init, BC, times, U, L
 y_a = forward_model_lw(x_a, y_init, BC_a, t, U, L)#.flatten()
-# print(y_a)
-# print(y_a.shape)
-# x_hat, s_hat, a = solve_inversion(x_a, s_a, y.flatten(), y_a, s_o, K)
-# print(x_a*x_hat)
-# print(x_true)
+K = build_jacobian(x_a, y_init, BC_a, t, U, L)
+x_hat, s_hat, a = solve_inversion(x_a, s_a, y.flatten(), y_a.flatten(), s_o, K)
 
-xp = np.arange(1, nstate+1)
-fig, ax = fp.get_figax(aspect=2)
-# ax.set_frame_on(False)
-for i in range(8):
-    ax.axvline(i-0.5, c=fp.color(1), alpha=0.2, ls=':')
+fig, ax = plot_inversion(x_a, x_hat, x_true)
+fp.save_fig(fig, '../plots/', f'constant_BC_1900_n{nstate}_m{nobs}')
+fig, ax = plot_obs(nstate, y, y_a, y_ss)
+fp.save_fig(fig, '../plots', f'constant_BC_1900_n{nstate}_m{nobs}_obs')
 
-ax.plot(xp, y_a, c=fp.color(3),
-        label='Modeled')
-ax.plot(xp, y, c=fp.color(5), marker='.', markersize=10,
-        label='Observed')
-ax.plot(xp, y_ss, c=fp.color(8),
-        label='Steady State')
+# Test 2: constant BC = BC_true - 200 ppb
+BC_a = BC_true - 200
+K = build_jacobian(x_a, y_init, BC_a, t, U, L)
+y_a = forward_model_lw(x_a, y_init, BC_a, t, U, L)
+x_hat, s_hat, a = solve_inversion(x_a, s_a, y.flatten(), y_a.flatten(), s_o, K)
 
-ax = fp.add_legend(ax, bbox_to_anchor=(0.5, 1.05), loc='lower center',
-                   ncol=3)
-ax = fp.add_labels(ax, 'State Vector Element', 'XCH4 (ppb)')
-ax.set_xlim(0.5, 6.5)
-ax.set_ylim(1800, 2100)
-
-plt.show()
-
-# # Test 2: constant BC = BC_true - 200 ppb
-# BC_a = BC_true - 200
-# BC_a_input = BC_a*j
-# K = build_jacobian(x_a, y_init, BC_a_input, J, t)
-# y_a = forward_model(x_a, y_init, BC_a_input, J, t).flatten()
-# x_hat_minus, s_hat_minus, a_minus = solve_inversion(x_a, s_a, y, y_a, s_o, K)
-
-# # Test 3: constant BC = BC_true + 200 ppb
-# BC_a = BC_true + 200
-# BC_a_input = BC_a*j
-# K = build_jacobian(x_a, y_init, BC_a_input, J, t)
-# y_a = forward_model(x_a, y_init, BC_a_input, J, t).flatten()
-# x_hat_plus, s_hat_plus, a_plus = solve_inversion(x_a, s_a, y, y_a, s_o, K)
-
-# # Test 4: Oscillating BC
-# BC_a = 2000 + 200*np.sin(2*np.pi/t.max()*t)
-# BC_a_input = BC_a*j # Adjust it to reflect inflow
-# K = build_jacobian(x_a, y_init, BC_a_input, J, t)
-# y_a = forward_model(x_a, y_init, BC_a_input, J, t).flatten()
-# x_hat_osc, s_hat_osc, a_osc = solve_inversion(x_a, s_a, y, y_a, s_o, K)
-
-# ## -------------------------------------------------------------------------##
-# # Plot some things
-# ## -------------------------------------------------------------------------##
-# # Scale emissions
-# # x_true *= 3600*24
-# # x_a *= 3600*24
-# # x_hat *= 3600*24
-# # x_hat_minus *= 3600*24
-# # x_hat_plus *= 3600*24
-# # x_hat_osc *= 3600*24
-
-# xp = np.arange(1, nstate+1)
-# fig, ax = fp.get_figax(aspect=2)
-# # ax.set_frame_on(False)
-# for i in range(8):
-#     ax.axvline(i-0.5, c=fp.color(1), alpha=0.2, ls=':')
-# # ax.fill_between(xp, x_hats[0, :], x_hats[-1, :],
-# #                    color=fp.color(5), alpha=0.3,
-# #                    label='BC = 2000 +/- 200 ppb')
-# # ax.plot(xp, x_hats[2, :], color=fp.color(5), lw=2,
-# #         label='BC = 1900 ppb')
-# ax.scatter(xp, x_true, c=fp.color(1), marker='*',
-#               s=50, label='True Emissions (ppb/day)', zorder=1)
-# ax.scatter(xp, x_a, c=fp.color(5), marker='*',
-#               s=50, label='Prior Emissions (ppb/day)', zorder=1)
-# ax.scatter(xp, x_hat*x_a)
+fig, ax = plot_inversion(x_a, x_hat, x_true)
+fp.save_fig(fig, '../plots/', f'constant_BC_1700_n{nstate}_m{nobs}')
+fig, ax = plot_obs(nstate, y, y_a, y_ss)
+fp.save_fig(fig, '../plots', f'constant_BC_1700_n{nstate}_m{nobs}_obs')
 
 
-# # ax2 = ax.twinx()
-# # ax2.scatter(xp, y_true, c=fp.color(5), s=50)
-# # ax2.set_ylim(1880, 2020)
-# # ax2.set_ylabel('Steady State Concentration (ppb)', color=fp.color(5))
-# # ax2.tick_params(axis='y', labelcolor=fp.color(5))
-# # ax2.set_facecolor('white')
+# Test 3: constant BC = BC_true + 200 ppb
+BC_a = BC_true + 200
+K = build_jacobian(x_a, y_init, BC_a, t, U, L)
+y_a = forward_model_lw(x_a, y_init, BC_a, t, U, L)
+x_hat, s_hat, a = solve_inversion(x_a, s_a, y.flatten(), y_a.flatten(), s_o, K)
 
-# ax = fp.add_legend(ax, bbox_to_anchor=(0.5, 1.05), loc='lower center',
-#                    ncol=2)
-# ax = fp.add_labels(ax, 'State Vector Element', 'Emissions (ppb/day)')
-# ax.set_xlim(0.5, 6.5)
+fig, ax = plot_inversion(x_a, x_hat, x_true)
+fp.save_fig(fig, '../plots/', f'constant_BC_2100_n{nstate}_m{nobs}')
+fig, ax = plot_obs(nstate, y, y_a, y_ss)
+fp.save_fig(fig, '../plots', f'constant_BC_2100_n{nstate}_m{nobs}_obs')
 
-# # ax[0].get_shared_x_axes().join(ax[0], a[1])
-# # ax[0].set_xticklabels([])
-# # ax[0].set_frame_on(False)
-# # ax[0].set_xticks([])
 
-# # ax[0].scatter(xp, y_true, c=fp.color(1), marker='.', s=50)
-# # ax[0].axhline(1900, color=fp.color(5), lw=2)
+# Test 4: BC = BC_true
+BC_a = [BC_true, y_ss[-1]]
+y_a = forward_model_lw(x_a, y_init, BC_a, t, U, L)#.flatten()
+K = build_jacobian(x_a, y_init, BC_a, t, U, L)
+x_hat, s_hat, a = solve_inversion(x_a, s_a, y.flatten(), y_a.flatten(), s_o, K)
 
-# # ax[0] = fp.add_labels(ax[0], '', 'Steady State\nConcentration (ppb)')
-# # ax[0].set_ylim(1875, 2150)
+fig, ax = plot_inversion(x_a, x_hat, x_true)
+fp.save_fig(fig, '../plots/', f'true_BC_n{nstate}_m{nobs}')
+fig, ax = plot_obs(nstate, y, y_a, y_ss)
+fp.save_fig(fig, '../plots', f'true_BC_n{nstate}_m{nobs}_obs')
 
-# # fp.save_fig(fig, '../plots/', 'bc_test_02')
+# Test 5: Oscillating BC
+BC_a = 2000 - 200*np.sin(2*np.pi/t.max()*t)
+K = build_jacobian(x_a, y_init, BC_a, t, U, L)
+y_a = forward_model_lw(x_a, y_init, BC_a, t, U, L)
+x_hat, s_hat, a = solve_inversion(x_a, s_a, y.flatten(), y_a.flatten(), s_o, K)
 
-# plt.show()
+fig, ax = plot_inversion(x_a, x_hat, x_true)
+fp.save_fig(fig, '../plots/', f'oscillating_BC_n{nstate}_m{nobs}')
+fig, ax = plot_obs(nstate, y, y_a, y_ss)
+fp.save_fig(fig, '../plots', f'oscillating_BC_n{nstate}_m{nobs}_obs')
+
 
