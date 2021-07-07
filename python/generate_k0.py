@@ -15,11 +15,6 @@ from dask.diagnostics import ProgressBar
 import numpy as np
 import pandas as pd
 
-# Custom packages
-sys.path.append('.')
-import gcpy as gc
-import inversion_settings as settings
-
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
@@ -28,6 +23,11 @@ base_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
 data_dir = f'{base_dir}inversion_data/'
 output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
+
+# Import custom packages
+sys.path.append(code_dir)
+import gcpy as gc
+import inversion_settings as settings
 
 # Files
 month = int(sys.argv[1])
@@ -87,6 +87,8 @@ emis = emis[['Clusters', 'EmisCH4_ppb']]
 ## Load and process the observations
 ## ------------------------------------------------------------------------ ##
 obs = gc.load_obj(obs_file)[['LON', 'LAT', 'MONTH']]
+obs = obs[obs['MONTH'] == month]
+
 nobs = int(obs.shape[0])
 print(f'Number of observations : {nobs}')
 
@@ -99,6 +101,7 @@ print(f'Number of observations : {nobs}')
 lat_idx = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
 lon_idx = gc.nearest_loc(obs['LON'].values, emis.lon.values)
 obs['CLUSTER'] = emis['Clusters'].values[lat_idx, lon_idx]
+obs = obs[['CLUSTER', 'MONTH']]
 
 # Format
 obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
@@ -197,7 +200,7 @@ if k_nstate is None:
         emis_i = emis.where(emis['Clusters'] == i, drop=True)['EmisCH4_ppb']
 
         # Iterate through the zones
-        for z in range(len(f)):
+        for z, frac in enumerate(f):
             # Get state vector indices corresponding to each grid box in the
             # given zone
             idx_z = get_zone_indices(emis, grid_cell_index=i, zone=z)
@@ -206,7 +209,7 @@ if k_nstate is None:
             # of the grid cells in the zone if there are grid cells in the zone
             if len(idx_z) > 0:
                 conc_z = get_zone_conc(emis_i, ncells=len(idx_z),
-                                       emis_fraction=f[z])
+                                       emis_fraction=frac)
 
             # Place those concentrations in the nstate x nstate x months
             # Jacobian
