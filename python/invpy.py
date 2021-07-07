@@ -31,26 +31,54 @@ import config
 ## -------------------------------------------------------------------------##
 def match_data_to_clusters(data, clusters, default_value=0):
     '''
-    1D to 2D -- eventually rename to clusters_1d_to_2d
+    Matches inversion data to a cluster file.
+    Parameters:
+        data (np.array)        : Inversion data. Must have the same length
+                                 as the number of clusters, and must be
+                                 sorted in ascending order of cluster number
+                                 - i.e. [datapoint for cluster 1, datapoint for
+                                 cluster 2, datapoint for cluster 3...]
+        clusters (xr.Datarray) : 2d array of cluster values for each gridcell.
+                                 You can get this directly from a cluster file
+                                 used in an analytical inversion.
+                                 Dimensions: ('lat','lon')
+        default_value (numeric): The fill value for the array returned.
+    Returns:
+        result (xr.Datarray)   : A 2d array on the GEOS-Chem grid, with
+                                 inversion data assigned to each gridcell based
+                                 on the cluster file.
+                                 Missing data default to the default_value.
+                                 Dimensions: same as clusters ('lat','lon').
     '''
-    result = clusters.copy()
-    c_array = result.values
-    c_idx = np.where(c_array > 0)
-    c_val = c_array[c_idx]
-    row_idx = [r for _, r, _ in sorted(zip(c_val, c_idx[0], c_idx[1]))]
-    col_idx = [c for _, _, c in sorted(zip(c_val, c_idx[0], c_idx[1]))]
-    idx = (row_idx, col_idx)
+    # check that length of data is the same as number of clusters
+    clust_list = np.unique(clusters)[np.unique(clusters)!=0] # unique, nonzero clusters
+    assert len(data)==len(clust_list), (f'Data length ({len(data)}) is not the same as '
+                                        f'the number of clusters ({len(clust_list)}).')
 
-    d_idx = np.where(c_array == 0)
+    # build a lookup table from data.
+    #    data_lookup[0] = default_value (value for cluster 0),
+    #    data_lookup[1] = value for cluster 1, and so forth
+    data_lookup = np.append(default_value, data)
 
-    c_array[c_idx] = data
-    c_array[d_idx] = default_value
-    result.values = c_array
+    # use fancy indexing to map data to 2d cluster array
+    cluster_index = clusters.squeeze().data.astype(int).tolist()
+    result = clusters.copy().squeeze()         # has same shape/dims as clusters
+    result.values = data_lookup[cluster_index] # map data to clusters
 
     return result
 
 def clusters_2d_to_1d(clusters, data):
-
+    '''
+    Flattens data on the GEOS-Chem grid, and ensures the resulting order is
+    ascending with respect to cluster number.
+    Parameters:
+        clusters (xr.Datarray) : 2d array of cluster values for each gridcell.
+                                 You can get this directly from a cluster file
+                                 used in an analytical inversion.
+                                 Dimensions: ('lat','lon')
+        data (xr.DataArray)    : Data on a 2d GEOS-Chem grid.
+                                 Dimensions: ('lat','lon')
+   '''
     # Data must be a dataarray
     assert type(data) == xr.core.dataarray.DataArray, \
            "Input data must be a dataarray."
@@ -71,18 +99,137 @@ def clusters_2d_to_1d(clusters, data):
 
     return data['data'].values
 
+def get_one_statevec_layer(data, category=None, time=None,
+                           category_list=None, time_list=None, cluster_list=None):
+    '''
+    Grabs only the specified category/time combo from the state vector.
+    Should result in a list of clusters which can then be mapped onto a cluster file and plotted.
+    Parameters:
+        data (np.array)      : Inversion attribute.
+                               Dimensions: nstate
+        category (string)    : The category you would like to extract. Must match with
+                               element(s) in in category_list.
+        time (string)        : The time you would like to extract. Must match with
+                               element(s) in time_list. If there is no time, use None.
+        category_list (list) : The category labels for each element of the state vector.
+                               Dimensions: nstate
+        time_list (list)     : The time labels for each element of the state vector.
+                               Dimensions: nstate
+        cluster_list (list)  : Cluster numbers for each element of the state vector.
+                               If this option is not included, cluster numbers of the
+                               data must be in ascending order.
+                               Dimensions: nstate.
+    Returns:
+        data_out (np.array)  : data subset by category & time.
+                               Dimensions: # of clusters
+    '''
+    # check which labels are defined
+    # category
+    select_by_category = False
+    if (category is not None) or (category_list is not None):      # if either are defined
+        if (category is not None) and (category_list is not None): # if both are defined
+            select_by_category = True
+        else:
+            raise ValueError('Please define both category and category_list, or neither.')
+    # time
+    select_by_time = False
+    if (time is not None) or (time_list is not None):      # if either are defined
+        if (time is not None) and (time_list is not None): # if both are defined
+            select_by_time = True
+        else:
+            raise ValueError('Please define both time and time_list, or neither.')
+
+    # get a boolean mask for the selection
+    if select_by_category and select_by_time:
+        mask = (category_list==category)&(time_list==time)
+    elif select_by_category:
+        mask = category_list==category
+    elif select_by_time:
+        mask = time_list==time
+
+    # select appropriate data
+    data_out = data[mask]
+
+    # rearrange data to put in ascending order of clusters
+    if cluster_list is not None:
+        cluster_idx = cluster_list[mask].astype(int)-1
+        assert len(cluster_idx)==len(np.unique(cluster_idx)),\
+        ('Duplicate values found in cluster index. '
+         'Check that you are selecting only one cluster layer. '
+         'Check that time and category are specific enough that '
+         'the result corresponds to only one cluster file.')
+        data_out = data_out[cluster_idx]
+
+    return data_out
+
 ## -------------------------------------------------------------------------##
 ## Plotting functions : state vectors
 ## -------------------------------------------------------------------------##
-def plot_state(data, clusters_plot, default_value=0, cbar=True, **kw):
-    # Match the data to lat/lon data
-    data = match_data_to_clusters(data, clusters_plot, default_value)
+def plot_state(data, clusters_plot, default_value=0, cbar=True,
+               category=None, time=None, category_list=None,
+               time_list=None, cluster_list=None, **kw):
+    '''
+    Plots a state vector element.
+    Parameters:
+        data (np.array)         : Inversion data.
+                                  Dimensions: nstate
+        clusters (xr.Datarray)  : 2d array of cluster values for each gridcell.
+                                  You can get this directly from a cluster file
+                                  used in an analytical inversion.
+                                  Dimensions: ('lat','lon')
+    Optional Parameters:
+        default_value (numeric) : The fill value for the array returned.
+        cbar (bool)             : Should the function a colorbar?
+        category (string)       : The category you would like to extract. Must match with
+                                  element(s) in in category_list.
+        time (string)           : The time you would like to extract. Must match with
+                                  element(s) in time_list. If there is no time, use None.
+        category_list (list)    : The category labels for each element of the state vector.
+                                  Dimensions: nstate
+        time_list (list)        : The time labels for each element of the state vector.
+                                  Dimensions: nstate
+        cluster_list (list)     : Cluster numbers for each element of the state vector.
+                                  If this option is not included, the data must be
+                                  in ascending order of cluster number.
+                                  Dimensions: nstate.
+
+    Returns:
+        fig, ax, c: Figure, axis, and colorbar for an mpl plot.
+    '''
+    # protect inputs from modification
+    data_to_plot = np.copy(data)
+
+    # Select one "layer" at a time
+    # each "layer" corresponds to one "2d cluster file"
+    # if you only have one layer in your dataset, you can skip this.
+    if ((category is not None) or (time is not None)
+        or (category_list is not None) or (time_list is not None)
+        or (cluster_list is not None) ):
+        data_to_plot = get_one_statevec_layer(data_to_plot, category=category, time=time,
+                                              category_list=category_list,
+                                              time_list=time_list,
+                                              cluster_list=cluster_list)
+
+    # Put the state vector layer back on the 2d GEOS-Chem grid
+    # matches the data to lat/lon data using a cluster file
+    data_to_plot = match_data_to_clusters(data_to_plot, clusters_plot, default_value)
 
     # Plot
-    fig, ax, c = plot_state_format(data, default_value, cbar, **kw)
+    fig, ax, c = plot_state_format(data_to_plot, default_value, cbar, **kw)
     return fig, ax, c
 
 def plot_state_format(data, default_value=0, cbar=True, **kw):
+    '''
+    Format and plot one layer of the state vector.
+    Parameters:
+        data (xr.DataArray)     : One layer of the state vector, mapped onto a
+                                  2d GEOS-Chem grid using a cluster file. If
+                                  your state vector has only one layer,
+                                  this may contain your entire state vector.
+                                  Dimensions: ('lat','lon')
+        default_value (numeric) : The fill value for the array returned.
+        cbar (bool)             : Should the function plot a colorbar?
+    '''
     # Get kw
     title = kw.pop('title', '')
     kw['cmap'] = kw.get('cmap', 'viridis')

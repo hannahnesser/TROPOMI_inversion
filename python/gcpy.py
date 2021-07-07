@@ -85,7 +85,7 @@ def read_file(*file_names, **kwargs):
     else:
         if 'chunks' in kwargs:
             warnings.warn('NOTE: Chunk sizes were provided, but the file is not a netcdf. Chunk size is ignored.', stacklevel=2)
-        file = read_generic_file(file_names, **kwargs)
+        file = read_generic_file(*file_names, **kwargs)
 
     return file
 
