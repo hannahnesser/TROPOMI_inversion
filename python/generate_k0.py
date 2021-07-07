@@ -34,7 +34,7 @@ month = int(sys.argv[1])
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
 obs_file = f'{base_dir}observations/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
-k_nstate = f'{data_dir}k0_nstate.nc' # None
+k_nstate = None #f'{data_dir}k0_nstate.nc' # None
 
 # Memory constraints
 available_memory_GB = int(sys.argv[2])
@@ -188,7 +188,7 @@ if k_nstate is None:
     k_nstate = np.zeros((nstate, nstate, len(months)), dtype=np.float32)
 
     # Set the fractional mass decrease
-    f = np.array([10, 6, 4, 3, 2.5])
+    f = np.array([10, 6, 4, 3, 2.5, 2.25, 2.125])
     f /= f.sum()
 
     # Iterate through the state vector elements
@@ -210,7 +210,7 @@ if k_nstate is None:
 
             # Place those concentrations in the nstate x nstate x months
             # Jacobian
-            k_nstate[i-1, idx_z-1, :] = conc_z
+            k_nstate[idx_z-1, i-1, :] = conc_z
 
         # Keep track of progress
         if i % 1000 == 0:
@@ -218,7 +218,7 @@ if k_nstate is None:
 
     # Save
     k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'),
-                       dims=('nstate', 'nobs', 'month'))
+                       dims=('nobs', 'nstate', 'month'))
 
 else:
     k_nstate = xr.open_dataarray(join(data_dir, 'k0_nstate.nc'),
