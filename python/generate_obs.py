@@ -136,9 +136,10 @@ import inversion_settings as settings
 # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 base_dir = sys.argv[1]
-code_dir = sys.argv[2]
+code_dir = sys.argv[3]
 data_dir = f'{base_dir}ProcessedDir'
-output_dir = f'{base_dir}SummaryDir'
+# output_dir = f'{base_dir}SummaryDir'
+output_dir = sys.argv[2]
 plot_dir = None
 
 # The prior_run can either be a list of files or a single file
