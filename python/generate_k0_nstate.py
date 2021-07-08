@@ -195,5 +195,6 @@ for i in range(1, nstate+1):
         print(f'{i:-6d}/{nstate}', '-'*int(20*i/nstate))
 
 # Save
+k_nstate = xr.DataArray(data=k_nstate, dims=('nobs', 'nstate', 'month'))
 k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'),
                    dims=('nobs', 'nstate', 'month'))

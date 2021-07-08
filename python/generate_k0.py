@@ -34,7 +34,7 @@ month = int(sys.argv[1])
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
 obs_file = f'{base_dir}observations/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
-k_nstate = None #f'{data_dir}k0_nstate.nc' # None
+k_nstate = f'{data_dir}k0_nstate.nc' # None
 
 # Memory constraints
 available_memory_GB = int(sys.argv[2])
@@ -64,7 +64,12 @@ print(f'Number of observations : {nobs}')
 lat_idx = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
 lon_idx = gc.nearest_loc(obs['LON'].values, emis.lon.values)
 obs['CLUSTER'] = emis['Clusters'].values[lat_idx, lon_idx]
+
+# Subset to reduce memory needs
 obs = obs[['CLUSTER', 'MONTH']]
+obs = obs[obs['MONTH'] == month]
+nobs = obs.shape[0]
+print(f'In month {month}, there are {nobs} observations.')
 
 # Format
 obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
@@ -76,25 +81,21 @@ k_nstate = xr.open_dataarray(join(data_dir, 'k0_nstate.nc'),
                              chunks={'nobs' : 1000,
                                      'nstate' : -1,
                                      'month' : 12})
+k_nstate = k_nstate.sel(month=month)
 
 print('k0_nstate is loaded.')
 
 # Delete superfluous memory
-del(emis)
 del(clusters)
-obs = obs[['CLUSTER', 'MONTH']]
-obs = obs[obs['MONTH'] == month]
-nobs = obs.shape[0]
-print(f'In month {month}, there are {nobs} observations.')
 
 # Fancy slicing isn't allowed by dask, so we'll create monthly Jacobians
 max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
-nstate = len(k_nstate.nstate)
 nobs_clusters = int(max_chunk_size/nstate)
 chunks={'nstate' : -1, 'nobs' : nobs_clusters}
-print('CHUNK SIZE')
-print(chunks)
-k_m = k_nstate[obs['CLUSTER'].values, :, (month-1)]
+print('CHUNK SIZE: ', chunks)
+
+
+k_m = k_nstate[obs['CLUSTER'].values, :]
 k_m = k_m.chunk(chunks)
 with ProgressBar():
     k_m.to_netcdf(join(output_dir, f'k0_m{month:02d}.nc'))
