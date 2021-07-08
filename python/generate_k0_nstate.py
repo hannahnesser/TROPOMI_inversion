@@ -167,7 +167,7 @@ def get_zone_indices(data, grid_cell_index, zone):
 ## rows where there are multiple observations for a given grid box and time.
 
 # Initialize the nstate x nstate x months Jacobian
-k_nstate = np.zeros((nstate, nstate, len(months)), dtype=np.float32)
+k_nstate = np.zeros((nstate, nstate, len(settings.months)), dtype=np.float32)
 
 # Iterate through the state vector elements
 for i in range(1, nstate+1):
