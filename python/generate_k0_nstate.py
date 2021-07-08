@@ -32,13 +32,8 @@ import gcpy as gc
 import inversion_settings as settings
 
 # Files
-month = int(sys.argv[1])
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
-obs_file = f'{base_dir}observations/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
-
-# Memory constraints
-available_memory_GB = int(sys.argv[2])
 
 # Fraction of emissions to allocate to each ring
 fractions = np.array([10, 6, 4, 3, 2.5, 2.25, 2.125])
