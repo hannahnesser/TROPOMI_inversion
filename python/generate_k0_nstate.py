@@ -196,5 +196,4 @@ for i in range(1, nstate+1):
 
 # Save
 k_nstate = xr.DataArray(data=k_nstate, dims=('nobs', 'nstate', 'month'))
-k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'),
-                   dims=('nobs', 'nstate', 'month'))
+k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'))
