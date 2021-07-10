@@ -24,4 +24,4 @@ jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 apply_TROPOMI_operat
 
 # Analyze the output
 sbatch --dependency=afterok:${jid2##* } run_generate_obs.sh ${PRIOR_DIR} ${OUTPUT_DIR} ${CODE_DIR}
-# sbatch run_generate_obs.sh ${PRIOR_DIR} ${CODE_DIR}
+# sbatch run_generate_obs.sh ${PRIOR_DIR} ${OUTPUT_DIR} ${CODE_DIR}
