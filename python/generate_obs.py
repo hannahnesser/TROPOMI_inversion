@@ -220,12 +220,32 @@ if type(prior_run) == list:
         month = int(file[4:6])
         day = int(file[6:8])
 
+        # # Save out values
+        # # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
+        # # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
+        # temp_obs_GC[:, 0] = TROPOMI['methane']
+        # temp_obs_GC[:, 1] = GC_base_post
+        # temp_obs_GC[:, 2] = TROPOMI['longitude']
+        # temp_obs_GC[:, 3] = TROPOMI['latitude']
+        # temp_obs_GC[:, 4] = iGC
+        # temp_obs_GC[:, 5] = jGC
+        # temp_obs_GC[:, 6] = TROPOMI['precision']
+        # temp_obs_GC[:, 7] = TROPOMI['albedo'][:,1]
+        # temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
+        # temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
+        # temp_obs_GC[:, 10] = GC_COL
+        # temp_obs_GC[:, 11] = TROPOMI['cloud_fraction'][:,0]
+        # temp_obs_GC[:, 12] = TROPOMI['cloud_fraction'][:,1]
+        # temp_obs_GC[:, 13] = TROPOMI['cloud_fraction'][:,2]
+        # temp_obs_GC[:, 14] = TROPOMI['cloud_fraction'][:,3]
+
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
-        # 10 GLINT, 11 MOD_COL(12 total columns)
+        # 10 MOD_COL, 11 - 14 CLOUD_FRAC (15 total columns)
         new_data = gc.load_obj(join(data_dir, file))['obs_GC']
-        new_data = np.insert(new_data, 12, month, axis=1) # add month
-        new_data = np.insert(new_data, 13, day, axis=1)
+        new_data = new_data[:, :11]
+        new_data = np.insert(new_data, 11, month, axis=1) # add month
+        new_data = np.insert(new_data, 12, day, axis=1)
 
         data = np.concatenate((data, new_data))
 
@@ -234,7 +254,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     # Create a dataframe from the data
     columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'GLINT', 'MOD_COL',
+               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
                'MONTH', 'DAY']
     data = pd.DataFrame(data, columns=columns)
 
@@ -245,7 +265,7 @@ if type(prior_run) == list:
 
     # Subset data
     data = data[['iGC', 'jGC', 'MONTH', 'DAY', 'LON', 'LAT', 'OBS', 'MOD',
-                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'GLINT']]
+                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO']]
 
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
