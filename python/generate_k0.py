@@ -11,7 +11,6 @@ from os.path import join
 import sys
 
 import xarray as xr
-from dask.diagnostics import ProgressBar
 import numpy as np
 import pandas as pd
 
@@ -22,7 +21,7 @@ import pandas as pd
 base_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
 data_dir = f'{base_dir}inversion_data/'
-output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
+output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
 
 # Import custom packages
 sys.path.append(code_dir)
@@ -31,24 +30,63 @@ import inversion_settings as settings
 
 # Files
 month = int(sys.argv[1])
-emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
-obs_file = f'{base_dir}observations/{settings.year}_corrected.pkl'
+obs_file = f'{data_dir}/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
-k_nstate = f'{data_dir}k0_nstate.nc' # None
+k_nstate_file = f'{data_dir}k0_nstate.nc' # None
+k_m_file = f'{data_dir}k0_m{month:02d}.nc'
 
 # Memory constraints
 available_memory_GB = int(sys.argv[2])
 
 ## ------------------------------------------------------------------------ ##
-## Load the clusters
+## Set up a dask client and cacluate the optimal chunk size
 ## ------------------------------------------------------------------------ ##
+from dask.distributed import Client, LocalCluster, progress
+from dask.diagnostics import ProgressBar
+import dask.config
+dask.config.set({'distributed.comm.timeouts.connect' : 90,
+                 'distributed.comm.timeouts.tcp' : 150,
+                 'distributed.adaptive.wait-count' : 90})
+
+# Open cluster and client
+# We adaptively choose n_workers and threads_per_worker based on nobs size
+if nobs > 3e5:
+    n_workers = 1
+    threads_per_worker = 2
+else:
+    n_workers = 3
+    threads_per_worker = 2
+cluster = LocalCluster(local_directory=output_dir,
+                       n_workers=n_workers,
+                       threads_per_worker=threads_per_worker)
+client = Client(cluster)
+
+# We now calcualte the optimal chunk size. Our final matrix will be
+# nstate x nstate, so we want our chunks accordingly
+n_threads = n_workers*threads_per_worker
+max_chunk_size = gc.calculate_chunk_size(available_memory_GB,
+                                         n_threads=n_threads)
+# We take the squareroot of the max chunk size and scale it down by 5
+# to be safe. It's a bit unclear why this works best in tests.
+nstate_chunk = int(np.sqrt(max_chunk_size)/5)
+nobs_chunk = int(max_chunk_size/nstate_chunk)
+print('State vector chunks : ', nstate_chunk)
+print('Obs vector chunks   : ', nobs_chunk)
+
+## ------------------------------------------------------------------------ ##
+## Generate a monthly K0
+## ------------------------------------------------------------------------ ##
+
+## -------------------------------------------------------------------- ##
+## Load the clusters
+## -------------------------------------------------------------------- ##
 clusters = xr.open_dataset(cluster_file)
 nstate = int(clusters['Clusters'].max().values)
 print(f'Number of state vector elements : {nstate}')
 
-## ------------------------------------------------------------------------ ##
+## -------------------------------------------------------------------- ##
 ## Load and process the observations
-## ------------------------------------------------------------------------ ##
+## -------------------------------------------------------------------- ##
 obs = gc.load_obj(obs_file)[['LON', 'LAT', 'MONTH']]
 obs = obs[obs['MONTH'] == month]
 
@@ -74,31 +112,18 @@ print(f'In month {month}, there are {nobs} observations.')
 # Format
 obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
 
-## ------------------------------------------------------------------------ ##
-## Load the n x n x 12 base initial estimate
-## ------------------------------------------------------------------------ ##
-k_nstate = xr.open_dataarray(join(data_dir, 'k0_nstate.nc'),
-                             chunks={'nobs' : 1000,
-                                     'nstate' : -1,
-                                     'month' : 12})
+## -------------------------------------------------------------------- ##
+## Open and subset the n x n x 12 first guess Jacobian
+## -------------------------------------------------------------------- ##
+k_nstate = xr.open_dataarray(k_nstate_file,
+                             chunks={'nobs' : nobs_chunk,
+                                     'nstate' : nstate_chunk,
+                                     'month' : 1})
 k_nstate = k_nstate.sel(month=month)
 
-print('k0_nstate is loaded.')
-
-# Delete superfluous memory
-del(clusters)
-
-# Fancy slicing isn't allowed by dask, so we'll create monthly Jacobians
-max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
-nobs_clusters = int(max_chunk_size/nstate)
-chunks={'nstate' : -1, 'nobs' : nobs_clusters}
-print('CHUNK SIZE: ', chunks)
-
-
 k_m = k_nstate[obs['CLUSTER'].values, :]
-k_m = k_m.chunk(chunks)
 with ProgressBar():
-    k_m.to_netcdf(join(output_dir, f'k0_m{month:02d}.nc'))
+    k_m.to_netcdf(f'{output_dir}k0_m{month:02d}.nc')
 
-# EASY CHECK: USE THIS SCRIPT TO BUILD THE JACOBIAN FOR MY TEST CASE
-
+# Shutdown the client.
+client.shutdown()
