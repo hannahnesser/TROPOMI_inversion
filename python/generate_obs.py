@@ -279,7 +279,7 @@ if type(prior_run) == list:
     print('DIFFERENCE MAXIMUM : ', np.abs(data['DIFF']).max())
 
     # Save the data out
-    gc.save_obj(data, join(output_dir, f'{settings.years[0]}.pkl'))
+    gc.save_obj(data, join(output_dir, f'{settings.year}.pkl'))
 
 else:
     ## ----------------------------------------- ##
