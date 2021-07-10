@@ -116,7 +116,7 @@ def read_netcdf_file(*file_names, **kwargs):
     # Return the file
     return data
 
-def calculate_chunk_size(available_memory_GB, omp_num_threads=None,
+def calculate_chunk_size(available_memory_GB, n_threads=None,
                          dtype='float32'):
     '''
     This function returns a number that gives the total number of
@@ -125,12 +125,12 @@ def calculate_chunk_size(available_memory_GB, omp_num_threads=None,
     '''
 
     # Get the number of active threads
-    if omp_num_threads is None:
-        omp_num_threads = int(os.environ['OMP_NUM_THREADS'])
+    if n_threads is None:
+        n_threads = int(os.environ['OMP_NUM_THREADS'])
 
     # Approximate the number of chunks that are held in memory simultaneously
     # by dask (reference: https://docs.dask.org/en/latest/array-best-practices.html#:~:text=Orient%20your%20chunks,-When%20reading%20data&text=If%20your%20Dask%20array%20chunks,closer%20to%201MB%20than%20100MB.)
-    chunks_in_memory = 10*omp_num_threads
+    chunks_in_memory = 20*n_threads
 
     # Calculate the memory that is available per chunk (in GB)
     mem_per_chunk = available_memory_GB/chunks_in_memory

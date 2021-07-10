@@ -108,7 +108,6 @@ import numpy as np
 from numpy.polynomial import polynomial as p
 import pandas as pd
 import matplotlib.pyplot as plt
-import imageio
 pd.set_option('display.max_columns', 10)
 
 # Custom packages
