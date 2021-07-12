@@ -398,6 +398,7 @@ if __name__ == '__main__':
                                     combine='nested',
                                     chunks=10000,
                                     preprocess=preprocess)
+        print(TROPOMI.head())
         TROPOMI = process_tropomi(TROPOMI, date)
 
         if TROPOMI is None:
