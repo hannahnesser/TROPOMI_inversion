@@ -239,9 +239,6 @@ if type(prior_run) == list:
                'MONTH', 'DAY']
     data = pd.DataFrame(data, columns=columns)
 
-    # Subset lat/lon as a final check. This is hopefully redundant.
-    data = data[data['LAT'] ]
-
     # Calculate blended albedo
     data['BLENDED_ALBEDO'] = tp.blended_albedo(data,
                                                data['ALBEDO_SWIR'],
