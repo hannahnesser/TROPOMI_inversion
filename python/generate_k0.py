@@ -39,6 +39,41 @@ k_m_file = f'{data_dir}k0_m{month:02d}.nc'
 available_memory_GB = int(sys.argv[2])
 
 ## ------------------------------------------------------------------------ ##
+## Load the clusters
+## ------------------------------------------------------------------------ ##
+clusters = xr.open_dataset(cluster_file)
+nstate = int(clusters['Clusters'].max().values)
+print(f'Number of state vector elements : {nstate}')
+
+## ------------------------------------------------------------------------ ##
+## Load and process the observations
+## ------------------------------------------------------------------------ ##
+obs = gc.load_obj(obs_file)[['LON', 'LAT', 'MONTH']]
+obs = obs[obs['MONTH'] == month]
+
+nobs = int(obs.shape[0])
+print(f'Number of observations : {nobs}')
+
+# Find the indices that correspond to each observation (i.e. the grid
+# box in which each observation is found) (Yes, this information should
+# be contained in the iGC and jGC columns in obs_file, but stupidly
+# I don't have that information for the cluster files)
+
+# First, find the cluster number of the grid box of the obs
+lat_idx = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
+lon_idx = gc.nearest_loc(obs['LON'].values, emis.lon.values)
+obs['CLUSTER'] = emis['Clusters'].values[lat_idx, lon_idx]
+
+# Subset to reduce memory needs
+obs = obs[['CLUSTER', 'MONTH']]
+obs = obs[obs['MONTH'] == month]
+nobs = obs.shape[0]
+print(f'In month {month}, there are {nobs} observations.')
+
+# Format
+obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
+
+## ------------------------------------------------------------------------ ##
 ## Set up a dask client and cacluate the optimal chunk size
 ## ------------------------------------------------------------------------ ##
 from dask.distributed import Client, LocalCluster, progress
@@ -76,45 +111,6 @@ print('Obs vector chunks   : ', nobs_chunk)
 ## ------------------------------------------------------------------------ ##
 ## Generate a monthly K0
 ## ------------------------------------------------------------------------ ##
-
-## -------------------------------------------------------------------- ##
-## Load the clusters
-## -------------------------------------------------------------------- ##
-clusters = xr.open_dataset(cluster_file)
-nstate = int(clusters['Clusters'].max().values)
-print(f'Number of state vector elements : {nstate}')
-
-## -------------------------------------------------------------------- ##
-## Load and process the observations
-## -------------------------------------------------------------------- ##
-obs = gc.load_obj(obs_file)[['LON', 'LAT', 'MONTH']]
-obs = obs[obs['MONTH'] == month]
-
-nobs = int(obs.shape[0])
-print(f'Number of observations : {nobs}')
-
-# Find the indices that correspond to each observation (i.e. the grid
-# box in which each observation is found) (Yes, this information should
-# be contained in the iGC and jGC columns in obs_file, but stupidly
-# I don't have that information for the cluster files)
-
-# First, find the cluster number of the grid box of the obs
-lat_idx = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
-lon_idx = gc.nearest_loc(obs['LON'].values, emis.lon.values)
-obs['CLUSTER'] = emis['Clusters'].values[lat_idx, lon_idx]
-
-# Subset to reduce memory needs
-obs = obs[['CLUSTER', 'MONTH']]
-obs = obs[obs['MONTH'] == month]
-nobs = obs.shape[0]
-print(f'In month {month}, there are {nobs} observations.')
-
-# Format
-obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
-
-## -------------------------------------------------------------------- ##
-## Open and subset the n x n x 12 first guess Jacobian
-## -------------------------------------------------------------------- ##
 k_nstate = xr.open_dataarray(k_nstate_file,
                              chunks={'nobs' : nobs_chunk,
                                      'nstate' : nstate_chunk,
