@@ -110,17 +110,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', 10)
 
-# Custom packages
-sys.path.append('.')
-import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
-import gcpy as gc
-import troppy as tp
-import format_plots as fp
-import inversion_settings as settings
-
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
@@ -140,6 +129,17 @@ data_dir = f'{base_dir}ProcessedDir'
 # output_dir = f'{base_dir}SummaryDir'
 output_dir = sys.argv[2]
 plot_dir = None
+
+# Import Custom packages
+sys.path.append(code_dir)
+import config
+config.SCALE = config.PRES_SCALE
+config.BASE_WIDTH = config.PRES_WIDTH
+config.BASE_HEIGHT = config.PRES_HEIGHT
+import gcpy as gc
+import troppy as tp
+import format_plots as fp
+import inversion_settings as settings
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
@@ -220,25 +220,6 @@ if type(prior_run) == list:
         month = int(file[4:6])
         day = int(file[6:8])
 
-        # # Save out values
-        # # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
-        # # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
-        # temp_obs_GC[:, 0] = TROPOMI['methane']
-        # temp_obs_GC[:, 1] = GC_base_post
-        # temp_obs_GC[:, 2] = TROPOMI['longitude']
-        # temp_obs_GC[:, 3] = TROPOMI['latitude']
-        # temp_obs_GC[:, 4] = iGC
-        # temp_obs_GC[:, 5] = jGC
-        # temp_obs_GC[:, 6] = TROPOMI['precision']
-        # temp_obs_GC[:, 7] = TROPOMI['albedo'][:,1]
-        # temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
-        # temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
-        # temp_obs_GC[:, 10] = GC_COL
-        # temp_obs_GC[:, 11] = TROPOMI['cloud_fraction'][:,0]
-        # temp_obs_GC[:, 12] = TROPOMI['cloud_fraction'][:,1]
-        # temp_obs_GC[:, 13] = TROPOMI['cloud_fraction'][:,2]
-        # temp_obs_GC[:, 14] = TROPOMI['cloud_fraction'][:,3]
-
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
         # 10 MOD_COL, 11 - 14 CLOUD_FRAC (15 total columns)
@@ -257,6 +238,9 @@ if type(prior_run) == list:
                'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
                'MONTH', 'DAY']
     data = pd.DataFrame(data, columns=columns)
+
+    # Subset lat/lon as a final check. This is hopefully redundant.
+    data = data[data['LAT'] ]
 
     # Calculate blended albedo
     data['BLENDED_ALBEDO'] = tp.blended_albedo(data,
