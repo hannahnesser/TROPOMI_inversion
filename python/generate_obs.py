@@ -377,84 +377,89 @@ if analyze_biases:
     ## -------------------------------------------------------------------- ##
     ## Plot data
     ## -------------------------------------------------------------------- ##
+    if plot_dir is not None:
+        ## ----------------------------------------- ##
+        ## Scatter plot
+        ## ----------------------------------------- ##
+        fig, ax, c = gc.plot_comparison(data['OBS'].values, data['MOD'].values,
+                                        lims=[1750, 1950], vmin=0, vmax=3e4,
+                                        xlabel='Observation', ylabel='Model')
+        ax.set_xticks(np.arange(1750, 2000, 100))
+        ax.set_yticks(np.arange(1750, 2000, 100))
+        fp.save_fig(fig, plot_dir, f'prior_bias{suffix}')
+        plt.close()
 
-    ## ----------------------------------------- ##
-    ## Scatter plot
-    ## ----------------------------------------- ##
-    fig, ax, c = gc.plot_comparison(data['OBS'].values, data['MOD'].values,
-                                    lims=[1750, 1950], vmin=0, vmax=3e4,
-                                    xlabel='Observation', ylabel='Model')
-    ax.set_xticks(np.arange(1750, 2000, 100))
-    ax.set_yticks(np.arange(1750, 2000, 100))
-    fp.save_fig(fig, plot_dir, f'prior_bias{suffix}')
-    plt.close()
+        ## ----------------------------------------- ##
+        ## Spatial bias
+        ## ----------------------------------------- ##
+        fig, ax = fp.get_figax(maps=True, lats=s_b.lats, lons=s_b.lons)
+        c = s_b.plot(ax=ax, cmap='RdBu_r', vmin=-30, vmax=30,
+                     add_colorbar=False)
+        cax = fp.add_cax(fig, ax)
+        cb = fig.colorbar(c, ax=ax, cax=cax)
+        cb = fp.format_cbar(cb, 'Model - Observation')
+        ax = fp.format_map(ax, s_b.lats, s_b.lons)
+        ax = fp.add_title(ax, 'Spatial Bias in Prior Run')
+        fp.save_fig(fig, plot_dir, f'prior_spatial_bias{suffix}')
+        plt.close()
 
-    ## ----------------------------------------- ##
-    ## Spatial bias
-    ## ----------------------------------------- ##
-    fig, ax = fp.get_figax(maps=True, lats=s_b.lats, lons=s_b.lons)
-    c = s_b.plot(ax=ax, cmap='RdBu_r', vmin=-30, vmax=30, add_colorbar=False)
-    cax = fp.add_cax(fig, ax)
-    cb = fig.colorbar(c, ax=ax, cax=cax)
-    cb = fp.format_cbar(cb, 'Model - Observation')
-    ax = fp.format_map(ax, s_b.lats, s_b.lons)
-    ax = fp.add_title(ax, 'Spatial Bias in Prior Run')
-    fp.save_fig(fig, plot_dir, f'prior_spatial_bias{suffix}')
-    plt.close()
+        ## ----------------------------------------- ##
+        ## Latitudinal bias
+        ## ----------------------------------------- ##
+        l_b['LAT'] = l_b['LAT_BIN'].apply(lambda x: x.mid)
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'],
+                    color=fp.color(4))
+        ax.set_xticks(np.arange(10, 70, 10))
+        ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
+        ax = fp.add_title(ax, 'Latitudinal Bias in Prior Run')
+        fp.save_fig(fig, plot_dir, f'prior_latitudinal_bias{suffix}')
 
-    ## ----------------------------------------- ##
-    ## Latitudinal bias
-    ## ----------------------------------------- ##
-    l_b['LAT'] = l_b['LAT_BIN'].apply(lambda x: x.mid)
-    fig, ax = fp.get_figax(aspect=1.75)
-    ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'], color=fp.color(4))
-    ax.set_xticks(np.arange(10, 70, 10))
-    ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
-    ax = fp.add_title(ax, 'Latitudinal Bias in Prior Run')
-    fp.save_fig(fig, plot_dir, f'prior_latitudinal_bias{suffix}')
+        ## ----------------------------------------- ##
+        ## Monthly bias
+        ## ----------------------------------------- ##
+        m_b['month'] = pd.to_datetime(m_b['MONTH'], format='%m')
+        m_b['month'] = m_b['month'].dt.month_name().str[:3]
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.errorbar(m_b['month'], m_b['mean'], yerr=m_b['std'],
+                    color=fp.color(4))
+        ax = fp.add_labels(ax, 'Month', 'Model - Observation')
+        ax = fp.add_title(ax, 'Seasonal Bias in Prior Run')
+        fp.save_fig(fig, plot_dir, f'prior_seasonal_bias{suffix}')
+        plt.close()
 
-    ## ----------------------------------------- ##
-    ## Monthly bias
-    ## ----------------------------------------- ##
-    m_b['month'] = pd.to_datetime(m_b['MONTH'], format='%m')
-    m_b['month'] = m_b['month'].dt.month_name().str[:3]
-    fig, ax = fp.get_figax(aspect=1.75)
-    ax.errorbar(m_b['month'], m_b['mean'], yerr=m_b['std'], color=fp.color(4))
-    ax = fp.add_labels(ax, 'Month', 'Model - Observation')
-    ax = fp.add_title(ax, 'Seasonal Bias in Prior Run')
-    fp.save_fig(fig, plot_dir, f'prior_seasonal_bias{suffix}')
-    plt.close()
+        ## ----------------------------------------- ##
+        ## Seasonal latitudinal bias
+        ## ----------------------------------------- ##
+        lm_b['LAT'] = lm_b['LAT_BIN'].apply(lambda x: x.mid)
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'],
+                    color=fp.color(4))
+        ax.set_xticks(np.arange(10, 70, 10))
+        ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
+        ax = fp.add_title(ax, f'Latitudinal Bias in Prior Run')
+        linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
+        for i, season in enumerate(np.unique(lm_b['SEASON'])):
+            d = lm_b[lm_b['SEASON'] == season]
+            ax.plot(d['LAT'].values, d['mean'].values, color=fp.color(4),
+                    label=season, ls=linestyles[i], lw=0.5)
+        fp.add_legend(ax)
+        fp.save_fig(fig, plot_dir,
+                    f'prior_seasonal_latitudinal_bias{suffix}')
+        plt.close()
 
-    ## ----------------------------------------- ##
-    ## Seasonal latitudinal bias
-    ## ----------------------------------------- ##
-    lm_b['LAT'] = lm_b['LAT_BIN'].apply(lambda x: x.mid)
-    fig, ax = fp.get_figax(aspect=1.75)
-    ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'], color=fp.color(4))
-    ax.set_xticks(np.arange(10, 70, 10))
-    ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
-    ax = fp.add_title(ax, f'Latitudinal Bias in Prior Run')
-    linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
-    for i, season in enumerate(np.unique(lm_b['SEASON'])):
-        d = lm_b[lm_b['SEASON'] == season]
-        ax.plot(d['LAT'].values, d['mean'].values, color=fp.color(4),
-                label=season, ls=linestyles[i], lw=0.5)
-    fp.add_legend(ax)
-    fp.save_fig(fig, plot_dir,
-                f'prior_seasonal_latitudinal_bias{suffix}')
-    plt.close()
-
-    ## ----------------------------------------- ##
-    ## Albedo bias
-    ## ----------------------------------------- ##
-    a_b['ALBEDO'] = a_b['ALBEDO_BIN'].apply(lambda x: x.mid)
-    fig, ax = fp.get_figax(aspect=1.75)
-    ax.errorbar(a_b['ALBEDO'], a_b['mean'], yerr=a_b['std'], color=fp.color(4))
-    ax.set_xticks(np.arange(0, 1, 0.2))
-    ax = fp.add_labels(ax, 'Albedo', 'Model - Observation')
-    ax = fp.add_title(ax, 'Albedo Bias in Prior Run')
-    fp.save_fig(fig, plot_dir, f'prior_albedo_bias{suffix}')
-    plt.close()
+        ## ----------------------------------------- ##
+        ## Albedo bias
+        ## ----------------------------------------- ##
+        a_b['ALBEDO'] = a_b['ALBEDO_BIN'].apply(lambda x: x.mid)
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.errorbar(a_b['ALBEDO'], a_b['mean'], yerr=a_b['std'],
+                    color=fp.color(4))
+        ax.set_xticks(np.arange(0, 1, 0.2))
+        ax = fp.add_labels(ax, 'Albedo', 'Model - Observation')
+        ax = fp.add_title(ax, 'Albedo Bias in Prior Run')
+        fp.save_fig(fig, plot_dir, f'prior_albedo_bias{suffix}')
+        plt.close()
 
 ## ------------------------------------------------------------------------ ##
 ## Calculate So
