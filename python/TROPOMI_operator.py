@@ -60,16 +60,12 @@ def filter_tropomi(data, date, lon_min, lon_max, lat_min, lat_max):
     data = data.where(data['xch4_corrected'] != 9.96921e36, drop=True)
 
     # Filter on lat/lon domain
-    print(lon_min, lon_max, lat_min, lat_max)
-    print(data.shape)
     data = data.where((data['longitude_center'] >= lon_min) &
                       (data['longitude_center'] <= lon_max),
                       drop=True)
-    print(data.shape)
     data = data.where((data['latitude_center'] >= lat_min) &
                       (data['latitude_center'] <= lat_max),
                       drop=True)
-    print(data.shape)
 
     # Filter on dates
     data = data.where(((data['time'][:, 0] == int(date[:4]))
@@ -397,7 +393,7 @@ if __name__ == '__main__':
         print('=========== %s ===========' % date)
         preprocess = lambda d: filter_tropomi(d, date,
                                               s.lon_min, s.lon_max,
-                                              s.lat_min, s.lon_max)
+                                              s.lat_min, s.lat_max)
         TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
                                     combine='nested',
                                     chunks=10000,
