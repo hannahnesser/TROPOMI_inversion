@@ -52,8 +52,7 @@ def load_obj(name):
     with open( name, 'rb') as f:
         return pickle.load(f)
 
-def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
-                   lat_min, lat_max, lat_delta):
+def filter_tropomi(data, date, lon_min, lon_max, lat_min, lat_max):
     # Filter on qa_value
     data = data.where(data['qa_value'] > 0.5, drop=True)
 
