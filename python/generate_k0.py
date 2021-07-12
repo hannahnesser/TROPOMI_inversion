@@ -28,8 +28,10 @@ sys.path.append(code_dir)
 import gcpy as gc
 import inversion_settings as settings
 
-# Files
+# Month
 month = int(sys.argv[1])
+
+# Files
 obs_file = f'{data_dir}/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
 k_nstate_file = f'{data_dir}k0_nstate.nc' # None
