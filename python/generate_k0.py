@@ -43,7 +43,7 @@ available_memory_GB = int(sys.argv[2])
 ## ------------------------------------------------------------------------ ##
 ## Load the clusters
 ## ------------------------------------------------------------------------ ##
-clusters = xr.open_dataset(cluster_file)
+clusters = xr.open_dataarray(cluster_file)
 nstate = int(clusters['Clusters'].max().values)
 print(f'Number of state vector elements : {nstate}')
 
@@ -62,9 +62,9 @@ print(f'Number of observations : {nobs}')
 # I don't have that information for the cluster files)
 
 # First, find the cluster number of the grid box of the obs
-lat_idx = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
-lon_idx = gc.nearest_loc(obs['LON'].values, emis.lon.values)
-obs['CLUSTER'] = emis['Clusters'].values[lat_idx, lon_idx]
+lat_idx = gc.nearest_loc(obs['LAT'].values, clusters.lat.values)
+lon_idx = gc.nearest_loc(obs['LON'].values, clusters.lon.values)
+obs['CLUSTER'] = clusters.values[lat_idx, lon_idx]
 
 # Subset to reduce memory needs
 obs = obs[['CLUSTER', 'MONTH']]
