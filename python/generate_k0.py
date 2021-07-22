@@ -9,6 +9,7 @@ Inputs:
 if __name__ == '__main__':
     from os.path import join
     import sys
+    import time
 
     import xarray as xr
     import numpy as np
@@ -121,9 +122,11 @@ if __name__ == '__main__':
                                          'month' : 1})
     k_nstate = k_nstate.sel(month=month)
 
+    start_time = time.time()
     k_m = k_nstate[obs['CLUSTER'].values, :]
-    with ProgressBar():
-        k_m.to_netcdf(f'{output_dir}k0_m{month:02d}.nc')
+    k_m.to_netcdf(f'{output_dir}k0_m{month:02d}.nc')
+    active_time = time.time() - start.time()
+    print(f'Month {month} saved ({active_time} s).')
 
     # Shutdown the client.
     client.shutdown()
