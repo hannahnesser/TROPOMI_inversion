@@ -4,7 +4,7 @@
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 8
 #SBATCH -N 1
-#SBATCH -p huce_intel
+#SBATCH -p huce_cascade
 #SBATCH --mem 30000
 #SBATCH -t 0-00:30
 #SBATCH --mail-type=END
