@@ -7,7 +7,6 @@ Inputs:
                     to account for monthly variations in
 '''
 if __name__ == '__main__':
-    freeze_support()
     from os.path import join
     import sys
 
