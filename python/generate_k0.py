@@ -83,7 +83,8 @@ if __name__ == '__main__':
     import dask.config
     dask.config.set({'distributed.comm.timeouts.connect' : 90,
                      'distributed.comm.timeouts.tcp' : 150,
-                     'distributed.adaptive.wait-count' : 90})
+                     'distributed.adaptive.wait-count' : 90,
+                     'array.slicing.split_large_chunks' : False})
 
     # Open cluster and client
     # We adaptively choose n_workers and threads_per_worker based on nobs size
