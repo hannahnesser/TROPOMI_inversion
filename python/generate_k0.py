@@ -98,6 +98,7 @@ if __name__ == '__main__':
                            n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
     client = Client(cluster)
+    print(client)
 
     # We now calcualte the optimal chunk size. Our final matrix will be
     # nstate x nstate, so we want our chunks accordingly
