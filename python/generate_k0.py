@@ -44,7 +44,7 @@ available_memory_GB = int(sys.argv[2])
 ## Load the clusters
 ## ------------------------------------------------------------------------ ##
 clusters = xr.open_dataarray(cluster_file)
-nstate = int(clusters['Clusters'].max().values)
+nstate = int(clusters.max().values)
 print(f'Number of state vector elements : {nstate}')
 
 ## ------------------------------------------------------------------------ ##
