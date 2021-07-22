@@ -32,7 +32,7 @@ import inversion_settings as settings
 month = int(sys.argv[1])
 
 # Files
-obs_file = f'{data_dir}/{settings.year}_corrected.pkl'
+obs_file = f'{data_dir}{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
 k_nstate_file = f'{data_dir}k0_nstate.nc' # None
 k_m_file = f'{data_dir}k0_m{month:02d}.nc'
