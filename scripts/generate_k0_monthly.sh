@@ -16,8 +16,6 @@
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
-YEAR="2019"
-MONTH="${SLURM_ARRAY_TASK_ID}"
 MEMORY_GB=45
 # export OMP_NUM_THREADS=4
 
@@ -37,4 +35,4 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_k0.py $MONTH $MEMORY_GB
+python -u ${python_dir}/python/generate_k0.py $MEMORY_GB

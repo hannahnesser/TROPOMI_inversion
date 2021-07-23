@@ -39,7 +39,7 @@ if __name__ == '__main__':
     # k_m_file = f'{data_dir}k0_m{month:02d}.nc'
 
     # Memory constraints
-    available_memory_GB = int(sys.argv[2])
+    available_memory_GB = int(sys.argv[1])
 
     ## -------------------------------------------------------------------- ##
     ## Load the clusters
