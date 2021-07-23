@@ -131,7 +131,7 @@ if __name__ == '__main__':
         # Subset obs
         obs_m = obs[obs['MONTH'] == int(m)]
         nobs_m = obs.shape[0]
-        print(f'In month {month}, there are {nobs_m} observations.')
+        print(f'In month {m}, there are {nobs_m} observations.')
 
 
         # Subset k_n state
