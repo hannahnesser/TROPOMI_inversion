@@ -125,7 +125,7 @@ if __name__ == '__main__':
     start_time = time.time()
     k_m = k_nstate[obs['CLUSTER'].values, :]
     k_m.to_netcdf(f'{output_dir}k0_m{month:02d}.nc')
-    active_time = time.time() - start.time()
+    active_time = time.time() - start_time
     print(f'Month {month} saved ({active_time} s).')
 
     # Shutdown the client.
