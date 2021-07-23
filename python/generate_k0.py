@@ -36,7 +36,7 @@ if __name__ == '__main__':
     obs_file = f'{data_dir}{settings.year}_corrected.pkl'
     cluster_file = f'{data_dir}clusters.nc'
     k_nstate_file = f'{data_dir}k0_nstate.nc' # None
-    k_m_file = f'{data_dir}k0_m{month:02d}.nc'
+    # k_m_file = f'{data_dir}k0_m{month:02d}.nc'
 
     # Memory constraints
     available_memory_GB = int(sys.argv[2])
@@ -130,13 +130,16 @@ if __name__ == '__main__':
 
         # Subset obs
         obs_m = obs[obs['MONTH'] == int(m)]
+        nobs_m = obs.shape[0]
+        print(f'In month {month}, there are {nobs_m} observations.')
+
 
         # Subset k_n state
         start_time = time.time()
         k_m = k_nstate[obs_m['CLUSTER'].values, :]
-        k_m.to_netcdf(f'{output_dir}k0_m{month:02d}.nc')
+        k_m.to_netcdf(f'{output_dir}k0_m{m:02d}.nc')
         active_time = (time.time() - start_time)/60
-        print(f'Month {month} saved ({active_time:d} min).')
+        print(f'Month {m} saved ({active_time:d} min).')
 
         # Shutdown the client.
         client.shutdown()
