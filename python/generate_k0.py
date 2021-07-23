@@ -30,7 +30,7 @@ if __name__ == '__main__':
     import inversion_settings as settings
 
     # Month
-    month = int(sys.argv[1])
+    # month = int(sys.argv[1])
 
     # Files
     obs_file = f'{data_dir}{settings.year}_corrected.pkl'
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     ## Load and process the observations
     ## -------------------------------------------------------------------- ##
     obs = gc.load_obj(obs_file)[['LON', 'LAT', 'MONTH']]
-    obs = obs[obs['MONTH'] == month]
+    # obs = obs[obs['MONTH'] == month]
 
     nobs = int(obs.shape[0])
     print(f'Number of observations : {nobs}')
@@ -69,9 +69,9 @@ if __name__ == '__main__':
 
     # Subset to reduce memory needs
     obs = obs[['CLUSTER', 'MONTH']]
-    obs = obs[obs['MONTH'] == month]
-    nobs = obs.shape[0]
-    print(f'In month {month}, there are {nobs} observations.')
+    # obs = obs[obs['MONTH'] == month]
+    # nobs = obs.shape[0]
+    # print(f'In month {month}, there are {nobs} observations.')
 
     # Format
     obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
@@ -87,19 +87,13 @@ if __name__ == '__main__':
                      'distributed.adaptive.wait-count' : 90,
                      'array.slicing.split_large_chunks' : False})
 
-    # Open cluster and client
-    # We adaptively choose n_workers and threads_per_worker based on nobs size
-    if nobs > 3e5:
-        n_workers = 1
-        threads_per_worker = 2
-    else:
-        n_workers = 3
-        threads_per_worker = 2
+    # Open cluster
+    n_workers = 1
+    threads_per_worker = 2
     cluster = LocalCluster(local_directory=output_dir,
                            n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
-    client = Client(cluster)
-    print(client)
+
 
     # We now calcualte the optimal chunk size. Our final matrix will be
     # nstate x nstate, so we want our chunks accordingly
@@ -116,17 +110,36 @@ if __name__ == '__main__':
     ## -------------------------------------------------------------------- ##
     ## Generate a monthly K0
     ## -------------------------------------------------------------------- ##
-    k_nstate = xr.open_dataarray(k_nstate_file,
-                                 chunks={'nobs' : nobs_chunk,
-                                         'nstate' : nstate_chunk,
-                                         'month' : 1})
-    k_nstate = k_nstate.sel(month=month)
+    # Iterate through the months
+    for m in s.months:
+        print('-'*75)
+        print(f'Month {m}')
 
-    start_time = time.time()
-    k_m = k_nstate[obs['CLUSTER'].values, :]
-    k_m.to_netcdf(f'{output_dir}k0_m{month:02d}.nc')
-    active_time = time.time() - start_time
-    print(f'Month {month} saved ({active_time} s).')
+        # Open client
+        client = Client(cluster)
+        print(client)
 
-    # Shutdown the client.
-    client.shutdown()
+        # Open k_nstate and select the month
+        # Unfortunately, this has to be in the loop because we restart the
+        # client each time
+        k_nstate = xr.open_dataarray(k_nstate_file,
+                                     chunks={'nobs' : nobs_chunk,
+                                             'nstate' : nstate_chunk,
+                                             'month' : 1})
+        k_nstate = k_nstate.sel(month=m)
+
+        # Subset obs
+        obs_m = obs[obs['MONTH'] == int(m)]
+
+        # Subset k_n state
+        start_time = time.time()
+        k_m = k_nstate[obs_m['CLUSTER'].values, :]
+        k_m.to_netcdf(f'{output_dir}k0_m{month:02d}.nc')
+        active_time = (time.time() - start_time)/60
+        print(f'Month {month} saved ({active_time:d} min).')
+
+        # Shutdown the client.
+        client.shutdown()
+
+    # For some reason, the code doesn't exit.
+    sys.exit()
