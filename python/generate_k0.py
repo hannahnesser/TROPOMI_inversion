@@ -57,24 +57,15 @@ if __name__ == '__main__':
     nobs = int(obs.shape[0])
     print(f'Number of observations : {nobs}')
 
-    # Find the indices that correspond to each observation (i.e. the grid
-    # box in which each observation is found) (Yes, this information should
-    # be contained in the iGC and jGC columns in obs_file, but stupidly
-    # I don't have that information for the cluster files)
-
-    # First, find the cluster number of the grid box of the obs
-    lat_idx = gc.nearest_loc(obs['LAT'].values, clusters.lat.values)
-    lon_idx = gc.nearest_loc(obs['LON'].values, clusters.lon.values)
-    obs['CLUSTER'] = clusters.values[lat_idx, lon_idx]
-
     # Subset to reduce memory needs
-    obs = obs[['CLUSTER', 'MONTH']]
+    obs = obs[['LAT', 'LON', 'MONTH']]
+    obs[['MONTH']] = obs[['MONTH']].astype(int)
     # obs = obs[obs['MONTH'] == month]
     # nobs = obs.shape[0]
     # print(f'In month {month}, there are {nobs} observations.')
 
     # Format
-    obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
+    # obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
 
     ## -------------------------------------------------------------------- ##
     ## Set up a dask client and cacluate the optimal chunk size
@@ -133,13 +124,21 @@ if __name__ == '__main__':
         nobs_m = obs.shape[0]
         print(f'In month {m}, there are {nobs_m} observations.')
 
+        # Find the indices that correspond to each observation (i.e. the grid
+        # box in which each observation is found) (Yes, this information should
+        # be contained in the iGC and jGC columns in obs_file, but stupidly
+        # I don't have that information for the cluster files)
+        # First, find the cluster number of the grid box of the obs
+        lat_idx = gc.nearest_loc(obs_m['LAT'].values, clusters.lat.values)
+        lon_idx = gc.nearest_loc(obs_m['LON'].values, clusters.lon.values)
+        obs_m['CLUSTER'] = clusters.values[lat_idx, lon_idx].astype(int)
 
         # Subset k_n state
         start_time = time.time()
         k_m = k_nstate[obs_m['CLUSTER'].values, :]
         k_m.to_netcdf(f'{output_dir}k0_m{m:02d}.nc')
         active_time = (time.time() - start_time)/60
-        print(f'Month {m} saved ({active_time:d} min).')
+        print(f'Month {m} saved ({active_time} min).')
 
         # Shutdown the client.
         client.shutdown()
