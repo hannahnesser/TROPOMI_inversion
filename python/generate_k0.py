@@ -115,7 +115,7 @@ if __name__ == '__main__':
                                      chunks={'nobs' : nobs_chunk,
                                              'nstate' : nstate_chunk,
                                              'month' : 1})
-        k_nstate = k_nstate.sel(month=m)
+        k_nstate = k_nstate.sel(month=(m-1)) # obnoxious pythonic indexing
 
         # Subset obs
         obs_m = obs[obs['MONTH'] == int(m)]
