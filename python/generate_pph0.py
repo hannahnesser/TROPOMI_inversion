@@ -18,6 +18,7 @@ if __name__ == '__main__':
     # Import custom packages
     import sys
     sys.path.append(code_dir)
+    import gcpy as gc
     import inversion_settings as s
 
     # Month
