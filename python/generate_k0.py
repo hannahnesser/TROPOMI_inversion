@@ -84,6 +84,8 @@ if __name__ == '__main__':
     cluster = LocalCluster(local_directory=output_dir,
                            n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
+    # Open client
+    client = Client(cluster)
 
 
     # We now calcualte the optimal chunk size. Our final matrix will be
