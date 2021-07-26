@@ -29,7 +29,7 @@ if __name__ == '__main__':
     available_memory_GB = int(sys.argv[2])
 
     # Files
-    k_nstate = f'{data_dir}k0_m{month:02d}.nc'#None
+    k_m_file = f'{data_dir}k0_m{month:02d}.nc'#None
 
     ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # Get the indices for the month using generic chunks
     i0 = 0
     for m in s.months:
-        k_m = gc.read_file(f'{data_dir}k0_m{m:02d}', chunks=chunks)
+        k_m = gc.read_file(k_m_file, chunks=chunks)
         i1 = i0 + k_m.shape[0]
         if m != month:
             i0 = i1
