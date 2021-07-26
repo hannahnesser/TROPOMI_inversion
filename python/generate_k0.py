@@ -135,7 +135,8 @@ if __name__ == '__main__':
 
         # Subset k_n state
         start_time = time.time()
-        k_m = k_nstate[idx, :]
+        k_m = k_nstate[idx, :].chunk({'nobs' : nobs_chunk,
+                                      'nstate' : nstate_chunk})
         k_m.to_netcdf(f'{output_dir}k0_m{m:02d}.nc')
         active_time = (time.time() - start_time)/60
         print(f'Month {m} saved ({active_time} min).')
