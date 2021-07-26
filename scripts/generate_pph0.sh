@@ -18,6 +18,7 @@
 DATA_DIR="${1}"
 CODE_DIR="${2}"
 MONTH="${SLURM_ARRAY_TASK_ID}"
+MEMORY_GB=45
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
@@ -35,7 +36,4 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-echo "${DATA_DIR}"
-echo "${CODE_DIR}"
-echo "${MONTH}"
-python -u ${python_dir}/python/generate_pph0.py ${MONTH} ${DATA_DIR} ${CODE_DIR}
+python -u ${python_dir}/python/generate_pph0.py ${MONTH} ${MEMORY_GB} ${DATA_DIR} ${CODE_DIR}
