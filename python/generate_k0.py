@@ -79,7 +79,7 @@ if __name__ == '__main__':
                      'array.slicing.split_large_chunks' : False})
 
     # Open cluster
-    n_workers = 1
+    n_workers = 3
     threads_per_worker = 2
     cluster = LocalCluster(local_directory=output_dir,
                            n_workers=n_workers,
@@ -93,7 +93,7 @@ if __name__ == '__main__':
                                              n_threads=n_threads)
     # We take the squareroot of the max chunk size and scale it down by 5
     # to be safe. It's a bit unclear why this works best in tests.
-    nstate_chunk = int(np.sqrt(max_chunk_size)/5)
+    nstate_chunk = nstate #int(np.sqrt(max_chunk_size)/5)
     nobs_chunk = int(max_chunk_size/nstate_chunk)
     print('State vector chunks : ', nstate_chunk)
     print('Obs vector chunks   : ', nobs_chunk)
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
         # Subset obs
         obs_m = obs[obs['MONTH'] == int(m)]
-        nobs_m = obs.shape[0]
+        nobs_m = obs_m.shape[0]
         print(f'In month {m}, there are {nobs_m} observations.')
 
         # Find the indices that correspond to each observation (i.e. the grid
@@ -131,7 +131,8 @@ if __name__ == '__main__':
         # First, find the cluster number of the grid box of the obs
         lat_idx = gc.nearest_loc(obs_m['LAT'].values, clusters.lat.values)
         lon_idx = gc.nearest_loc(obs_m['LON'].values, clusters.lon.values)
-        obs_m['CLUSTER'] = clusters.values[lat_idx, lon_idx].astype(int)
+        obs_m['CLUSTER'] = clusters.values[lat_idx, lon_idx]
+        obs_m['CLUSTER'] = obs_m['CLUSTER'].astype(int)
 
         # Subset k_n state
         start_time = time.time()
