@@ -35,4 +35,7 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
+echo "${DATA_DIR}"
+echo "${CODE_DIR}"
+echo "${MONTH}"
 python -u ${python_dir}/python/generate_pph0.py ${MONTH} ${DATA_DIR} ${CODE_DIR}
