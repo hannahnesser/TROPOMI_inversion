@@ -10,6 +10,7 @@ if __name__ == '__main__':
     ## Set user preferences
     ## ---------------------------------------------------------------------##
     # Cannon
+    print(sys.argv)
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
     data_dir = sys.argv[2]
