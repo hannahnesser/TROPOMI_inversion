@@ -6,7 +6,7 @@
 #SBATCH -N 1
 #SBATCH -p huce_cascade
 #SBATCH --mem 45000
-#SBATCH -t 0-24:00
+#SBATCH -t 0-10:00
 #SBATCH --mail-type=END
 
 # 30 GB should be big enough for most months. Adaptive
