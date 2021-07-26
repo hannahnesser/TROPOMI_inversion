@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # Open cluster and client
     n_workers = 1
     threads_per_worker = 2
-    cluster = LocalCluster(local_directory=output_dir,
+    cluster = LocalCluster(local_directory=data_dir,
                            n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
     client = Client(cluster)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     #                      name=f'pph0_m{month:02d}')
 
     # # Save out
-    # pph_m.to_netcdf(f'{output_dir}pph0_m{month:02d}.nc')
+    # pph_m.to_netcdf(f'{data_dir}pph0_m{month:02d}.nc')
 
     # exit
     sys.exit()
