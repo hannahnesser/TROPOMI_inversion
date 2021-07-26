@@ -131,12 +131,11 @@ if __name__ == '__main__':
         # First, find the cluster number of the grid box of the obs
         lat_idx = gc.nearest_loc(obs_m['LAT'].values, clusters.lat.values)
         lon_idx = gc.nearest_loc(obs_m['LON'].values, clusters.lon.values)
-        obs_m['CLUSTER'] = clusters.values[lat_idx, lon_idx]
-        obs_m['CLUSTER'] = obs_m['CLUSTER'].astype(int)
+        idx = clusters.values[lat_idx, lon_idx].astype(int).values
 
         # Subset k_n state
         start_time = time.time()
-        k_m = k_nstate[obs_m['CLUSTER'].values, :]
+        k_m = k_nstate[idx, :]
         k_m.to_netcdf(f'{output_dir}k0_m{m:02d}.nc')
         active_time = (time.time() - start_time)/60
         print(f'Month {m} saved ({active_time} min).')
