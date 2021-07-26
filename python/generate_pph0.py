@@ -32,13 +32,11 @@ if __name__ == '__main__':
     ## Load pertinent data that defines state and observational dimension
     ## ---------------------------------------------------------------------##
     # Observational error
-    so = gc.read_file(f'{data_dir}so.nc', chunks=nobs_chunk)
-    so = so.compute()
+    so = gc.read_file(f'{data_dir}so.nc')
     nobs_tot = so.shape[0]
 
     # Prior error
-    sa = gc.read_file(f'{data_dir}sa.nc', chunks=nstate_chunk)
-    sa = sa.compute()
+    sa = gc.read_file(f'{data_dir}sa.nc')
     nstate = sa.shape[0]
 
     ## -------------------------------------------------------------------- ##
