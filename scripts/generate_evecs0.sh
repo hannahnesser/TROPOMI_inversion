@@ -9,6 +9,8 @@ CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python/"
 # sbatch generate_k0_nstate data_dir code_dir
 jid1=$(sbatch --array=1-12 generate_pph0.sh ${DATA_DIR} ${CODE_DIR})
 
+sbatch --array=1 generate_pph0.sh ${DATA_DIR} ${CODE_DIR}
+
 # # Second, generate the first guess of the m x n Jacobian on a monthly basis
 # # Command structure:
 # # sbatch generate_k0_monthly.sh data_dir output_dir code_dir
