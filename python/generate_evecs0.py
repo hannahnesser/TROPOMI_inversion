@@ -146,25 +146,25 @@ a = (sa**0.5)
 # print('... Complete ...\n')
 
 
-#
-#         # temp = ev.where(ev.perturbation == p, drop=True).drop('perturbation').squeeze('perturbation')
-d.lat.attrs = {'long_name': 'latitude', 'units': 'degrees_north'}
-d.lon.attrs = {'long_name': 'longitude', 'units': 'degrees_east'}
-d.time.attrs = {'long_name' : 'Time'}
-d['evec_perturbations'].attrs = {'long_name' : 'Eigenvector perturbations',
-                                 'units' : 'kg/m2/s'}
-d.to_netcdf('/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ/evec_perturbations_0001_scaled_1e-8.nc',
-               encoding={'evec_perturbations' : {'_FillValue' : None,
-                                                 'dtype' : 'float32'},
-                         'time' : {'_FillValue' : None, 'dtype' : 'float32',
-                                   'calendar' : 'standard',
-                                   'units' : 'hours since 2009-01-01 00:00:00'},
-                         'lat' : {'_FillValue' : None, 'dtype' : 'float32'},
-                         'lon' : {'_FillValue' : None, 'dtype' : 'float32'}})
+# #
+# #         # temp = ev.where(ev.perturbation == p, drop=True).drop('perturbation').squeeze('perturbation')
+# d.lat.attrs = {'long_name': 'latitude', 'units': 'degrees_north'}
+# d.lon.attrs = {'long_name': 'longitude', 'units': 'degrees_east'}
+# d.time.attrs = {'long_name' : 'Time'}
+# d['evec_perturbations'].attrs = {'long_name' : 'Eigenvector perturbations',
+#                                  'units' : 'kg/m2/s'}
+# d.to_netcdf('/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations_ZQ/evec_perturbations_0001_scaled_1e-8.nc',
+#                encoding={'evec_perturbations' : {'_FillValue' : None,
+#                                                  'dtype' : 'float32'},
+#                          'time' : {'_FillValue' : None, 'dtype' : 'float32',
+#                                    'calendar' : 'standard',
+#                                    'units' : 'hours since 2009-01-01 00:00:00'},
+#                          'lat' : {'_FillValue' : None, 'dtype' : 'float32'},
+#                          'lon' : {'_FillValue' : None, 'dtype' : 'float32'}})
 
-# # need to set attribute dictionaries for lat
-# # lon, time, and the evec_pertuurbations, complete
-# # with units
+# # # need to set attribute dictionaries for lat
+# # # lon, time, and the evec_pertuurbations, complete
+# # # with units
 
-d.time.attrs = {'long_name' : 'Time', 'units' : 'hours since 2009-01-01 00:00:00', 'calendar' : 'standard'}
+# d.time.attrs = {'long_name' : 'Time', 'units' : 'hours since 2009-01-01 00:00:00', 'calendar' : 'standard'}
 
