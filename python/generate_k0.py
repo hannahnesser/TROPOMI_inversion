@@ -106,10 +106,6 @@ if __name__ == '__main__':
         print('-'*75)
         print(f'Month {m}')
 
-        # Open client
-        client = Client(cluster)
-        print(client)
-
         # Open k_nstate and select the month
         # Unfortunately, this has to be in the loop because we restart the
         # client each time
@@ -141,8 +137,8 @@ if __name__ == '__main__':
         active_time = (time.time() - start_time)/60
         print(f'Month {m} saved ({active_time} min).')
 
-        # Shutdown the client.
-        client.shutdown()
+        # Restart the client.
+        client.restart()
 
     # For some reason, the code doesn't exit.
     sys.exit()
