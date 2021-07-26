@@ -10,10 +10,16 @@
 #SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
+## Set user preferences
+## -------------------------------------------------------------------------##
+# Directories
+DATA_DIR="${1}"
+OUTPUT_DIR="${2}"
+CODE_DIR="${3}"
+
+## -------------------------------------------------------------------------##
 ## Load the environment
 ## -------------------------------------------------------------------------##
-export OMP_NUM_THREADS=4
-
 echo "Activating python environment"
 
 module load Anaconda3/5.0.1-fasrc01
@@ -27,4 +33,7 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_k0_nstate.py
+python -u ${python_dir}/python/generate_k0_nstate.py ${DATA_DIR} ${CODE_DIR}
+
+# And make a symbolic link
+ln -s "${DATA_DIR}k0_nstate.nc" "${OUTPUT_DIR}k0_nstate.nc"
