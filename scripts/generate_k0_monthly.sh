@@ -5,8 +5,8 @@
 #SBATCH -c 12
 #SBATCH -N 1
 #SBATCH -p huce_cascade
-#SBATCH --mem 45000
-#SBATCH -t 0-10:00
+#SBATCH --mem 35000
+#SBATCH -t 0-02:00
 #SBATCH --mail-type=END
 
 # 30 GB should be big enough for most months. Adaptive
@@ -16,8 +16,10 @@
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
+DATA_DIR="${1}"
+OUTPUT_DIR="${2}"
+CODE_DIR="${3}"
 MEMORY_GB=45
-# export OMP_NUM_THREADS=4
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
@@ -35,4 +37,4 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_k0.py $MEMORY_GB
+python -u ${python_dir}/python/generate_k0_monthly.py ${MEMORY_GB} ${DATA_DIR} ${OUTPUT_DIR} ${CODE_DIR}
