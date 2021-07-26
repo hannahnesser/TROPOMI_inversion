@@ -29,7 +29,7 @@ if __name__ == '__main__':
     available_memory_GB = int(sys.argv[2])
 
     # Files
-    k_nstate = f'{data_dir}k0_m{month:02d}'#None
+    k_nstate = f'{data_dir}k0_m{month:02d}.nc'#None
 
     ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
