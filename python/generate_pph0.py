@@ -1,53 +1,47 @@
 
 if __name__ == '__main__':
-    # import copy
-    import os
-    from os.path import join
-    import math
-    # import itertools
-    import pickle
-
     import xarray as xr
     import dask.array as da
     import numpy as np
     import pandas as pd
-    from scipy.linalg import eigh
 
-    ## -------------------------------------------------------------------------##
+    ## ---------------------------------------------------------------------##
     ## Set user preferences
-    ## -------------------------------------------------------------------------##
+    ## ---------------------------------------------------------------------##
     # Cannon
-    code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
-    data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
+    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
+    # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
+    data_dir = sys.argv[2]
+    code_dir = sys.argv[3]
 
     # Import custom packages
     import sys
     sys.path.append(code_dir)
-    import inversion as inv
     import inversion_settings as s
 
     # Month
+    # month = 1
     month = int(sys.argv[1])
 
     # Files
     k_nstate = f'{data_dir}k0_m{month:02d}'#None
 
-    ## -------------------------------------------------------------------------##
+    ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
-    ## -------------------------------------------------------------------------##
+    ## ---------------------------------------------------------------------##
     # Observational error
-    so = gc.read_file(so_file, chunks=nobs_chunk)
+    so = gc.read_file(f'{data_dir}so.nc', chunks=nobs_chunk)
     so = so.compute()
     nobs_tot = so.shape[0]
 
     # Prior error
-    sa = gc.read_file(sa_file, chunks=nstate_chunk)
+    sa = gc.read_file(f'{data_dir}sa.nc', chunks=nstate_chunk)
     sa = sa.compute()
     nstate = sa.shape[0]
 
-    ## ------------------------------------------------------------------------ ##
+    ## -------------------------------------------------------------------- ##
     ## Set up a dask client and cacluate the optimal chunk size
-    ## ------------------------------------------------------------------------ ##
+    ## -------------------------------------------------------------------- ##
     from dask.distributed import Client, LocalCluster, progress
     from dask.diagnostics import ProgressBar
     import dask.config
@@ -76,9 +70,9 @@ if __name__ == '__main__':
     print('State vector chunks : ', nstate_chunk)
     print('Obs vector chunks   : ', nobs_chunk)
 
-    ## -------------------------------------------------------------------------##
+    ## ---------------------------------------------------------------------##
     ## Generate the prior pre-conditioned Hessian for that month
-    ## -------------------------------------------------------------------------##
+    ## ---------------------------------------------------------------------##
     # Get the indices for the month using generic chunks
     i0 = 0
     for m in s.months:
