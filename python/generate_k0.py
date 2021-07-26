@@ -131,7 +131,7 @@ if __name__ == '__main__':
         # First, find the cluster number of the grid box of the obs
         lat_idx = gc.nearest_loc(obs_m['LAT'].values, clusters.lat.values)
         lon_idx = gc.nearest_loc(obs_m['LON'].values, clusters.lon.values)
-        idx = clusters.values[lat_idx, lon_idx].astype(int).values
+        idx = clusters.values[lat_idx, lon_idx].astype(int)
 
         # Subset k_n state
         start_time = time.time()
