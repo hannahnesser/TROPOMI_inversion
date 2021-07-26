@@ -104,7 +104,7 @@ if __name__ == '__main__':
     ## Generate a monthly K0
     ## -------------------------------------------------------------------- ##
     # Iterate through the months
-    for m in range(1, 3):#s.months:
+    for m in s.months:
         print('-'*75)
         print(f'Month {m}')
 
