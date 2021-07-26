@@ -8,12 +8,9 @@ Inputs:
                     It is a list of monthly output HEMCO diagnostics files
                     to account for monthly variations in
 '''
-
-from os.path import join
+# Basic imports
 import sys
-
 import xarray as xr
-from dask.diagnostics import ProgressBar
 import numpy as np
 import pandas as pd
 
@@ -21,10 +18,9 @@ import pandas as pd
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Cannon
-base_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
-code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
+base_dir = sys.argv[1]
 data_dir = f'{base_dir}inversion_data/'
-output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
+code_dir = sys.argv[2]
 
 # Import custom packages
 sys.path.append(code_dir)
@@ -196,4 +192,4 @@ for i in range(1, nstate+1):
 
 # Save
 k_nstate = xr.DataArray(data=k_nstate, dims=('nobs', 'nstate', 'month'))
-k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'))
+k_nstate.to_netcdf(f'{data_dir}k0_nstate.nc')
