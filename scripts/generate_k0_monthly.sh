@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -J save_k0
+#SBATCH -J save_k0_monthly
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 12
 #SBATCH -N 1
