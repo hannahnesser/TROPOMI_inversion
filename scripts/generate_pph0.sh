@@ -2,12 +2,15 @@
 
 #SBATCH -J save_pph0
 #SBATCH -o %x_%j_%a.out
-#SBATCH -c 12
+#SBATCH -c 1
 #SBATCH -N 1
 #SBATCH -p huce_cascade
-#SBATCH --mem 45000
-#SBATCH -t 0-01:00
+#SBATCH --mem 1000
+#SBATCH -t 0-10:00
 #SBATCH --mail-type=END
+
+## Eventually change to 12 cores, 45000 mem, and at least one hour. Just debugging
+## for now
 
 ## -------------------------------------------------------------------------##
 ## Set user preferences

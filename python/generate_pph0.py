@@ -88,12 +88,14 @@ if __name__ == '__main__':
 
     # Calculate the monthly prior pre-conditioned Hessian
     sasqrtkt = k_m*(sa**0.5)
-    pph_m = da.tensordot(sasqrtkt.T/so_m, sasqrtkt, axes=(1, 0))
-    pph_m = xr.DataArray(pph_m, dims=['nstate_0, nstate_1'],
-                         name=f'pph0_m{month:02d}')
 
-    # Save out
-    pph_m.to_netcdf(f'{output_dir}pph0_m{month:02d}.nc')
+    # Commenting out for debugging purposes
+    # pph_m = da.tensordot(sasqrtkt.T/so_m, sasqrtkt, axes=(1, 0))
+    # pph_m = xr.DataArray(pph_m, dims=['nstate_0, nstate_1'],
+    #                      name=f'pph0_m{month:02d}')
+
+    # # Save out
+    # pph_m.to_netcdf(f'{output_dir}pph0_m{month:02d}.nc')
 
     # exit
     sys.exit()
