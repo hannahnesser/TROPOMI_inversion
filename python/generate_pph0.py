@@ -24,12 +24,11 @@ if __name__ == '__main__':
     # Month
     # month = 1
     month = int(sys.argv[1])
+    print('-'*75)
+    print(f'Calculating the prior pre-conditioned Hessian for month {month}')
 
     # Memory constraints
     available_memory_GB = int(sys.argv[2])
-
-    # Files
-    k_m_file = f'{data_dir}k0_m{month:02d}.nc'#None
 
     ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
@@ -78,9 +77,12 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     # Get the indices for the month using generic chunks
     i0 = 0
-    for m in s.months:
-        k_m = gc.read_file(k_m_file, chunks=chunks)
+    print(f'{"i0": >22}{"i1": >11}{"n": >11}')
+    for m in range(1, month+1):
+        k_m = gc.read_file(f'{data_dir}k0_m{m:02d}.nc', chunks=chunks)
         i1 = i0 + k_m.shape[0]
+        print(f'Month {m:2d} : {i0:11d}{i1:11d}{(i1-i0):11d}')
+
         if m != month:
             i0 = i1
 
@@ -90,7 +92,7 @@ if __name__ == '__main__':
     # Calculate the monthly prior pre-conditioned Hessian
     sasqrtkt = k_m*(sa**0.5)
     pph_m = da.tensordot(sasqrtkt.T/so_m, sasqrtkt, axes=(1, 0))
-    pph_m = xr.DataArray(pph_m, dims=['nstate_0, nstate_1'],
+    pph_m = xr.DataArray(pph_m, dims=['nstate_0', 'nstate_1'],
                          name=f'pph0_m{month:02d}')
     print('Prior-pre-conditioned Hessian calculated.')
 
@@ -99,5 +101,6 @@ if __name__ == '__main__':
     print('Prior-pre-conditioned Hessian saved.')
 
     # exit
-    print('-'*10, 'Code Complete', '-'*10)
+    print('Code Complete.')
+    print('-'*75)
     sys.exit()
