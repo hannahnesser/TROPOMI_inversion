@@ -94,7 +94,7 @@ if __name__ == '__main__':
     pph_m = da.tensordot(sasqrtkt.T/so_m, sasqrtkt, axes=(1, 0))
     pph_m = xr.DataArray(pph_m, dims=['nstate_0', 'nstate_1'],
                          name=f'pph0_m{month:02d}')
-    pph_m = ppm_h.chunk({'nstate_0' : nstate_chunk, 'nstate_1' : nstate})
+    pph_m = ppm_m.chunk({'nstate_0' : nstate_chunk, 'nstate_1' : nstate})
     print('Prior-pre-conditioned Hessian calculated.')
 
     # Save out
