@@ -21,7 +21,8 @@ if __name__ == '__main__':
     available_memory_GB = int(sys.argv[1])
 
     # Data directories
-    data_dir = sys.argv[2]
+    base_dir = sys.argv[2]
+    data_dir = f'{base_dir}inversion_data/'
     output_dir = sys.argv[3]
     code_dir = sys.argv[4]
 
@@ -115,11 +116,13 @@ if __name__ == '__main__':
         lat_idx = gc.nearest_loc(obs_m['LAT'].values, clusters.lat.values)
         lon_idx = gc.nearest_loc(obs_m['LON'].values, clusters.lon.values)
         idx = clusters.values[lat_idx, lon_idx].astype(int)
+        print(idx.shape)
 
         # Subset k_n state
         start_time = time.time()
         k_m = k_nstate[idx, :].chunk({'nobs' : nobs_chunk,
                                       'nstate' : nstate_chunk})
+        print(k_m.shape)
         k_m.to_netcdf(f'{output_dir}k0_m{m:02d}.nc')
         active_time = (time.time() - start_time)/60
         print(f'Month {m} saved ({active_time} min).')
