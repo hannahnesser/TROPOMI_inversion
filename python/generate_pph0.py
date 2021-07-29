@@ -1,6 +1,7 @@
 
 if __name__ == '__main__':
     import sys
+    import time
     import xarray as xr
     import dask.array as da
     import numpy as np
@@ -87,8 +88,8 @@ if __name__ == '__main__':
     #                                          n_threads=n_threads)
     # We take the squareroot of the max chunk size and scale it down by 5
     # to be safe. It's a bit unclear why this works best in tests.
-    nstate_chunk = 2e3 # int(np.sqrt(max_chunk_size)/5)
-    nobs_chunk = 1e5 # int(max_chunk_size/nstate_chunk/5)
+    nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
+    nobs_chunk = 1e4 # int(max_chunk_size/nstate_chunk/5)
     chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
     print('State vector chunks : ', nstate_chunk)
     print('Obs vector chunks   : ', nobs_chunk)
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     ## Generate the prior pre-conditioned Hessian for that month
     ## ---------------------------------------------------------------------##
     # Load k_m
-    k_m = gc.read_file(f'{data_dir}k0_m{m:02d}.nc', chunks=chunks)
+    k_m = gc.read_file(f'{data_dir}k0_m{month:02d}.nc', chunks=chunks)
 
     # Calculate the monthly prior pre-conditioned Hessian
     sasqrtkt = k_m*(sa**0.5)
@@ -108,8 +109,10 @@ if __name__ == '__main__':
     print('Prior-pre-conditioned Hessian calculated.')
 
     # Save out
+    start_time = time.time()
     pph_m.to_netcdf(f'{data_dir}pph0_m{month:02d}.nc')
-    print('Prior-pre-conditioned Hessian saved.')
+    active_time = (time.time() - start_time)/60
+    print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
 
     # exit
     print('Code Complete.')
