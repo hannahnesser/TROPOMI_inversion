@@ -70,10 +70,11 @@ if __name__ == '__main__':
     # Open cluster and client
     if nobs > 4e5:
         n_workers = 1
-    # if nobs > 2.5e5:
-    #     n_workers = 2
     else:
         n_workers = 3
+
+    # if nobs > 2.5e5:
+    #     n_workers = 2
     threads_per_worker = 2
 
     cluster = LocalCluster(local_directory=data_dir,
