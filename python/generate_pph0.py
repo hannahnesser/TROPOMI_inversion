@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     # Subset so
     so_m = so[i0:i1]
-    nobs = so.shape[0]
+    nobs = so_m.shape[0]
 
     ## -------------------------------------------------------------------- ##
     ## Set up a dask client and cacluate the optimal chunk size
