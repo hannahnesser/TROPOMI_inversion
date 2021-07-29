@@ -5,7 +5,7 @@
 #SBATCH -c 12
 #SBATCH -N 1
 #SBATCH -p huce_cascade
-#SBATCH --mem 50000
+#SBATCH --mem 45000
 #SBATCH -t 0-02:00
 #SBATCH --mail-type=END
 
@@ -18,7 +18,7 @@
 DATA_DIR="${1}"
 CODE_DIR="${2}"
 MONTH="${SLURM_ARRAY_TASK_ID}"
-MEMORY_GB=50
+MEMORY_GB=45
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
