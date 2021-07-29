@@ -79,15 +79,16 @@ if __name__ == '__main__':
                            n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
     client = Client(cluster)
+    print(client)
 
     # We now calculate chunk size.
-    n_threads = n_workers*threads_per_worker
-    max_chunk_size = gc.calculate_chunk_size(available_memory_GB,
-                                             n_threads=n_threads)
+    # n_threads = n_workers*threads_per_worker
+    # max_chunk_size = gc.calculate_chunk_size(available_memory_GB,
+    #                                          n_threads=n_threads)
     # We take the squareroot of the max chunk size and scale it down by 5
     # to be safe. It's a bit unclear why this works best in tests.
-    nstate_chunk = int(np.sqrt(max_chunk_size)/5)
-    nobs_chunk = int(max_chunk_size/nstate_chunk)
+    nstate_chunk = 2e3 # int(np.sqrt(max_chunk_size)/5)
+    nobs_chunk = 1e5 # int(max_chunk_size/nstate_chunk/5)
     chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
     print('State vector chunks : ', nstate_chunk)
     print('Obs vector chunks   : ', nobs_chunk)

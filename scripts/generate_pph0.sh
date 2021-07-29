@@ -18,7 +18,7 @@
 DATA_DIR="${1}"
 CODE_DIR="${2}"
 MONTH="${SLURM_ARRAY_TASK_ID}"
-MEMORY_GB=45
+MEMORY_GB=50
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
