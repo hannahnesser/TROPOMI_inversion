@@ -71,7 +71,7 @@ if __name__ == '__main__':
     if nobs > 4e5:
         n_workers = 1
     else:
-        n_workers = 3
+        n_workers = 2
 
     # if nobs > 2.5e5:
     #     n_workers = 2
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     #                                          n_threads=n_threads)
     # We take the squareroot of the max chunk size and scale it down by 5
     # to be safe. It's a bit unclear why this works best in tests.
-    nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
+    nstate_chunk = 2e3 # int(np.sqrt(max_chunk_size)/5)
     nobs_chunk = 1e4 # int(max_chunk_size/nstate_chunk/5)
     chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
     print('State vector chunks : ', nstate_chunk)
