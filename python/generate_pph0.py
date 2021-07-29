@@ -33,13 +33,27 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
     ## ---------------------------------------------------------------------##
-    # Observational error
-    so = gc.read_file(f'{data_dir}so.nc')
-    nobs_tot = so.shape[0]
-
     # Prior error
     sa = gc.read_file(f'{data_dir}sa.nc')
     nstate = sa.shape[0]
+
+    # Observational error
+    so = gc.read_file(f'{data_dir}so.nc')
+
+    # Get the indices for the month using generic chunks
+    i0 = 0
+    print(f'{"i0": >22}{"i1": >11}{"n": >11}')
+    for m in range(1, month+1):
+        k_m = gc.read_file(f'{data_dir}k0_m{m:02d}.nc')
+        i1 = i0 + k_m.shape[0]
+        print(f'Month {m:2d} : {i0:11d}{i1:11d}{(i1-i0):11d}')
+
+        if m != month:
+            i0 = i1
+
+    # Subset so
+    so_m = so[i0:i1]
+    nobs = so.shape[0]
 
     ## -------------------------------------------------------------------- ##
     ## Set up a dask client and cacluate the optimal chunk size
@@ -53,8 +67,14 @@ if __name__ == '__main__':
                      'array.slicing.split_large_chunks' : False})
 
     # Open cluster and client
-    n_workers = 1
+    if nobs > 4e5:
+        n_workers = 1
+    if nobs > 2.5e5:
+        n_workers = 2
+    else:
+        n_workers = 3
     threads_per_worker = 2
+
     cluster = LocalCluster(local_directory=data_dir,
                            n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
@@ -75,19 +95,8 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Generate the prior pre-conditioned Hessian for that month
     ## ---------------------------------------------------------------------##
-    # Get the indices for the month using generic chunks
-    i0 = 0
-    print(f'{"i0": >22}{"i1": >11}{"n": >11}')
-    for m in range(1, month+1):
-        k_m = gc.read_file(f'{data_dir}k0_m{m:02d}.nc', chunks=chunks)
-        i1 = i0 + k_m.shape[0]
-        print(f'Month {m:2d} : {i0:11d}{i1:11d}{(i1-i0):11d}')
-
-        if m != month:
-            i0 = i1
-
-    # Subset so
-    so_m = so[i0:i1]
+    # Load k_m
+    k_m = gc.read_file(f'{data_dir}k0_m{m:02d}.nc', chunks=chunks)
 
     # Calculate the monthly prior pre-conditioned Hessian
     sasqrtkt = k_m*(sa**0.5)
