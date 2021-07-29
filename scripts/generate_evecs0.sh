@@ -4,6 +4,8 @@
 DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/"
 CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python/"
 
+rm -r ${DATA_DIR}dask-worker-space
+
 # First, generate the monthly prior pre-conditioned Hessians.
 # Command structure:
 # sbatch generate_k0_nstate data_dir code_dir
