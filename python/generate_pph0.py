@@ -90,7 +90,7 @@ if __name__ == '__main__':
     # We take the squareroot of the max chunk size and scale it down by 5
     # to be safe. It's a bit unclear why this works best in tests.
     nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
-    nobs_chunk = 2e4 # int(max_chunk_size/nstate_chunk/5)
+    nobs_chunk = 4e4 # int(max_chunk_size/nstate_chunk/5)
     chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
     print('State vector chunks : ', nstate_chunk)
     print('Obs vector chunks   : ', nobs_chunk)
