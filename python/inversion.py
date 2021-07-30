@@ -61,14 +61,17 @@ It also defines the following plotting functions:
 '''
 
 class Inversion:
-### todo: this should really be set in each class that needs it
-    # Set global variables 
-    dims = {'xa'   : ['nstate'], 'sa'   : ['nstate', 'nstate'],
-            'y'    : ['nobs'],   'so'   : ['nobs', 'nobs'],     
-            'ya'   : ['nobs'],   'k'    : ['nobs', 'nstate'],  
-            'c'    : ['nobs'],   'xhat' : ['nstate'],
-            'yhat' : ['nobs'],   'shat' : ['nstate', 'nstate'],
-            'dofs' : ['nstate'], 'a'    : ['nstate', 'nstate']}
+    # Set global class attributes
+    state_dim = 'nstate' # This is only partially implemented
+    obs_dim = 'nobs' # This is only partially implemented
+    dims = {'xa' : [state_dim], 'sa' : [state_dim, state_dim],
+            'y' : [obs_dim], 'ya' : [obs_dim], 'so' : [obs_dim, obs_dim],
+            'c' : [obs_dim], 'k' : [obs_dim, state_dim],
+            'xhat' : [state_dim],
+            'yhat' : [obs_dim],   'shat' : [state_dim, state_dim],
+            'dofs' : [state_dim], 'a'    : [state_dim, state_dim],
+            'rf' : None}
+
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
                  k_is_positive=False):
         '''
@@ -109,8 +112,8 @@ class Inversion:
             k_is_positive            A flag indicating whether the Jacobian
                                      has already been checked for negative
                                      elements. Set to true if you have already
-                                     checked for negative elements, or if you 
-                                     want to keep negative elements (e.g. OH). 
+                                     checked for negative elements, or if you
+                                     want to keep negative elements (e.g. OH).
                                      Default is False.
 
         The object then defines the following:
@@ -131,8 +134,8 @@ class Inversion:
         # Read in the prior elements first because that allows us to calculate
         # nstate and thus the chunk size in that dimension
         print('Loading the prior and prior error.')
-        self.xa = self.read(xa, dims=self.dims['xa'])
-        self.sa = self.read(sa, dims=self.dims['sa'])
+        self.xa = self.read(xa, dims=Inversion.dims['xa'])
+        self.sa = self.read(sa, dims=Inversion.dims['sa'])
 
         # Save out the state vector dimension
         self.nstate = self.xa.shape[0]
@@ -140,10 +143,10 @@ class Inversion:
 
         # Load observational data
         print('Loading the Jacobian, observations, and observational error.')
-        self.k = self.read(k, dims=self.dims['k'])
-        self.y = self.read(y, dims=self.dims['y'])
-        self.ya = self.read(ya, dims=self.dims['ya'])
-        self.so = self.read(so, dims=self.dims['so'])
+        self.k = self.read(k, dims=Inversion.dims['k'])
+        self.y = self.read(y, dims=Inversion.dims['y'])
+        self.ya = self.read(ya, dims=Inversion.dims['ya'])
+        self.so = self.read(so, dims=Inversion.dims['so'])
 
         # Save out the observation vector dimension
         self.nobs = self.y.shape[0]
@@ -168,7 +171,7 @@ class Inversion:
             print('Calculating c as c = y - F(xa) = y - ya')
             self.c = self.calculate_c()
         else:
-            self.c = self.read(c, dims=self.dims['c'])
+            self.c = self.read(c, dims=Inversion.dims['c'])
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
@@ -186,27 +189,16 @@ class Inversion:
     def read(self, item, dims=None, **kwargs):
         # If item is a string or a list, load the file
         if type(item) == str:
-            item = np.array(gc.read_file(*[item], **kwargs),dtype=np.float32)        
-        # Force the items to np.arrays with float32 (to save memory)
-        else:
-            item = np.array(item,dtype=np.float32)
-        return item
+            item = gc.read_file(*[item], **kwargs)
 
-    @staticmethod
-    def _to_dataarray(item, dims):
-        # If it's a dataset, require that there be only one variable
-        if type(item) == xr.core.dataset.Dataset:
-            variables = list(item.keys())
-            assert len(variables) == 1, \
-                  'A dataset with multiple variables was provided. This \
-                   class requires that any datasets contain only one \
-                   variable.'
-            item = item[variables[0]]
-        # Else convert to a dataarray
-        else:
-            assert dims is not None, \
-                   'Creating an xarray dataset and dims is not provided.'
-            item = xr.DataArray(item, dims=tuple(dims))
+        # Force the items to be dataarrays
+        if type(item) != np.ndarray:
+            item = np.array(item)
+
+        # Reshape 1D arrays to be (-1, 1)
+        if self._find_dimension(item) == 1:
+            item = item.reshape(-1,1)
+
         return item
 
     def save(self, attribute:str, file_name=None):
@@ -218,7 +210,7 @@ class Inversion:
 
         item.to_netcdf(f'{file_name}.nc')
 
-    def add_attr_to_dataset(self, ds:xr.Dataset, attr_str:str, dims:tuple):
+    def add_attr_to_dataset(self, ds:xr.Dataset, attr_str:str, dims):
         '''
         Adds an attribute from Inversion instance to an xarray Dataset. Modiefies Dataset inplace.
         '''
@@ -226,9 +218,9 @@ class Inversion:
         if attr is None:
             print(f'{attr_str} has not been assigned yet - skipping.')
         else:
-            try: 
+            try:
                 attr = attr.squeeze()
-            except Exception: 
+            except Exception:
                 pass
             if dims is None: # for 0-d attributes
                 ds = ds.assign_attrs({attr_str : attr})
@@ -243,35 +235,24 @@ class Inversion:
         '''
         # warn that there is no custom implementation for each subclass
         if type(self)!=Inversion:
-            warnings.warn('Inversion.to_xarray will only export attributes present in the Inversion class. Specialized attributes from subclasses (e.g. ReducedRankInversion) are not currently exported to the dataset, so some attributes might be missing. If you would like to add individual attributes to your dataset, you can use the add_attrs_to_dataset method.', stacklevel=2)
+            warnings.warn('Inversion.to_xarray will only export Inversion class attributes. Attributes from subclasses (e.g. ReducedRankInversion) are not currently included.',
+                          stacklevel=2)
 
         # intialize dataset
         ds = xr.Dataset()
 
-        # store vectors as DataArrays
-        # inputs
-        self.add_attr_to_dataset(ds, 'k',     ('nobs','nstate'))
-        self.add_attr_to_dataset(ds, 'xa',    ('nstate'))
-        self.add_attr_to_dataset(ds, 'sa',    ('nstate'))
-        self.add_attr_to_dataset(ds, 'y',     ('nobs'))
-        self.add_attr_to_dataset(ds, 'ya',    ('nobs'))
-        self.add_attr_to_dataset(ds, 'so',    ('nobs'))
-        # outputs
-        self.add_attr_to_dataset(ds, 'c',     ('nobs'))
-        self.add_attr_to_dataset(ds, 'xhat',  ('nstate'))
-        self.add_attr_to_dataset(ds, 'shat',  ('nstate','nstate'))
-        self.add_attr_to_dataset(ds, 'a',     ('nstate','nstate'))
-        self.add_attr_to_dataset(ds, 'ya',    ('nobs'))
-        self.add_attr_to_dataset(ds, 'dofs',  ('nstate'))
-        # scalar values (stored as attributes, dims=None)
-        self.add_attr_to_dataset(ds, 'regularization_factor', None)
+        # Add attributes to the dataset
+        attrs = ['state_vector', 'k', 'xa', 'sa', 'y', 'y_base', 'so', 'c',
+                 'xhat', 'shat', 'a', 'y_out', 'dofs', 'rf']
+        for attr in attrs:
+            try:
+                self.add_attr_to_dataset(ds, attr, Inversion.dims[attr])
+            except:
+                self.add_attr_to_dataset(ds, attr, [Inversion.dims[attr][0]])
 
         return ds
 
-    def _check_dimensions(self):
-        # Check whether the items in the object match the dimensions
-
-
+    def _check_dimensions(self, dims):
         # Check whether all inputs have the right dimensions
         assert self.k.shape[1] == self.nstate, \
                'Dimension mismatch: Jacobian and prior.'
@@ -291,7 +272,6 @@ class Inversion:
         else:
             return 2
 
-
     ####################################
     ### STANDARD INVERSION FUNCTIONS ###
     ####################################
@@ -303,6 +283,22 @@ class Inversion:
         c = self.ya - self.k @ self.xa
         return c
 
+    def obs_mod_diff(self, x):
+        '''
+        Calculate the difference between the true observations y and the
+        simulated observations Kx + c for a given x. It returns this
+        difference as a vector.
+
+        Parameters:
+            x      The state vector at which to evaluate the difference
+                   between the true and simulated observations
+        Returns:
+            diff   The difference between the true and simulated observations
+                   as a vector
+        '''
+        diff = self.y - (self.k @ x + self.c)
+        return diff
+
     def cost_func(self, x, y):
         '''
         Calculate the value of the Bayesian cost function
@@ -312,15 +308,14 @@ class Inversion:
 
         Parameters:
             x      The state vector at which to evaluate the cost function
-            y      The observations vector at which to evaluate the cost function 
+            y      The observations vector at which to evaluate the cost function
                    Note that by definition y=Kx+c, so: ya=Kxa+c, and yhat=Kxhat+c
         Returns:
             cost   The value of the cost function at x
         '''
 
         # Calculate the observational component of the cost function
-        cost_obs = (self.y - y).T \
-                   @ diags(1/self.so) @ (self.y-y) 
+        cost_obs = (self.y - y).T @ diags(1/self.so) @ (self.y - y)
 
         # Calculate the emissions/prior component of the cost function
         cost_emi = (x - self.xa).T @ diags(1/self.sa) @ (x - self.xa)
@@ -357,46 +352,40 @@ class Inversion:
         else:
             kTsoinv = self.k.T @ inv(self.so)
 
-        # Reshape y, ya, xa, and c to include the trailing 1
-        # this is required to play nice with sparse matrix
-        self.y  = self.y.reshape(-1,1)
-        self.ya = self.ya.reshape(-1,1)
-        self.xa = self.xa.reshape(-1,1)
-        self.c  = self.c.reshape(-1,1)
-        
         # Calculate the cost function at the prior.
         print('Calculating the cost function at the prior mean.')
         cost_prior = self.cost_func(self.xa, self.ya)
 
         # Calculate the posterior error.
         print('Calculating the posterior error.')
-        self.shat = inv(kTsoinv @ self.k + sainv)
+        self.shat = np.array(inv(kTsoinv @ self.k + sainv))
 
         # Calculate the posterior mean
         print('Calculating the posterior mean.')
-        self.xhat = self.xa + (self.shat @ kTsoinv @ (self.y - self.ya))
+        self.xhat = np.array(self.xa +
+                             (self.shat @ kTsoinv @ (self.y - self.ya)))
+        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
 
         # Calculate the averaging kernel.
         print('Calculating the averaging kernel.')
-        self.a = identity(self.nstate) - self.shat @ sainv
+        self.a = np.array(identity(self.nstate) - self.shat @ sainv)
         self.dofs = np.diag(self.a)
         print('     DOFS: %.2f' % np.trace(self.a))
 
         # Calculate the new set of modeled observations.
         print('Calculating updated modeled observations.')
-        self.yhat = self.k @ self.xhat + self.c
+        self.yhat = np.array(self.k @ self.xhat + self.c)
+
+        # Calculate the cost function at the posterior. Also calculate the
+        # number of negative cells as an indicator of inversion success.
+        print('Calculating the cost function at the posterior mean.')
+        cost_post = self.cost_func(self.xhat, self.yhat)
 
         # Calculate the cost function at the posterior. Also calculate the
         # number of negative cells as an indicator of inversion success.
         print('Calculating the cost function at the posterior mean.')
         cost_post = self.cost_func(self.xhat, self.yhat)
         print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
-
-        # Convert results back to numpy array (some are sparse matrices)
-        self.xhat = np.array(self.xhat)
-        self.yhat = np.array(self.yhat)
-        self.shat = np.array(self.shat)
-        self.a    = np.array(self.a)
 
         print('... Complete ...\n')
 
@@ -474,19 +463,19 @@ class InversionLoop(Inversion):
     Exactly the same as Inversion, but implements a simple loop for solve_inversion.
     Can only handle diagonal (1D) s_o values. Loop is based on Lu & Danny's code.
 
-    This function can handle a K which does not fit in memory. Just make sure to 
-    read it in as list of filepaths, which will force use of Dask. 
+    This function can handle a K which does not fit in memory. Just make sure to
+    read it in as list of filepaths, which will force use of Dask.
 
     Unique Parameters:
-        obs_subset_size     The number of observations which are processed in each 
+        obs_subset_size     The number of observations which are processed in each
                             iteration of the loop. The optimal size for this appears
                             to depend on the number of processors/memory you are
                             using so if it's taking more than ~5 minutes per loop you
-                            may want to adjust. 
+                            may want to adjust.
     """
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
                 k_is_positive=False, obs_subset_size=300000):
-        super().__init__(k, xa, sa, y, ya, so, c=c, 
+        super().__init__(k, xa, sa, y, ya, so, c=c,
                          regularization_factor=regularization_factor,
                          k_is_positive=k_is_positive)
         # save obs_subset_size, the size of chunks you want your inversion processed in
@@ -495,22 +484,22 @@ class InversionLoop(Inversion):
         assert len(so.squeeze().shape)==1, 'Observation errors (so) must be diagonal.'
         # todo: relax the SA is diagonal requirment using Dask.
         assert len(sa.squeeze().shape)==1, 'Prior errors (sa) must be diagonal.'
-    
+
     # Use the read functions from ReducedMemoryInversion
-    # Don't inherit because that function is changing too rapidly.  
+    # Don't inherit because that function is changing too rapidly.
     @staticmethod
     def make_dims_1d_if_diagonal(item,dims):
-        # check if item is a diagonal of a square matrix (2D w/ same dim twice) 
+        # check if item is a diagonal of a square matrix (2D w/ same dim twice)
         item_is_diag = (len(dims) == 2) and (dims[0] == dims[1]) and \
                        (len(item.shape) == 1)
-        if item_is_diag: 
+        if item_is_diag:
             dims = [dims[0]]
         return dims
 
     def read(self, item, dims=None, chunks={}, **kwargs):
         """
         We use a modified read function which uses data arrays instead of numpy arrays.
-        It also ensures that diagonal errors have correct (1d) dimensions. 
+        It also ensures that diagonal errors have correct (1d) dimensions.
         """
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
@@ -519,22 +508,22 @@ class InversionLoop(Inversion):
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
             dims = self.make_dims_1d_if_diagonal(item, dims) # replace with 1d dims if diagonal
-            item = self._to_dataarray(item, dims=dims) 
+            item = self._to_dataarray(item, dims=dims)
 
         return item
 
     def cost_func(self, x, y):
         '''
-        Modified from Inversion.cost_func to use numpy arrays only. 
+        Modified from Inversion.cost_func to use numpy arrays only.
 
         Calculate the value of the Bayesian cost function
             J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
         for a given x. Prints out that value and the contributions from
-        the emission and observational terms. This cost function 
+        the emission and observational terms. This cost function
 
         Parameters:
             x      The state vector at which to evaluate the cost function
-            y      The observations vector at which to evaluate the cost function 
+            y      The observations vector at which to evaluate the cost function
                    Note that by definition y=Kx+c, so: ya=Kxa+c, and yhat=Kxhat+c
         Returns:
             cost   The value of the cost function at x
@@ -556,16 +545,16 @@ class InversionLoop(Inversion):
         return cost
 
     # Code taken Lu Shen & Daniel Varon's TROPOMI_Inversion script
-    def solve_inversion(self): 
+    def solve_inversion(self):
         # Initialize slicing array to read in a few observations at a time
         ind_slice  = np.append(np.arange(0,self.nobs,self.obs_subset_size),self.nobs)
         # Initialize two parts of the inversion equation
-        KT_invSo_K     = np.zeros([self.nstate,self.nstate], dtype=float) 
-        KT_invSo_ydiff = np.zeros([self.nstate], dtype=float) 
+        KT_invSo_K     = np.zeros([self.nstate,self.nstate], dtype=float)
+        KT_invSo_ydiff = np.zeros([self.nstate], dtype=float)
 
         # Inverse of prior error covariance matrix, inv(S_a)
-        invSa = diags(1/self.sa.data)   # Inverse of prior error covariance matrix 
-        # Define gamma for convenience 
+        invSa = diags(1/self.sa.data)   # Inverse of prior error covariance matrix
+        # Define gamma for convenience
         gamma = self.regularization_factor
 
         # ==========================================================================================
@@ -575,17 +564,17 @@ class InversionLoop(Inversion):
         # "Monitoring global OH concentrations using satellite observations of atmospheric methane".
         #
         # Specifically, we are going to solve:
-        #   xhat = xA + G*(y-K*xA) 
+        #   xhat = xA + G*(y-K*xA)
         #        = xA + inv(gamma*K^T*inv(S_o)*K + inv(S_a)) * gamma*K^T*inv(S_o) * (y-K*xA)
         #
         # In the code below this becomes
         #   xhat = xA + inv(gamma*kT_invso       + inv(S_a)) * gamma*kT_invSo_ydiff
         #        = xA + ratio
-        # ========================================================================================== 
+        # ==========================================================================================
         # Process observations obs_subset_size observations at a time
-        for islice in np.arange(len(ind_slice)-1): 
-            istart = ind_slice[islice] 
-            iend   = ind_slice[islice+1] 
+        for islice in np.arange(len(ind_slice)-1):
+            istart = ind_slice[islice]
+            iend   = ind_slice[islice+1]
             print(f'Processing observations {istart}-{iend} out of {self.nobs}...')
 
             # grab just this subset of the observations
@@ -595,36 +584,36 @@ class InversionLoop(Inversion):
             ya = self.ya[istart:iend].load().data
 
             # Define KT_invSo = K^T*inv(S_o)
-            KT = K.transpose() 
-            KT_invSo = KT * 1/so 
+            KT = K.transpose()
+            KT_invSo = KT * 1/so
 
             # Parts of inversion equation - for this slice of observations only
-            KT_invSo_K_islice     = KT_invSo@K            # K^T*inv(S_o)*K 
-            KT_invSo_ydiff_islice = KT_invSo@(y - ya)     # K^T*inv(S_o)*(y-K*xA) 
+            KT_invSo_K_islice     = KT_invSo@K            # K^T*inv(S_o)*K
+            KT_invSo_ydiff_islice = KT_invSo@(y - ya)     # K^T*inv(S_o)*(y-K*xA)
 
-            # Add each slice to running sums 
-            KT_invSo_K     += KT_invSo_K_islice 
-            KT_invSo_ydiff += KT_invSo_ydiff_islice 
+            # Add each slice to running sums
+            KT_invSo_K     += KT_invSo_K_islice
+            KT_invSo_ydiff += KT_invSo_ydiff_islice
 
-            # Solve for posterior scaling factors, xhat 
-            ratio = inv(gamma*KT_invSo_K + invSa)@(gamma*KT_invSo_ydiff) 
-            xhat = self.xa.data + ratio 
+            # Solve for posterior scaling factors, xhat
+            ratio = inv(gamma*KT_invSo_K + invSa)@(gamma*KT_invSo_ydiff)
+            xhat = self.xa.data + ratio
             self.xhat = self._to_dataarray(np.array(xhat).squeeze(),
                                           dims=Inversion.dims['xhat'])
 
         # Calculate the posterior error.
         print('Calculating the posterior error.')
-        self.shat = inv(KT_invSo_K + invSa) 
+        self.shat = inv(KT_invSo_K + invSa)
 
         # Calculate the new set of modeled observations.
         print('Calculating updated modeled observations.')
-        self.yhat = self.k@self.xhat + self.c 
+        self.yhat = self.k@self.xhat + self.c
         if is_dask_collection(self.yhat): self.yhat = self.yhat.compute().load()
 
         # Calculate the averaging kernel.
         print('Calculating the averaging kernel.')
         a = identity(self.nstate) - self.shat @ invSa
-        self.a = self._to_dataarray(np.array(a).squeeze(),dims=Inversion.dims['a']) 
+        self.a = self._to_dataarray(np.array(a).squeeze(),dims=Inversion.dims['a'])
 
         # Calculate DOFS
         self.dofs = np.diag(self.a.data)
@@ -632,13 +621,13 @@ class InversionLoop(Inversion):
 
         # Calculate the cost function at the prior.
         print('Calculating the cost function at the prior mean.')
-        cost_prior = self.cost_func(self.xa, self.ya)  
+        cost_prior = self.cost_func(self.xa, self.ya)
 
-        # Calculate the cost function at the posterior. 
+        # Calculate the cost function at the posterior.
         print('Calculating the cost function at the posterior mean.')
         cost_post = self.cost_func(self.xhat, self.yhat)
 
-        # Calculate the # of negative cells as an indicator of inversion success. 
+        # Calculate the # of negative cells as an indicator of inversion success.
         print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
         print('... Complete ...\n')
 
@@ -1286,8 +1275,7 @@ class ReducedDimensionJacobian(ReducedRankInversion):
 
 class ReducedMemoryInversion(ReducedRankJacobian):
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
-                 reduced_memory=True, available_memory_GB=None,
-                 k_is_positive=False, rank=None):
+                 k_is_positive=False, rank=None, available_memory_GB=None):
 
         '''
             reduced_memory           This flag (default false) will determine
@@ -1305,43 +1293,19 @@ class ReducedMemoryInversion(ReducedRankJacobian):
         assert available_memory_GB is not None, \
                'Available memory is not provided.'
 
-        # Print out a reminder to set the number of threads
-        print('*'*60)
-        print('NOTE: REDUCED_MEMORY = TRUE')
-        print('It is recommended that OMP_NUM_THREADS be set to half the')
-        print('available cores [N/2] by running')
-        print('  >> export OMP_NUM_THREADS=[N/2]')
-        print('After running this command, rerun any scripts that use the')
-        print('Inversion class.')
-        print('*'*60)
-        print('')
-
-        # Set initial chunk values
-        chunks = {'nstate' : -1, 'nobs' : None}
+        # Set initial chunk values [BROKEN]
+        max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
+        chunk_size = math.floor(max_chunk_size**0.5)
+        self.chunks = {state_dim : -1, obs_dim : None}
 
         # Before inheriting from the parent class, we are going to load
         # all of the items using chunks.
-
-        # Read in the prior elements first because that allows us to calculate
-        # nstate and thus the chunk size in that dimension.
-        
-        print('Loading the prior and prior error.')
-        xa = self.read(xa, dims=Inversion.dims['xa'], chunks=chunks)
-        sa = self.read(sa, dims=Inversion.dims['sa'], chunks=chunks)
-
-        # Save out the state vector dimension
-        self.nstate = xa.shape[0]
-        print(f'State vector dimension : {self.nstate}\n')
-
-        # Update the chunks for the nobs dimension accordingly
-        max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
-        chunks['nobs'] = int(max_chunk_size/self.nstate)
-
-        # Load observational data
-        k = self.read(k, dims=Inversion.dims['k'], chunks=chunks)
-        y = self.read(y, dims=Inversion.dims['y'], chunks=chunks)
-        ya = self.read(ya, dims=Inversion.dims['ya'], chunks=chunks)
-        so = self.read(so, dims=Inversion.dims['so'], chunks=chunks)
+        xa = self.read(xa, 'xa')
+        sa = self.read(sa, 'sa')
+        k = self.read(k, 'k')
+        y = self.read(y, 'y')
+        ya = self.read(ya, 'ya')
+        so = self.read(so, 'so')
 
         # Inherit from the parent class.
         ReducedRankJacobian.__init__(self, k, xa, sa, y, ya, so, c,
@@ -1355,47 +1319,44 @@ class ReducedMemoryInversion(ReducedRankJacobian):
     #########################
     ### UTILITY FUNCTIONS ###
     #########################
-    @staticmethod
-    def make_dims_1d_if_diagonal(item,dims):
-        # check if item is a diagonal of a square matrix (2D w/ same dim twice) 
-        item_is_diag = (len(dims) == 2) and (dims[0] == dims[1]) and \
-                       (len(item.shape) == 1)
-        if item_is_diag: 
-            dims = [dims[0]]
-        return dims
-
-    def read(self, item, dims=None, chunks={}, **kwargs):
+    def read(self, item, item_name, **kwargs):
         # If item is a string or a list, load the file
         if type(item) in [str, list]:
-            item = self._load(item, dims=dims, chunks=chunks,
-                              **kwargs)
+            item = self._load(item, item_name, **kwargs)
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
-            dims = self.make_dims_1d_if_diagonal(item, dims) # replace with 1d dims if diagonal
-            item = self._to_dataarray(item, dims=dims, chunks=chunks)
+            item = self._to_dataarray(item, item_name)
 
         return item
 
-    @staticmethod
-    def _load(item, dims, chunks, **kwargs):
+    def _is_diagonal(self, item_name):
+        item = self.getattr(item_name)
+        item_shape = self._find_dimension(item)
+        item_dims = Inversion.dims[item_name]
+        item_is_diag = ((item_shape == 1) and
+                        (len(item_dims) == 2) and
+                        (item_dims[0] == item_dims[1]))
+        return item_is_diag
+
+    def _load(self, item, item_name, **kwargs):
         # This function is only called by read()
         # Add chunks to kwargs.
-        kwargs['chunks'] = {k : chunks[k] for k in dims}
+        kwargs['chunks'] = {k : self.chunks[k]
+                            for k in Inversion.dims[item_name]}
         if type(item) == list:
             # If it's a list, set some specific settings for open_mfdataset
             # This currently assumes that the coords are not properly set,
             # which was an oopsy when making the K0 datasets.
             kwargs['combine'] = 'nested'
-            kwargs['concat_dim'] = dims
+            kwargs['concat_dim'] = Inversion.dims[item_name]
         else:
             item = [item]
 
         item = gc.read_file(*item, **kwargs)
         return item
 
-    @staticmethod
-    def _to_dataarray(item, dims, chunks):
+    def _to_dataarray(self, item, item_name):
         # If it's a dataset, require that there be only one variable
         if type(item) == xr.core.dataset.Dataset:
             variables = list(item.keys())
@@ -1408,10 +1369,19 @@ class ReducedMemoryInversion(ReducedRankJacobian):
         else:
             assert dims is not None, \
                    'Creating an xarray dataset and dims is not provided.'
-            chunks = {k : chunks[k] for k in dims}
-            item = xr.DataArray(item, dims=tuple(dims))
+
+            # Check that dimensions match the stated dimensions
+            if self._is_diagonal(item_name):
+                Inversion.dims[item_name] = [Inversion.dims[item_name[0]]]
+
+            # Convert to a datarray
+            item = xr.DataArray(item, dims=tuple(Inversion.dims[item_name]))
+
+            # If chunks are provided, chunk
+            chunks = {k : self.chunks[k] for k in Inversion.dims[item_name]}
             if len(chunks) > 0:
                 item = item.chunk(chunks)
+
         return item
 
     def save(self, attribute:str, file_name=None):

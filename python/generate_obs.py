@@ -108,11 +108,30 @@ import numpy as np
 from numpy.polynomial import polynomial as p
 import pandas as pd
 import matplotlib.pyplot as plt
-import imageio
 pd.set_option('display.max_columns', 10)
 
-# Custom packages
-sys.path.append('.')
+## ------------------------------------------------------------------------ ##
+## Set user preferences
+## ------------------------------------------------------------------------ ##
+# # Local preferences
+# base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+# code_dir = base_dir + 'python'
+# data_dir = base_dir + 'observations'
+# output_dir = base_dir + 'inversion_data'
+# plot_dir = base_dir + 'plots'
+
+# # Cannon preferences
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+base_dir = sys.argv[1]
+code_dir = sys.argv[3]
+data_dir = f'{base_dir}ProcessedDir'
+# output_dir = f'{base_dir}SummaryDir'
+output_dir = sys.argv[2]
+plot_dir = None
+
+# Import Custom packages
+sys.path.append(code_dir)
 import config
 config.SCALE = config.PRES_SCALE
 config.BASE_WIDTH = config.PRES_WIDTH
@@ -122,36 +141,17 @@ import troppy as tp
 import format_plots as fp
 import inversion_settings as settings
 
-## ------------------------------------------------------------------------ ##
-## Set user preferences
-## ------------------------------------------------------------------------ ##
-# Local preferences
-base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-code_dir = base_dir + 'python'
-data_dir = base_dir + 'observations'
-output_dir = base_dir + 'inversion_data'
-plot_dir = base_dir + 'plots'
-
-# # Cannon preferences
-# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
-# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-# # base_dir = sys.argv[1]
-# # code_dir = sys.argv[2]
-# data_dir = f'{base_dir}ProcessedDir'
-# output_dir = f'{base_dir}SummaryDir'
-# plot_dir = None
-
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
-prior_run = f'{settings.year}.pkl'
-# prior_run = [f'{settings.year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-#              for mm in settings.months
-#              for dd in settings.days]
-# prior_run.sort()
+# prior_run = f'{settings.year}.pkl'
+prior_run = [f'{settings.year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+             for mm in settings.months
+             for dd in settings.days]
+prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
-blended_albedo_threshold = 1.1
+blended_albedo_threshold = 0.75
 
 # Define a plain old albedo threshold
 filter_on_albedo = True
@@ -209,7 +209,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
-    data = np.array([]).reshape(0, 14)
+    data = np.array([]).reshape(0, 13)
     for file in prior_run:
         # Check if that file is in the data directory
         if file not in listdir(data_dir):
@@ -222,10 +222,11 @@ if type(prior_run) == list:
 
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
-        # 10 GLINT, 11 MOD_COL(12 total columns)
+        # 10 MOD_COL, 11 - 14 CLOUD_FRAC (15 total columns)
         new_data = gc.load_obj(join(data_dir, file))['obs_GC']
-        new_data = np.insert(new_data, 12, month, axis=1) # add month
-        new_data = np.insert(new_data, 13, day, axis=1)
+        new_data = new_data[:, :11]
+        new_data = np.insert(new_data, 11, month, axis=1) # add month
+        new_data = np.insert(new_data, 12, day, axis=1)
 
         data = np.concatenate((data, new_data))
 
@@ -234,7 +235,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     # Create a dataframe from the data
     columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'GLINT', 'MOD_COL',
+               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
                'MONTH', 'DAY']
     data = pd.DataFrame(data, columns=columns)
 
@@ -245,7 +246,7 @@ if type(prior_run) == list:
 
     # Subset data
     data = data[['iGC', 'jGC', 'MONTH', 'DAY', 'LON', 'LAT', 'OBS', 'MOD',
-                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'GLINT']]
+                 'PREC', 'ALBEDO_SWIR', 'BLENDED_ALBEDO']]
 
     # Calculate model - observation
     data['DIFF'] = data['MOD'] - data['OBS']
@@ -259,7 +260,7 @@ if type(prior_run) == list:
     print('DIFFERENCE MAXIMUM : ', np.abs(data['DIFF']).max())
 
     # Save the data out
-    gc.save_obj(data, join(output_dir, f'{settings.years[0]}.pkl'))
+    gc.save_obj(data, join(output_dir, f'{settings.year}.pkl'))
 
 else:
     ## ----------------------------------------- ##
@@ -279,11 +280,15 @@ if filter_on_blended_albedo:
         for m in settings.months:
             d = data[data['MONTH'] == m]
             fig, ax = fp.get_figax(aspect=1.75)
-            ax.scatter(d['BLENDED_ALBEDO'], d['OBS'],
-                       c=fp.color(4), s=3, alpha=0.1)
+            c = ax.hexbin(d['BLENDED_ALBEDO'], d['OBS'],
+                          cmap=fp.cmap_trans('plasma_r'),
+                          bins=np.arange(0, 2000),
+                          vmin=0, vmax=2000)
             ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
             ax.set_xlim(0, 2)
             ax.set_ylim(1750, 1950)
+            cax = fp.add_cax(fig, ax)
+            cbar = fig.colorbar(c, cax=cax)
             ax = fp.add_title(ax, cal.month_name[m])
             ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
             fp.save_fig(fig, plot_dir,
@@ -292,7 +297,8 @@ if filter_on_blended_albedo:
 
 
     # Apply the blended albedo filter
-    BAF_filter = (data['BLENDED_ALBEDO'] < blended_albedo_threshold)
+    BAF_filter = ((data['MONTH'].isin(np.arange(5, 11, 1))) |
+                  (data['BLENDED_ALBEDO'] < blended_albedo_threshold))
     data = apply_filter(data, BAF_filter, 'blended albedo')
 
 if filter_on_albedo:
@@ -371,84 +377,89 @@ if analyze_biases:
     ## -------------------------------------------------------------------- ##
     ## Plot data
     ## -------------------------------------------------------------------- ##
+    if plot_dir is not None:
+        ## ----------------------------------------- ##
+        ## Scatter plot
+        ## ----------------------------------------- ##
+        fig, ax, c = gc.plot_comparison(data['OBS'].values, data['MOD'].values,
+                                        lims=[1750, 1950], vmin=0, vmax=3e4,
+                                        xlabel='Observation', ylabel='Model')
+        ax.set_xticks(np.arange(1750, 2000, 100))
+        ax.set_yticks(np.arange(1750, 2000, 100))
+        fp.save_fig(fig, plot_dir, f'prior_bias{suffix}')
+        plt.close()
 
-    ## ----------------------------------------- ##
-    ## Scatter plot
-    ## ----------------------------------------- ##
-    fig, ax, c = gc.plot_comparison(data['OBS'].values, data['MOD'].values,
-                                    lims=[1750, 1950], vmin=0, vmax=3e4,
-                                    xlabel='Observation', ylabel='Model')
-    ax.set_xticks(np.arange(1750, 2000, 100))
-    ax.set_yticks(np.arange(1750, 2000, 100))
-    fp.save_fig(fig, plot_dir, f'prior_bias{suffix}')
-    plt.close()
+        ## ----------------------------------------- ##
+        ## Spatial bias
+        ## ----------------------------------------- ##
+        fig, ax = fp.get_figax(maps=True, lats=s_b.lats, lons=s_b.lons)
+        c = s_b.plot(ax=ax, cmap='RdBu_r', vmin=-30, vmax=30,
+                     add_colorbar=False)
+        cax = fp.add_cax(fig, ax)
+        cb = fig.colorbar(c, ax=ax, cax=cax)
+        cb = fp.format_cbar(cb, 'Model - Observation')
+        ax = fp.format_map(ax, s_b.lats, s_b.lons)
+        ax = fp.add_title(ax, 'Spatial Bias in Prior Run')
+        fp.save_fig(fig, plot_dir, f'prior_spatial_bias{suffix}')
+        plt.close()
 
-    ## ----------------------------------------- ##
-    ## Spatial bias
-    ## ----------------------------------------- ##
-    fig, ax = fp.get_figax(maps=True, lats=s_b.lats, lons=s_b.lons)
-    c = s_b.plot(ax=ax, cmap='RdBu_r', vmin=-30, vmax=30, add_colorbar=False)
-    cax = fp.add_cax(fig, ax)
-    cb = fig.colorbar(c, ax=ax, cax=cax)
-    cb = fp.format_cbar(cb, 'Model - Observation')
-    ax = fp.format_map(ax, s_b.lats, s_b.lons)
-    ax = fp.add_title(ax, 'Spatial Bias in Prior Run')
-    fp.save_fig(fig, plot_dir, f'prior_spatial_bias{suffix}')
-    plt.close()
+        ## ----------------------------------------- ##
+        ## Latitudinal bias
+        ## ----------------------------------------- ##
+        l_b['LAT'] = l_b['LAT_BIN'].apply(lambda x: x.mid)
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'],
+                    color=fp.color(4))
+        ax.set_xticks(np.arange(10, 70, 10))
+        ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
+        ax = fp.add_title(ax, 'Latitudinal Bias in Prior Run')
+        fp.save_fig(fig, plot_dir, f'prior_latitudinal_bias{suffix}')
 
-    ## ----------------------------------------- ##
-    ## Latitudinal bias
-    ## ----------------------------------------- ##
-    l_b['LAT'] = l_b['LAT_BIN'].apply(lambda x: x.mid)
-    fig, ax = fp.get_figax(aspect=1.75)
-    ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'], color=fp.color(4))
-    ax.set_xticks(np.arange(10, 70, 10))
-    ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
-    ax = fp.add_title(ax, 'Latitudinal Bias in Prior Run')
-    fp.save_fig(fig, plot_dir, f'prior_latitudinal_bias{suffix}')
+        ## ----------------------------------------- ##
+        ## Monthly bias
+        ## ----------------------------------------- ##
+        m_b['month'] = pd.to_datetime(m_b['MONTH'], format='%m')
+        m_b['month'] = m_b['month'].dt.month_name().str[:3]
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.errorbar(m_b['month'], m_b['mean'], yerr=m_b['std'],
+                    color=fp.color(4))
+        ax = fp.add_labels(ax, 'Month', 'Model - Observation')
+        ax = fp.add_title(ax, 'Seasonal Bias in Prior Run')
+        fp.save_fig(fig, plot_dir, f'prior_seasonal_bias{suffix}')
+        plt.close()
 
-    ## ----------------------------------------- ##
-    ## Monthly bias
-    ## ----------------------------------------- ##
-    m_b['month'] = pd.to_datetime(m_b['MONTH'], format='%m')
-    m_b['month'] = m_b['month'].dt.month_name().str[:3]
-    fig, ax = fp.get_figax(aspect=1.75)
-    ax.errorbar(m_b['month'], m_b['mean'], yerr=m_b['std'], color=fp.color(4))
-    ax = fp.add_labels(ax, 'Month', 'Model - Observation')
-    ax = fp.add_title(ax, 'Seasonal Bias in Prior Run')
-    fp.save_fig(fig, plot_dir, f'prior_seasonal_bias{suffix}')
-    plt.close()
+        ## ----------------------------------------- ##
+        ## Seasonal latitudinal bias
+        ## ----------------------------------------- ##
+        lm_b['LAT'] = lm_b['LAT_BIN'].apply(lambda x: x.mid)
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'],
+                    color=fp.color(4))
+        ax.set_xticks(np.arange(10, 70, 10))
+        ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
+        ax = fp.add_title(ax, f'Latitudinal Bias in Prior Run')
+        linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
+        for i, season in enumerate(np.unique(lm_b['SEASON'])):
+            d = lm_b[lm_b['SEASON'] == season]
+            ax.plot(d['LAT'].values, d['mean'].values, color=fp.color(4),
+                    label=season, ls=linestyles[i], lw=0.5)
+        fp.add_legend(ax)
+        fp.save_fig(fig, plot_dir,
+                    f'prior_seasonal_latitudinal_bias{suffix}')
+        plt.close()
 
-    ## ----------------------------------------- ##
-    ## Seasonal latitudinal bias
-    ## ----------------------------------------- ##
-    lm_b['LAT'] = lm_b['LAT_BIN'].apply(lambda x: x.mid)
-    fig, ax = fp.get_figax(aspect=1.75)
-    ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'], color=fp.color(4))
-    ax.set_xticks(np.arange(10, 70, 10))
-    ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
-    ax = fp.add_title(ax, f'Latitudinal Bias in Prior Run')
-    linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
-    for i, season in enumerate(np.unique(lm_b['SEASON'])):
-        d = lm_b[lm_b['SEASON'] == season]
-        ax.plot(d['LAT'].values, d['mean'].values, color=fp.color(4),
-                label=season, ls=linestyles[i], lw=0.5)
-    fp.add_legend(ax)
-    fp.save_fig(fig, plot_dir,
-                f'prior_seasonal_latitudinal_bias{suffix}')
-    plt.close()
-
-    ## ----------------------------------------- ##
-    ## Albedo bias
-    ## ----------------------------------------- ##
-    a_b['ALBEDO'] = a_b['ALBEDO_BIN'].apply(lambda x: x.mid)
-    fig, ax = fp.get_figax(aspect=1.75)
-    ax.errorbar(a_b['ALBEDO'], a_b['mean'], yerr=a_b['std'], color=fp.color(4))
-    ax.set_xticks(np.arange(0, 1, 0.2))
-    ax = fp.add_labels(ax, 'Albedo', 'Model - Observation')
-    ax = fp.add_title(ax, 'Albedo Bias in Prior Run')
-    fp.save_fig(fig, plot_dir, f'prior_albedo_bias{suffix}')
-    plt.close()
+        ## ----------------------------------------- ##
+        ## Albedo bias
+        ## ----------------------------------------- ##
+        a_b['ALBEDO'] = a_b['ALBEDO_BIN'].apply(lambda x: x.mid)
+        fig, ax = fp.get_figax(aspect=1.75)
+        ax.errorbar(a_b['ALBEDO'], a_b['mean'], yerr=a_b['std'],
+                    color=fp.color(4))
+        ax.set_xticks(np.arange(0, 1, 0.2))
+        ax = fp.add_labels(ax, 'Albedo', 'Model - Observation')
+        ax = fp.add_title(ax, 'Albedo Bias in Prior Run')
+        fp.save_fig(fig, plot_dir, f'prior_albedo_bias{suffix}')
+        plt.close()
 
 ## ------------------------------------------------------------------------ ##
 ## Calculate So
@@ -514,6 +525,9 @@ if calculate_so:
     # and then update std
     data.loc[:, 'STD'] = data['SO']**0.5
 
+    err_mean = data['STD'].mean()
+    print(f'We find a mean error of {err_mean:.2f} ppb.' )
+
     # Save out the data
     gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
@@ -578,13 +592,10 @@ if (plot_dir is not None) and calculate_so:
                                           'OBS' : 'mean',
                                           'DIFF' : 'count'})
 
-    print(d_p.reset_index())
-    # print(d_p['VAR'])
     d_p = d_p.rename(columns={'OBS' : 'AVG_OBS', 'DIFF' : 'COUNT'})
     d_p['STD'] = d_p['VAR']**0.5#/d_p['AVG_OBS']
     d_p = d_p[['STD', 'AVG_OBS', 'COUNT']].to_xarray().rename({'LAT_CENTER' : 'lats',
                                                       'LON_CENTER' : 'lons'})
-    print(d_p)
 
     fig, ax = fp.get_figax(rows=1, cols=4, maps=True,
                            lats=d_p.lats, lons=d_p.lons)

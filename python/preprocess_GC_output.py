@@ -39,8 +39,8 @@ This script preprocesses the output of any GEOS-Chem simulation to remove buffer
 | ----------------- | -------------------------------------------------- |
 '''
 
-from os.path import join
-from os import listdir
+from os.path import join, exists
+from os import listdir, makedirs
 import os
 import sys
 import copy
@@ -50,27 +50,19 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Custom packages
-sys.path.append('.')
-import config
-import gcpy as gc
-import troppy as tp
-import format_plots as fp
-import inversion_settings as settings
-
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Local preferences
-# input_dir = sys.argv[1]
-# base_dir = sys.argv[2]
-# data_dir = join(base_dir, 'OutputDir')
-# code_dir = sys.argv[3]
-
-input_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/'
-base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+input_dir = sys.argv[1]
+base_dir = sys.argv[2]
 data_dir = join(base_dir, 'OutputDir')
-code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+code_dir = sys.argv[3]
+
+# input_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/'
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# data_dir = join(base_dir, 'OutputDir')
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
 # Information about the files
 files = join(data_dir, 'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
@@ -82,6 +74,60 @@ profiles = join(input_dir, 'vertical_profiles', 'mean_profile_YYYYMM.nc')
 # times bigger or smaller than the mean profile does a methane concetnration
 # need to be for the level to be replaced?
 scale_factor = 5
+
+## ------------------------------------------------------------------------ ##
+## Import custom packages
+## ------------------------------------------------------------------------ ##
+sys.path.append(code_dir)
+import config
+import gcpy as gc
+import troppy as tp
+import format_plots as fp
+import inversion_settings as settings
+
+## ------------------------------------------------------------------------ ##
+## Generate mean profiles if they don't exist
+## ------------------------------------------------------------------------ ##
+if profiles is None:
+    # Note that this requires a lot of memory!
+    for month in settings.months:
+        print(f'-'*75)
+        print(f'Generating the mean vertical profile for month = {month}.')
+        # Get a list of the months for which we don't trust the simulation
+        replacement_months = listdir(replacement_files.rpartition('/')[0])
+        replacement_months = [int(rm.split('.')[2][4:6])
+                              for rm in replacement_months
+                              if rm.split('.')[2][:4] == str(settings.year)]
+        replacement_months = list(set(replacement_months))
+
+        # Define the file strings accordingly
+        if month in replacement_months:
+            print('Using replacement data.')
+            fs = copy.deepcopy(replacement_files)
+        else:
+            print('Using standard data.')
+            fs = copy.deepcopy(files)
+
+        # Get the list of files for that month
+        fs = [fs.replace('YYYYMMDD',f'{settings.year}{month:02d}{d:02d}')
+              for d in range(1, 32)]
+        fs = [f for f in fs
+              if f.split('/')[-1] in listdir(f.rpartition('/')[0])]
+
+        # Open all the files simultaneously and average over levels
+        avg = xr.open_mfdataset(fs)['SpeciesConc_CH4']
+        avg = avg.mean(['lat', 'lon', 'time'])
+
+        # Save out
+        if not exists(join(input_dir, 'vertical_profiles')):
+            makedirs(join(input_dir, 'vertical_profiles'))
+        avg.to_netcdf(join(input_dir, 'vertical_profiles',
+                           f'mean_profile_{settings.year}{month:02d}.nc'))
+
+        print('Saved the mean vertical profile.')
+
+    # Update profiles
+    profiles = join(input_dir, 'vertical_profiles', 'mean_profile_YYYYMM.nc')
 
 ## ------------------------------------------------------------------------ ##
 ## Replace stratosphere

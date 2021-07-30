@@ -1,25 +1,21 @@
 #!/bin/bash
 
-#SBATCH -J save_k0_monthly
+#SBATCH -J save_k0_nstate
 #SBATCH -o %x_%j_%a.out
-#SBATCH -c 12
+#SBATCH -c 8
 #SBATCH -N 1
-#SBATCH -p huce_cascade
-#SBATCH --mem 35000
-#SBATCH -t 0-02:00
+#SBATCH -p huce_intel
+#SBATCH --mem 30000
+#SBATCH -t 0-05:00
 #SBATCH --mail-type=END
-
-# 30 GB should be big enough for most months. Adaptive
-# memory based on the number of observations in a month might
-# be a good idea. Oh well.
 
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
+# Directories
 DATA_DIR="${1}"
 OUTPUT_DIR="${2}"
 CODE_DIR="${3}"
-MEMORY_GB=45
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
@@ -37,4 +33,7 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_k0_monthly.py ${MEMORY_GB} ${DATA_DIR} ${OUTPUT_DIR} ${CODE_DIR}
+python -u ${python_dir}/python/generate_k0_nstate.py ${DATA_DIR} ${CODE_DIR}
+
+# And make a symbolic link
+ln -s "${DATA_DIR}k0_nstate.nc" "${OUTPUT_DIR}k0_nstate.nc"

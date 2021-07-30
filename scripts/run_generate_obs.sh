@@ -14,7 +14,8 @@
 ## -------------------------------------------------------------------------##
 # Directories
 PRIOR_DIR="${1}"
-CODE_DIR="${2}"
+OUTPUT_DIR="${2}"
+CODE_DIR="${3}"
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
@@ -30,4 +31,4 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 echo "Initiating script"
-python -u ${CODE_DIR}/generate_obs.py $PRIOR_DIR $CODE_DIR
+python -u ${CODE_DIR}/generate_obs.py ${PRIOR_DIR} ${OUTPUT_DIR} ${CODE_DIR}

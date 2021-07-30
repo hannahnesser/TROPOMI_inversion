@@ -13,6 +13,7 @@ import copy
 
 sys.path.append('.')
 import gcpy as gc
+import inversion_settings as s
 
 ## -------------------------------------------------------------------------##
 ## Set user preferences
@@ -51,8 +52,7 @@ def load_obj(name):
     with open( name, 'rb') as f:
         return pickle.load(f)
 
-def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
-                   lat_min, lat_max, lat_delta):
+def filter_tropomi(data, date, lon_min, lon_max, lat_min, lat_max):
     # Filter on qa_value
     data = data.where(data['qa_value'] > 0.5, drop=True)
 
@@ -60,11 +60,11 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
     data = data.where(data['xch4_corrected'] != 9.96921e36, drop=True)
 
     # Filter on lat/lon domain
-    data = data.where((data['longitude_center'] >= lon_min-lon_delta/2) &
-                      (data['longitude_center'] <= lon_max+lon_delta/2),
+    data = data.where((data['longitude_center'] >= lon_min) &
+                      (data['longitude_center'] <= lon_max),
                       drop=True)
-    data = data.where((data['latitude_center'] >= lat_min-lat_delta/2) &
-                      (data['latitude_center'] <= lat_max+lat_delta/2),
+    data = data.where((data['latitude_center'] >= lat_min) &
+                      (data['latitude_center'] <= lat_max),
                       drop=True)
 
     # Filter on dates
@@ -334,30 +334,9 @@ if __name__ == '__main__':
     sat_data_dir = sys.argv[1]
     GC_data_dir = sys.argv[2]
     output_dir = sys.argv[3]
+    MONTH = int(sys.argv[4])
 
-    LON_MIN = float(sys.argv[4])
-    LON_MAX = float(sys.argv[5])
-    LON_DELTA = float(sys.argv[6])
-
-    LAT_MIN = float(sys.argv[7])
-    LAT_MAX = float(sys.argv[8])
-    LAT_DELTA = float(sys.argv[9])
-
-    BUFFER = sys.argv[10:14]
-    BUFFER = [int(b) for b in BUFFER]
-
-    YEAR = int(sys.argv[14])
-    MONTH = int(sys.argv[15])
-
-    print('Applying TROPOMI operator for %d-%02d\n' % (YEAR, MONTH))
-
-    ## ---------------------------------------------------------------------##
-    ## Remove buffer boxes and adjust to be grid box edges
-    ## ---------------------------------------------------------------------##
-    LATLON = [LAT_MIN, LAT_MAX, LAT_DELTA, LON_MIN, LON_MAX, LON_DELTA, BUFFER]
-    LAT_EDGES, LON_EDGES = gc.adjust_grid_bounds(*LATLON)
-    LAT_MIN, LAT_MAX = LAT_EDGES
-    LON_MIN, LON_MAX = LON_EDGES
+    print('Applying TROPOMI operator for %d-%02d\n' % (s.year, MONTH))
 
     ## ---------------------------------------------------------------------##
     ## List all satellite files for the year and date defined
@@ -380,9 +359,9 @@ if __name__ == '__main__':
         end_date = strdate[6]
 
         # start condition
-        start = ((int(start_date[:4]) == YEAR)
+        start = ((int(start_date[:4]) == s.year)
                  and (int(start_date[4:6]) == MONTH))
-        end = ((int(end_date[:4]) == YEAR)
+        end = ((int(end_date[:4]) == s.year)
                and (int(end_date[4:6]) == MONTH))
         # year = (int(start_date[:4]) == YEAR)
         # month = ((int(start_date[4:6]) == MONTH)
@@ -413,8 +392,8 @@ if __name__ == '__main__':
     for date, filenames in Sat_files.items():
         print('=========== %s ===========' % date)
         preprocess = lambda d: filter_tropomi(d, date,
-                                              LON_MIN, LON_MAX, LON_DELTA,
-                                              LAT_MIN, LAT_MAX, LAT_DELTA)
+                                              s.lon_min, s.lon_max,
+                                              s.lat_min, s.lat_max)
         TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
                                     combine='nested',
                                     chunks=10000,

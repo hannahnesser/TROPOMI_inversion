@@ -1,43 +1,39 @@
 '''
 This python script generates the initial estimate of the Jacobian matrix
+which has dimension n x n x 12. It is the basis for the generate_k0.py
+script.
 
 Inputs:
     prior_emis      This contains the emissions of the prior run simulation.
                     It is a list of monthly output HEMCO diagnostics files
                     to account for monthly variations in
 '''
-
-from os.path import join
+# Basic imports
 import sys
-
 import xarray as xr
-from dask.diagnostics import ProgressBar
 import numpy as np
 import pandas as pd
-
-# Custom packages
-sys.path.append('.')
-import gcpy as gc
-import inversion_settings as settings
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Cannon
-base_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
-code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
+base_dir = sys.argv[1]
 data_dir = f'{base_dir}inversion_data/'
-output_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
+code_dir = sys.argv[2]
+
+# Import custom packages
+sys.path.append(code_dir)
+import gcpy as gc
+import inversion_settings as settings
 
 # Files
-month = int(sys.argv[1])
 emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
-obs_file = f'{base_dir}observations/{settings.year}_corrected.pkl'
 cluster_file = f'{data_dir}clusters.nc'
-k_nstate = f'{data_dir}k0_nstate.nc' # None
 
-# Memory constraints
-available_memory_GB = int(sys.argv[2])
+# Fraction of emissions to allocate to each ring
+fractions = np.array([10, 6, 4, 3, 2.5, 2.25, 2.125])
+fractions /= fractions.sum()
 
 ## ------------------------------------------------------------------------ ##
 ## Load the clusters
@@ -84,27 +80,7 @@ emis['EmisCH4_ppb'] = 1e9*Mair*emis['EmisCH4_Total']*g/(U*W*P)
 emis = emis[['Clusters', 'EmisCH4_ppb']]
 
 ## ------------------------------------------------------------------------ ##
-## Load and process the observations
-## ------------------------------------------------------------------------ ##
-obs = gc.load_obj(obs_file)[['LON', 'LAT', 'MONTH']]
-nobs = int(obs.shape[0])
-print(f'Number of observations : {nobs}')
-
-# Find the indices that correspond to each observation (i.e. the grid
-# box in which each observation is found) (Yes, this information should
-# be contained in the iGC and jGC columns in obs_file, but stupidly
-# I don't have that information for the cluster files)
-
-# First, find the cluster number of the grid box of the obs
-lat_idx = gc.nearest_loc(obs['LAT'].values, emis.lat.values)
-lon_idx = gc.nearest_loc(obs['LON'].values, emis.lon.values)
-obs['CLUSTER'] = emis['Clusters'].values[lat_idx, lon_idx]
-
-# Format
-obs[['MONTH', 'CLUSTER']] = obs[['MONTH', 'CLUSTER']].astype(int)
-
-## ------------------------------------------------------------------------ ##
-## Build the Jacobian
+## Define the functions needed to build the n x n x 12 Jacobian
 ## ------------------------------------------------------------------------ ##
 def get_zone_conc(emissions, ncells, emis_fraction):
     '''
@@ -180,73 +156,40 @@ def get_zone_indices(data, grid_cell_index, zone):
 
     return idx
 
-if k_nstate is None:
-    ## First, obtain a column for every grid box. We will then duplicate
-    ## rows where there are multiple observations for a given grid box and time.
+## ------------------------------------------------------------------------ ##
+## Build the n x n x 12 Jacobian
+## ------------------------------------------------------------------------ ##
+## First, obtain a column for every grid box. We will then duplicate
+## rows where there are multiple observations for a given grid box and time.
 
-    # Initialize the nstate x nstate x months Jacobian
-    k_nstate = np.zeros((nstate, nstate, len(months)), dtype=np.float32)
+# Initialize the nstate x nstate x months Jacobian
+k_nstate = np.zeros((nstate, nstate, len(settings.months)), dtype=np.float32)
 
-    # Set the fractional mass decrease
-    f = np.array([10, 6, 4, 3, 2.5])
-    f /= f.sum()
+# Iterate through the state vector elements
+for i in range(1, nstate+1):
+    # Get the emissions for that grid cell
+    emis_i = emis.where(emis['Clusters'] == i, drop=True)['EmisCH4_ppb']
 
-    # Iterate through the state vector elements
-    for i in range(1, nstate+1):
-        # Get the emissions for that grid cell
-        emis_i = emis.where(emis['Clusters'] == i, drop=True)['EmisCH4_ppb']
+    # Iterate through the zones
+    for z, frac in enumerate(fractions):
+        # Get state vector indices corresponding to each grid box in the
+        # given zone
+        idx_z = get_zone_indices(emis, grid_cell_index=i, zone=z)
 
-        # Iterate through the zones
-        for z in range(len(f)):
-            # Get state vector indices corresponding to each grid box in the
-            # given zone
-            idx_z = get_zone_indices(emis, grid_cell_index=i, zone=z)
+        # Calculate the emissions (as observation) to be allocated to each
+        # of the grid cells in the zone if there are grid cells in the zone
+        if len(idx_z) > 0:
+            conc_z = get_zone_conc(emis_i, ncells=len(idx_z),
+                                   emis_fraction=frac)
 
-            # Calculate the emissions (as observation) to be allocated to each
-            # of the grid cells in the zone if there are grid cells in the zone
-            if len(idx_z) > 0:
-                conc_z = get_zone_conc(emis_i, ncells=len(idx_z),
-                                       emis_fraction=f[z])
+        # Place those concentrations in the nstate x nstate x months
+        # Jacobian
+        k_nstate[idx_z-1, i-1, :] = conc_z
 
-            # Place those concentrations in the nstate x nstate x months
-            # Jacobian
-            k_nstate[i-1, idx_z-1, :] = conc_z
+    # Keep track of progress
+    if i % 1000 == 0:
+        print(f'{i:-6d}/{nstate}', '-'*int(20*i/nstate))
 
-        # Keep track of progress
-        if i % 1000 == 0:
-            print(f'{i:-6d}/{nstate}', '-'*int(20*i/nstate))
-
-    # Save
-    k_nstate.to_netcdf(join(data_dir, 'k0_nstate.nc'),
-                       dims=('nstate', 'nobs', 'month'))
-
-else:
-    k_nstate = xr.open_dataarray(join(data_dir, 'k0_nstate.nc'),
-                                 chunks={'nobs' : 1000,
-                                         'nstate' : -1,
-                                         'month' : 12})
-
-print('k0_nstate is loaded.')
-
-# Delete superfluous memory
-del(emis)
-del(clusters)
-obs = obs[['CLUSTER', 'MONTH']]
-obs = obs[obs['MONTH'] == month]
-nobs = obs.shape[0]
-print(f'In month {month}, there are {nobs} observations.')
-
-# Fancy slicing isn't allowed by dask, so we'll create monthly Jacobians
-max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
-nstate = len(k_nstate.nstate)
-nobs_clusters = int(max_chunk_size/nstate)
-chunks={'nstate' : -1, 'nobs' : nobs_clusters}
-print('CHUNK SIZE')
-print(chunks)
-k_m = k_nstate[obs['CLUSTER'].values, :, (month-1)]
-k_m = k_m.chunk(chunks)
-with ProgressBar():
-    k_m.to_netcdf(join(output_dir, f'k0_m{month:02d}.nc'))
-
-# EASY CHECK: USE THIS SCRIPT TO BUILD THE JACOBIAN FOR MY TEST CASE
-
+# Save
+k_nstate = xr.DataArray(data=k_nstate, dims=('nobs', 'nstate', 'month'))
+k_nstate.to_netcdf(f'{data_dir}k0_nstate.nc')

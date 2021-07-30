@@ -1,24 +1,23 @@
 #!/bin/bash
 
-#SBATCH -J save_k0_monthly
+#SBATCH -J save_pph0
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 12
 #SBATCH -N 1
 #SBATCH -p huce_cascade
-#SBATCH --mem 35000
+#SBATCH --mem 45000
 #SBATCH -t 0-02:00
 #SBATCH --mail-type=END
 
-# 30 GB should be big enough for most months. Adaptive
-# memory based on the number of observations in a month might
-# be a good idea. Oh well.
+## Eventually change to 12 cores, 45000 mem, and at least one hour. Just debugging
+## for now
 
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 DATA_DIR="${1}"
-OUTPUT_DIR="${2}"
-CODE_DIR="${3}"
+CODE_DIR="${2}"
+MONTH="${SLURM_ARRAY_TASK_ID}"
 MEMORY_GB=45
 
 ## -------------------------------------------------------------------------##
@@ -37,4 +36,4 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_k0_monthly.py ${MEMORY_GB} ${DATA_DIR} ${OUTPUT_DIR} ${CODE_DIR}
+python -u ${python_dir}/python/generate_pph0.py ${MONTH} ${MEMORY_GB} ${DATA_DIR} ${CODE_DIR}

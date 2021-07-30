@@ -4,9 +4,9 @@
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 4
 #SBATCH -N 1
-#SBATCH -p huce_intel
+#SBATCH -p huce_cascade
 #SBATCH --mem 15000
-#SBATCH -t 0-00:40
+#SBATCH -t 0-01:15
 #SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
@@ -18,13 +18,7 @@ BASE_DIR="${2}"
 INPUT_DIR="${BASE_DIR}OutputDir/"
 OUTPUT_DIR="${BASE_DIR}ProcessedDir/"
 
-# Latitude and longitude range
-LONS="-130 -60 0.3125"
-LATS="9.75 60 0.25"
-BUFFER="3 3 3 3"
-
 # time range
-YEAR="2019"
 MONTH="${SLURM_ARRAY_TASK_ID}"
 
 ## -------------------------------------------------------------------------##
@@ -34,9 +28,6 @@ echo "======================================================================="
 echo "TROPOMI DATA DIRECTORY:    ${TROPOMI_DATA_DIR}"
 echo "GEOS-CHEM DATA DIRECTORY:  ${INPUT_DIR}"
 echo "OUTPUT DATA DIRECTORY:     ${OUTPUT_DIR}"
-echo "LONGITUDE RANGE:           ${LONS}"
-echo "LATITUDE RANGE:            ${LATS}"
-echo "YEAR:                      ${YEAR}"
 echo "MONTH:                     ${MONTH}"
 echo "======================================================================="
 
@@ -58,4 +49,4 @@ cd $INPUT_DIR
 mkdir -p $OUTPUT_DIR
 
 echo "Initiating script"
-python -u ${python_dir}/python/TROPOMI_operator.py $TROPOMI_DATA_DIR $INPUT_DIR $OUTPUT_DIR $LONS $LATS $BUFFER $YEAR $MONTH
+python -u ${python_dir}/python/TROPOMI_operator.py $TROPOMI_DATA_DIR $INPUT_DIR $OUTPUT_DIR $MONTH
