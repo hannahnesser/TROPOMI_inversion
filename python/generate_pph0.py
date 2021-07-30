@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     # if nobs > 2.5e5:
     #     n_workers = 2
-    threads_per_worker = 3
+    threads_per_worker = 2
 
     cluster = LocalCluster(local_directory=data_dir,
                            n_workers=n_workers,
