@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     # if nobs > 2.5e5:
     #     n_workers = 2
-    threads_per_worker = 2
+    threads_per_worker = 3
 
     cluster = LocalCluster(local_directory=data_dir,
                            n_workers=n_workers,
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     pph_m = da.tensordot(sasqrtkt.T/so_m, sasqrtkt, axes=(1, 0))
     pph_m = xr.DataArray(pph_m, dims=['nstate_0', 'nstate_1'],
                          name=f'pph0_m{month:02d}')
-    pph_m = pph_m.chunk({'nstate_0' : 4000, 'nstate_1' : nstate})
+    pph_m = pph_m.chunk({'nstate_0' : nstate_chunk, 'nstate_1' : nstate})
     print('Prior-pre-conditioned Hessian calculated.')
 
     # Save out
