@@ -68,7 +68,7 @@ code_dir = sys.argv[3]
 files = join(data_dir, 'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
 replacement_files = join(input_dir, 'halfstep_outputs',
                          'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
-profiles = join(input_dir, 'vertical_profiles', 'mean_profile_YYYYMM.nc')
+profiles = None #join(input_dir, 'vertical_profiles', 'mean_profile_YYYYMM.nc')
 
 # The scale factor for comparison to the mean vertical profiles--how many
 # times bigger or smaller than the mean profile does a methane concetnration
