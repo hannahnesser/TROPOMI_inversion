@@ -252,7 +252,7 @@ class Inversion:
 
         return ds
 
-    def _check_dimensions(self, dims):
+    def _check_dimensions(self):
         # Check whether all inputs have the right dimensions
         assert self.k.shape[1] == self.nstate, \
                'Dimension mismatch: Jacobian and prior.'
