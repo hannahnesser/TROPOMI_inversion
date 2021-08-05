@@ -191,7 +191,7 @@ class Inversion:
         if type(item) == str:
             item = gc.read_file(*[item], **kwargs)
 
-        # Force the items to be dataarrays
+        # Force the items to be numpy arrays
         if type(item) != np.ndarray:
             item = np.array(item)
 
@@ -461,7 +461,7 @@ class Inversion:
 class InversionLoop(Inversion):
     """
     Exactly the same as Inversion, but implements a simple loop for solve_inversion.
-    Can only handle diagonal (1D) s_o values. Loop is based on Lu & Danny's code.
+    Can only handle diagonal (1D) S_o values. Loop is based on Lu & Danny's code.
 
     This function can handle a K which does not fit in memory. Just make sure to
     read it in as list of filepaths, which will force use of Dask.
@@ -474,16 +474,16 @@ class InversionLoop(Inversion):
                             may want to adjust.
     """
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
-                k_is_positive=False, obs_subset_size=300000):
+                 k_is_positive=False, obs_subset_size=300000):
         super().__init__(k, xa, sa, y, ya, so, c=c,
                          regularization_factor=regularization_factor,
                          k_is_positive=k_is_positive)
         # save obs_subset_size, the size of chunks you want your inversion processed in
         self.obs_subset_size = obs_subset_size
-        # require diagonal observational errors
-        assert len(so.squeeze().shape)==1, 'Observation errors (so) must be diagonal.'
-        # todo: relax the SA is diagonal requirment using Dask.
-        assert len(sa.squeeze().shape)==1, 'Prior errors (sa) must be diagonal.'
+        
+        # read in so and ensure that it is diagonal
+        self.so = self.read(so, dims=Inversion.dims['so'], is_diag=True)
+        assert len(so.squeeze().shape)==1, 'Observation errors (so) must be diagonal.' 
 
     # Use the read functions from ReducedMemoryInversion
     # Don't inherit because that function is changing too rapidly.
@@ -495,6 +495,23 @@ class InversionLoop(Inversion):
         if item_is_diag:
             dims = [dims[0]]
         return dims
+    
+    @staticmethod
+    def _to_dataarray(item, dims):
+        # If it's a dataset, require that there be only one variable
+        if type(item) == xr.core.dataset.Dataset:
+            variables = list(item.keys())
+            assert len(variables) == 1, \
+                  'A dataset with multiple variables was provided. This \
+                   class requires that any datasets contain only one \
+                   variable.'
+            item = item[variables[0]]
+        # Else convert to a dataarray
+        else:
+            assert dims is not None, \
+                   'Creating an xarray dataset and dims is not provided.'
+            item = xr.DataArray(item, dims=tuple(dims))
+        return item
 
     def read(self, item, dims=None, chunks={}, **kwargs):
         """
@@ -507,8 +524,8 @@ class InversionLoop(Inversion):
 
         # Force the items to be dataarrays
         if type(item) != xr.core.dataarray.DataArray:
-            dims = self.make_dims_1d_if_diagonal(item, dims) # replace with 1d dims if diagonal
-            item = self._to_dataarray(item, dims=dims)
+            dims = self.make_dims_1d_if_diagonal(item, dims) 
+            item = self._to_dataarray(item, dims)
 
         return item
 
@@ -535,7 +552,7 @@ class InversionLoop(Inversion):
 
         # Calculate the emissions/prior component of the cost function
         cost_emi = (x.data - self.xa.data).T \
-                  @ diags(1/self.sa.data) @ (x.data - self.xa.data)
+                  @ np.linalg.inv(self.sa.data) @ (x.data - self.xa.data)
 
         # Calculate the total cost, print out information on the cost, and
         # return the total cost function value
@@ -553,7 +570,7 @@ class InversionLoop(Inversion):
         KT_invSo_ydiff = np.zeros([self.nstate], dtype=float)
 
         # Inverse of prior error covariance matrix, inv(S_a)
-        invSa = diags(1/self.sa.data)   # Inverse of prior error covariance matrix
+        invSa = np.linalg.inv(self.sa.data)   # Inverse of prior error covariance matrix
         # Define gamma for convenience
         gamma = self.regularization_factor
 
