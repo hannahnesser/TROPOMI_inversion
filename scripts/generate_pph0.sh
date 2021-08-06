@@ -4,9 +4,9 @@
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 12
 #SBATCH -N 1
-#SBATCH -p huce_amd_bigmem
+#SBATCH -p huce_cascade
 #SBATCH --mem 45000
-#SBATCH -t 0-03:00
+#SBATCH -t 0-06:00
 #SBATCH --mail-type=END
 
 ## Eventually change to 12 cores, 45000 mem, and at least one hour. Just debugging
@@ -29,9 +29,6 @@ module load Anaconda3/5.0.1-fasrc01
 source activate ~/python/miniconda/envs/TROPOMI_inversion
 
 echo "Activated ${CONDA_PREFIX}"
-
-# Make a temporary directory
-mkdir ${DATA_DIR}/dask-worker-space-${MONTH}
 
 ## -------------------------------------------------------------------------##
 ## Run the script

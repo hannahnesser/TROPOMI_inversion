@@ -66,7 +66,7 @@ if __name__ == '__main__':
                      'distributed.comm.timeouts.tcp' : 150,
                      'distributed.adaptive.wait-count' : 90,
                      'array.slicing.split_large_chunks' : False,
-                     'temporary_directory' : f'{data_dir}daask-worker-space-{month}'})
+                     'temporary_directory' : f'{data_dir}dask-worker-space-{month}'})
 
     # Open cluster and client
     if nobs > 4e5:
@@ -74,8 +74,6 @@ if __name__ == '__main__':
     else:
         n_workers = 2
 
-    # if nobs > 2.5e5:
-    #     n_workers = 2
     threads_per_worker = 2
 
     cluster = LocalCluster(n_workers=n_workers,
