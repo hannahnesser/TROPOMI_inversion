@@ -69,10 +69,10 @@ if __name__ == '__main__':
                      'temporary_directory' : f'{data_dir}daask-worker-space-{month}'})
 
     # Open cluster and client
-    if nobs > 4e5:
-        n_workers = 1
-    else:
-        n_workers = 2
+    # if nobs > 4e5:
+    #     n_workers = 1
+    # else:
+    n_workers = 2
 
     # if nobs > 2.5e5:
     #     n_workers = 2
