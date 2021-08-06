@@ -70,7 +70,7 @@ class Inversion:
             'xhat' : [state_dim],
             'yhat' : [obs_dim],   'shat' : [state_dim, state_dim],
             'dofs' : [state_dim], 'a'    : [state_dim, state_dim],
-            'rf' : None}
+            'regularization_factor' : None}
 
     def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
                  k_is_positive=False):
@@ -242,8 +242,9 @@ class Inversion:
         ds = xr.Dataset()
 
         # Add attributes to the dataset
-        attrs = ['state_vector', 'k', 'xa', 'sa', 'y', 'y_base', 'so', 'c',
-                 'xhat', 'shat', 'a', 'y_out', 'dofs', 'rf']
+        # todo: other attribute e.g. state_vector are not included (ask Hannah)
+        attrs = ['k', 'xa', 'sa', 'y', 'ya', 'so', 'c',
+                 'xhat', 'shat', 'a', 'yhat', 'dofs', 'regularization_factor']
         for attr in attrs:
             try:
                 self.add_attr_to_dataset(ds, attr, Inversion.dims[attr])
