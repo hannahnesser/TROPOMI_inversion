@@ -65,7 +65,8 @@ if __name__ == '__main__':
     dask.config.set({'distributed.comm.timeouts.connect' : 90,
                      'distributed.comm.timeouts.tcp' : 150,
                      'distributed.adaptive.wait-count' : 90,
-                     'array.slicing.split_large_chunks' : False})
+                     'array.slicing.split_large_chunks' : False,
+                     'temporary_directory' : f'{data_dir}daask-worker-space-{month}'})
 
     # Open cluster and client
     if nobs > 4e5:
@@ -77,8 +78,7 @@ if __name__ == '__main__':
     #     n_workers = 2
     threads_per_worker = 2
 
-    cluster = LocalCluster(local_directory=data_dir,
-                           n_workers=n_workers,
+    cluster = LocalCluster(n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
     client = Client(cluster)
     print(client)

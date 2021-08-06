@@ -16,3 +16,4 @@ jid1=$(sbatch generate_k0_nstate.sh ${LONG_TERM_DATA_DIR} ${SHORT_TERM_DATA_DIR}
 # Command structure:
 # sbatch generate_k0_monthly.sh data_dir output_dir code_dir
 jid2=$(sbatch --dependency=afterok:${jid1##* } generate_k0_monthly.sh ${LONG_TERM_DATA_DIR} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
+#sbatch generate_k0_monthly.sh ${LONG_TERM_DATA_DIR} ${SHORT_TERM_DATA_DIR} ${CODE_DIR}
