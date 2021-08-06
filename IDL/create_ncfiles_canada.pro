@@ -7,7 +7,7 @@ pro create_ncfiles_canada
 ;nfile = n_elements(filesector)
 
 ;--read header and Area
-filename = '/n/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/Area_Global.nc'
+filename = '/n/seasasfs02/hnesser/TROPOMI_inversion/prior/canada/Area_Global.nc'
 Cdfid=NCDF_OPEN(filename)
 NCDF_VARGET, Cdfid ,'lat' ,lat
 NCDF_VARGET, Cdfid ,'lon' ,lon
@@ -40,13 +40,15 @@ for isec = 0, N_GCsector-1 do begin
 	if thissec eq 'oil2' then begin
 	filesec=['1B2ci']
         varsec=['1B2ci1 (oil production)',$
-		'1B2ci1 (oil sands)','1B2ci1 (oil transport)']
+                '1B2ci1 (oil sands)', '1B2ci1 (oil transport)',$
+                '1B2ci3 (combined)']
         endif
 
 	if thissec eq 'oil3' then begin
 	filesec=['1B2cii']
 	varsec=['1B2cii1 (oil production)','1B2cii1 (oil refining)',$
-		'1B2cii1 (oil sands)','1B2cii1 (oil transport)']
+                '1B2cii1 (oil sands)', '1B2cii1 (oil transport)',$
+                '1B2cii3 (combined)']
 	endif
 	
         if thissec eq 'gas1' then begin
@@ -112,7 +114,7 @@ for isec = 0, N_GCsector-1 do begin
 	;NC files
 	nsecfile=n_elements(filesec)
 	for ifile = 0,nsecfile-1 do begin
-		filename = '/n/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/can_emis_'+filesec[ifile]+'_2018.nc'
+		filename = '/n/seasasfs02/hnesser/TROPOMI_inversion/prior/canada/can_emis_'+filesec[ifile]+'_2018.nc'
 		Cdfid=NCDF_OPEN(filename)
 		nvars=n_elements(varsec)
 		for ivar = 0 , nvars-1 do begin
@@ -193,7 +195,7 @@ if (donc) then begin
         for isec = 0, N_GCsector-1 do begin
         thissec = finalsector[isec]
 
-        filename='/n/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/processed/CAN_Tia2020_'+thissec+'_2018.nc'
+        filename='/n/seasasfs02/hnesser/TROPOMI_inversion/prior/canada/processed/CAN_Tia2020_'+thissec+'_2018.nc'
 
         ;open a netcdf file
         FileId  = NCDF_Create( FileName, /Clobber )
