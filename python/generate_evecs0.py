@@ -50,7 +50,7 @@ dask.config.set({'distributed.comm.timeouts.connect' : 90,
                  'distributed.adaptive.wait-count' : 90})
 
 # Open cluster and client
-n_workers = 1
+n_workers = 2
 threads_per_worker = 2
 cluster = LocalCluster(local_directory=output_dir,
                        n_workers=n_workers,
@@ -59,11 +59,7 @@ client = Client(cluster)
 
 # We now calculate chunk size.
 n_threads = n_workers*threads_per_worker
-max_chunk_size = gc.calculate_chunk_size(available_memory_GB,
-                                         n_threads=n_threads)
-# We take the squareroot of the max chunk size and scale it down by 5
-# to be safe. It's a bit unclear why this works best in tests.
-nstate_chunk = int(np.sqrt(max_chunk_size)/5)
+nstate_chunk = 1e3
 chunks = {'nstate_0' : nstate_chunk, 'nstate_1' : nstate_chunk}
 print('State vector chunks : ', nstate_chunk)
 
