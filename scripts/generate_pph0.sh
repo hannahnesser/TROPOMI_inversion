@@ -21,7 +21,7 @@ MONTH="${SLURM_ARRAY_TASK_ID}"
 MEMORY_GB=45
 
 ## -------------------------------------------------------------------------##
-## Load the environment
+## Load and prepare the environment
 ## -------------------------------------------------------------------------##
 echo "Activating python environment"
 
@@ -30,6 +30,9 @@ source activate ~/python/miniconda/envs/TROPOMI_inversion
 
 echo "Activated ${CONDA_PREFIX}"
 
+# Make a temporary directory
+mkdir ${DATA_DIR}/dask-worker-space-${MONTH}
+
 ## -------------------------------------------------------------------------##
 ## Run the script
 ## -------------------------------------------------------------------------##
@@ -37,3 +40,8 @@ echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
 python -u ${python_dir}/python/generate_pph0.py ${MONTH} ${MEMORY_GB} ${DATA_DIR} ${CODE_DIR}
+
+## -------------------------------------------------------------------------##
+## Clean up
+## -------------------------------------------------------------------------##
+rm -rf ${DATA_DIR}dask-worker-space-${MONTH}
