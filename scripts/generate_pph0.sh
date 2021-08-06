@@ -4,7 +4,7 @@
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 12
 #SBATCH -N 1
-#SBATCH -p huce_big_mem
+#SBATCH -p huce_amd_bigmem
 #SBATCH --mem 45000
 #SBATCH -t 0-02:00
 #SBATCH --mail-type=END
