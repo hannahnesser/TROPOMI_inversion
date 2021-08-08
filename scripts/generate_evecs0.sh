@@ -9,7 +9,7 @@ rm -rf ${DATA_DIR}dask-worker-space*
 # First, generate the monthly prior pre-conditioned Hessians.
 # Command structure:
 # sbatch generate_k0_nstate data_dir code_dir
-jid1=$(sbatch --array=10 generate_pph0.sh ${DATA_DIR} ${CODE_DIR})
+jid1=$(sbatch --array=1-12 generate_pph0.sh ${DATA_DIR} ${CODE_DIR})
 # sbatch --array=1 generate_pph0.sh ${DATA_DIR} ${CODE_DIR}
 
 # # Second, generate the first guess of the m x n Jacobian on a monthly basis
