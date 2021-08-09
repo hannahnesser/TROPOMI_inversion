@@ -120,9 +120,9 @@ pd.set_option('display.max_columns', 10)
 # output_dir = base_dir + 'inversion_data'
 # plot_dir = base_dir + 'plots'
 
-# # Cannon preferences
-# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
-# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# Cannon preferences
+base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 base_dir = sys.argv[1]
 code_dir = sys.argv[3]
 data_dir = f'{base_dir}ProcessedDir'
@@ -260,6 +260,7 @@ if type(prior_run) == list:
     print('DIFFERENCE MAXIMUM : ', np.abs(data['DIFF']).max())
 
     # Save the data out
+    print(f'Saving data in {output_dir}{settings.year}.pkl')
     gc.save_obj(data, join(output_dir, f'{settings.year}.pkl'))
 
 else:
@@ -328,6 +329,7 @@ if remove_latitudinal_bias:
 # Save out result
 if (filter_on_blended_albedo or filter_on_albedo or
     filter_on_seasonal_latitude or remove_latitudinal_bias):
+    print(f'Saving data in {output_dir}{settings.year}_corrected.pkl')
     gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
 nobs = data.shape[0]
@@ -529,6 +531,7 @@ if calculate_so:
     print(f'We find a mean error of {err_mean:.2f} ppb.' )
 
     # Save out the data
+    print(f'Saving data in {output_dir}{settings.year}.pkl')
     gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
 ## ------------------------------------------------------------------------ ##
@@ -695,6 +698,8 @@ if (plot_dir is not None) and calculate_so:
 ## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities
 ## ------------------------------------------------------------------------ ##
+print(f'Saving data in {output_dir}')
+
 y = xr.DataArray(data['OBS'], dims=('nobs'))
 y.to_netcdf(join(output_dir, 'y.nc'))
 
