@@ -12,6 +12,7 @@ from sklearn.cluster import KMeans
 
 import math
 import itertools
+from collections import OrderedDict
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -204,7 +205,12 @@ def add_legend(ax, **legend_kwargs):
     legend_kwargs['fontsize'] = legend_kwargs.get('fontsize',
                                                   (config.LABEL_FONTSIZE*
                                                    config.SCALE))
-    ax.legend(**legend_kwargs)
+
+    # Remove duplicates from legend
+    handles, labels = ax.get_legend_handles_labels()
+    labels = OrderedDict(zip(labels, handles))
+
+    ax.legend(labels.values(), labels.keys(), **legend_kwargs)
     return ax
 
 def add_title(ax, title, **title_kwargs):
