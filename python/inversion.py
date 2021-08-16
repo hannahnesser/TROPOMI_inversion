@@ -672,9 +672,10 @@ class ReducedRankInversion(Inversion):
             rank = np.argwhere(diff == np.min(diff))[0][0]
             print('Calculated rank from percent of information: %d' % rank)
             print('     Percent of information: %.4f%%' % (100*pct_of_info))
-            print('     Signal-to-noise ratio: %.2f' % self.evals_h[rank])
+            print('     Signal-to-noise ratio: %.2f'
+                  % (self.evals_h[rank])**0.5)
         elif snr is not None:
-            diff = np.abs(self.evals_h - snr)
+            diff = np.abs(self.evals_h**0.5 - snr)
             rank = np.argwhere(diff == np.min(diff))[0][0]
             print('Calculated rank from signal-to-noise ratio : %d' % rank)
             print('     Percent of information: %.4f%%' % (100*frac[rank]))
@@ -682,7 +683,8 @@ class ReducedRankInversion(Inversion):
         elif rank is not None:
             print('Using defined rank: %d' % rank)
             print('     Percent of information: %.4f%%' % (100*frac[rank]))
-            print('     Signal-to-noise ratio: %.2f' % self.evals_h[rank])
+            print('     Signal-to-noise ratio: %.2f'
+                  % (self.evals_h[rank])**0.5)
         return rank
 
     def pph(self):
