@@ -88,7 +88,7 @@ rel_err = 0.5
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
 ## -------------------------------------------------------------------------##
-emis = gc.read_netcdf_file(emis_file)
+emis = gc.read_file(*emis_file)
 
 # Remove emissions from buffer grid cells
 emis = gc.subset_data_latlon(emis, *settings.lats, *settings.lons)
