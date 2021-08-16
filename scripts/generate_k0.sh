@@ -18,13 +18,9 @@ jid1=$(sbatch generate_k0_nstate.sh ${LONG_TERM_DATA_DIR} ${SHORT_TERM_DATA_DIR}
 jid2=$(sbatch --dependency=afterok:${jid1##* } generate_k0_monthly.sh ${LONG_TERM_DATA_DIR} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 # jid2=$(sbatch generate_k0_monthly.sh ${LONG_TERM_DATA_DIR} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 
-# Directories
-DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/"
-CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python/"
-
 # Third, generate the monthly prior pre-conditioned Hessians.
 # Command structure:
 # sbatch generate_k0_nstate data_dir code_dir
-jid3=$(sbatch --dependency=afterok:${jid2##* } --array=1-12 generate_pph0.sh ${DATA_DIR} ${CODE_DIR})
+jid3=$(sbatch --dependency=afterok:${jid2##* } --array=1-12 generate_pph0.sh ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 # sbatch --array=1 generate_pph0.sh ${DATA_DIR} ${CODE_DIR}
 
