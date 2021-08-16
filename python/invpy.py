@@ -288,13 +288,10 @@ def plot_state_grid(data, rows, cols, clusters_plot,
         pass
 
     fig_kwargs = kw.pop('fig_kwargs', {})
+    cbar_kwargs = kw.pop('cbar_kwargs', {})
     fig, ax = fp.get_figax(rows, cols, maps=True,
                            lats=clusters_plot.lat, lons=clusters_plot.lon,
                             **fig_kwargs)
-
-    if cbar:
-        cax = fp.add_cax(fig, ax)
-        cbar_kwargs = kw.pop('cbar_kwargs', {})
 
     for i, axis in enumerate(ax.flatten()):
         kw['fig_kwargs'] = {'figax' : [fig, axis]}
@@ -307,7 +304,9 @@ def plot_state_grid(data, rows, cols, clusters_plot,
 
         fig, axis, c = plot_state(data[:,i], clusters_plot,
                                   cbar=False, **kw)
+
     if cbar:
+        cax = fp.add_cax(fig, ax)
         cbar_title = cbar_kwargs.pop('title', '')
         c = fig.colorbar(c, cax=cax, **cbar_kwargs)
         c = fp.format_cbar(c, cbar_title)
