@@ -30,6 +30,8 @@ source activate ~/python/miniconda/envs/TROPOMI_inversion
 
 echo "Activated ${CONDA_PREFIX}"
 
+rm -rf ${DATA_DIR}dask-worker-space-${MONTH}
+
 ## -------------------------------------------------------------------------##
 ## Run the script
 ## -------------------------------------------------------------------------##
