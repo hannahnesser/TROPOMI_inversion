@@ -40,7 +40,7 @@ rcParams['axes.titlepad'] = config.TITLE_PAD
 from matplotlib.font_manager import findfont, FontProperties
 font = findfont(FontProperties(family=['sans-serif']))
 
-def color(k, cmap='inferno', lut=10):
+def color(k, cmap='plasma', lut=10):
     c = plt.cm.get_cmap(cmap, lut=lut)
     return colors.to_hex(c(k))
 
@@ -285,7 +285,7 @@ def format_cbar(cbar, cbar_title='', horizontal=False):
         y = -4
         rotation = 'horizontal'
     else:
-        x = 6.5
+        x = 6
         y = 0.5
         rotation = 'vertical'
 
@@ -304,8 +304,8 @@ def plot_one_to_one(ax):
             alpha=0.5, zorder=0)
     return ax
 
-def save_fig(fig, loc, name):
+def save_fig(fig, loc, name, **kwargs):
     fig.savefig(join(loc, name + '.png'),
                 bbox_inches='tight', dpi=500,
-                transparent=True)
+                transparent=True, **kwargs)
     print('Saved %s' % name + '.png')
