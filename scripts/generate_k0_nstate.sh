@@ -36,4 +36,4 @@ python_dir=$(dirname `pwd`)
 python -u ${python_dir}/python/generate_k0_nstate.py ${DATA_DIR} ${CODE_DIR}
 
 # And make a symbolic link
-ln -s "${DATA_DIR}k0_nstate.nc" "${OUTPUT_DIR}k0_nstate.nc"
+ln -sf "${DATA_DIR}k0_nstate.nc" "${OUTPUT_DIR}k0_nstate.nc"
