@@ -34,7 +34,7 @@ cluster_file = f'{data_dir}clusters.nc'
 # Fraction of emissions to allocate to each ring
 fractions = np.arange(1, 9)
 # fractions = np.array([10, 8, 6, 4, 2, 2.25, 2.125])
-fractions /= fractions.sum()
+fractions = fractions/fractions.sum()
 
 ## ------------------------------------------------------------------------ ##
 ## Load the clusters
