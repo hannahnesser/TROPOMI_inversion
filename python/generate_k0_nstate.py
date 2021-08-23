@@ -32,7 +32,7 @@ emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.
 cluster_file = f'{data_dir}clusters.nc'
 
 # Fraction of emissions to allocate to each ring
-fractions = np.arange(1, 9)
+fractions = np.arange(8, 0, -1)
 # fractions = np.array([10, 8, 6, 4, 2, 2.25, 2.125])
 fractions = fractions/fractions.sum()
 
