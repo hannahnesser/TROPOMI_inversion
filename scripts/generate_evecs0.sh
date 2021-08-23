@@ -1,18 +1,35 @@
 #!/bin/bash
 
-# Directories
-DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/"
-CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python/"
+#SBATCH -J save_pph0
+#SBATCH -o %x_%j_%a.out
+#SBATCH -c 12
+#SBATCH -N 1
+#SBATCH -p huce_cascade
+#SBATCH --mem 45000
+#SBATCH -t 0-01:00
+#SBATCH --mail-type=END
 
-rm -rf ${DATA_DIR}dask-worker-space*
+## -------------------------------------------------------------------------##
+## Set user preferences
+## -------------------------------------------------------------------------##
+DATA_DIR="${1}"
+CODE_DIR="${2}"
 
-# First, generate the monthly prior pre-conditioned Hessians.
-# Command structure:
-# sbatch generate_k0_nstate data_dir code_dir
-jid1=$(sbatch --array=1-12 generate_pph0.sh ${DATA_DIR} ${CODE_DIR})
-# sbatch --array=1 generate_pph0.sh ${DATA_DIR} ${CODE_DIR}
+## -------------------------------------------------------------------------##
+## Load and prepare the environment
+## -------------------------------------------------------------------------##
+echo "Activating python environment"
 
-# # Second, generate the first guess of the m x n Jacobian on a monthly basis
-# # Command structure:
-# # sbatch generate_k0_monthly.sh data_dir output_dir code_dir
-# jid2=$(sbatch --dependency=afterok:${jid1##* } generate_k0_monthly.sh ${LONG_TERM_DATA_DIR} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
+module load Anaconda3/5.0.1-fasrc01
+source activate ~/python/miniconda/envs/TROPOMI_inversion
+
+echo "Activated ${CONDA_PREFIX}"
+
+## -------------------------------------------------------------------------##
+## Run the script
+## -------------------------------------------------------------------------##
+echo "Initiating script"
+
+python_dir=$(dirname `pwd`)
+python -u ${python_dir}/python/generate_evecs0.py ${DATA_DIR} ${CODE_DIR}
+

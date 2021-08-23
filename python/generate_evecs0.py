@@ -4,6 +4,7 @@ from os.path import join
 import math
 # import itertools
 import pickle
+import sys
 
 import xarray as xr
 import numpy as np
@@ -19,18 +20,17 @@ local = False
 
 # Cannon
 if not local:
-    code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
-    data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
-    plot_dir = None
+    # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
+    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
+    data_dir = sys.argv[1]
+    code_dir = sys.argv[2]
 else:
     base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
     code_dir = f'{base_dir}python/'
     data_dir = f'{base_dir}inversion_data/'
-    plot_dir = f'{base_dir}plots/'
 
 # User preferences
 calculate_evecs = True
-plot_evals = False
 format_evecs = False
 n_evecs = int(10)
 calculate_avker = True
