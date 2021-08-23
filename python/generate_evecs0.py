@@ -20,7 +20,7 @@ local = False
 # Cannon
 if not local:
     code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
-    data_dir = f'/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
+    data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
     plot_dir = None
 else:
     base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
@@ -29,13 +29,13 @@ else:
     plot_dir = f'{base_dir}plots/'
 
 # User preferences
-calculate_evecs = False
-plot_evals = True
+calculate_evecs = True
+plot_evals = False
 format_evecs = False
 n_evecs = int(10)
-calculate_avker = False
-pct_of_info = None
-snr = 1.25
+calculate_avker = True
+pct_of_info = [50, 90, 95, 99, 99.9]
+snr = None
 rank = None
 
 ## ------------------------------------------------------------------------ ##
@@ -130,51 +130,6 @@ else:
         evals_q = evals_h/(1 + evals_h)
 
 ## -------------------------------------------------------------------------##
-## Plot the eigenvalues
-## -------------------------------------------------------------------------##
-if plot_evals and (plot_dir is not None):
-    evals_h[evals_h < 0] = 0
-    snr = evals_h**0.5
-    DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
-
-    fig, ax = fp.get_figax(aspect=3)
-
-    # DOFS frac
-    ax.plot(DOFS_frac, label='Information content spectrum',
-            c=fp.color(3), lw=1)
-    for p in [0.9, 0.95, 0.97, 0.98, 0.99]:
-        diff = np.abs(DOFS_frac - p)
-        rank = np.argwhere(diff == np.min(diff))[0][0]
-        ax.scatter(rank, DOFS_frac[rank], marker='*', s=20, c=fp.color(3))
-        ax.text(rank, DOFS_frac[rank]-0.05, f'{int(100*p):d}%%',
-                ha='center', va='top', c=fp.color(3))
-    ax.set_xlabel('Eigenvector index', fontsize=c.LABEL_FONTSIZE*c.SCALE,
-                  labelpad=c.LABEL_PAD)
-    ax.set_ylabel('Fraction of DOFS', fontsize=c.LABEL_FONTSIZE*c.SCALE,
-                  labelpad=c.LABEL_PAD, color=fp.color(3))
-    ax.tick_params(axis='both', which='both',
-                   labelsize=c.LABEL_FONTSIZE*c.SCALE)
-    ax.tick_params(axis='y', labelcolor=fp.color(3))
-
-    # SNR
-    ax2 = ax.twinx()
-    ax2.plot(snr, label='Signal-to-noise ratio spectrum', c=fp.color(6), lw=1)
-    for r in [1, 2]:
-        diff = np.abs(snr - r)
-        rank = np.argwhere(diff == np.min(diff))[0][0]
-        ax2.scatter(rank, snr[rank], marker='.', s=20, c=fp.color(6))
-        ax2.text(rank-200, snr[rank], f'{r:d}', ha='right', va='center',
-                 c=fp.color(6))
-    ax2.set_ylabel('Signal-to-noise ratio', fontsize=c.LABEL_FONTSIZE*c.SCALE,
-                  labelpad=c.LABEL_PAD, color=fp.color(6))
-    ax2.tick_params(axis='y', which='both', labelsize=c.LABEL_FONTSIZE*c.SCALE,
-                    labelcolor=fp.color(6))
-
-    ax = fp.add_title(ax, 'Initial Estimate Information Content Spectrum')
-
-    fp.save_fig(fig, plot_dir, 'eigenvalues')
-
-## -------------------------------------------------------------------------##
 ## Format the eigenvectors for HEMCO
 ## -------------------------------------------------------------------------##
 if format_evecs:
@@ -214,36 +169,37 @@ if format_evecs:
 ## Calculate the averaging kernel
 ## -------------------------------------------------------------------------##
 if calculate_avker:
-    # Figure out the fraction of information content
-    if sum(x is not None for x in [pct_of_info, snr, rank]) > 1:
-        raise AttributeError('Conflicting rank arguments provided.')
-    elif sum(x is not None for x in [pct_of_info, snr, rank]) == 0:
-        raise AttributeError('Insufficient rank arguments provided.')
-    elif pct_of_info is not None:
+    for p in pct_of_info:
+        # Figure out the fraction of information content
+        # if sum(x is not None for x in [p, snr, rank]) > 1:
+        #     raise AttributeError('Conflicting rank arguments provided.')
+        # elif sum(x is not None for x in [p, snr, rank]) == 0:
+        #     raise AttributeError('Insufficient rank arguments provided.')
+        # elif p is not None:
         DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
-        diff = np.abs(DOFS_frac - (pct_of_info/100))
+        diff = np.abs(DOFS_frac - (p/100))
         rank = np.argwhere(diff == np.min(diff))[0][0]
-        suffix = f'_poi{pct_of_info}'
-    elif snr is not None:
-        evals_h[evals_h < 0] = 0
-        diff = np.abs(evals_h**0.5 - snr)
-        rank = np.argwhere(diff == np.min(diff))[0][0]
-        suffix = f'_snr{snr}'
-    else:
-        suffix = f'_rank{rank}'
-    print(f'Rank = {rank}')
+        suffix = f'_poi{p}'
+        # elif snr is not None:
+        #     evals_h[evals_h < 0] = 0
+        #     diff = np.abs(evals_h**0.5 - snr)
+        #     rank = np.argwhere(diff == np.min(diff))[0][0]
+        #     suffix = f'_snr{snr}'
+        # else:
+        #     suffix = f'_rank{rank}'
+        print(f'Rank = {rank}')
 
-    # Subset the evals and evecs
-    evals_q = evals_q[:rank]
-    evecs = evecs[:, :rank]
+        # Subset the evals and evecs
+        evals_q = evals_q[:rank]
+        evecs = evecs[:, :rank]
 
-    # Calculate the averaging kernel (we can leave off Sa when it's
-    # constant)
-    a = (evecs*evals_q) @ evecs.T
+        # Calculate the averaging kernel (we can leave off Sa when it's
+        # constant)
+        a = (evecs*evals_q) @ evecs.T
 
-    # Save the result
-    np.save(f'{data_dir}a0{suffix}.npy', a)
-    np.save(f'{data_dir}dofs0{suffix}.npy', np.diagonal(a))
+        # Save the result
+        np.save(f'{data_dir}a0{suffix}.npy', a)
+        np.save(f'{data_dir}dofs0{suffix}.npy', np.diagonal(a))
 
 # ## -------------------------------------------------------------------------##
 # ## Create inversion object
