@@ -39,3 +39,8 @@ echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
 python -u ${python_dir}/python/generate_k0_monthly.py ${MEMORY_GB} ${DATA_DIR} ${OUTPUT_DIR} ${CODE_DIR}
+
+## -------------------------------------------------------------------------##
+## Clean up
+## -------------------------------------------------------------------------##
+rm -rf ${OUTPUT_DIR}dask-worker-space
