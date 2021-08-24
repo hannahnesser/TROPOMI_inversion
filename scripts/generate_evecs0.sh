@@ -34,3 +34,7 @@ echo "Initiating script"
 python_dir=$(dirname `pwd`)
 python -u ${python_dir}/python/generate_evecs0.py ${DATA_DIR} ${CODE_DIR}
 
+## -------------------------------------------------------------------------##
+## Clean up
+## -------------------------------------------------------------------------##
+rm -rf ${DATA_DIR}dask-worker-space
