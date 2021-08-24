@@ -185,7 +185,7 @@ if __name__ == '__main__':
             # elif sum(x is not None for x in [p, snr, rank]) == 0:
             #     raise AttributeError('Insufficient rank arguments provided.')
             # elif p is not None:
-            rank = ip.get_rank(evals_q=evals_q, pct_of_info=p)
+            rank = ip.get_rank(evals_q=evals_q, pct_of_info=p/100)
             # diff = np.abs(DOFS_frac - (p/100))
             # rank = np.argwhere(diff == np.min(diff))[0][0]
             suffix = f'_poi{p}'
