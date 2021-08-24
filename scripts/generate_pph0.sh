@@ -8,6 +8,7 @@
 #SBATCH --mem 45000
 #SBATCH -t 0-04:00
 #SBATCH --mail-type=END
+#SBATCH --mail-user=hnesser@g.harvard.edu
 
 ## Eventually change to 12 cores, 45000 mem, and at least one hour. Just debugging
 ## for now

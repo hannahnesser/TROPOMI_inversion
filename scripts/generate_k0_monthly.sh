@@ -8,6 +8,7 @@
 #SBATCH --mem 35000
 #SBATCH -t 0-02:00
 #SBATCH --mail-type=END
+#SBATCH --mail-user=hnesser@g.harvard.edu
 
 # 30 GB should be big enough for most months. Adaptive
 # memory based on the number of observations in a month might
