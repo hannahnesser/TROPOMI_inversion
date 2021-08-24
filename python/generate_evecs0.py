@@ -124,6 +124,8 @@ if __name__ == '__main__':
         np.save(f'{data_dir}prolongation0.npy', prolongation)
         np.save(f'{data_dir}reduction0.npy', reduction)
 
+        print('Eigendecomposition complete.\n')
+
     else:
         evals_h = np.load(f'{data_dir}evals_h0.npy')
         if not local:
@@ -174,7 +176,9 @@ if __name__ == '__main__':
     ## Calculate the averaging kernel
     ## ---------------------------------------------------------------------##
     if calculate_avker:
+        print('Calculating averaging kernel.')
         for p in pct_of_info:
+            print(f'Using {p} percent of information content.')
             # Figure out the fraction of information content
             # if sum(x is not None for x in [p, snr, rank]) > 1:
             #     raise AttributeError('Conflicting rank arguments provided.')
@@ -205,3 +209,4 @@ if __name__ == '__main__':
             # Save the result
             np.save(f'{data_dir}a0{suffix}.npy', a)
             np.save(f'{data_dir}dofs0{suffix}.npy', np.diagonal(a))
+    print('CODE COMPLETE')
