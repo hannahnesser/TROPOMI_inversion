@@ -22,7 +22,7 @@ if __name__ == '__main__':
         data_dir = f'{base_dir}inversion_data/'
 
     # User preferences
-    calculate_evecs = True
+    calculate_evecs = False
     format_evecs = False
     n_evecs = int(10)
     calculate_avker = True
@@ -185,9 +185,9 @@ if __name__ == '__main__':
             # elif sum(x is not None for x in [p, snr, rank]) == 0:
             #     raise AttributeError('Insufficient rank arguments provided.')
             # elif p is not None:
-            DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
-            diff = np.abs(DOFS_frac - (p/100))
-            rank = np.argwhere(diff == np.min(diff))[0][0]
+            rank = ip.get_rank(evals_q=evals_q, pct_of_info=p)
+            # diff = np.abs(DOFS_frac - (p/100))
+            # rank = np.argwhere(diff == np.min(diff))[0][0]
             suffix = f'_poi{p}'
             # elif snr is not None:
             #     evals_h[evals_h < 0] = 0
@@ -196,15 +196,15 @@ if __name__ == '__main__':
             #     suffix = f'_snr{snr}'
             # else:
             #     suffix = f'_rank{rank}'
-            print(f'Rank = {rank}')
+            # print(f'Rank = {rank}')
 
             # Subset the evals and evecs
-            evals_q = evals_q[:rank]
-            evecs = evecs[:, :rank]
+            evals_q_sub = evals_q[:rank]
+            evecs_sub = evecs[:, :rank]
 
             # Calculate the averaging kernel (we can leave off Sa when it's
             # constant)
-            a = (evecs*evals_q) @ evecs.T
+            a = (evecs_sub*evals_q_sub) @ evecs_sub.T
 
             # Save the result
             np.save(f'{data_dir}a0{suffix}.npy', a)
