@@ -46,8 +46,6 @@ This class creates an inversion object that contains the quantities
  necessary for conducting an analytic inversion. It also defines the
 following functions:
     calculate_c             Calculate the constant in y = Kx + c
-    obs_mod_diff            Calculate the difference between modeled
-                            observations and observations (y - Kx)
     cost_func               Calculate the cost function for a given x
     solve_inversion         Solve the analytic inversion, inclduing the
                             posterior emissions, error, and information
@@ -280,24 +278,8 @@ class Inversion:
         Calculate c for the forward model, defined as ybase = Kxa + c.
         Save c as an element of the object.
         '''
-        c = self.ya - self.k @ self.xa
+        c = ip.calculate_c(self.k, self.ya, self.xa)
         return c
-
-    def obs_mod_diff(self, x):
-        '''
-        Calculate the difference between the true observations y and the
-        simulated observations Kx + c for a given x. It returns this
-        difference as a vector.
-
-        Parameters:
-            x      The state vector at which to evaluate the difference
-                   between the true and simulated observations
-        Returns:
-            diff   The difference between the true and simulated observations
-                   as a vector
-        '''
-        diff = self.y - (self.k @ x + self.c)
-        return diff
 
     def cost_func(self, x, y):
         '''
@@ -315,16 +297,7 @@ class Inversion:
         '''
 
         # Calculate the observational component of the cost function
-        cost_obs = (self.y - y).T @ diags(1/self.so) @ (self.y - y)
-
-        # Calculate the emissions/prior component of the cost function
-        cost_emi = (x - self.xa).T @ diags(1/self.sa) @ (x - self.xa)
-
-        # Calculate the total cost, print out information on the cost, and
-        # return the total cost function value
-        cost = cost_obs + cost_emi
-        print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
-              % (cost, cost_emi, cost_obs))
+        cost = ip.cost_func(y, self.y, self.so, x, self.xa, self.sa)
         return cost
 
     def solve_inversion(self):
@@ -338,56 +311,9 @@ class Inversion:
         negative state vector elements in the posterior solution, and the
         DOFS of the posterior solution.
         '''
-        print('... Solving inversion ...')
-
-        # Check if the errors are diagonal or not and, if so, modify
-        # calculations involving the error covariance matrices
-        if (self._find_dimension(self.sa) == 1):
-            sainv = diags(1/self.sa)
-        else:
-            sainv = inv(self.sa)
-
-        if (self._find_dimension(self.so) == 1):
-            kTsoinv = (self.k.T/self.so)
-        else:
-            kTsoinv = self.k.T @ inv(self.so)
-
-        # Calculate the cost function at the prior.
-        print('Calculating the cost function at the prior mean.')
-        cost_prior = self.cost_func(self.xa, self.ya)
-
-        # Calculate the posterior error.
-        print('Calculating the posterior error.')
-        self.shat = np.array(inv(kTsoinv @ self.k + sainv))
-
-        # Calculate the posterior mean
-        print('Calculating the posterior mean.')
-        self.xhat = np.array(self.xa +
-                             (self.shat @ kTsoinv @ (self.y - self.ya)))
-        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
-
-        # Calculate the averaging kernel.
-        print('Calculating the averaging kernel.')
-        self.a = np.array(identity(self.nstate) - self.shat @ sainv)
-        self.dofs = np.diag(self.a)
-        print('     DOFS: %.2f' % np.trace(self.a))
-
-        # Calculate the new set of modeled observations.
-        print('Calculating updated modeled observations.')
-        self.yhat = np.array(self.k @ self.xhat + self.c)
-
-        # Calculate the cost function at the posterior. Also calculate the
-        # number of negative cells as an indicator of inversion success.
-        print('Calculating the cost function at the posterior mean.')
-        cost_post = self.cost_func(self.xhat, self.yhat)
-
-        # Calculate the cost function at the posterior. Also calculate the
-        # number of negative cells as an indicator of inversion success.
-        print('Calculating the cost function at the posterior mean.')
-        cost_post = self.cost_func(self.xhat, self.yhat)
-        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
-
-        print('... Complete ...\n')
+        sol = ip.solve_inversion(self.k, self.y, self.ya, self.so,
+                                 self.xa, self.sa)
+        self.xhat, self.shat, self.a, self.yhat = sol
 
     ##########################
     ### PLOTTING FUNCTIONS ###
@@ -662,45 +588,12 @@ class ReducedRankInversion(Inversion):
     ### REDUCED RANK INVERSION FUNCTIONS ###
     ########################################
     def get_rank(self, pct_of_info=None, rank=None, snr=None):
-        frac = np.cumsum(self.evals_q/self.evals_q.sum())
-        if sum(x is not None for x in [pct_of_info, rank, snr]) > 1:
-            raise AttributeError('Conflicting arguments provided to determine rank.')
-        elif sum(x is not None for x in [pct_of_info, rank, snr]) == 0:
-            raise AttributeError('Must provide one of pct_of_info, rank, or snr.')
-        elif pct_of_info is not None:
-            diff = np.abs(frac - pct_of_info)
-            rank = np.argwhere(diff == np.min(diff))[0][0]
-            print('Calculated rank from percent of information: %d' % rank)
-            print('     Percent of information: %.4f%%' % (100*pct_of_info))
-            print('     Signal-to-noise ratio: %.2f'
-                  % (self.evals_h[rank])**0.5)
-        elif snr is not None:
-            diff = np.abs(self.evals_h**0.5 - snr)
-            rank = np.argwhere(diff == np.min(diff))[0][0]
-            print('Calculated rank from signal-to-noise ratio : %d' % rank)
-            print('     Percent of information: %.4f%%' % (100*frac[rank]))
-            print('     Signal-to-noise ratio: %.2f' % snr)
-        elif rank is not None:
-            print('Using defined rank: %d' % rank)
-            print('     Percent of information: %.4f%%' % (100*frac[rank]))
-            print('     Signal-to-noise ratio: %.2f'
-                  % (self.evals_h[rank])**0.5)
+        rank = ip.get_rank(self.evals_q, self.evals_q,
+                           pct_of_info, rank, snr)
         return rank
 
     def pph(self):
-        # Calculate the prior pre-conditioned Hessian assuming
-        # that the errors are diagonal
-        if ((self._find_dimension(self.sa) == 1) and
-            (self._find_dimension(self.so) == 1)):
-            pph = (data.sa**0.5)*data.k.T
-            pph = xr.dot(pph, (pph.T/data.so))
-        elif self._find_dimension(self.sa) == 1:
-            pph = (data.sa**0.5)*data.k.T
-            pph = pph @ inv(data.so) @ pph.T
-        else:
-            pph = data.sa**0.5 @ data.k.T
-            pph = pph @ inv(data.so) @ pph.T
-        print('Calculated PPH.')
+        pph = ip.pph(self.k, self.so, self.sa)
         return pph
 
     def edecomp(self, pph=None, eval_threshold=None, number_of_evals=None):
@@ -804,7 +697,7 @@ class ReducedRankInversion(Inversion):
         self.xhat_proj = (np.asarray(sa_sqrt
                                     @ ((vk/(1+lk)) @ vk.T)
                                     @ sa_sqrt @ self.k.T @ so_inv
-                                    @ self.obs_mod_diff(self.xa))
+                                    @ (self.y - self.ya))
                          + self.xa)
         self.shat_proj = np.asarray(sa_sqrt
                                     @ (((1/(1+lk))*vk) @ vk.T)
@@ -834,9 +727,8 @@ class ReducedRankInversion(Inversion):
         self.solve_inversion_kproj(pct_of_info=pct_of_info, rank=rank)
 
         so_inv = diags(1/self.so)
-        d = self.obs_mod_diff(self.xa)
 
-        self.xhat_fr = self.shat_kproj @ self.k.T @ so_inv @ d
+        self.xhat_fr = self.shat_kproj @ self.k.T @ so_inv @ (self.y - self.ya)
         print('... Complete ...\n')
 
     ##########################
