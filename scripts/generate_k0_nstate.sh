@@ -8,6 +8,7 @@
 #SBATCH --mem 30000
 #SBATCH -t 0-05:00
 #SBATCH --mail-type=END
+#SBATCH --mail-user=hnesser@g.harvard.edu
 
 ## -------------------------------------------------------------------------##
 ## Set user preferences
