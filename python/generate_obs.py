@@ -219,11 +219,11 @@ if type(prior_run) == list:
 
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
-        # 10 MOD_COL, 11 - 14 CLOUD_FRAC (15 total columns)
+        # (15 10 total columns)
         new_data = gc.load_obj(join(data_dir, file))['obs_GC']
-        new_data = new_data[:, :11]
-        new_data = np.insert(new_data, 11, month, axis=1) # add month
-        new_data = np.insert(new_data, 12, day, axis=1)
+        new_data = new_data[:, :10]
+        new_data = np.insert(new_data, 10, month, axis=1) # add month
+        new_data = np.insert(new_data, 11, day, axis=1)
 
         data = np.concatenate((data, new_data))
 
@@ -232,8 +232,7 @@ if type(prior_run) == list:
     ## ----------------------------------------- ##
     # Create a dataframe from the data
     columns = ['OBS', 'MOD', 'LON', 'LAT', 'iGC', 'jGC', 'PREC',
-               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MOD_COL',
-               'MONTH', 'DAY']
+               'ALBEDO_SWIR', 'ALBEDO_NIR', 'AOD', 'MONTH', 'DAY']
     data = pd.DataFrame(data, columns=columns)
 
     # Calculate blended albedo
