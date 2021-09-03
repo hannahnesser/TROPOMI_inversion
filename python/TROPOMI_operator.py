@@ -322,6 +322,12 @@ if __name__ == '__main__':
         GC_on_sat = apply_avker(TROPOMI['column_AK'].values,
                                 TROP_CH4, TROP_PW, GC_on_sat)
 
+        # Print out some general statistics....
+        print('Mean model - observation difference : ',
+              np.mean(GC_on_sat - TROPOMI['methane'].values))
+        print('Standard deviation : ',
+              np.std(GC_on_sat - TROPOMI['methane'].values))
+
         # Save out values
         # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
         # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
