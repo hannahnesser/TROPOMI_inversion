@@ -220,7 +220,7 @@ if type(prior_run) == list:
         # Load the data. The columns are: 0 OBS, 1 MOD, 2 LON, 3 LAT,
         # 4 iGC, 5 jGC, 6 PRECISION, 7 ALBEDO_SWIR, 8 ALBEDO_NIR, 9 AOD,
         # (15 10 total columns)
-        new_data = gc.load_obj(join(data_dir, file))['obs_GC']
+        new_data = gc.load_obj(join(data_dir, file))
         new_data = new_data[:, :10]
         new_data = np.insert(new_data, 10, month, axis=1) # add month
         new_data = np.insert(new_data, 11, day, axis=1)
