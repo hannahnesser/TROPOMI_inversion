@@ -12,7 +12,7 @@ jid1=$(sbatch preprocess_GC_output.sh ${PRIOR_DIR} ${CORRECT_CFL_DIR} ${CODE_DIR
 
 # Apply the TROPOMI operator
 jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR})
-# jid2=$(sbatch --array=2-12 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR})
+# jid2=$(sbatch --array=1-12 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR})
 
 # Analyze the output
 sbatch --dependency=afterok:${jid2##* } run_generate_obs.sh ${PRIOR_DIR} ${OUTPUT_DIR} ${CODE_DIR}

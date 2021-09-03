@@ -113,20 +113,17 @@ pd.set_option('display.max_columns', 10)
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# # Local preferences
+# Local preferences
 # base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 # code_dir = base_dir + 'python'
-# data_dir = base_dir + 'observations'
+# data_dir = base_dir + 'inversion_data'
 # output_dir = base_dir + 'inversion_data'
 # plot_dir = base_dir + 'plots'
 
-# Cannon preferences
-base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
-code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# # Cannon preferences
 base_dir = sys.argv[1]
 code_dir = sys.argv[3]
 data_dir = f'{base_dir}ProcessedDir'
-# output_dir = f'{base_dir}SummaryDir'
 output_dir = sys.argv[2]
 plot_dir = None
 
@@ -260,13 +257,14 @@ if type(prior_run) == list:
     print('DIFFERENCE MAXIMUM : ', np.abs(data['DIFF']).max())
 
     # Save the data out
-    print(f'Saving data in {output_dir}{settings.year}.pkl')
+    print(f'Saving data in {output_dir}/{settings.year}.pkl')
     gc.save_obj(data, join(output_dir, f'{settings.year}.pkl'))
 
 else:
     ## ----------------------------------------- ##
     ## Load data for the year
     ## ----------------------------------------- ##
+    print(f'Opening data in {output_dir}/{settings.year}.pkl')
     data = gc.load_obj(join(data_dir, prior_run))
 
 print('Data is loaded.')
@@ -329,7 +327,7 @@ if remove_latitudinal_bias:
 # Save out result
 if (filter_on_blended_albedo or filter_on_albedo or
     filter_on_seasonal_latitude or remove_latitudinal_bias):
-    print(f'Saving data in {output_dir}{settings.year}_corrected.pkl')
+    print(f'Saving data in {output_dir}/{settings.year}_corrected.pkl')
     gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
 nobs = data.shape[0]
@@ -413,6 +411,7 @@ if analyze_biases:
         ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'],
                     color=fp.color(4))
         ax.set_xticks(np.arange(10, 70, 10))
+        ax.set_xlim(10, 60)
         ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
         ax = fp.add_title(ax, 'Latitudinal Bias in Prior Run')
         fp.save_fig(fig, plot_dir, f'prior_latitudinal_bias{suffix}')
@@ -438,6 +437,7 @@ if analyze_biases:
         ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'],
                     color=fp.color(4))
         ax.set_xticks(np.arange(10, 70, 10))
+        ax.set_xlim(10, 60)
         ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
         ax = fp.add_title(ax, f'Latitudinal Bias in Prior Run')
         linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
@@ -531,7 +531,7 @@ if calculate_so:
     print(f'We find a mean error of {err_mean:.2f} ppb.' )
 
     # Save out the data
-    print(f'Saving data in {output_dir}{settings.year}.pkl')
+    print(f'Saving data in {output_dir}/{settings.year}_corrected.pkl')
     gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
 ## ------------------------------------------------------------------------ ##
@@ -620,12 +620,12 @@ if (plot_dir is not None) and calculate_so:
             axis = fp.add_title(axis, s)
     cax = fp.add_cax(fig, ax)
     cb = fig.colorbar(c, ax=ax, cax=cax)
-    cb = fp.format_cbar(cb, 'XCH4 (ppb)')
+    cb = fp.format_cbar(cb, 'XCH4\n(ppb)')
     fp.save_fig(fig, plot_dir, f'observations{suffix}')
 
     cax_e = fp.add_cax(fig_e, ax_e)
     cb_e = fig.colorbar(c_e, ax=ax_e, cax=cax_e)
-    cb_e = fp.format_cbar(cb_e, 'St. Dev. (ppb)')
+    cb_e = fp.format_cbar(cb_e, 'St. Dev.\n(ppb)')
     fp.save_fig(fig_e, plot_dir, f'errors{suffix}')
 
     cax_c = fp.add_cax(fig_c, ax_c)
