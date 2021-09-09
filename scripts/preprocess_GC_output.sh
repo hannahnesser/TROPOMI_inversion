@@ -13,9 +13,9 @@
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 # Directories
-DATA_DIR="${1}"
-CORRECT_CFL_DIR="${2}" # Half step outputs
-CODE_DIR="${3}"
+CODE_DIR="${1}"
+DATA_DIR="${2}"
+CORRECT_CFL_DIR="${3}" # Half step outputs
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
@@ -31,4 +31,4 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 echo "Initiating script"
-python -u ${CODE_DIR}/preprocess_GC_output.py $CORRECT_CFL_DIR $DATA_DIR $CODE_DIR
+python -u ${CODE_DIR}/preprocess_GC_output.py $CODE_DIR $CORRECT_CFL_DIR $DATA_DIR
