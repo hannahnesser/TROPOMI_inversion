@@ -1,0 +1,27 @@
+make[1]: Entering directory `/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/template_run'
+LAST BUILD INFORMATION:
+  CODE_DIR     : /n/home04/hnesser/CH4_inversion_workflow/GEOS-Chem
+  CODE_BRANCH  : eigenvector_perturbations
+  LAST_COMMIT  : Updating Canada emissions
+  COMMIT_DATE  : Wed Jul 28 15:41:47 2021 -0400
+  VERSION      : 12.7.1
+  VERSION_TAG  : GC_12.7.1
+  TRACEBACK    : y
+  BOUNDS       : n
+  DEBUG        : n
+  FPE          : n
+  OMP          : y
+  CHEM         : Standard
+  TOMAS12      : n
+  TOMAS15      : n
+  TOMAS30      : n
+  TOMAS40      : n
+  APM          : n
+  RRTMG        : n
+  MASSCONS     : n
+  TIMERS       : 0
+  TAU_PROF     : n
+  BPCH_DIAG    : n
+  COMPILER     : ifort 17.0.4
+  Datetime     : 2021/07/28 17:32
+make[1]: Leaving directory `/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/template_run'
