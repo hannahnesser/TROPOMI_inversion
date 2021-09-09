@@ -22,7 +22,7 @@ if __name__ == '__main__':
         data_dir = f'{base_dir}inversion_data/'
 
     # User preferences
-    calculate_evecs = False
+    calculate_evecs = True
     format_evecs = False
     n_evecs = int(10)
     calculate_avker = True
