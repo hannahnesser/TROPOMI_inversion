@@ -10,17 +10,31 @@ import sys
 import pandas as pd
 import datetime
 import copy
-
-sys.path.append('/n/home04/hnesser/TROPOMI_inversion/python/')
-import gcpy as gc
-import inversion_settings as s
+import glob as glob
 
 ## -------------------------------------------------------------------------##
-## Set user preferences
+## Read in user preferences
 ## -------------------------------------------------------------------------##
 # sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
 # GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
 # output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
+
+code_dir = sys.argv[1]
+sat_data_dir = sys.argv[2]
+GC_pressure_data_dir = sys.argv[3]
+GC_ch4_data_dir = sys.argv[4]
+output_dir = f'{GC_ch4_data_dir}ProcessedDir'
+MONTH = int(sys.argv[5])
+jacobian = bool(sys.argv[6])
+# A Boolean of whether or not this is
+# being run for a jacobian simulation
+
+print('Applying TROPOMI operator for %d-%02d\n' % (s.year, MONTH))
+
+# Load custom packages
+sys.path.append(code_dir)
+import gcpy as gc
+import inversion_settings as s
 
 ## -------------------------------------------------------------------------##
 ## Define functions
@@ -131,13 +145,14 @@ def get_diagnostic(data_dir, diag_name, date):
     data = xr.open_dataset(filename)
     return data
 
-def read_GC(data_dir, date):
+def read_GC(ch4_data_dir, pedge_data_dir, date):
     # Start by downloading methane data (ppb)
-    data = get_diagnostic(data_dir, 'SpeciesConc', date)
+    data = get_diagnostic(ch4_data_dir, 'SpeciesConc', date)
     data = data[['SpeciesConc_CH4']]*1e9
 
     # Get pressure information (hPa)
-    pres = get_diagnostic(data_dir, 'LevelEdgeDiags', date)[['Met_PEDGE']]
+    pres = get_diagnostic(pedge_data_dir,
+                          'LevelEdgeDiags', date)[['Met_PEDGE']]
     data = xr.merge([data, pres])
     pres.close()
 
@@ -215,125 +230,114 @@ def apply_avker(sat_avker, sat_prior, sat_pressure_weight, GC_CH4, filt=None):
     return GC_col
 
 ## -------------------------------------------------------------------------##
-## TROPOMI operator
+## List all satellite files for the year and date defined
 ## -------------------------------------------------------------------------##
-if __name__ == '__main__':
-    import glob as glob
+# List all raw netcdf TROPOMI files
+allfiles=glob.glob(sat_data_dir+'*.nc')
+allfiles.sort()
 
-    ## ---------------------------------------------------------------------##
-    ## Read in user preferences
-    ## ---------------------------------------------------------------------##
-    sat_data_dir = sys.argv[1]
-    GC_data_dir = sys.argv[2]
-    output_dir = sys.argv[3]
-    MONTH = int(sys.argv[4])
+# Create empty list
+Sat_files = {}
 
-    print('Applying TROPOMI operator for %d-%02d\n' % (s.year, MONTH))
+# Iterate through the raw TROPOMI data
+for index in range(len(allfiles)):
+    filename = allfiles[index]
 
-    ## ---------------------------------------------------------------------##
-    ## List all satellite files for the year and date defined
-    ## ---------------------------------------------------------------------##
-    # List all raw netcdf TROPOMI files
-    allfiles=glob.glob(sat_data_dir+'*.nc')
-    allfiles.sort()
+    # Get the date (YYYY, MM, and DD) of the raw TROPOMI file
+    shortname = re.split('\/|\.', filename)[-2]
+    strdate = re.split('_+|T', shortname)
+    start_date = strdate[4]
+    end_date = strdate[6]
 
-    # Create empty list
-    Sat_files = {}
+    # start condition
+    start = ((int(start_date[:4]) == s.year)
+             and (int(start_date[4:6]) == MONTH))
+    end = ((int(end_date[:4]) == s.year)
+           and (int(end_date[4:6]) == MONTH))
 
-    # Iterate through the raw TROPOMI data
-    for index in range(len(allfiles)):
-        filename = allfiles[index]
+    # Skip observations not in range
+    if not (start or end):
+        continue
 
-        # Get the date (YYYY, MM, and DD) of the raw TROPOMI file
-        shortname = re.split('\/|\.', filename)[-2]
-        strdate = re.split('_+|T', shortname)
-        start_date = strdate[4]
-        end_date = strdate[6]
+    # Add the file to the list of Sat_files
+    if start:
+        if start_date in Sat_files.keys():
+            Sat_files[start_date].append(filename)
+        else:
+            Sat_files[start_date] = [filename]
+    elif end:
+        if end_date in Sat_files.keys():
+            Sat_files[end_date].append(filename)
+        else:
+            Sat_files[end_date] = [filename]
 
-        # start condition
-        start = ((int(start_date[:4]) == s.year)
-                 and (int(start_date[4:6]) == MONTH))
-        end = ((int(end_date[:4]) == s.year)
-               and (int(end_date[4:6]) == MONTH))
+print('Number of dates: ', len(Sat_files))
 
-        # Skip observations not in range
-        if not (start or end):
-            continue
+## -------------------------------------------------------------------------##
+## Apply the operator to each date of satellite observations
+## -------------------------------------------------------------------------##
+for date, filenames in Sat_files.items():
+    print('=========== %s ===========' % date)
+    preprocess = lambda d: filter_tropomi(d, date,
+                                          s.lon_min, s.lon_max,
+                                          s.lat_min, s.lat_max)
+    TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
+                                combine='nested',
+                                chunks=10000,
+                                preprocess=preprocess)
+    TROPOMI = process_tropomi(TROPOMI, date)
 
-        # Add the file to the list of Sat_files
-        if start:
-            if start_date in Sat_files.keys():
-                Sat_files[start_date].append(filename)
-            else:
-                Sat_files[start_date] = [filename]
-        elif end:
-            if end_date in Sat_files.keys():
-                Sat_files[end_date].append(filename)
-            else:
-                Sat_files[end_date] = [filename]
+    if TROPOMI is None:
+        print('No observations remain.')
+        print('================================')
+        continue
 
-    print('Number of dates: ', len(Sat_files))
+    # Get observation dimension (number of good observations in that single
+    # observation file)
+    NN = TROPOMI.nobs.shape[0]
+    print('Processing %d Observations' % NN)
 
-    ## ---------------------------------------------------------------------##
-    ## Iterate throught the Sat_files we created
-    ## ---------------------------------------------------------------------##
-    for date, filenames in Sat_files.items():
-        print('=========== %s ===========' % date)
-        preprocess = lambda d: filter_tropomi(d, date,
-                                              s.lon_min, s.lon_max,
-                                              s.lat_min, s.lat_max)
-        TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
-                                    combine='nested',
-                                    chunks=10000,
-                                    preprocess=preprocess)
-        TROPOMI = process_tropomi(TROPOMI, date)
+    # Then, read in the GC data for these dates.
+    GC = read_GC(GC_ch4_data_dir, GC_pressure_data_dir, date)
 
-        if TROPOMI is None:
-            print('No observations remain.')
-            print('================================')
-            continue
+    # Find the grid box and time indices corresponding to TROPOMI obs
+    iGC, jGC, tGC = nearest_loc(GC, TROPOMI)
 
-        # Get observation dimension (number of good observations in that single
-        # observation file)
-        NN = TROPOMI.nobs.shape[0]
-        print('Processing %d Observations' % NN)
+    # Then select GC accordingly
+    GC_P = GC['PEDGE'].values[tGC, iGC, jGC, :]
+    GC_CH4 = GC['CH4'].values[tGC, iGC, jGC, :]
 
-        # Then, read in the GC data for these dates.
-        GC = read_GC(GC_data_dir, date)
+    # And calculate TROPOMI XCH4 in ppb and the TROPOMI pressure weights
+    TROP_CH4 = 1e9*(TROPOMI['methane_profile_apriori']
+                    /TROPOMI['dry_air_subcolumns']).values
+    TROP_PW = (-np.diff(TROPOMI['pressures'])/
+               (TROPOMI['pressures'][:, 0] -
+                TROPOMI['pressures'][:, -1]).values[:, None])
 
-        # Find the grid box and time indices corresponding to TROPOMI obs
-        iGC, jGC, tGC = nearest_loc(GC, TROPOMI)
+    # Map the GC CH4 onto the TROPOMI levels
+    GC_on_sat = GC_to_sat_levels(GC_CH4, GC_P, TROPOMI['pressures'].values)
 
-        # Then select GC accordingly
-        GC_P = GC['PEDGE'].values[tGC, iGC, jGC, :]
-        GC_CH4 = GC['CH4'].values[tGC, iGC, jGC, :]
+    # Finally, apply the averaging kernel
+    GC_on_sat = apply_avker(TROPOMI['column_AK'].values,
+                            TROP_CH4, TROP_PW, GC_on_sat)
 
-        # And calculate TROPOMI XCH4 in ppb and the TROPOMI pressure weights
-        TROP_CH4 = 1e9*(TROPOMI['methane_profile_apriori']
-                        /TROPOMI['dry_air_subcolumns']).values
-        TROP_PW = (-np.diff(TROPOMI['pressures'])/
-                   (TROPOMI['pressures'][:, 0] -
-                    TROPOMI['pressures'][:, -1]).values[:, None])
+    # Print out some general statistics....
+    print('Mean model - observation difference : ',
+          np.mean(GC_on_sat - TROPOMI['methane'].values))
+    print('Standard deviation : ',
+          np.std(GC_on_sat - TROPOMI['methane'].values))
 
-        # Map the GC CH4 onto the TROPOMI levels
-        GC_on_sat = GC_to_sat_levels(GC_CH4, GC_P, TROPOMI['pressures'].values)
-
-        # Finally, apply the averaging kernel
-        GC_on_sat = apply_avker(TROPOMI['column_AK'].values,
-                                TROP_CH4, TROP_PW, GC_on_sat)
-
-        # Print out some general statistics....
-        print('Mean model - observation difference : ',
-              np.mean(GC_on_sat - TROPOMI['methane'].values))
-        print('Standard deviation : ',
-              np.std(GC_on_sat - TROPOMI['methane'].values))
-
-        # Save out values
-        # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
-        # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
-        OBS_MOD = np.zeros([NN, 10],dtype=np.float32)
-        OBS_MOD[:, 0] = TROPOMI['methane']
-        OBS_MOD[:, 1] = GC_on_sat
+    # Save out values
+    # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
+    # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
+    if jacobian:
+        N = 10
+    else:
+        N = 2
+    OBS_MOD = np.zeros([NN, N],dtype=np.float32)
+    OBS_MOD[:, 0] = TROPOMI['methane']
+    OBS_MOD[:, 1] = GC_on_sat
+    if not jacobian:
         OBS_MOD[:, 2] = TROPOMI['longitude']
         OBS_MOD[:, 3] = TROPOMI['latitude']
         OBS_MOD[:, 4] = iGC
@@ -343,7 +347,7 @@ if __name__ == '__main__':
         OBS_MOD[:, 8] = TROPOMI['albedo'][:,0]
         OBS_MOD[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
 
-        save_obj(OBS_MOD, output_dir + date + '_GCtoTROPOMI.pkl')
-        print('================================')
+    save_obj(OBS_MOD, output_dir + date + '_GCtoTROPOMI.pkl')
+    print('================================')
 
-    print('CODE FINISHED')
+print('CODE FINISHED')
