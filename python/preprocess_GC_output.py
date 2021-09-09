@@ -54,10 +54,10 @@ import matplotlib.pyplot as plt
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # Local preferences
-input_dir = sys.argv[1]
-base_dir = sys.argv[2]
-data_dir = join(base_dir, 'OutputDir')
-code_dir = sys.argv[3]
+code_dir = sys.argv[1]
+input_dir = sys.argv[2]
+data_dir = sys.argv[3]
+# data_dir = join(base_dir, 'OutputDir')
 
 # input_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/'
 # base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
