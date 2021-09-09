@@ -1,0 +1,70 @@
+#!/bin/bash
+
+##SBATCH -c 16
+##SBATCH -N 1
+##SBATCH -t 4-00:00
+##SBATCH -p huce_cascade
+##SBATCH --mem=25000
+##SBATCH --mail-type=END
+
+# Set the proper # of threads for OpenMP
+# SLURM_CPUS_PER_TASK ensures this matches the number you set with -c above
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+#-------------------------------------------------
+# Initialize
+#-------------------------------------------------
+# Define version ID
+id=namename
+
+# Define GEOS-Chem log file
+log="$id.log"
+
+# Define the directories for post-processing code
+INV_PATH=invpathinvpath
+SCRIPT_DIR="${INV_PATH}/scripts"
+CODE_DIR="${INV_PATH}/python"
+
+# Define the directories for post-processing files
+GC_CH4_DIR=$(pwd -P) # CH4 concentrations (current dir)
+GC_CH4_HALFSTEP_DIR=halfstephalfstep
+GC_PEDGE_DIR=${GC_CH4_DIR%_*}_0000 # Pressure edges (prior dir)
+SAT_DIR=satdirsatdir # Satellite data directory
+
+# Define whether or not this is a Jacobian run
+JAC=jacjac
+
+#-------------------------------------------------
+# Start the simulation
+#-------------------------------------------------
+# Load the compiler
+. ~/init/init.gc-classic.ifort17.centos7
+
+# Run GEOS-Chem and pipe output to log
+./geos >> $log
+
+# Echo end fin
+echo '===> Run ended at' `date` >> $log
+
+#-------------------------------------------------
+# Pre-process the GEOS-Chem output
+#-------------------------------------------------
+jid1=$(sbatch ${SCRIPT_DIR}/preprocess_GC_output.sh ${CODE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR})
+
+#-------------------------------------------------
+# Run the TROPOMI operator
+#-------------------------------------------------
+jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${JAC})
+
+#-------------------------------------------------
+# Clean up
+#-------------------------------------------------
+# Move restart files to clean up run directory
+#mv GEOSChem_restart.* ./Restarts/
+
+# These files are not used in CH4 simulations
+rm HEMCO_restart.*
+
+# Exit normally
+exit 0
+#EOC
