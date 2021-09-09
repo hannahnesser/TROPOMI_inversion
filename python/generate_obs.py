@@ -120,11 +120,17 @@ pd.set_option('display.max_columns', 10)
 # output_dir = base_dir + 'inversion_data'
 # plot_dir = base_dir + 'plots'
 
-# # Cannon preferences
-base_dir = sys.argv[1]
-code_dir = sys.argv[3]
+# # Cannon long-path preferences
+# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
+
+# Cannon preferences
+code_dir = sys.argv[1]
+base_dir = sys.argv[2]
 data_dir = f'{base_dir}ProcessedDir'
-output_dir = sys.argv[2]
+output_dir = sys.argv[3]
 plot_dir = None
 
 # Import Custom packages
@@ -140,11 +146,11 @@ import inversion_settings as settings
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
-# prior_run = f'{settings.year}.pkl'
-prior_run = [f'{settings.year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
-             for mm in settings.months
-             for dd in settings.days]
-prior_run.sort()
+prior_run = f'{settings.year}.pkl'
+# prior_run = [f'{settings.year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
+#              for mm in settings.months
+#              for dd in settings.days]
+# prior_run.sort()
 
 # Define the blended albedo threshold
 filter_on_blended_albedo = True
@@ -254,6 +260,8 @@ if type(prior_run) == list:
     print('TROPOMI MAXIMUM : ', data['OBS'].max())
     print('TROPOMI MINIMUM : ', data['OBS'].min())
     print('DIFFERENCE MAXIMUM : ', np.abs(data['DIFF']).max())
+    print('DIFFERENCE MEAN : ', np.mean(data['DIFF']))
+    print('DIFFERENCE STD : ', np.std(data['DIFF']))
 
     # Save the data out
     print(f'Saving data in {output_dir}/{settings.year}.pkl')
