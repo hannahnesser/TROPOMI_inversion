@@ -2,7 +2,7 @@
 
 #SBATCH -J TROPOMI_operator
 #SBATCH -o %x_%j_%a.out
-#SBATCH -c 4
+#SBATCH -c 2
 #SBATCH -N 1
 #SBATCH -p huce_intel
 #SBATCH --mem 8000
@@ -13,23 +13,14 @@
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 # Directories
-TROPOMI_DATA_DIR="${1}"
-BASE_DIR="${2}"
-INPUT_DIR="${BASE_DIR}OutputDir/"
-OUTPUT_DIR="${BASE_DIR}ProcessedDir/"
+CODE_DIR="${1}"
+TROPOMI_DATA_DIR="${2}"
+PRIOR_DIR="${3}"
+RUN_DIR="${4}"
+JACOBIAN="${5}"
 
-# time range
+# Time
 MONTH="${SLURM_ARRAY_TASK_ID}"
-
-## -------------------------------------------------------------------------##
-## Print out user preferences
-## -------------------------------------------------------------------------##
-echo "======================================================================="
-echo "TROPOMI DATA DIRECTORY:    ${TROPOMI_DATA_DIR}"
-echo "GEOS-CHEM DATA DIRECTORY:  ${INPUT_DIR}"
-echo "OUTPUT DATA DIRECTORY:     ${OUTPUT_DIR}"
-echo "MONTH:                     ${MONTH}"
-echo "======================================================================="
 
 ## -------------------------------------------------------------------------##
 ## Load the environment
@@ -49,4 +40,4 @@ cd $INPUT_DIR
 mkdir -p $OUTPUT_DIR
 
 echo "Initiating script"
-python -u ${python_dir}/python/TROPOMI_operator.py $TROPOMI_DATA_DIR $INPUT_DIR $OUTPUT_DIR $MONTH
+python -u ${python_dir}/python/TROPOMI_operator.py $CODE_DIR $TROPOMI_DATA_DIR $PRIOR_DIR $RUN_DIR $MONTH $JACOBIAN
