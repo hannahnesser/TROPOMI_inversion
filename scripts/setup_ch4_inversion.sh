@@ -288,6 +288,11 @@ if "$CompileCodeDir"; then
     else
 	make -j${OMP_NUM_THREADS} build CODE_DIR=${INV_PATH}/GEOS-Chem BPCH_DIAG=y DEBUG=y BOUNDS=y TRACEBACK=y FPE=y
     fi
+
+    cp geos ${GC_INPUTS_PATH}/
+else
+    cp ${GC_INPUTS_PATH}/geos $RUN_TEMPLATE
+    
 fi
 
 ### Navigate back to top-level directory
