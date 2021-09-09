@@ -346,51 +346,51 @@ def pph(k, so, sa, big_mem=False):
     print('Calculated PPH.')
     return pph
 
-def edecomp(matrix, eval_threshold=None, number_of_evals=None):
-    print('... Calculating eigendecomposition ...')
+# def edecomp(matrix, eval_threshold=None, number_of_evals=None):
+#     print('... Calculating eigendecomposition ...')
 
-    # Check that the matrix is symmetric
-    assert np.allclose(matrix, matrix.T, rtol=1e-5), \
-           'The provided matrix is not symmetric.'
+#     # Check that the matrix is symmetric
+#     assert np.allclose(matrix, matrix.T, rtol=1e-5), \
+#            'The provided matrix is not symmetric.'
 
-    # Perform the eigendecomposition of the prior pre-conditioned Hessian
-    # We return the evals of the projection, not of the
-    # prior pre-conditioned Hessian.
-    if (eval_threshold is None) and (number_of_evals is None):
-         evals, evecs = eigh(pph)
-    elif (eval_threshold is None):
-        n = pph.shape[0]
-        evals, evecs = eigh(pph, subset_by_index=[n - number_of_evals,
-                                                  n - 1])
-    else:
-        evals, evecs = eigh(pph, subset_by_value=[eval_threshold, np.inf])
-    print('Eigendecomposition complete.')
+#     # Perform the eigendecomposition of the prior pre-conditioned Hessian
+#     # We return the evals of the projection, not of the
+#     # prior pre-conditioned Hessian.
+#     if (eval_threshold is None) and (number_of_evals is None):
+#          evals, evecs = eigh(pph)
+#     elif (eval_threshold is None):
+#         n = pph.shape[0]
+#         evals, evecs = eigh(pph, subset_by_index=[n - number_of_evals,
+#                                                   n - 1])
+#     else:
+#         evals, evecs = eigh(pph, subset_by_value=[eval_threshold, np.inf])
+#     print('Eigendecomposition complete.')
 
-    # Sort evals and evecs by eval
-    idx = np.argsort(evals)[::-1]
-    evals = evals[idx]
-    evecs = evecs[:,idx]
+#     # Sort evals and evecs by eval
+#     idx = np.argsort(evals)[::-1]
+#     evals = evals[idx]
+#     evecs = evecs[:,idx]
 
-    # Force all evals to be non-negative
-    if (evals < 0).sum() > 0:
-        print('Negative eigenvalues. Maximum negative value is %.2e. Setting negative eigenvalues to zero.' \
-            % (evals[evals < 0].min()))
-        evals[evals < 0] = 0
+#     # Force all evals to be non-negative
+#     if (evals < 0).sum() > 0:
+#         print('Negative eigenvalues. Maximum negative value is %.2e. Setting negative eigenvalues to zero.' \
+#             % (evals[evals < 0].min()))
+#         evals[evals < 0] = 0
 
-    # Check for imaginary eigenvector components and force all
-    # eigenvectors to be only the real component.
-    if np.any(np.iscomplex(evecs)):
-        print('Imaginary eigenvectors exist at index %d of %d. Forcing eigenvectors to real component alone.' \
-              % ((np.where(np.iscomplex(evecs))[1][0] - 1), len(evecs)))
-        evecs = np.real(evecs)
+#     # Check for imaginary eigenvector components and force all
+#     # eigenvectors to be only the real component.
+#     if np.any(np.iscomplex(evecs)):
+#         print('Imaginary eigenvectors exist at index %d of %d. Forcing eigenvectors to real component alone.' \
+#               % ((np.where(np.iscomplex(evecs))[1][0] - 1), len(evecs)))
+#         evecs = np.real(evecs)
 
-    # Saving result to our instance.
-    print('Saving eigenvalues and eigenvectors to instance.')
-    # self.evals = evals/(1 + evals)
-    self.evals_h = evals
-    self.evals_q = evals/(1 + evals)
-    self.evecs = evecs
-    print('... Complete ...\n')
+#     # Saving result to our instance.
+#     print('Saving eigenvalues and eigenvectors to instance.')
+#     # self.evals = evals/(1 + evals)
+#     self.evals_h = evals
+#     self.evals_q = evals/(1 + evals)
+#     self.evecs = evecs
+#     print('... Complete ...\n')
 
 ## -------------------------------------------------------------------------##
 ## Plotting functions : state vectors
