@@ -133,6 +133,7 @@ if profiles is None:
 ## Replace stratosphere
 ## ------------------------------------------------------------------------ ##
 # Iterate through the correct files
+count = 0
 for month in settings.months:
     # Open the default vertical profile
     profile = xr.open_dataset(profiles.replace('YYYYMM',
@@ -144,25 +145,25 @@ for month in settings.months:
                              f'{settings.year}{month:02d}{day:02d}')
 
         # Open the file
-        print(f'-'*75)
-        print(f'Opening {file}')
+        # print(f'-'*75)
+        # print(f'Opening {file}')
         if file.split('/')[-1] not in listdir(file.rpartition('/')[0]):
-            print(f'{file} is not in the data directory.')
+            # print(f'{file} is not in the data directory.')
             continue
         data = xr.open_dataset(join(data_dir, file))
 
         # Remove the buffer grid cells
-        print('Removing buffer cells.')
+        # print('Removing buffer cells.')
         data = gc.subset_data_latlon(data, *settings.lats, *settings.lons)
 
         # Check for time dimensiom
         if len(data.time) != 24:
-            print(f'Filling in first hour.')
+            # print(f'Filling in first hour.')
             data = gc.fill_GC_first_hour(data)
 
         # Check if any values are more than 5x greater than or less than
         # the profile
-        print('Checking for anomalous values in upper levels.')
+        # print('Checking for anomalous values in upper levels.')
         diff = np.abs(xr.ufuncs.log10(data['SpeciesConc_CH4'])/np.log10(scale_factor) -
                       xr.ufuncs.log10(profile['SpeciesConc_CH4'])/np.log10(scale_factor))
 
@@ -172,6 +173,7 @@ for month in settings.months:
         # If so, replace those values
         if (diff >= 1).any():
             print(f'Replacing data in {file}')
+            count += 1
 
             # Move the original file
             os.rename(join(data_dir, file), join(data_dir, f'{file}_orig'))
@@ -187,7 +189,7 @@ for month in settings.months:
 
             # Check for time dimension
             if len(new.time) != 24:
-                print(f'Filling in first hour.')
+                # print(f'Filling in first hour.')
                 new = gc.fill_GC_first_hour(new)
 
             # Fill in the data by replacing the entire level
@@ -203,3 +205,6 @@ for month in settings.months:
 
         # save out file
         data.to_netcdf(join(data_dir, file))
+
+print('-'*75)
+print(f'Replaced data in {count} files.')
