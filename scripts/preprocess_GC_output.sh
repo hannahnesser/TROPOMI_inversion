@@ -2,11 +2,11 @@
 
 #SBATCH -J preprocess_GC
 #SBATCH -o %x_%j.out
-#SBATCH -c 4
+#SBATCH -c 1
 #SBATCH -N 1
 #SBATCH -p huce_intel
-#SBATCH --mem 12000
-#SBATCH -t 0-01:00
+#SBATCH --mem 1000
+#SBATCH -t 0-00:10
 #SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
