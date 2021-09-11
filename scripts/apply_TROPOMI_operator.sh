@@ -17,7 +17,8 @@ CODE_DIR="${1}"
 TROPOMI_DATA_DIR="${2}"
 PRIOR_DIR="${3}"
 RUN_DIR="${4}"
-JACOBIAN="${5}"
+OUTPUT_DIR="${5}"
+JACOBIAN="${6}"
 
 # Time
 MONTH="${SLURM_ARRAY_TASK_ID}"
@@ -40,4 +41,4 @@ cd $INPUT_DIR
 mkdir -p $OUTPUT_DIR
 
 echo "Initiating script"
-python -u ${python_dir}/python/TROPOMI_operator.py $CODE_DIR $TROPOMI_DATA_DIR $PRIOR_DIR $RUN_DIR $MONTH $JACOBIAN
+python -u ${python_dir}/python/TROPOMI_operator.py $CODE_DIR $TROPOMI_DATA_DIR $PRIOR_DIR $RUN_DIR $OUTPUT_DIR $MONTH $JACOBIAN

@@ -26,10 +26,11 @@ SCRIPT_DIR="${INV_PATH}/scripts"
 CODE_DIR="${INV_PATH}/python"
 
 # Define the directories for post-processing files
-GC_CH4_DIR=$(pwd -P) # CH4 concentrations (current dir)
+GC_CH4_DIR=$(pwd -P)/OutputDir # CH4 concentrations (current dir)
 GC_CH4_HALFSTEP_DIR=halfstephalfstep
-GC_PEDGE_DIR=${GC_CH4_DIR%_*}_0000 # Pressure edges (prior dir)
+GC_PEDGE_DIR=${GC_CH4_DIR%_*}_0000/OutputDir # Pressure edges (prior dir)
 SAT_DIR=satdirsatdir # Satellite data directory
+OUTPUT_DIR=$(pwd -P)/ProcessedDir
 
 # Define whether or not this is a Jacobian run
 JAC=jacjac
@@ -54,7 +55,7 @@ jid1=$(sbatch ${SCRIPT_DIR}/preprocess_GC_output.sh ${CODE_DIR} ${GC_CH4_DIR} ${
 #-------------------------------------------------
 # Run the TROPOMI operator
 #-------------------------------------------------
-jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${JAC})
+jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${OUTPUT_DIR} ${JAC})
 
 #-------------------------------------------------
 # Clean up
