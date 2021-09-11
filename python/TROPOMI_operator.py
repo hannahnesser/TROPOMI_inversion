@@ -233,8 +233,10 @@ def apply_avker(sat_avker, sat_prior, sat_pressure_weight, GC_CH4, filt=None):
 ## List all satellite files for the year and date defined
 ## -------------------------------------------------------------------------##
 # List all raw netcdf TROPOMI files
+print(sat_data_dir)
 allfiles=glob.glob(sat_data_dir+'*.nc')
 allfiles.sort()
+print(len(allfiles))
 
 # Create empty list
 Sat_files = {}
