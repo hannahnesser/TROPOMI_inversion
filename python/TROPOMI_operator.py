@@ -165,8 +165,8 @@ def read_GC(ch4_data_dir, pedge_data_dir, date):
 
     # Check that the data has all 24 hours
     if len(data.time) != 24:
-        print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
-        print('Filling data with the first hour.')
+        # print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
+        # print('Filling data with the first hour.')
         data = gc.fill_GC_first_hour(data)
 
     return data
@@ -277,7 +277,7 @@ print('Number of dates: ', len(Sat_files))
 ## Apply the operator to each date of satellite observations
 ## -------------------------------------------------------------------------##
 for date, filenames in Sat_files.items():
-    print('=========== %s ===========' % date)
+    # print('=========== %s ===========' % date)
     preprocess = lambda d: filter_tropomi(d, date,
                                           s.lon_min, s.lon_max,
                                           s.lat_min, s.lat_max)
@@ -288,14 +288,14 @@ for date, filenames in Sat_files.items():
     TROPOMI = process_tropomi(TROPOMI, date)
 
     if TROPOMI is None:
-        print('No observations remain.')
-        print('================================')
+        print(f'{date} : 0 observations')
+        # print('================================')
         continue
 
     # Get observation dimension (number of good observations in that single
     # observation file)
     NN = TROPOMI.nobs.shape[0]
-    print('Processing %d Observations' % NN)
+    print(f'{date} : {NN} observations')
 
     # Then, read in the GC data for these dates.
     GC = read_GC(GC_ch4_data_dir, GC_pressure_data_dir, date)
@@ -322,10 +322,10 @@ for date, filenames in Sat_files.items():
                             TROP_CH4, TROP_PW, GC_on_sat)
 
     # Print out some general statistics....
-    print('Mean model - observation difference : ',
-          np.mean(GC_on_sat - TROPOMI['methane'].values))
-    print('Standard deviation : ',
-          np.std(GC_on_sat - TROPOMI['methane'].values))
+    # print('Mean model - observation difference : ',
+    #       np.mean(GC_on_sat - TROPOMI['methane'].values))
+    # print('Standard deviation : ',
+    #       np.std(GC_on_sat - TROPOMI['methane'].values))
 
     # Save out values
     # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
@@ -348,6 +348,6 @@ for date, filenames in Sat_files.items():
         OBS_MOD[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
 
     save_obj(OBS_MOD, output_dir + date + '_GCtoTROPOMI.pkl')
-    print('================================')
+    # print('================================')
 
 print('CODE FINISHED')
