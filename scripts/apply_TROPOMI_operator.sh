@@ -36,9 +36,5 @@ echo "Activated ${CONDA_PREFIX}"
 ## -------------------------------------------------------------------------##
 ## Run the script
 ## -------------------------------------------------------------------------##
-python_dir=$(dirname `pwd`)
-cd $INPUT_DIR
-mkdir -p $OUTPUT_DIR
-
 echo "Initiating script"
-python -u ${python_dir}/python/TROPOMI_operator.py $CODE_DIR $TROPOMI_DATA_DIR $PRIOR_DIR $RUN_DIR $OUTPUT_DIR $MONTH $JACOBIAN
+python -u ${CODE_DIR}/TROPOMI_operator.py $CODE_DIR $TROPOMI_DATA_DIR $PRIOR_DIR $RUN_DIR $OUTPUT_DIR $MONTH $JACOBIAN
