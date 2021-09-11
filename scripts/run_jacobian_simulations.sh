@@ -4,7 +4,7 @@
 #SBATCH -c 16
 #SBATCH -N 1
 #SBATCH -p huce_intel
-#SBATCH --mem 25000
+#SBATCH --mem 20000
 #SBATCH -t 4-00:00
 
 ### Run directory
