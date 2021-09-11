@@ -347,7 +347,7 @@ for date, filenames in Sat_files.items():
         OBS_MOD[:, 8] = TROPOMI['albedo'][:,0]
         OBS_MOD[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
 
-    save_obj(OBS_MOD, output_dir + date + '_GCtoTROPOMI.pkl')
+    save_obj(OBS_MOD, os.path.join(output_dir, date + '_GCtoTROPOMI.pkl'))
     # print('================================')
 
 print('CODE FINISHED')
