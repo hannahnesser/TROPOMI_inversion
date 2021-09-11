@@ -48,7 +48,7 @@ import math
 import xarray as xr
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -82,7 +82,7 @@ sys.path.append(code_dir)
 import config
 import gcpy as gc
 import troppy as tp
-import format_plots as fp
+# import format_plots as fp
 import inversion_settings as settings
 
 ## ------------------------------------------------------------------------ ##
@@ -150,6 +150,8 @@ for month in settings.months:
         if file.split('/')[-1] not in listdir(file.rpartition('/')[0]):
             # print(f'{file} is not in the data directory.')
             continue
+        else:
+            print(f'Opening {file}')
         data = xr.open_dataset(join(data_dir, file))
 
         # Remove the buffer grid cells
@@ -208,3 +210,4 @@ for month in settings.months:
 
 print('-'*75)
 print(f'Replaced data in {count} files.')
+print('CODE FINISHED')
