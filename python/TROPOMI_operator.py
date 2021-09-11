@@ -23,9 +23,9 @@ code_dir = sys.argv[1]
 sat_data_dir = sys.argv[2]
 GC_pressure_data_dir = sys.argv[3]
 GC_ch4_data_dir = sys.argv[4]
-output_dir = f'{GC_ch4_data_dir}ProcessedDir'
-MONTH = int(sys.argv[5])
-jacobian = bool(sys.argv[6])
+output_dir = sys.argv[5]
+MONTH = int(sys.argv[6])
+jacobian = bool(sys.argv[7])
 # A Boolean of whether or not this is
 # being run for a jacobian simulation
 
