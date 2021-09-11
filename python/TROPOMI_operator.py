@@ -29,12 +29,12 @@ jacobian = bool(sys.argv[7])
 # A Boolean of whether or not this is
 # being run for a jacobian simulation
 
-print('Applying TROPOMI operator for %d-%02d\n' % (s.year, MONTH))
-
 # Load custom packages
 sys.path.append(code_dir)
 import gcpy as gc
 import inversion_settings as s
+
+print('Applying TROPOMI operator for %d-%02d\n' % (s.year, MONTH))
 
 ## -------------------------------------------------------------------------##
 ## Define functions
