@@ -4,11 +4,12 @@ if __name__ == '__main__':
     import numpy as np
     import pandas as pd
     from scipy.linalg import eigh
+    import matplotlib.pyplot as plt
 
     ## ---------------------------------------------------------------------##
     ## Set user preferences
     ## ---------------------------------------------------------------------##
-    local = False
+    local = True
 
     # Cannon
     if not local:
@@ -22,10 +23,10 @@ if __name__ == '__main__':
         data_dir = f'{base_dir}inversion_data/'
 
     # User preferences
-    calculate_evecs = True
-    format_evecs = False
+    calculate_evecs = False
+    format_evecs = True
     n_evecs = int(10)
-    calculate_avker = True
+    calculate_avker = False
     pct_of_info = [50, 90, 95, 99, 99.9]
     snr = None
     rank = None
@@ -114,8 +115,8 @@ if __name__ == '__main__':
         evals_q = evals_h/(1 + evals_h)
 
         # Calculate the prolongation and reduction operators
-        prolongation = (evecs * sa**0.5).T
-        reduction = (1/sa**0.5) * evecs.T
+        prolongation = (sa**0.5) * evecs
+        reduction = evecs.T * (1/sa**0.5)
 
         # Save out the matrices
         np.save(f'{data_dir}evecs0.npy', evecs)
@@ -128,10 +129,10 @@ if __name__ == '__main__':
 
     else:
         evals_h = np.load(f'{data_dir}evals_h0.npy')
+        evecs = np.load(f'{data_dir}evecs0.npy')
+        prolongation = np.load(f'{data_dir}prolongation0.npy')
         if not local:
-            evecs = np.load(f'{data_dir}evecs0.npy')
             evals_q = np.load(f'{data_dir}evals_q0.npy')
-            prolongation = np.load(f'{data_dir}prolongation0.npy')
             reduction = np.load(f'{data_dir}reduction0.npy')
         else:
             evals_q = evals_h/(1 + evals_h)
@@ -149,10 +150,13 @@ if __name__ == '__main__':
 
         # Load clusters
         clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
+        print(prolongation.shape)
+
 
         # Iterate through columns and save out HEMCO-appropriate files
         for i in range(n_evecs):
             pert = ip.match_data_to_clusters(prolongation[:, i], clusters, 0)
+            # pert = ip.match_data_to_clusters(prolongation[:, i], clusters, 0)
 
             # Define HEMCO attributes
             long_name = 'Eigenvector perturbations'
@@ -171,6 +175,7 @@ if __name__ == '__main__':
             #     p['evec_pert'] *= float(s)
 
             gc.save_HEMCO_netcdf(pert, data_dir, f'evec_pert_{(i+1):02d}.nc')
+            print(f'Saved eigenvector {(i+1)} : {data_dir}/evec_pert_{(i+1):02d}.nc')
 
     ## ---------------------------------------------------------------------##
     ## Calculate the averaging kernel
