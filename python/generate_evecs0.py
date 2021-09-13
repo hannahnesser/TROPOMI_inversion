@@ -16,7 +16,8 @@ if __name__ == '__main__':
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
         data_dir = sys.argv[1]
-        code_dir = sys.argv[2]
+        output_dir = sys.argv[2]
+        code_dir = sys.argv[3]
     else:
         base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
         code_dir = f'{base_dir}python/'
@@ -174,8 +175,8 @@ if __name__ == '__main__':
             #     p = deepcopy(pert)
             #     p['evec_pert'] *= float(s)
 
-            gc.save_HEMCO_netcdf(pert, data_dir, f'evec_pert_{(i+1):02d}.nc')
-            print(f'Saved eigenvector {(i+1)} : {data_dir}/evec_pert_{(i+1):02d}.nc')
+            gc.save_HEMCO_netcdf(pert, f'{output_dir}inversion_data/eigenvectors', f'evec_pert_{(i+1):04d}.nc')
+            print(f'Saved eigenvector {(i+1)} : {output_dir}evec_pert_{(i+1):02d}.nc')
 
     ## ---------------------------------------------------------------------##
     ## Calculate the averaging kernel

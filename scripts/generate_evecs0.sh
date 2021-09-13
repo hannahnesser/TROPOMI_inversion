@@ -14,7 +14,8 @@
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 DATA_DIR="${1}"
-CODE_DIR="${2}"
+OUTPUT_DIR="${2}"
+CODE_DIR="${3}"
 
 ## -------------------------------------------------------------------------##
 ## Load and prepare the environment
@@ -32,7 +33,7 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_evecs0.py ${DATA_DIR} ${CODE_DIR}
+python -u ${python_dir}/python/generate_evecs0.py ${DATA_DIR} ${OUTPUT_DIR} ${CODE_DIR}
 
 ## -------------------------------------------------------------------------##
 ## Clean up
