@@ -176,7 +176,7 @@ if __name__ == '__main__':
             #     p['evec_pert'] *= float(s)
 
             gc.save_HEMCO_netcdf(pert, f'{output_dir}inversion_data/eigenvectors', f'evec_pert_{(i+1):04d}.nc')
-            print(f'Saved eigenvector {(i+1)} : {output_dir}evec_pert_{(i+1):02d}.nc')
+            print(f'Saved eigenvector {(i+1)} : {output_dir}inversion_data/eigenvectors/evec_pert_{(i+1):04d}.nc')
 
     ## ---------------------------------------------------------------------##
     ## Calculate the averaging kernel
