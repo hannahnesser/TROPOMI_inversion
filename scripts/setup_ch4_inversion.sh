@@ -44,7 +44,7 @@ HALFSTEP_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/"
 
 # Path to code
 GC_PATH="${HOME}/CH4_GC/Code.CH4_Inv"
-GC_INPUTS_PATH="{INV_PATH}/GC_inputs"
+GC_INPUTS_PATH="${INV_PATH}/GC_inputs"
 #CODE_BRANCH="eigenvector_perturbations"
 
 # Start and end date for the production simulations
@@ -146,7 +146,7 @@ RUN_TEMPLATE="template_run"
 mkdir -p ${RUN_TEMPLATE}
 cp -RLv ${GC_INPUTS_PATH}/input.geos.CH4 ${RUN_TEMPLATE}/input.geos
 cp -RLv ${GC_INPUTS_PATH}/HISTORY.rc.CH4 ${RUN_TEMPLATE}/HISTORY.rc
-cp -RLv ${GC_INPUTS_PATH}/GEOS-Chem_run.template ${RUN_TEMPLATE}
+cp -RLv ${SCRIPT_PATH}/GEOS-Chem_run.template ${RUN_TEMPLATE}
 cp -RLv ${GC_INPUTS_PATH}/getRunInfo ${RUN_TEMPLATE}/
 cp -RLv ${GC_INPUTS_PATH}/Makefile ${RUN_TEMPLATE}/
 cp -RLv ${GC_INPUTS_PATH}/HEMCO_Diagn.rc.CH4 ${RUN_TEMPLATE}/HEMCO_Diagn.rc
@@ -290,9 +290,12 @@ if "$CompileCodeDir"; then
     fi
 
     cp geos ${GC_INPUTS_PATH}/
+    cp compile.log ${GC_INPUTS_PATH}/
+    cp lastbuild ${GC_INPUTS_PATH}/
 else
-    cp ${GC_INPUTS_PATH}/geos $RUN_TEMPLATE
-    
+    cp ${GC_INPUTS_PATH}/geos .
+    cp ${GC_INPUTS_PATH}/compile.log .
+    cp ${GC_INPUTS_PATH}/lastbuild .
 fi
 
 ### Navigate back to top-level directory
@@ -481,7 +484,7 @@ while [ $x -le $nPerturbations ];do
 
    ### Create run script from template
    sed -e "s:namename:${name}:g" \
-          "s:jacjac:${JAC}:g" GEOS-Chem_run.template > ${name}.run
+       -e "s:jacjac:${JAC}:g" GEOS-Chem_run.template > ${name}.run
    chmod 755 ${name}.run
    rm GEOS-Chem_run.template
 
