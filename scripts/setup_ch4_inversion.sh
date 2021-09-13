@@ -64,13 +64,13 @@ RESTART_FILE="/n/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.
 BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
 
 # Jacobian settings
-nPerturbations=1
+nPerturbations=10
 pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
 # (use evecnumevecnum to substitute for the number)
-EVEC_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations"
-EVEC_FILE="evec_perturbations_evecnumevecnum.nc"
+EVEC_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/eigenvectors"
+EVEC_FILE="evec_pert_evecnumevecnum.nc"
 
 # Grid settings (Nested NA)
 RES="0.25x0.3125"
