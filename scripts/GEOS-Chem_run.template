@@ -4,7 +4,7 @@
 ##SBATCH -N 1
 ##SBATCH -t 4-00:00
 ##SBATCH -p huce_cascade
-##SBATCH --mem=25000
+##SBATCH --mem=20000
 ##SBATCH --mail-type=END
 
 # Set the proper # of threads for OpenMP
