@@ -14,14 +14,14 @@ RUNDIR=$(pwd -P)
 x=${SLURM_ARRAY_TASK_ID}
 
 ### Add zeros to the cluster Id
-if [ $xi -lt 10 ]; then
-    xstr="000${xi}"
-elif [ $xi -lt 100 ]; then
-    xstr="00${xi}"
-elif [ $xi -lt 1000 ]; then
-    xstr="0${xi}"
+if [ $x -lt 10 ]; then
+    xstr="000${x}"
+elif [ $x -lt 100 ]; then
+    xstr="00${x}"
+elif [ $x -lt 1000 ]; then
+    xstr="0${x}"
 else
-    xstr="${xi}"
+    xstr="${x}"
 fi
 
 ### Run GEOS-Chem in the directory corresponding to the cluster Id
