@@ -28,7 +28,7 @@ CODE_DIR="${INV_PATH}/python"
 # Define the directories for post-processing files
 GC_CH4_DIR=$(pwd -P)/OutputDir # CH4 concentrations (current dir)
 GC_CH4_HALFSTEP_DIR=halfstephalfstep
-GC_PEDGE_DIR=${GC_CH4_DIR%_*}_0000/OutputDir # Pressure edges (prior dir)
+GC_PEDGE_DIR=${GC_CH4_DIR%_*}_0000_final/OutputDir # Pressure edges (prior dir)
 SAT_DIR=satdirsatdir # Satellite data directory
 OUTPUT_DIR=$(pwd -P)/ProcessedDir
 
