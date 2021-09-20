@@ -289,12 +289,12 @@ def define_HEMCO_var_attributes(data, var, long_name, units):
     data[var].attrs = {'long_name' : long_name, 'units' : units}
     return data
 
-def save_HEMCO_netcdf(data, data_dir, file_name, dtype='float32'):
+def save_HEMCO_netcdf(data, data_dir, file_name, dtype='float32', **kwargs):
     encoding = {'_FillValue' : None, 'dtype' : dtype}
     var = {k : encoding for k in data.keys()}
     coord = {k : encoding for k in data.coords}
     var.update(coord)
-    data.to_netcdf(join(data_dir, file_name), encoding=var)
+    data.to_netcdf(join(data_dir, file_name), encoding=var, kwargs)
 
 ## -------------------------------------------------------------------------##
 ## Planeflight functions
