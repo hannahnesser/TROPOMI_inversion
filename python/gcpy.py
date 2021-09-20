@@ -294,7 +294,7 @@ def save_HEMCO_netcdf(data, data_dir, file_name, dtype='float32', **kwargs):
     var = {k : encoding for k in data.keys()}
     coord = {k : encoding for k in data.coords}
     var.update(coord)
-    data.to_netcdf(join(data_dir, file_name), encoding=var, kwargs)
+    data.to_netcdf(join(data_dir, file_name), encoding=var, **kwargs)
 
 ## -------------------------------------------------------------------------##
 ## Planeflight functions
