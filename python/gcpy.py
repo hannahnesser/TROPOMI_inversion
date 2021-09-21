@@ -268,9 +268,9 @@ def define_HEMCO_std_attributes(data, name=None):
     print(' - long_name')
     print(' - units')
 
-    # Check if time is in the dataset and, if not, add it
-    if 'time' not in data.coords:
-        data = data.expand_dims('time')
+    # # Check if time is in the dataset and, if not, add it
+    # if 'time' not in data.coords:
+    #     data = data.expand_dims('time')
 
     # Convert to dataset
     if type(data) != xr.core.dataset.Dataset:
