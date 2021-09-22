@@ -44,7 +44,7 @@ HALFSTEP_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/"
 
 # Path to code
 GC_PATH="${HOME}/CH4_GC/Code.CH4_Inv"
-GC_INPUTS_PATH="${INV_PATH}/GC_inputs"
+GC_INPUTS_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/gc_inputs"
 #CODE_BRANCH="eigenvector_perturbations"
 
 # Start and end date for the production simulations
@@ -122,7 +122,7 @@ fi
 # HON 2020/01/12: Removed submodule and added symbolic link
 #cd ${GC_PATH}
 #git checkout ${CODE_BRANCH}
-cd ${INV_PATH}
+cd ${JAC_PATH}
 ln -sTf ${GC_PATH} GEOS-Chem
 
 ##=======================================================================
@@ -275,18 +275,18 @@ if "$HourlyCH4"; then
 fi
 
 if "$CompileCodeDir"; then
-    cd $RUN_TEMPLATE 
+    cd ${JAC_PATH}/${RUN_NAME}/${RUN_TEMPLATE} 
 
     ### Compile GEOS-Chem and store executable in template run directory
-    make realclean CODE_DIR=${INV_PATH}/GEOS-Chem
+    make realclean CODE_DIR=${JAC_PATH}/GEOS-Chem
     if ! "${CompileWithDebug}"; then
 	if "$PLANEFLIGHT"; then
-	    make -j${OMP_NUM_THREADS} build CODE_DIR=${INV_PATH}/GEOS-Chem BPCH_DIAG=y
+	    make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/GEOS-Chem BPCH_DIAG=y
 	else
-	    make -j${OMP_NUM_THREADS} build CODE_DIR=${INV_PATH}/GEOS-Chem
+	    make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/GEOS-Chem
 	fi
     else
-	make -j${OMP_NUM_THREADS} build CODE_DIR=${INV_PATH}/GEOS-Chem BPCH_DIAG=y DEBUG=y BOUNDS=y TRACEBACK=y FPE=y
+	make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/GEOS-Chem BPCH_DIAG=y DEBUG=y BOUNDS=y TRACEBACK=y FPE=y
     fi
 
     cp geos ${GC_INPUTS_PATH}/
