@@ -231,7 +231,7 @@ fi
 ### Set up HEMCO_Config.rc
 ### Use monthly emissions diagnostic output for now
 sed -i -e "s:End:Monthly:g" \
-       -e "s:{VERBOSE}:0:g" \
+       -e "s:{VERBOSE}:3:g" \
        -e "s:{WARNINGS}:1:g" \
        -e "s:{DATA_ROOT}:${DATA_PATH}:g" \
        -e "s:{GRID_DIR}:${gridDir}:g" \
@@ -466,8 +466,8 @@ while [ $x -le $nPerturbations ];do
 
        ### Update settings in HEMCO_Config.rc
        # Section extension switches
-       OLD="CH4_EVECS              :       false"
-       NEW="CH4_EVECS              :       true"
+       OLD="EVECS                  :       false"
+       NEW="EVECS                  :       true"
        sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
        # Eigenvector file
