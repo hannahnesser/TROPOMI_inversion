@@ -168,7 +168,7 @@ if __name__ == '__main__':
                                                   units='kg/m2/s')
             pert.attrs = {'Title' : title_str,
                           'Conventions' : 'COARDS',
-                          'History' : datetime.now()}
+                          'History' : datetime.now().strftime('%Y-%m-%d %H:%M')}
 
             # Scaling (for a later date)
             # for s in evec_scaling:
