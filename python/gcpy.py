@@ -16,6 +16,7 @@ from os.path import join
 from os import listdir
 import os
 import warnings
+import datetime
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -270,6 +271,7 @@ def define_HEMCO_std_attributes(data, name=None):
 
     # Check if time is in the dataset and, if not, add it
     if 'time' not in data.coords:
+        data = data.assign_coords(time=datetime.datetime(2009, 1, 1, 0, 0))
         data = data.expand_dims('time')
 
     # Convert to dataset
