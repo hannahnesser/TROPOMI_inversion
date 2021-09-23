@@ -14,7 +14,7 @@ config.BASE_WIDTH = config.PRES_WIDTH
 config.BASE_HEIGHT = config.PRES_HEIGHT
 import format_plots as fp
 
-np.set_printoptions(precision=3, linewidth=150)
+np.set_printoptions(precision=3, linewidth=300, suppress=True)
 
 # NOTE: This is all hard coded to be a relative inversion.
 
@@ -33,24 +33,25 @@ from numpy.random import RandomState
 rs = RandomState(717)
 
 # Define the parameters of our simple forward model
-U = 20/3600 # windspeed (5 km/hr in km/s)
-L = 25 # grid cell length (25 km)
+U = 5/3600 # windspeed (5 km/hr in km/s)
+L = 25/2 # grid cell length (25 km)
 j = U/L # transfer coeficient (s-1)
 tau = 1/j
 
 # Dimensions of the inversion quantities
-nstate = 30 # state vector
-nobs_per_cell = 30
+nstate = 5 #30 # state vector
+nobs_per_cell = 1 #30
 nobs = nobs_per_cell*nstate # observation vector
 
-# Define the times at which observations are taken
+# Define the times
+init_t = 150*3600
 total_t = 150*3600 # time in seconds
-obs_t = np.linspace(0, total_t, nobs_per_cell)
 
-# Define the times at which we sample the forward model
+# Define the times at which we sample the forward model and the observations
 C = 0.5 # Courant number
 delta_t = C*L/U # seconds
-t = np.arange(0, total_t+delta_t, delta_t)
+t = np.arange(0, init_t + total_t + delta_t, delta_t)
+obs_t = np.linspace(init_t + delta_t, init_t + total_t, nobs_per_cell)
 
 # Define the true emissions, including the boundary conditions
 BC_true = 1900 # ppb
@@ -117,22 +118,18 @@ print('-'*78)
 ## -------------------------------------------------------------------------##
 # Define forward model and inversion functions
 ## -------------------------------------------------------------------------##
-def forward_model_lw(x, y_init, BC, total_t, delta_t, U, L, obs_t):
+def forward_model_lw(x, y_init, BC, ts, U, L, obs_t):
     '''
     A function that calculates the mass in each reservoir
     after a given time given the following:
         x         :    vector of emissions (ppb/s)
         y_init    :    initial atmospheric condition
         BC        :    boundary condition
-        total_t.  :    the total duration of the simulation
-        delta_t   :    time step
+        ts        :    times at which to sample the model
         U         :    wind speed
         L         :    length scale for each grid box
         obs_t     :    times at which to sample the model
     '''
-    # Create an array of times over which to run the model
-    ts = np.arange(0, total_t + delta_t, delta_t)
-
     # Create an empty array (grid box x time) for all
     # model output
     ys = np.zeros((len(y_init), len(ts)))
@@ -180,14 +177,15 @@ def do_advection(x, y_prev, BC, delta_t, U, L):
 
     return y_new
 
-def build_jacobian(x_a, y_init, BC, total_t, delta_t, U, L, obs_t,
+def build_jacobian(x_a, y_init, BC, ts, U, L, obs_t,
                    optimize_BC=False):
-    F = lambda x : forward_model_lw(x=x, y_init=y_init, BC=BC,
-                                    total_t=total_t, delta_t=delta_t,
+    F = lambda x : forward_model_lw(x=x, y_init=y_init, BC=BC, ts=ts,
                                     U=U, L=L, obs_t=obs_t).flatten()
 
     # Calculate prior observations
     y_a = F(x_a)
+    print('-'*10, 'PRIOR OBSERVATIONS', '-'*10)
+    print(y_a)
 
     # Initialize the Jacobian
     K = np.zeros((len(y_a), len(x_a)))
@@ -200,14 +198,17 @@ def build_jacobian(x_a, y_init, BC, total_t, delta_t, U, L, obs_t,
 
         # Run the forward model
         y_pert = F(x)
+        print('-'*10, f'PERTURBED OBSERVATIONS {i}', '-'*10)
+        print(x/x_a)
+        print(y_pert)
+        print(y_pert - y_a)
 
         # Save out the result
         K[:, i] = (y_pert - y_a)/0.5
 
     if optimize_BC:
         # Add a column for the optimization of the boundary condition
-        y_pert = forward_model_lw(x=x_a, y_init=y_init, BC=1.5*BC,
-                                  total_t=total_t, delta_t=delta_t,
+        y_pert = forward_model_lw(x=x_a, y_init=y_init, BC=1.5*BC, ts=ts,
                                   U=U, L=L, obs_t=obs_t).flatten()
         dy_dx = ((y_pert - y_a)/0.5).reshape(-1, 1)
         K = np.append(dy_dx, K, axis=1)
@@ -223,6 +224,16 @@ def solve_inversion(x_a, s_a, y, y_a, s_o, k, optimize_BC=False):
     x_a = np.ones(n)
     c = y_a - k @ x_a
     s_hat = np.linalg.inv(np.linalg.inv(s_a) + k.T @ np.linalg.inv(s_o) @ k)
+    g = s_hat @ k.T @ np.linalg.inv(s_o)
+    g2 = s_a @ k.T @ np.linalg.inv(k @ s_a @ k.T + s_o)
+    print('-'*10, 'c', '-'*10)
+    print(c)
+    print('-'*10, 'K', '-'*10)
+    print(k)
+    print('-'*10, 'G', '-'*10)
+    print(g)
+    print('-'*10, 'G SUM', '-'*10)
+    print(g.sum(axis=1))
     a = np.identity(n) - s_hat @ np.linalg.inv(s_a)
     x_hat = (x_a
              + s_hat @ k.T @ np.linalg.inv(s_o) @ (y - k @ x_a - c))
@@ -233,6 +244,22 @@ def solve_inversion(x_a, s_a, y, y_a, s_o, k, optimize_BC=False):
         a = a[1:, 1:]
 
     return x_hat, s_hat, a
+
+def calculate_gain(s_a, s_o, k):
+    return s_a @ k.T @ np.linalg.inv(k @ s_a @ k.T + s_o)
+
+# def predict_perturbation_effect(BC_pert, k_coeff, s_a, s_o, k,
+#                                 optimize_BC=False):
+#     if optimize_BC:
+#         n = nstate + 1
+#     else:
+#         n = nstate
+
+#     s_o_inv = np.linalg.inv(s_o)
+#     s_a_inv = np.linalg.inv(s_a)
+#     G = np.linalg.inv(s_a_inv + k.T @ s_o_inv @ k) @ k.T @ s_o_inv
+
+
 
 def plot_inversion(x_a, x_hat, x_true, x_hat_true=None, s_a=None, optimize_BC=False):
     fig, ax = format_plot(nstate)
@@ -338,61 +365,67 @@ def add_text(ax):
 xp = np.arange(1, nstate+1)
 
 # Test 1: BC = constant (1900)
-y_a = forward_model_lw(x_a, y_init, BC_true, total_t, delta_t, U, L, obs_t)
-K = build_jacobian(x_a, y_init, BC_true, total_t, delta_t, U, L, obs_t,
+y_a = forward_model_lw(x_a, y_init, BC_true, t, U, L, obs_t)
+K = build_jacobian(x_a, y_init, BC_true, t, U, L, obs_t,
                    optimize_BC)
+G_sum = calculate_gain(s_a, s_o, K).sum(axis=1)
 x_hat_true, s_hat, a = solve_inversion(x_a, s_a,
                                        y.flatten(), y_a.flatten(), s_o, K,
                                        optimize_BC)
 
-fig, ax = plot_inversion(x_a, x_hat_true, x_true,
-                         s_a=s_a, optimize_BC=optimize_BC)
-ax = fp.add_title(ax, f'True Boundary Condition\n(BC = {BC_true:d} ppb)')
-fp.save_fig(fig, plot_dir, f'constant_BC_{BC_true:d}_n{nstate}_m{nobs}')
+# fig, ax = plot_inversion(x_a, x_hat_true, x_true,
+#                          s_a=s_a, optimize_BC=optimize_BC)
+# ax = fp.add_title(ax, f'True Boundary Condition\n(BC = {BC_true:d} ppb)')
+# fp.save_fig(fig, plot_dir, f'constant_BC_{BC_true:d}_n{nstate}_m{nobs}')
 
-fig, ax = plot_obs(nstate, y, y_a, y_ss)
-ax = fp.add_title(ax, f'True Boundary Condition\n(BC = {BC_true:d} ppb)')
-fp.save_fig(fig, plot_dir, f'constant_BC_{BC_true:d}_n{nstate}_m{nobs}_obs')
-plt.close()
+# fig, ax = plot_obs(nstate, y, y_a, y_ss)
+# ax = fp.add_title(ax, f'True Boundary Condition\n(BC = {BC_true:d} ppb)')
+# fp.save_fig(fig, plot_dir, f'constant_BC_{BC_true:d}_n{nstate}_m{nobs}_obs')
+# plt.close()
 
-# Test 2: constant BC perturbation
-perts = [50, 100, 200]
-fig_summ, ax_summ = format_plot(nstate)
-for i, pert in enumerate(perts):
-    BC = BC_true + pert
+# # Test 2: constant BC perturbation
+# perts = [50, 100, 200]
+# fig_summ, ax_summ = format_plot(nstate)
+# for i, pert in enumerate(perts):
+#     BC = BC_true + pert
 
-    # Solve inversion
-    K = build_jacobian(x_a, y_init, BC, total_t, delta_t, U, L, obs_t,
-                       optimize_BC)
-    y_a = forward_model_lw(x_a, y_init, BC, total_t, delta_t, U, L, obs_t)
-    x_hat, s_hat, a = solve_inversion(x_a, s_a,
-                                      y.flatten(), y_a.flatten(), s_o, K,
-                                      optimize_BC)
+#     # Solve inversion
+#     K = build_jacobian(x_a, y_init, BC, t, U, L, obs_t,
+#                        optimize_BC)
+#     y_a = forward_model_lw(x_a, y_init, BC, t, U, L, obs_t)
+#     x_hat, s_hat, a = solve_inversion(x_a, s_a,
+#                                       y.flatten(), y_a.flatten(), s_o, K,
+#                                       optimize_BC)
 
-    fig, ax = plot_inversion(x_a, x_hat, x_true, x_hat_true,
-                             optimize_BC=optimize_BC)
-    ax = fp.add_title(ax, f'High Boundary Condition\n(BC = {BC:d} ppb)')
-    fp.save_fig(fig, plot_dir, f'constant_BC_{BC:d}_n{nstate}_m{nobs}')
+#     fig, ax = plot_inversion(x_a, x_hat, x_true, x_hat_true,
+#                              optimize_BC=optimize_BC)
+#     ax = fp.add_title(ax, f'High Boundary Condition\n(BC = {BC:d} ppb)')
+#     fp.save_fig(fig, plot_dir, f'constant_BC_{BC:d}_n{nstate}_m{nobs}')
 
-    fig, ax = plot_obs(nstate, y, y_a, y_ss)
-    ax = fp.add_title(ax, f'High Boundary Condition\n(BC = {BC:d} ppb)')
-    fp.save_fig(fig, plot_dir, f'constant_BC_{BC:d}_n{nstate}_m{nobs}_obs')
+#     fig, ax = plot_obs(nstate, y, y_a, y_ss)
+#     ax = fp.add_title(ax, f'High Boundary Condition\n(BC = {BC:d} ppb)')
+#     fp.save_fig(fig, plot_dir, f'constant_BC_{BC:d}_n{nstate}_m{nobs}_obs')
 
-    # Summary plot
-    ax_summ.plot(xp, np.abs(x_hat - x_hat_true)*x_a*3600*24,
-                 c=fp.color(k=4*i), lw=2, ls='-',
-                 label=f'{pert:d}/-{pert:d} ppb')
-    # ax_summ.plot(xp, np.abs(x_hat*x_a - x_true)*3600*24,
-    #              c=fp.color(k=4*i), lw=2, ls='--',
-    #              label=r'$\vert \hat{x} - x_{true}\vert$')
+#     # Summary plot
+#     ax_summ.plot(xp, np.abs(x_hat - x_hat_true)*x_a*3600*24,
+#                  c=fp.color(k=4*i), lw=1, ls='-',
+#                  label=f'{pert:d}/-{pert:d} ppb')
+#     # ax_summ.plot(xp, (x_hat - x_hat_true)*x_a*3600*24,
+#     #              c=fp.color(k=4*i), lw=1, ls='-',
+#     #              label=f'{pert:d}/-{pert:d} ppb')
+#     ax_summ.plot(xp, np.abs(-pert*G_sum)*x_a*3600*24,
+#                  c=fp.color(k=4*i), lw=2, ls='--')
+#     # ax_summ.plot(xp, np.abs(x_hat*x_a - x_true)*3600*24,
+#     #              c=fp.color(k=4*i), lw=2, ls='--',
+#     #              label=r'$\vert \hat{x} - x_{true}\vert$')
 
-ax_summ.set_ylim(0, 100)
-add_text(ax_summ)
-fp.add_title(ax_summ, 'Constant Boundary Condition Perturbations')
-fp.add_labels(ax_summ, 'State Vector Element', r'$\Delta$XCH4 (ppb)')
-fp.add_legend(ax_summ, bbox_to_anchor=(0.5, -0.35), loc='upper center', ncol=3)
-fp.save_fig(fig_summ, plot_dir, f'constant_BC_summary_n{nstate}_m{nobs}')
-plt.close()
+# ax_summ.set_ylim(0, 200)
+# add_text(ax_summ)
+# fp.add_title(ax_summ, 'Constant Boundary Condition Perturbations')
+# fp.add_labels(ax_summ, 'State Vector Element', r'$\Delta\hat{x}$ (ppb)')
+# fp.add_legend(ax_summ, bbox_to_anchor=(0.5, -0.35), loc='upper center', ncol=3)
+# fp.save_fig(fig_summ, plot_dir, f'constant_BC_summary_n{nstate}_m{nobs}')
+# plt.close()
 
 # # Test 3: oscillating BC perturbation
 # # Summary plot
@@ -411,9 +444,9 @@ plt.close()
 #     ax_perts.plot(t/3600, BC, c=fp.color(i*2, lut=len(BCs)*2), lw=2)
 
 #     # Solve inversion
-#     K = build_jacobian(x_a, y_init, BC, total_t, delta_t, U, L, obs_t,
+#     K = build_jacobian(x_a, y_init, BC, t, U, L, obs_t,
 #                        optimize_BC)
-#     y_a = forward_model_lw(x_a, y_init, BC, total_t, delta_t, U, L, obs_t)
+#     y_a = forward_model_lw(x_a, y_init, BC, t, U, L, obs_t)
 #     x_hat, s_hat, a = solve_inversion(x_a, s_a,
 #                                       y.flatten(), y_a.flatten(), s_o, K,
 #                                       optimize_BC)
