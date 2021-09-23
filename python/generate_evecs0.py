@@ -15,6 +15,7 @@ if __name__ == '__main__':
     if not local:
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
+        # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/gc_inputs/'
         data_dir = sys.argv[1]
         output_dir = sys.argv[2]
         code_dir = sys.argv[3]
@@ -151,8 +152,6 @@ if __name__ == '__main__':
 
         # Load clusters
         clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
-        print(prolongation.shape)
-
 
         # Iterate through columns and save out HEMCO-appropriate files
         for i in range(n_evecs):
