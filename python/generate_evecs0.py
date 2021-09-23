@@ -1,5 +1,6 @@
 if __name__ == '__main__':
     import sys
+    from datetime import datetime
     import xarray as xr
     import numpy as np
     import pandas as pd
@@ -165,7 +166,9 @@ if __name__ == '__main__':
             pert = gc.define_HEMCO_var_attributes(pert, 'evec_pert',
                                                   long_name=long_name,
                                                   units='kg/m2/s')
-            pert.attrs = {'Title' : title_str}
+            pert.attrs = {'Title' : title_str,
+                          'Conventions' : 'COARDS',
+                          'History' : datetime.now()}
 
             # Scaling (for a later date)
             # for s in evec_scaling:
