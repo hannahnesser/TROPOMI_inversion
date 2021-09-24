@@ -23,5 +23,5 @@ LAST BUILD INFORMATION:
   TAU_PROF     : n
   BPCH_DIAG    : n
   COMPILER     : ifort 17.0.4
-  Datetime     : 2021/09/24 10:13
+  Datetime     : 2021/09/24 11:02
 make[1]: Leaving directory `/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/template_run'
