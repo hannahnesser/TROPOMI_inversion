@@ -14,7 +14,7 @@ SetupSpinupRun=false
 SetupJacobianRuns=true
 SetupInversion=false
 SetupPosteriorRun=false
-CompileCodeDir=true
+CompileCodeDir=false
 CompileWithDebug=false
 UseEvecPerts=true
 
