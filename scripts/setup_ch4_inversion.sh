@@ -44,7 +44,7 @@ HALFSTEP_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/"
 
 # Path to code
 GC_PATH="${HOME}/CH4_GC/Code.CH4_Inv"
-GC_INPUTS_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/gc_inputs"
+GC_INPUTS_PATH="${INV_PATH}/GC_inputs"
 #CODE_BRANCH="eigenvector_perturbations"
 
 # Start and end date for the production simulations
@@ -231,7 +231,7 @@ fi
 ### Set up HEMCO_Config.rc
 ### Use monthly emissions diagnostic output for now
 sed -i -e "s:End:Monthly:g" \
-       -e "s:{VERBOSE}:3:g" \
+       -e "s:{VERBOSE}:0:g" \
        -e "s:{WARNINGS}:1:g" \
        -e "s:{DATA_ROOT}:${DATA_PATH}:g" \
        -e "s:{GRID_DIR}:${gridDir}:g" \
