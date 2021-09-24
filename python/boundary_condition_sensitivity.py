@@ -26,7 +26,7 @@ plot_dir = '../plots/BC_sensitivity'
 ## -------------------------------------------------------------------------##
 # Define the model parameters
 ## -------------------------------------------------------------------------##
-optimize_BC = False
+optimize_BC = True
 
 # Seed the random number generator
 from numpy.random import RandomState
@@ -65,6 +65,7 @@ idx_xa = x_a < 0.5*x_a.mean()
 s_a_err = 0.5*x_a.mean()/x_a
 s_a_err[s_a_err < 0.5] = 0.5
 if optimize_BC:
+    s_a_err = np.append(s_a_err, 0.5)
     s_a = s_a_err**2*np.identity(nstate + 1)
     # idx_sa = np.append(False, idx_xa)
 else:
@@ -206,12 +207,13 @@ def build_jacobian(x_a, y_init, BC, ts, U, L, obs_t,
         # Save out the result
         K[:, i] = (y_pert - y_a)/0.5
 
+    print(K)
     if optimize_BC:
         # Add a column for the optimization of the boundary condition
         y_pert = forward_model_lw(x=x_a, y_init=y_init, BC=1.5*BC, ts=ts,
                                   U=U, L=L, obs_t=obs_t).flatten()
         dy_dx = ((y_pert - y_a)/0.5).reshape(-1, 1)
-        K = np.append(dy_dx, K, axis=1)
+        K = np.append(K, dy_dx, axis=1)
 
     return K
 
@@ -269,6 +271,8 @@ def plot_inversion(x_a, x_hat, x_true, x_hat_true=None, s_a=None, optimize_BC=Fa
     # Add text on type of simulation
     if optimize_BC:
         txt = 'BC optimized'
+        x_hat = x_hat[:-1]
+        x_hat_true = x_hat[:-1]
     else:
         txt = 'BC not optimized'
 
@@ -373,8 +377,10 @@ x_hat_true, s_hat, a = solve_inversion(x_a, s_a,
                                        y.flatten(), y_a.flatten(), s_o, K,
                                        optimize_BC)
 
-# fig, ax = plot_inversion(x_a, x_hat_true, x_true,
-#                          s_a=s_a, optimize_BC=optimize_BC)
+print(K @ s_a @ K.T + s_o)
+
+fig, ax = plot_inversion(x_a, x_hat_true, x_true,
+                         s_a=s_a, optimize_BC=optimize_BC)
 # ax = fp.add_title(ax, f'True Boundary Condition\n(BC = {BC_true:d} ppb)')
 # fp.save_fig(fig, plot_dir, f'constant_BC_{BC_true:d}_n{nstate}_m{nobs}')
 
