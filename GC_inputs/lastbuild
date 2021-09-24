@@ -1,0 +1,27 @@
+make[1]: Entering directory `/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/template_run'
+LAST BUILD INFORMATION:
+  CODE_DIR     : /n/holyscratch01/jacob_lab/hnesser/GEOS-Chem
+  CODE_BRANCH  : eigenvector_perturbations
+  LAST_COMMIT  : Decreasing memory request from 36 GB to 25 GB (may be able to further decrease to 20 GB)
+  COMMIT_DATE  : Thu Jul 29 10:43:04 2021 -0400
+  VERSION      : 12.7.1
+  VERSION_TAG  : GC_12.7.1
+  TRACEBACK    : y
+  BOUNDS       : n
+  DEBUG        : n
+  FPE          : n
+  OMP          : y
+  CHEM         : Standard
+  TOMAS12      : n
+  TOMAS15      : n
+  TOMAS30      : n
+  TOMAS40      : n
+  APM          : n
+  RRTMG        : n
+  MASSCONS     : n
+  TIMERS       : 0
+  TAU_PROF     : n
+  BPCH_DIAG    : n
+  COMPILER     : ifort 17.0.4
+  Datetime     : 2021/09/24 10:13
+make[1]: Leaving directory `/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/template_run'
