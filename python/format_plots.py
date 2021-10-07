@@ -207,10 +207,16 @@ def add_legend(ax, **legend_kwargs):
                                                    config.SCALE))
 
     # Remove duplicates from legend
-    handles, labels = ax.get_legend_handles_labels()
+    try:
+        handles = legend_kwargs.pop('handles')
+        labels = legend_kwargs.pop('labels')
+    except:
+        handles, labels = ax.get_legend_handles_labels()
     labels = OrderedDict(zip(labels, handles))
+    handles = labels.values()
+    labels = labels.keys()
 
-    ax.legend(labels.values(), labels.keys(), **legend_kwargs)
+    ax.legend(handles=handles, labels=labels, **legend_kwargs)
     return ax
 
 def add_title(ax, title, **title_kwargs):
