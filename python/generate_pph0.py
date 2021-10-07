@@ -112,7 +112,7 @@ if __name__ == '__main__':
     active_time = (time.time() - start_time)/60
     print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
 
-    # exit
+    # Exit
     print('Code Complete.')
     print('-'*75)
     client.shutdown()
