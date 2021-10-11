@@ -483,7 +483,8 @@ class InversionLoop(Inversion):
         self.obs_subset_size = obs_subset_size
         
         # read in so and ensure that it is diagonal
-        self.so = self.read(so, dims=Inversion.dims['so'], is_diag=True)
+        # NOTE: self.so = so/regularization_factor - this is done in the Inversion class.
+        self.so = self.read(self.so, dims=Inversion.dims['so'], is_diag=True)
         assert len(so.squeeze().shape)==1, 'Observation errors (so) must be diagonal.' 
 
     # Use the read functions from ReducedMemoryInversion
@@ -572,8 +573,6 @@ class InversionLoop(Inversion):
 
         # Inverse of prior error covariance matrix, inv(S_a)
         invSa = np.linalg.inv(self.sa.data)   # Inverse of prior error covariance matrix
-        # Define gamma for convenience
-        gamma = self.regularization_factor
 
         # ==========================================================================================
         # Now we will assemble different terms of the analytical inversion.
@@ -583,11 +582,15 @@ class InversionLoop(Inversion):
         #
         # Specifically, we are going to solve:
         #   xhat = xA + G*(y-K*xA)
-        #        = xA + inv(gamma*K^T*inv(S_o)*K + inv(S_a)) * gamma*K^T*inv(S_o) * (y-K*xA)
+        #        = xA + inv(K^T*inv(S_o/gamma)*K + inv(S_a)) * K^T*inv(S_o/gamma) * (y-K*xA)
         #
         # In the code below this becomes
-        #   xhat = xA + inv(gamma*kT_invso       + inv(S_a)) * gamma*kT_invSo_ydiff
+        #   xhat = xA + inv(kT_invso             + inv(S_a)) * kT_invSo_ydiff
         #        = xA + ratio
+        #
+        # Note that there is no gamma in the following code because we define:
+        #   self.so = self.so / gamma
+        # in the __init__ for the Inversion class
         # ==========================================================================================
         # Process observations obs_subset_size observations at a time
         for islice in np.arange(len(ind_slice)-1):
@@ -614,14 +617,14 @@ class InversionLoop(Inversion):
             KT_invSo_ydiff += KT_invSo_ydiff_islice
 
             # Solve for posterior scaling factors, xhat
-            ratio = inv(gamma*KT_invSo_K + invSa)@(gamma*KT_invSo_ydiff)
+            ratio = inv(KT_invSo_K + invSa)@(KT_invSo_ydiff) 
             xhat = self.xa.data + ratio
             self.xhat = self._to_dataarray(np.array(xhat).squeeze(),
                                           dims=Inversion.dims['xhat'])
 
         # Calculate the posterior error.
         print('Calculating the posterior error.')
-        self.shat = inv(KT_invSo_K + invSa)
+        self.shat = inv(KT_invSo_K + invSa) 
 
         # Calculate the new set of modeled observations.
         print('Calculating updated modeled observations.')
