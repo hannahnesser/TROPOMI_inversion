@@ -21,6 +21,12 @@ if __name__ == '__main__':
     data_dir = sys.argv[4]
     code_dir = sys.argv[5]
 
+    print(f'Month : {month}')
+    print(f'Prior directory : {prior_dir}')
+    print(f'Perturbation directories : {perturbation_dirs}')
+    print(f'Data directory : {data_dir}')
+    print(f'Code directory : {code_dir}')
+
     # Import custom packages
     import sys
     sys.path.append(code_dir)
