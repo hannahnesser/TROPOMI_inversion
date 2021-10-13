@@ -6,6 +6,7 @@ if __name__ == '__main__':
     import pandas as pd
 
     import glob
+    import time
 
     ## ---------------------------------------------------------------------##
     ## Set user preferences
