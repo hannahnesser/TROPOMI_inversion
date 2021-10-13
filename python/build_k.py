@@ -116,14 +116,15 @@ if __name__ == '__main__':
     ## Transform the reduced-dimension Jacobian Kw into state space
     ## ---------------------------------------------------------------------##
     # Calculate the reduced rank jacobian
-    k_m = da.tensordot(kw_m, reduction, axes=(1, 0))
+    kpi_m = da.tensordot(kw_m, reduction, axes=(1, 0))
+    kpi_m = xr.DataArray(kpi_m, dims=['nobs', 'nstate'])
 
     ## ---------------------------------------------------------------------##
     ## Save and exit
     ## ---------------------------------------------------------------------##
     # Save out
     start_time = time.time()
-    k_m.to_netcdf(f'{data_dir}k1_m{month:02d}.nc')
+    kpi_m.to_netcdf(f'{data_dir}k1_m{month:02d}.nc')
     active_time = (time.time() - start_time)/60
     print(f'K for month {month} saved ({active_time} min).')
 
