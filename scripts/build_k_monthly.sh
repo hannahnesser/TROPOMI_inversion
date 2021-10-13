@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -J save_kpi
+#SBATCH -J build_kpi
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 1
 #SBATCH -N 1
@@ -18,7 +18,7 @@
 ## -------------------------------------------------------------------------##
 MONTH="${SLURM_ARRAY_TASK_ID}"
 PRIOR_DIR="${1}"
-PERT_DIRS='${2}'
+PERT_DIRS="$'2'"
 DATA_DIR="${3}"
 CODE_DIR="${4}"
 
