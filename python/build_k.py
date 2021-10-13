@@ -28,21 +28,6 @@ if __name__ == '__main__':
     import gcpy as gc
     import inversion_settings as s
 
-    ## -------------------------------------------------------------------- ##
-    ## Set up a dask client
-    ## -------------------------------------------------------------------- ##
-    from dask.distributed import Client, LocalCluster, progress
-    from dask.diagnostics import ProgressBar
-    import dask.config
-    import dask.array as da
-    dask.config.set({'distributed.comm.timeouts.connect' : 90,
-                     'distributed.comm.timeouts.tcp' : 150,
-                     'distributed.adaptive.wait-count' : 90,
-                     'array.slicing.split_large_chunks' : False,
-                     'temporary_directory' : f'{data_dir}/dask-worker-space-{month}'})
-    nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
-    nobs_chunk = 4e4 # int(max_chunk_size/nstate_chunk/5)
-
     ## ---------------------------------------------------------------------##
     ## Functions
     ## ---------------------------------------------------------------------##
@@ -64,15 +49,6 @@ if __name__ == '__main__':
     nvec_chunk = len(perturbation_dirs)
 
     ## ---------------------------------------------------------------------##
-    ## Load and subset the reduction operator
-    ## ---------------------------------------------------------------------##
-    reduction = np.load(f'{data_dir}/reduction0.npy')
-    reduction = reduction[:len(perturbation_dirs), :]
-    reduction = xr.DataArray(reduction, dims=['nvec', 'nstate'])
-    reduction = reduction.chunk(chunks={'nvec' : nvec_chunk,
-                                        'nstate' : nstate_chunk})
-
-    ## ---------------------------------------------------------------------##
     ## Load the data for the prior simulation
     ## ---------------------------------------------------------------------##
     prior_files = glob.glob(f'{prior_dir}/ProcessedDir/{s.year:04d}{month:02d}??_GCtoTROPOMI.pkl')
@@ -82,6 +58,18 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Set up dask client
     ## ---------------------------------------------------------------------##
+    from dask.distributed import Client, LocalCluster, progress
+    from dask.diagnostics import ProgressBar
+    import dask.config
+    import dask.array as da
+    dask.config.set({'distributed.comm.timeouts.connect' : 90,
+                     'distributed.comm.timeouts.tcp' : 150,
+                     'distributed.adaptive.wait-count' : 90,
+                     'array.slicing.split_large_chunks' : False,
+                     'temporary_directory' : f'{data_dir}/dask-worker-space-{month}'})
+    nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
+    nobs_chunk = 4e4 # int(max_chunk_size/nstate_chunk/5)
+
     if prior.shape[0] > 4e5:
         n_workers = 1
     else:
@@ -92,6 +80,15 @@ if __name__ == '__main__':
     cluster = LocalCluster(n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
     client = Client(cluster)
+
+    ## ---------------------------------------------------------------------##
+    ## Load and subset the reduction operator
+    ## ---------------------------------------------------------------------##
+    reduction = np.load(f'{data_dir}/reduction0.npy')
+    reduction = reduction[:len(perturbation_dirs), :]
+    reduction = xr.DataArray(reduction, dims=['nvec', 'nstate'])
+    reduction = reduction.chunk(chunks={'nvec' : nvec_chunk,
+                                        'nstate' : nstate_chunk})
 
     ## ---------------------------------------------------------------------##
     ## Iterate through the perturbation directories to build monthly Kw
