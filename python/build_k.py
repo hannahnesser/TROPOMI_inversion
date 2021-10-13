@@ -74,7 +74,7 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load the data for the prior simulation
     ## ---------------------------------------------------------------------##
-    prior_files = glob.glob(f'{prior_dir}/ProcessedDir/{s.year:04d}{m:02d}??_GCtoTROPOMI.pkl')
+    prior_files = glob.glob(f'{prior_dir}/ProcessedDir/{s.year:04d}{month:02d}??_GCtoTROPOMI.pkl')
     prior_files.sort()
     prior = get_model_ch4(prior_files)
 
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     kw_m = np.array([]).reshape(prior.shape[0], 0)
     for p in perturbation_dirs:
         # Load files
-        pert_files = glob.glob(f'{p}/ProcessedDir/{s.year:04d}{m:02d}??_GCtoTROPOMI.pkl')
+        pert_files = glob.glob(f'{p}/ProcessedDir/{s.year:04d}{month:02d}??_GCtoTROPOMI.pkl')
         pert_files.sort()
         pert = get_model_ch4(pert_files)
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     # Save out
     start_time = time.time()
-    k_m.to_netcdf(f'{data_dir}k1_m{m:02d}.nc')
+    k_m.to_netcdf(f'{data_dir}k1_m{month:02d}.nc')
     active_time = (time.time() - start_time)/60
     print(f'K for month {month} saved ({active_time} min).')
 
