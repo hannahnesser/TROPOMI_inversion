@@ -2,11 +2,11 @@
 
 #SBATCH -J build_kpi
 #SBATCH -o %x_%j_%a.out
-#SBATCH -c 1
+#SBATCH -c 12
 #SBATCH -N 1
 #SBATCH -p huce_intel
-#SBATCH --mem 4000
-#SBATCH -t 0-00:30
+#SBATCH --mem 45000
+#SBATCH -t 0-04:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=hnesser@g.harvard.edu
 
