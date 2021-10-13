@@ -17,9 +17,9 @@ if __name__ == '__main__':
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
     month = int(sys.argv[1])
     prior_dir = sys.argv[2]
-    perturbation_dirs = sys.argv[3]
-    data_dir = sys.argv[4]
-    code_dir = sys.argv[5]
+    perturbation_dirs = sys.argv[3:-2]
+    data_dir = sys.argv[-2]
+    code_dir = sys.argv[-1]
 
     print(f'Month : {month}')
     print(f'Prior directory : {prior_dir}')
@@ -60,9 +60,9 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Create list of perturbation directories
     ## ---------------------------------------------------------------------##
-    perturbation_dirs = glob.glob(perturbation_dirs)
-    perturbation_dirs = [p for p in perturbation_dirs
-                         if p.split('_')[-1] != '0000']
+    # perturbation_dirs = glob.glob(perturbation_dirs)
+    # perturbation_dirs = [p for p in perturbation_dirs
+    #                      if p.split('_')[-1] != '0000']
     perturbation_dirs.sort()
 
     # Set state chunks
