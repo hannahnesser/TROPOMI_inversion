@@ -12,7 +12,7 @@ if __name__ == '__main__':
     ## Set user preferences
     ## ---------------------------------------------------------------------##
     # Cannon
-    run_with_script = False
+    run_with_script = True
     if run_with_script:
         month = int(sys.argv[1])
         prior_dir = sys.argv[2]
