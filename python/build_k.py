@@ -12,17 +12,20 @@ if __name__ == '__main__':
     ## Set user preferences
     ## ---------------------------------------------------------------------##
     # Cannon
-    # prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
-    # perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_????'
-    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
-    # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-    # month = 1
-    month = int(sys.argv[1])
-    prior_dir = sys.argv[2]
-    perturbation_dirs = sys.argv[3:-2]
-    perturbation_dirs.sort()
-    data_dir = sys.argv[-2]
-    code_dir = sys.argv[-1]
+    run_with_script = False
+    if run_with_script:
+        month = int(sys.argv[1])
+        prior_dir = sys.argv[2]
+        perturbation_dirs = sys.argv[3:-2]
+        perturbation_dirs.sort()
+        data_dir = sys.argv[-2]
+        code_dir = sys.argv[-1]
+    else:
+        month = 1
+        prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
+        perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_????'
+        data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
+        code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
     # Import custom packages
     import sys
@@ -39,13 +42,14 @@ if __name__ == '__main__':
             data = np.concatenate((data, gc.load_obj(f)[:, 1]))
         return data
 
-    # ## ---------------------------------------------------------------------##
-    # ## Create list of perturbation directories
-    # ## ---------------------------------------------------------------------##
-    # perturbation_dirs = glob.glob(perturbation_dirs)
-    # perturbation_dirs = [p for p in perturbation_dirs
-    #                      if p.split('_')[-1] != '0000']
-    # perturbation_dirs.sort()
+    ## ---------------------------------------------------------------------##
+    ## Create list of perturbation directories
+    ## ---------------------------------------------------------------------##
+    if not run_with_script:
+        perturbation_dirs = glob.glob(perturbation_dirs)
+        perturbation_dirs = [p for p in perturbation_dirs
+                             if p.split('_')[-1] != '0000']
+        perturbation_dirs.sort()
 
     ## ---------------------------------------------------------------------##
     ## Load the data for the prior simulation
@@ -115,14 +119,16 @@ if __name__ == '__main__':
     # Calculate the reduced rank jacobian
     kpi_m = da.tensordot(kw_m, reduction, axes=(1, 0))
     kpi_m = xr.DataArray(kpi_m, dims=['nobs', 'nstate'])
-    kpi_m = kpi_m.chunk({'nobs' : 1e3, 'nstate' : -1})
+    kpi_m = kpi_m.chunk({'nobs' : 5e3, 'nstate' : -1})
 
     ## ---------------------------------------------------------------------##
     ## Save and exit
     ## ---------------------------------------------------------------------##
     # Save out
-    # kpi_m = kpi_m.persist()
-    # progress(kpi_m)
+    kpi_m = kpi_m.persist()
+    progress(kpi_m)
+
+
     start_time = time.time()
     kpi_m.to_netcdf(f'{data_dir}/k1_m{month:02d}.nc')
     active_time = (time.time() - start_time)/60
