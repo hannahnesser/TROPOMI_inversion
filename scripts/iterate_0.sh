@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Directories
-LONG_TERM_DATA_DIR="/n/seasasfs02/hnesser/TROPOMI_inversion/"
-SHORT_TERM_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/"
+LONG_TERM_DATA_DIR="/n/seasasfs02/hnesser/TROPOMI_inversion"
+SHORT_TERM_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion"
 CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python/"
 
 # First, generate the nstate x nstate x months first guess of the Jacobian.
