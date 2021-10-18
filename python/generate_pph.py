@@ -12,6 +12,8 @@ if __name__ == '__main__':
     # Cannon
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
+    month = int(sys.argv[1])
+    niter = sys.argv[2]
     data_dir = sys.argv[3]
     code_dir = sys.argv[4]
 
@@ -22,13 +24,8 @@ if __name__ == '__main__':
     import inversion_settings as s
 
     # Month
-    # month = 1
-    month = int(sys.argv[1])
     print('-'*75)
     print(f'Calculating the prior pre-conditioned Hessian for month {month}')
-
-    # Memory constraints
-    available_memory_GB = int(sys.argv[2])
 
     ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
@@ -102,13 +99,13 @@ if __name__ == '__main__':
     sasqrtkt = k_m*(sa**0.5)
     pph_m = da.tensordot(sasqrtkt.T/so_m, sasqrtkt, axes=(1, 0))
     pph_m = xr.DataArray(pph_m, dims=['nstate_0', 'nstate_1'],
-                         name=f'pph0_m{month:02d}')
+                         name=f'pph{niter}_m{month:02d}')
     pph_m = pph_m.chunk({'nstate_0' : nstate_chunk, 'nstate_1' : nstate})
     print('Prior-pre-conditioned Hessian calculated.')
 
     # Save out
     start_time = time.time()
-    pph_m.to_netcdf(f'{data_dir}pph0_m{month:02d}.nc')
+    pph_m.to_netcdf(f'{data_dir}pph{niter}_m{month:02d}.nc')
     active_time = (time.time() - start_time)/60
     print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
 
