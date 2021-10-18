@@ -103,6 +103,10 @@ if __name__ == '__main__':
     pph_m = pph_m.chunk({'nstate_0' : nstate_chunk, 'nstate_1' : nstate})
     print('Prior-pre-conditioned Hessian calculated.')
 
+    # Persist
+    pph_m = pph_m.persist()
+    progress(kpi_m)
+
     # Save out
     start_time = time.time()
     pph_m.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}.nc')
