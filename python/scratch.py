@@ -6,7 +6,7 @@ PLOT_DIR = '../plots/'
 import imageio
 from os.path import join
 
-files = [f'blended_albedo_filter_{m:02d}_BAF_AF_LF_BC.png' for m in range(1, 13)]
+files = [f'blended_albedo_filter_{m:02d}_BAF.png' for m in range(1, 13)]
 files.sort()
 print(files)
 
