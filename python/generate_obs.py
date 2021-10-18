@@ -113,25 +113,25 @@ pd.set_option('display.max_columns', 10)
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# Local preferences
+# # Local preferences
 # base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 # code_dir = base_dir + 'python'
 # data_dir = base_dir + 'inversion_data'
 # output_dir = base_dir + 'inversion_data'
 # plot_dir = base_dir + 'plots'
 
-# # Cannon long-path preferences
-# base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
-# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-# data_dir = f'{base_dir}ProcessedDir'
-# output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
+# Cannon long-path preferences
+base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/'
+code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+data_dir = f'{base_dir}ProcessedDir'
+output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
 
 # Cannon preferences
-code_dir = sys.argv[1]
-base_dir = sys.argv[2]
-data_dir = f'{base_dir}ProcessedDir'
-output_dir = sys.argv[3]
-plot_dir = None
+# code_dir = sys.argv[1]
+# base_dir = sys.argv[2]
+# data_dir = f'{base_dir}ProcessedDir'
+# output_dir = sys.argv[3]
+# plot_dir = None
 
 # Import Custom packages
 sys.path.append(code_dir)
@@ -198,10 +198,10 @@ def apply_filter(data, criteria, filter_name):
     print(f'\nData is filtered on {filter_name}.')
     print(f'    {100*new_nobs/old_nobs:.1f}% of data is preserved.')
     print(f'    {new_nobs} observations remain.')
-    print(f'    Statistics:')
-    summ = data.groupby('MONTH')[['MOD', 'OBS', 'DIFF']]
-    summ = pd.concat([summ.min(), summ.max()], axis=1)
-    print(summ)
+    # print(f'    Statistics:')
+    # summ = data.groupby('MONTH')[['MOD', 'OBS', 'DIFF']]
+    # summ = pd.concat([summ.min(), summ.max()], axis=1)
+    # print(summ)
 
     return data
 
@@ -278,28 +278,74 @@ print('Data is loaded.')
 print(f'm = {data.shape[0]}')
 
 ## ----------------------------------------- ##
+## Make and save observational mask
+## ----------------------------------------- ##
+# Create a vector for storing the observational filter
+obs_filter = np.ones(data.shape[0], dtype=bool)
+if filter_on_blended_albedo:
+    BAF_filter = ((data['MONTH'].isin(np.arange(5, 11, 1))) |
+                  (data['BLENDED_ALBEDO'] < blended_albedo_threshold))
+    obs_filter = (obs_filter & BAF_filter)
+
+if filter_on_albedo:
+    albedo_filter = (data['ALBEDO_SWIR'] > albedo_threshold)
+    obs_filter = (obs_filter & albedo_filter)
+
+if filter_on_seasonal_latitude:
+    latitude_filter = ((data['MONTH'].isin(np.arange(3, 12, 1))) |
+                       (data['LAT'] <= 50))
+    obs_filter = (obs_filter & latitude_filter)
+
+obs_filter = pd.DataFrame({'MONTH' : data['MONTH'], 'FILTER' :  obs_filter})
+obs_filter.to_csv(join(output_dir, 'obs_filter.csv'))
+
+## ----------------------------------------- ##
 ## Additional data corrections
 ## ----------------------------------------- ##
 if filter_on_blended_albedo:
     # Plot values
     if plot_dir is not None:
+        fig, ax = fp.get_figax(rows=3, cols=4, aspect=1.25, sharex=True,
+                               sharey=True)
+        plt.subplots_adjust(wspace=0.1, hspace=0.7)
         for m in settings.months:
             d = data[data['MONTH'] == m]
-            fig, ax = fp.get_figax(aspect=1.75)
-            c = ax.hexbin(d['BLENDED_ALBEDO'], d['OBS'],
+            # fig, ax = fp.get_figax(aspect=1.75)
+            axis = ax.flatten()[m-1]
+            axis = fp.add_title(axis, cal.month_name[m])
+
+            # Plot
+            c = axis.hexbin(d['BLENDED_ALBEDO'], d['OBS'],
                           cmap=fp.cmap_trans('plasma_r'),
                           bins=np.arange(0, 2000),
                           vmin=0, vmax=2000)
-            ax.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
-            ax.set_xlim(0, 2)
-            ax.set_ylim(1750, 1950)
-            cax = fp.add_cax(fig, ax)
-            cbar = fig.colorbar(c, cax=cax)
-            ax = fp.add_title(ax, cal.month_name[m])
-            ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
-            fp.save_fig(fig, plot_dir,
-                        f'blended_albedo_filter_{m:02d}{suffix}')
-            plt.close()
+            if m not in np.arange(5, 11, 1):
+                axis.axvline(blended_albedo_threshold, c=fp.color(7), ls='--')
+
+            # Axis labels
+            if m in [1, 5]:
+                axis = fp.add_labels(axis, '', 'XCH4\n(ppb)')
+                axis.tick_params(labelbottom=False)
+            elif m in [10, 11, 12]:
+                axis = fp.add_labels(axis, 'Blended\nAlbedo', '')
+                axis.tick_params(labelleft=False)
+            elif m == 9:
+                axis = fp.add_labels(axis, 'Blended\nAlbedo', 'XCH4\n(ppb)')
+            else:
+                axis.tick_params(labelbottom=False, labelleft=False)
+
+            # Limits
+            axis.set_xlim(0, 2)
+            axis.set_ylim(1750, 1950)
+
+        cax = fp.add_cax(fig, ax)
+        cbar = fig.colorbar(c, cax=cax, ticks=500*np.arange(0, 5))
+        cbar = fp.format_cbar(cbar, 'Count')
+        # ax = fp.add_labels(ax, 'Blended Albedo', 'XCH4 (ppb)')
+
+        fp.save_fig(fig, plot_dir,
+                    f'blended_albedo_filter{suffix}')
+        plt.close()
 
 
     # Apply the blended albedo filter
