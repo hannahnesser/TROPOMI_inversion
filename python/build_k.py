@@ -124,11 +124,11 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Save and exit
     ## ---------------------------------------------------------------------##
-    # Save out
+    # Persist
     kpi_m = kpi_m.persist()
     progress(kpi_m)
 
-
+    # Save out
     start_time = time.time()
     kpi_m.to_netcdf(f'{data_dir}/k1_m{month:02d}.nc')
     active_time = (time.time() - start_time)/60
