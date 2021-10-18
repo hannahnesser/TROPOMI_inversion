@@ -43,6 +43,12 @@ if __name__ == '__main__':
         return data
 
     ## ---------------------------------------------------------------------##
+    ## Load the observation filter
+    ## ---------------------------------------------------------------------##
+    obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
+    obs_filter = obs_filter[obs_filter['MONTH'] == month]['FILTER'].values
+
+    ## ---------------------------------------------------------------------##
     ## Create list of perturbation directories
     ## ---------------------------------------------------------------------##
     if not run_with_script:
@@ -57,6 +63,7 @@ if __name__ == '__main__':
     prior_files = glob.glob(f'{prior_dir}/ProcessedDir/{s.year:04d}{month:02d}??_GCtoTROPOMI.pkl')
     prior_files.sort()
     prior = get_model_ch4(prior_files)
+    prior = prior[obs_filter]
 
     ## ---------------------------------------------------------------------##
     ## Set up dask client
@@ -104,6 +111,7 @@ if __name__ == '__main__':
         pert_files = glob.glob(f'{p}/ProcessedDir/{s.year:04d}{month:02d}??_GCtoTROPOMI.pkl')
         pert_files.sort()
         pert = get_model_ch4(pert_files)
+        pert = pert[obs_filter]
 
         # Get and save the Jacobian column
         diff = (pert - prior).reshape((-1, 1))
