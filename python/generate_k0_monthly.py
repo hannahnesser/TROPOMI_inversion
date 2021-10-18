@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     # Data directories
     base_dir = sys.argv[2]
-    data_dir = f'{base_dir}inversion_data/'
+    data_dir = f'{base_dir}/inversion_data/'
     output_dir = sys.argv[3]
     code_dir = sys.argv[4]
 
@@ -32,9 +32,9 @@ if __name__ == '__main__':
     import inversion_settings as s
 
     # Files
-    obs_file = f'{data_dir}{s.year}_corrected.pkl'
-    cluster_file = f'{data_dir}clusters.nc'
-    k_nstate_file = f'{data_dir}k0_nstate.nc'
+    obs_file = f'{data_dir}/{s.year}_corrected.pkl'
+    cluster_file = f'{data_dir}/clusters.nc'
+    k_nstate_file = f'{data_dir}/k0_nstate.nc'
 
     ## -------------------------------------------------------------------- ##
     ## Load the clusters
@@ -123,7 +123,7 @@ if __name__ == '__main__':
         k_m = k_nstate[idx, :].chunk({'nobs' : nobs_chunk,
                                       'nstate' : nstate_chunk})
         print(k_m.shape)
-        k_m.to_netcdf(f'{output_dir}k0_m{m:02d}.nc')
+        k_m.to_netcdf(f'{output_dir}/k0_m{m:02d}.nc')
         active_time = (time.time() - start_time)/60
         print(f'Month {m} saved ({active_time} min).')
 

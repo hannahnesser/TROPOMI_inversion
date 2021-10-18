@@ -19,7 +19,7 @@ import pandas as pd
 ## ------------------------------------------------------------------------ ##
 # Cannon
 base_dir = sys.argv[1]
-data_dir = f'{base_dir}inversion_data/'
+data_dir = f'{base_dir}/inversion_data/'
 code_dir = sys.argv[2]
 
 # Import custom packages
@@ -28,8 +28,8 @@ import gcpy as gc
 import inversion_settings as settings
 
 # Files
-emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
-cluster_file = f'{data_dir}clusters.nc'
+emis_file = f'{base_dir}/prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
+cluster_file = f'{data_dir}/clusters.nc'
 
 # Fraction of emissions to allocate to each ring
 fractions = np.arange(8, 0, -1)
@@ -193,4 +193,4 @@ for i in range(1, nstate+1):
 
 # Save
 k_nstate = xr.DataArray(data=k_nstate, dims=('nobs', 'nstate', 'month'))
-k_nstate.to_netcdf(f'{data_dir}k0_nstate.nc')
+k_nstate.to_netcdf(f'{data_dir}/k0_nstate.nc')

@@ -75,7 +75,7 @@ if __name__ == '__main__':
     ## Load global quantities
     ## -------------------------------------------------------------------- ##
     # State vector dimension
-    sa = gc.read_file(f'{data_dir}sa.nc')
+    sa = gc.read_file(f'{data_dir}/sa.nc')
     sa = sa.values.reshape(-1, 1)
     nstate = sa.shape[0]
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
                            dims=['nstate_0', 'nstate_1'], name=f'pph{niter}')
         for m in s.months:
             print(f'Loading month {m}.')
-            temp = xr.open_dataarray(f'{data_dir}pph{niter}_m{m:02d}.nc')
+            temp = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}.nc')
             pph += temp
 
         # Load pph into memory
@@ -123,21 +123,21 @@ if __name__ == '__main__':
         reduction = evecs.T * (1/sa**0.5)
 
         # Save out the matrices
-        np.save(f'{data_dir}evecs{niter}.npy', evecs)
-        np.save(f'{data_dir}evals_h{niter}.npy', evals_h)
-        np.save(f'{data_dir}evals_q{niter}.npy', evals_q)
-        np.save(f'{data_dir}prolongation{niter}.npy', prolongation)
-        np.save(f'{data_dir}reduction{niter}.npy', reduction)
+        np.save(f'{data_dir}/evecs{niter}.npy', evecs)
+        np.save(f'{data_dir}/evals_h{niter}.npy', evals_h)
+        np.save(f'{data_dir}/evals_q{niter}.npy', evals_q)
+        np.save(f'{data_dir}/prolongation{niter}.npy', prolongation)
+        np.save(f'{data_dir}/reduction{niter}.npy', reduction)
 
         print('Eigendecomposition complete.\n')
 
     else:
-        evals_h = np.load(f'{data_dir}evals_h{niter}.npy')
-        evecs = np.load(f'{data_dir}evecs{niter}.npy')
-        prolongation = np.load(f'{data_dir}prolongation{niter}.npy')
+        evals_h = np.load(f'{data_dir}/evals_h{niter}.npy')
+        evecs = np.load(f'{data_dir}/evecs{niter}.npy')
+        prolongation = np.load(f'{data_dir}/prolongation{niter}.npy')
         if not local:
-            evals_q = np.load(f'{data_dir}evals_q{niter}.npy')
-            reduction = np.load(f'{data_dir}reduction{niter}.npy')
+            evals_q = np.load(f'{data_dir}/evals_q{niter}.npy')
+            reduction = np.load(f'{data_dir}/reduction{niter}.npy')
         else:
             evals_q = evals_h/(1 + evals_h)
 
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         print(f'SNR    : {(evals_h[n_evecs]**0.5)}')
 
         # Load clusters
-        clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
+        clusters = xr.open_dataarray(f'{data_dir}/clusters.nc')
 
         # Iterate through columns and save out HEMCO-appropriate files
         for i in range(n_evecs):
@@ -216,6 +216,6 @@ if __name__ == '__main__':
             a = (evecs_sub*evals_q_sub) @ evecs_sub.T
 
             # Save the result
-            np.save(f'{data_dir}a{niter}{suffix}.npy', a)
-            np.save(f'{data_dir}dofs{niter}{suffix}.npy', np.diagonal(a))
+            np.save(f'{data_dir}/a{niter}{suffix}.npy', a)
+            np.save(f'{data_dir}/dofs{niter}{suffix}.npy', np.diagonal(a))
     print('CODE COMPLETE')
