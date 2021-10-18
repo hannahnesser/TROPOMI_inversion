@@ -105,7 +105,7 @@ if __name__ == '__main__':
 
     # Persist
     pph_m = pph_m.persist()
-    progress(kpi_m)
+    progress(pph_m)
 
     # Save out
     start_time = time.time()
