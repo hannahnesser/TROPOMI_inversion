@@ -11,13 +11,6 @@
 #SBATCH --mail-user=hnesser@g.harvard.edu
 
 ## -------------------------------------------------------------------------##
-## Set user preferences
-## -------------------------------------------------------------------------##
-DATA_DIR="${1}"
-OUTPUT_DIR="${2}"
-CODE_DIR="${3}"
-
-## -------------------------------------------------------------------------##
 ## Load and prepare the environment
 ## -------------------------------------------------------------------------##
 echo "Activating python environment"
@@ -33,7 +26,7 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_evecs0.py ${DATA_DIR} ${OUTPUT_DIR} ${CODE_DIR}
+python -u ${python_dir}/python/generate_evecs0.py ${@}
 
 ## -------------------------------------------------------------------------##
 ## Clean up
