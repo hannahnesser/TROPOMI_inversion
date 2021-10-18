@@ -18,22 +18,27 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Start dask cluster and client
     ## ---------------------------------------------------------------------##
-    from dask.distributed import Client, LocalCluster, progress
-    from dask.diagnostics import ProgressBar
-    import dask.config
-    dask.config.set({'distributed.comm.timeouts.connect' : 90,
-                     'distributed.comm.timeouts.tcp' : 150,
-                     'distributed.adaptive.wait-count' : 90,
-                     'temporary_directory' : data_dir})
+    # from dask.distributed import Client, LocalCluster, progress
+    # from dask.diagnostics import ProgressBar
+    # import dask.config
+    # dask.config.set({'distributed.comm.timeouts.connect' : 90,
+    #                  'distributed.comm.timeouts.tcp' : 150,
+    #                  'distributed.adaptive.wait-count' : 90,
+    #                  'temporary_directory' : data_dir})
 
-    # Open cluster and client
-    n_workers = 2
-    threads_per_worker = 2
-    cluster = LocalCluster(n_workers=n_workers,
-                           threads_per_worker=threads_per_worker)
-    client = Client(cluster)
+    # # Open cluster and client
+    # n_workers = 2
+    # threads_per_worker = 2
+    # cluster = LocalCluster(n_workers=n_workers,
+    #                        threads_per_worker=threads_per_worker)
+    # client = Client(cluster)
 
-    # Set chunk size
-    n_state_chunk = 1e3
+    # # Set chunk size
+    # n_state_chunk = 1e3
 
-
+    ## ---------------------------------------------------------------------##
+    ## Load data
+    ## ---------------------------------------------------------------------##
+    evecs = np.load(f'{data_dir}/evecs{niter}.npy')
+    sa_vec = gc.read_file(f'{data_dir}/sa.nc')
+    so_vec = gc.read_file(f'{data_dir}/so.nc')
