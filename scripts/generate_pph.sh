@@ -16,10 +16,7 @@
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
-DATA_DIR="${1}"
-CODE_DIR="${2}"
 MONTH="${SLURM_ARRAY_TASK_ID}"
-MEMORY_GB=45
 
 ## -------------------------------------------------------------------------##
 ## Load and prepare the environment
@@ -39,7 +36,7 @@ rm -rf ${DATA_DIR}dask-worker-space-${MONTH}
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_pph0.py ${MONTH} ${MEMORY_GB} ${DATA_DIR} ${CODE_DIR}
+python -u ${python_dir}/python/generate_pph.py ${MONTH} ${@}
 
 ## -------------------------------------------------------------------------##
 ## Clean up
