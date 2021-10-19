@@ -64,7 +64,8 @@ RESTART_FILE="/n/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.
 BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
 
 # Jacobian settings
-nPerturbations=10
+nPerturbationsMin=11
+nPerturbationsMax=100
 pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
@@ -138,7 +139,7 @@ mkdir -p jacobian_runs
 cp ${SCRIPT_PATH}/run_jacobian_simulations.sh jacobian_runs/
 sed -i -e "s:{RunName}:${RUN_NAME}:g" jacobian_runs/run_jacobian_simulations.sh
 cp ${SCRIPT_PATH}/submit_jacobian_simulations_array.sh jacobian_runs/
-sed -i -e "s:{START}:0:g" -e "s:{END}:${nPerturbations}:g" jacobian_runs/submit_jacobian_simulations_array.sh
+sed -i -e "s:{START}:${nPerturbationsMin}:g" -e "s:{END}:${nPerturbationsMax}:g" jacobian_runs/submit_jacobian_simulations_array.sh
 
 # Obtain GEOS-Chem input files: input.geos, HISTORY.rc, ch4_run, getRunInfo,
 # Makefile, HEMCO_Diagn.rc, and HEMCO_Config.rc
@@ -403,7 +404,7 @@ cd ${JAC_PATH}/${RUN_NAME}
 x=0
 
 # Create run directory for each cluster so we can apply perturbation to each
-while [ $x -le $nPerturbations ];do
+while [ $x -le $nPerturbationsMax ] && [ $x -ge $nPerturbationsMin ];do
 
    ### Positive or negative perturbation
    PERT=$pPERT
