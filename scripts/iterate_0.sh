@@ -4,6 +4,7 @@
 LONG_TERM_DATA_DIR="/n/seasasfs02/hnesser/TROPOMI_inversion"
 SHORT_TERM_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion"
 CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python/"
+NUM_EVECS="434"
 
 # First, generate the nstate x nstate x months first guess of the Jacobian.
 # Note that there are some directory relationships that are hard-coded here--
@@ -25,5 +26,5 @@ jid3=$(sbatch --dependency=afterok:${jid2##* } --array=1-12 generate_pph.sh "0" 
 # sbatch --array=1-12 generate_pph.sh ${SHORT_TERM_DATA_DIR} ${CODE_DIR}
 
 # Fourth and finally, calculate the eigenvectors
-jid4=$(sbatch --dependency=afterok:${jid3##* } generate_evecs.sh "0" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR})
+jid4=$(sbatch --dependency=afterok:${jid3##* } generate_evecs.sh "0" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR})
 # sbatch generate_evecs0.sh ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR}
