@@ -28,6 +28,7 @@ SCRIPT_PATH="${INV_PATH}/scripts"
 
 # Name for this run
 RUN_NAME="TROPOMI_inversion"
+RUN_TEMPLATE="template_run"
 
 # Path where you want to set up CH4 inversion code and run directories
 JAC_PATH="/n/holyscratch01/jacob_lab/hnesser"
@@ -143,7 +144,6 @@ sed -i -e "s:{START}:${nPerturbationsMin}:g" -e "s:{END}:${nPerturbationsMax}:g"
 
 # Obtain GEOS-Chem input files: input.geos, HISTORY.rc, ch4_run, getRunInfo,
 # Makefile, HEMCO_Diagn.rc, and HEMCO_Config.rc
-RUN_TEMPLATE="template_run"
 mkdir -p ${RUN_TEMPLATE}
 cp -RLv ${GC_INPUTS_PATH}/input.geos.CH4 ${RUN_TEMPLATE}/input.geos
 cp -RLv ${GC_INPUTS_PATH}/HISTORY.rc.CH4 ${RUN_TEMPLATE}/HISTORY.rc
@@ -429,6 +429,7 @@ while [[ $x -le $nPerturbationsMax && $x -ge $nPerturbationsMin ]];do
    mkdir -p ${runDir}
 
    ### Copy and point to the necessary data
+   echo ${RUN_TEMPLATE}
    echo cp -r ${RUN_TEMPLATE}/*  ${runDir}
    # cd $runDir
 
