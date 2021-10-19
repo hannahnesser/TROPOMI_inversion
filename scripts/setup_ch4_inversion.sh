@@ -9,7 +9,7 @@
 
 # Turn on/off different steps. This will allow you to come back to this
 # script and set up different stages later.
-SetupTemplateRundir=true
+SetupTemplateRundir=false
 SetupSpinupRun=false
 SetupJacobianRuns=true
 SetupInversion=false
@@ -404,7 +404,7 @@ cd ${JAC_PATH}/${RUN_NAME}
 x=0
 
 # Create run directory for each cluster so we can apply perturbation to each
-while [ $x -le $nPerturbationsMax ] && [ $x -ge $nPerturbationsMin ];do
+while [[ $x -le $nPerturbationsMax && $x -ge $nPerturbationsMin ]];do
 
    ### Positive or negative perturbation
    PERT=$pPERT
