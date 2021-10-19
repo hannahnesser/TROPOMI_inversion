@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -J save_evecs0
+#SBATCH -J save_evecs
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 12
 #SBATCH -N 1
@@ -26,7 +26,7 @@ echo "Activated ${CONDA_PREFIX}"
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/generate_evecs0.py ${@}
+python -u ${python_dir}/python/generate_evecs.py ${@}
 
 ## -------------------------------------------------------------------------##
 ## Clean up
