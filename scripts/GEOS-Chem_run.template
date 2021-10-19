@@ -65,6 +65,10 @@ jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 ${SCRIPT_DIR}/apply_
 
 # These files are not used in CH4 simulations
 rm HEMCO_restart.*
+if [[ ${id##*_} -ne "0000" ]]
+then
+  rm ${GC_CH4_DIR}/*
+fi
 
 # Exit normally
 exit 0
