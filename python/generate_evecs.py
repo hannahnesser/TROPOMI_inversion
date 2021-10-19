@@ -27,10 +27,10 @@ if __name__ == '__main__':
         data_dir = f'{base_dir}inversion_data/'
 
     # User preferences
-    calculate_evecs = False
-    format_evecs = True
+    calculate_evecs = True
+    format_evecs = False
     n_evecs = int(10)
-    calculate_avker = False
+    calculate_avker = True
     pct_of_info = [50, 90, 95, 99, 99.9]
     snr = None
     rank = None
@@ -211,8 +211,9 @@ if __name__ == '__main__':
             evals_q_sub = evals_q[:rank]
             evecs_sub = evecs[:, :rank]
 
-            # Calculate the averaging kernel (we can leave off Sa when it's
-            # constant)
+            # Calculate the posterior and averaging kernel
+            # (we can leave off Sa when it's constant)
+            # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
             a = (evecs_sub*evals_q_sub) @ evecs_sub.T
 
             # Save the result
