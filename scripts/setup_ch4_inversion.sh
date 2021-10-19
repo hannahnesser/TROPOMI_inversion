@@ -490,13 +490,13 @@ while [[ $x -le $nPerturbationsMax && $x -ge $nPerturbationsMin ]];do
    # rm GEOS-Chem_run.template
 
    # ### Navigate back to top-level directory
-   # cd ../..
+   cd ../..
 
-   # ### Increment
-   # x=$[$x+1]
+   ### Increment
+   x=$[$x+1]
 
-   # ### Print diagnostics
-   # echo "CREATED: ${runDir}"
+   ### Print diagnostics
+   echo "CREATED: ${runDir}"
 
 done
 
