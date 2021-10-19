@@ -18,10 +18,13 @@ if __name__ == '__main__':
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion/'
         # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/'
         niter = sys.argv[1]
-        data_dir = sys.argv[2]
-        output_dir = sys.argv[3]
-        code_dir = sys.argv[4]
+        n_evecs = int(sys.argv[2])
+        data_dir = sys.argv[3]
+        output_dir = sys.argv[4]
+        code_dir = sys.argv[5]
     else:
+        niter = 0
+        n_evecs = int(10)
         base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
         code_dir = f'{base_dir}python/'
         data_dir = f'{base_dir}inversion_data/'
@@ -29,7 +32,6 @@ if __name__ == '__main__':
     # User preferences
     calculate_evecs = True
     format_evecs = False
-    n_evecs = int(10)
     calculate_avker = True
     pct_of_info = [50, 90, 95, 99, 99.9]
     snr = None
@@ -181,42 +183,42 @@ if __name__ == '__main__':
             gc.save_HEMCO_netcdf(pert, f'{output_dir}inversion_data/eigenvectors{niter}', f'evec_pert_{(i+1):04d}.nc')
             print(f'Saved eigenvector {(i+1)} : {output_dir}inversion_data/eigenvectors{niter}/evec_pert_{(i+1):04d}.nc')
 
-    ## ---------------------------------------------------------------------##
-    ## Calculate the averaging kernel
-    ## ---------------------------------------------------------------------##
-    if calculate_avker:
-        print('Calculating averaging kernel.')
-        for p in pct_of_info:
-            print(f'Using {p} percent of information content.')
-            # Figure out the fraction of information content
-            # if sum(x is not None for x in [p, snr, rank]) > 1:
-            #     raise AttributeError('Conflicting rank arguments provided.')
-            # elif sum(x is not None for x in [p, snr, rank]) == 0:
-            #     raise AttributeError('Insufficient rank arguments provided.')
-            # elif p is not None:
-            rank = ip.get_rank(evals_q=evals_q, pct_of_info=p/100)
-            # diff = np.abs(DOFS_frac - (p/100))
-            # rank = np.argwhere(diff == np.min(diff))[0][0]
-            suffix = f'_poi{p}'
-            # elif snr is not None:
-            #     evals_h[evals_h < 0] = 0
-            #     diff = np.abs(evals_h**0.5 - snr)
-            #     rank = np.argwhere(diff == np.min(diff))[0][0]
-            #     suffix = f'_snr{snr}'
-            # else:
-            #     suffix = f'_rank{rank}'
-            # print(f'Rank = {rank}')
+    # ## ---------------------------------------------------------------------##
+    # ## Calculate the averaging kernel
+    # ## ---------------------------------------------------------------------##
+    # if calculate_avker:
+    #     print('Calculating averaging kernel.')
+    #     for p in pct_of_info:
+    #         print(f'Using {p} percent of information content.')
+    #         # Figure out the fraction of information content
+    #         # if sum(x is not None for x in [p, snr, rank]) > 1:
+    #         #     raise AttributeError('Conflicting rank arguments provided.')
+    #         # elif sum(x is not None for x in [p, snr, rank]) == 0:
+    #         #     raise AttributeError('Insufficient rank arguments provided.')
+    #         # elif p is not None:
+    #         rank = ip.get_rank(evals_q=evals_q, pct_of_info=p/100)
+    #         # diff = np.abs(DOFS_frac - (p/100))
+    #         # rank = np.argwhere(diff == np.min(diff))[0][0]
+    #         suffix = f'_poi{p}'
+    #         # elif snr is not None:
+    #         #     evals_h[evals_h < 0] = 0
+    #         #     diff = np.abs(evals_h**0.5 - snr)
+    #         #     rank = np.argwhere(diff == np.min(diff))[0][0]
+    #         #     suffix = f'_snr{snr}'
+    #         # else:
+    #         #     suffix = f'_rank{rank}'
+    #         # print(f'Rank = {rank}')
 
-            # Subset the evals and evecs
-            evals_q_sub = evals_q[:rank]
-            evecs_sub = evecs[:, :rank]
+    #         # Subset the evals and evecs
+    #         evals_q_sub = evals_q[:rank]
+    #         evecs_sub = evecs[:, :rank]
 
-            # Calculate the posterior and averaging kernel
-            # (we can leave off Sa when it's constant)
-            # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
-            a = (evecs_sub*evals_q_sub) @ evecs_sub.T
+    #         # Calculate the posterior and averaging kernel
+    #         # (we can leave off Sa when it's constant)
+    #         # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
+    #         a = (evecs_sub*evals_q_sub) @ evecs_sub.T
 
-            # Save the result
-            np.save(f'{data_dir}/a{niter}{suffix}.npy', a)
-            np.save(f'{data_dir}/dofs{niter}{suffix}.npy', np.diagonal(a))
+    #         # Save the result
+    #         np.save(f'{data_dir}/a{niter}{suffix}.npy', a)
+    #         np.save(f'{data_dir}/dofs{niter}{suffix}.npy', np.diagonal(a))
     print('CODE COMPLETE')
