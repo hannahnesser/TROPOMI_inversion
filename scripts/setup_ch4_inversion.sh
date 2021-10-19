@@ -401,7 +401,7 @@ if "$SetupJacobianRuns"; then
 cd ${JAC_PATH}/${RUN_NAME}
 
 # Initialize (x=0 is base run, i.e. no perturbation; x=1 is cluster=1; etc.)
-x=0
+x=$nPerturbationsMin
 
 # Create run directory for each cluster so we can apply perturbation to each
 while [[ $x -le $nPerturbationsMax && $x -ge $nPerturbationsMin ]];do
