@@ -16,3 +16,4 @@ jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 generate_pph.sh "1" 
 # Calculate the eigenvectors
 jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "1" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR})
 # jid3=$(sbatch --dependency=afterok:48100973 generate_evecs.sh "1" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR})
+# sbatch generate_evecs.sh "1" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR}
