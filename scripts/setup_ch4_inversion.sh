@@ -71,7 +71,7 @@ pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
 # (use evecnumevecnum to substitute for the number)
-EVEC_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/eigenvectors"
+EVEC_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/eigenvectors0"
 EVEC_FILE="evec_pert_evecnumevecnum.nc"
 
 # Grid settings (Nested NA)
