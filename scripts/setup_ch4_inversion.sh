@@ -49,7 +49,7 @@ GC_INPUTS_PATH="${INV_PATH}/GC_inputs"
 #CODE_BRANCH="eigenvector_perturbations"
 
 # Start and end date for the production simulations
-START_DATE=20190101
+START_DATE=20191001
 END_DATE=20200101
 
 # Start and end date for the spinup simulation
@@ -66,7 +66,7 @@ BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.B
 
 # Jacobian settings
 nPerturbationsMin=11
-nPerturbationsMax=100
+nPerturbationsMax=12 #110
 pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
