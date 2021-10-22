@@ -60,14 +60,9 @@ jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 ${SCRIPT_DIR}/apply_
 #-------------------------------------------------
 # Clean up
 #-------------------------------------------------
-# Move restart files to clean up run directory
-#mv GEOSChem_restart.* ./Restarts/
-
-# These files are not used in CH4 simulations
-rm HEMCO_restart.*
 if [[ ${id##*_} -ne "0000" ]]
 then
-  rm ${GC_CH4_DIR}/*
+  jid3=$(sbatch --dependency=afterok:${jid2##* } ${SCRIPT_DIR}/clean_up.sh ${GC_CH4_DIR})
 fi
 
 # Exit normally
