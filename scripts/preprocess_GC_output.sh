@@ -7,7 +7,7 @@
 #SBATCH -p huce_intel
 #SBATCH --mem 4000
 #SBATCH -t 0-00:40
-#SBATCH --mail-type=END
+##SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
 ## Set user preferences
