@@ -9,7 +9,7 @@
 
 # Turn on/off different steps. This will allow you to come back to this
 # script and set up different stages later.
-SetupTemplateRundir=false
+SetupTemplateRundir=true
 SetupSpinupRun=false
 SetupJacobianRuns=true
 SetupInversion=false
