@@ -49,7 +49,7 @@ GC_INPUTS_PATH="${INV_PATH}/GC_inputs"
 #CODE_BRANCH="eigenvector_perturbations"
 
 # Start and end date for the production simulations
-START_DATE=20191001
+START_DATE=20190101
 END_DATE=20200101
 
 # Start and end date for the spinup simulation
