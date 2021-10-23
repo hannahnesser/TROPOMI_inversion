@@ -119,13 +119,9 @@ else
 fi
 
 ##=======================================================================
-## Get source code
+## Set initial location
 ##=======================================================================
-# HON 2020/01/12: Removed submodule and added symbolic link
-#cd ${GC_PATH}
-#git checkout ${CODE_BRANCH}
 cd ${JAC_PATH}
-ln -sTf ${GC_PATH} GEOS-Chem
 
 ##=======================================================================
 ## Set up template run directory
@@ -134,6 +130,7 @@ if "$SetupTemplateRundir"; then
 
 mkdir -p ${JAC_PATH}/${RUN_NAME}
 cd ${JAC_PATH}/${RUN_NAME}
+ln -sTf ${GC_PATH} GEOS-Chem
 mkdir -p jacobian_runs
 
 # Copy and update settings in inversion run scripts
@@ -279,15 +276,15 @@ if "$CompileCodeDir"; then
     cd ${JAC_PATH}/${RUN_NAME}/${RUN_TEMPLATE} 
 
     ### Compile GEOS-Chem and store executable in template run directory
-    make realclean CODE_DIR=${JAC_PATH}/GEOS-Chem
+    make realclean CODE_DIR=${JAC_PATH}/${RUN_NAME}/GEOS-Chem
     if ! "${CompileWithDebug}"; then
 	if "$PLANEFLIGHT"; then
-	    make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/GEOS-Chem BPCH_DIAG=y
+	    make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/${RUN_NAME}/GEOS-Chem BPCH_DIAG=y
 	else
-	    make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/GEOS-Chem
+	    make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/${RUN_NAME}/GEOS-Chem
 	fi
     else
-	make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/GEOS-Chem BPCH_DIAG=y DEBUG=y BOUNDS=y TRACEBACK=y FPE=y
+	make -j${OMP_NUM_THREADS} build CODE_DIR=${JAC_PATH}/${RUN_NAME}/GEOS-Chem BPCH_DIAG=y DEBUG=y BOUNDS=y TRACEBACK=y FPE=y
     fi
 
     cp geos ${GC_INPUTS_PATH}/
