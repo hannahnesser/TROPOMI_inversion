@@ -64,6 +64,7 @@ preprocess_check=${preprocess_check% *}
 
 if [[ $preprocess_check -eq "14" ]]
 then
+  rm TROPOMI_operator_*out
   jid2=$(sbatch --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${OUTPUT_DIR} ${JAC})
 fi
 
