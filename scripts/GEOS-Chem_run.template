@@ -38,24 +38,34 @@ JAC=jacjac
 #-------------------------------------------------
 # Start the simulation
 #-------------------------------------------------
-# Load the compiler
-. ~/init/init.gc-classic.ifort17.centos7
+# # Load the compiler
+# . ~/init/init.gc-classic.ifort17.centos7
 
-# Run GEOS-Chem and pipe output to log
-./geos >> $log
+# # Run GEOS-Chem and pipe output to log
+# ./geos >> $log
 
-# Echo end fin
-echo '===> Run ended at' `date` >> $log
+# # Echo end fin
+# echo '===> Run ended at' `date` >> $log
 
 #-------------------------------------------------
 # Pre-process the GEOS-Chem output
 #-------------------------------------------------
-jid1=$(sbatch ${SCRIPT_DIR}/preprocess_GC_output.sh ${CODE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR})
+# jid1=$(sbatch ${SCRIPT_DIR}/preprocess_GC_output.sh ${CODE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR})
 
 #-------------------------------------------------
 # Run the TROPOMI operator
 #-------------------------------------------------
-jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${OUTPUT_DIR} ${JAC})
+# jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${OUTPUT_DIR} ${JAC})
+
+# This is all temporary
+preprocess_check=$(tail -n 2 preprocess_GC*.out | head -n 1)
+preprocess_check=${preprocess_check#*in}
+preprocess_check=${preprocess_check% *}
+
+if [[ $preprocess_check -eq "14" ]]
+then
+  jid2=$(sbatch --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${OUTPUT_DIR} ${JAC})
+fi
 
 #-------------------------------------------------
 # Clean up
