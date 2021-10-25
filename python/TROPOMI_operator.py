@@ -20,7 +20,7 @@ import glob as glob
 # GC_pressure_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
 # GC_ch4_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0100/OutputDir"
 # output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0100/ProcessedDir/"
-# MONTHS = [1, 2]
+# MONTHS = [1, 2, 3, 4]
 # jacobian = True
 
 code_dir = sys.argv[1]
