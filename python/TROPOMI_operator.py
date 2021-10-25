@@ -15,16 +15,20 @@ import glob as glob
 ## -------------------------------------------------------------------------##
 ## Read in user preferences
 ## -------------------------------------------------------------------------##
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 # sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-# GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
-# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
+# GC_pressure_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
+# GC_ch4_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0100/OutputDir"
+# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0100/ProcessedDir/"
+# MONTHS = [1, 2]
+# jacobian = True
 
 code_dir = sys.argv[1]
 sat_data_dir = sys.argv[2]
 GC_pressure_data_dir = sys.argv[3]
 GC_ch4_data_dir = sys.argv[4]
 output_dir = sys.argv[5]
-MONTH = int(sys.argv[6])
+MONTHS = [int(sys.argv[6])*4 -3 + i for i in range(4)]
 jacobian = bool(sys.argv[7])
 # A Boolean of whether or not this is
 # being run for a jacobian simulation
@@ -34,7 +38,7 @@ sys.path.append(code_dir)
 import gcpy as gc
 import inversion_settings as s
 
-print('Applying TROPOMI operator for %d-%02d\n' % (s.year, MONTH))
+print(f'Applying TROPOMI operator for {s.year}-{MONTHS}\n')
 
 ## -------------------------------------------------------------------------##
 ## Define functions
@@ -251,9 +255,9 @@ for index in range(len(allfiles)):
 
     # start condition
     start = ((int(start_date[:4]) == s.year)
-             and (int(start_date[4:6]) == MONTH))
+             and (int(start_date[4:6]) in MONTHS))
     end = ((int(end_date[:4]) == s.year)
-           and (int(end_date[4:6]) == MONTH))
+           and (int(end_date[4:6]) in MONTHS))
 
     # Skip observations not in range
     if not (start or end):

@@ -14,8 +14,8 @@ jid1=$(sbatch preprocess_GC_output.sh ${CODE_DIR} ${PRIOR_DIR} ${CORRECT_CFL_DIR
 
 # Apply the TROPOMI operator
 # sbatch --array=month-month apply_TROPOMI_operator.sh code_dir tropomi_dir prior_dir run_dir
-jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 apply_TROPOMI_operator.sh ${CODE_DIR} ${TROPOMI_DIR} ${PRIOR_DIR} ${PRIOR_DIR} ${OUTPUT_DIR_LONGTERM} ${JACOBIAN})
-# jid2=$(sbatch --array=1-12 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR} ${PRIOR_DIR})
+jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-3 apply_TROPOMI_operator.sh ${CODE_DIR} ${TROPOMI_DIR} ${PRIOR_DIR} ${PRIOR_DIR} ${OUTPUT_DIR_LONGTERM} ${JACOBIAN})
+# jid2=$(sbatch --array=1-3 apply_TROPOMI_operator.sh ${TROPOMI_DIR} ${PRIOR_DIR} ${PRIOR_DIR})
 
 # Analyze the output
 sbatch --dependency=afterok:${jid2##* } run_generate_obs.sh ${CODE_DIR} ${PRIOR_DIR} ${OUTPUT_DIR_LONGTERM}
