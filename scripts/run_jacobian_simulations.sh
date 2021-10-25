@@ -1,11 +1,15 @@
 #!/bin/bash
 
 #SBATCH -J {RunName}
-#SBATCH -c 16
+#SBATCH -c 1
 #SBATCH -N 1
 #SBATCH -p huce_intel
-#SBATCH --mem 20000
-#SBATCH -t 4-00:00
+#SBATCH --mem 2000
+#SBATCH -t 0-00:10
+
+# Normally 16 cores
+# 20000 MEM
+# 4 days
 
 ### Run directory
 RUNDIR=$(pwd -P)
