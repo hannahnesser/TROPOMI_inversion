@@ -61,11 +61,8 @@ jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-3 ${SCRIPT_DIR}/apply_T
 # Clean up
 #-------------------------------------------------
 # Provide additional checks that it worked
-preprocess_check=$(tail -n 2 preprocess_GC*.out | head -n 1)
-preprocess_check=${preprocess_check#*in}
-preprocess_check=${preprocess_check% *}
-
-if [[ ${id##*_} -ne "0000" && $preprocess_check -eq "14" ]]
+preprocess_check=$(ls ${GC_CH4_DIR}/*_orig | wc -w)
+if [[ ${id##*_} != "0000" && $preprocess_check == 14 ]]
 then
   jid3=$(sbatch --dependency=afterok:${jid2##* } ${SCRIPT_DIR}/clean_up.sh ${GC_CH4_DIR})
 fi
