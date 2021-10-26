@@ -26,63 +26,63 @@ then
     # All GC runs worked in the last set of perturbations, so we're
     # skipping this part for now
 else
-    # Check for completion of preprocessing
-    preprocess_check=$(ls ${run_dir}/OutputDir/*_orig | wc -w)
-    if [[ $preprocess_check != 14 ]]; then
-        echo "Preprocessing failed -- ${run_name}"
-
-        if "$RestartProcesses"; then
-            # Enter the run directory
-            cd ${run_name}
-
-            # Modify the run file
-            sed -i -e "s@export OMP_NUM_THREADS@# export OMP_NUM_THREADS@g" \
-                   -e "s@. ~/init/init@# . ~/init/init@g" \
-                   -e "s@./geos@# ./geos@g" ${run_name}.run
-
-            # Remove old output file and resubmit
-            \rm preprocess_GC*.out
-            ./${run_name}.run
-
-            # Exit directory
-            cd ..
-        fi
-    else
-        # Check for completion of operator
-        operator_check=$(ls ${run_dir}/ProcessedDir/ | wc -w)
-        if [[ $operator_check != 365 ]]; then
-            echo "Operator failed -- ${run_name}"
+    # Check that the output dir has been cleared
+    cleanup_check=$(ls ${run_dir}/OutputDir/ | wc -w)
+    if [[ $cleanup_check > 0 ]]; then
+        # Check for completion of preprocessing
+        preprocess_check=$(ls ${run_dir}/OutputDir/*_orig | wc -w)
+        if [[ $preprocess_check != 14 ]]; then
+            echo "Preprocessing failed -- ${run_name}"
 
             if "$RestartProcesses"; then
                 # Enter the run directory
-                cd ${run_dir}
+                cd ${run_name}
 
                 # Modify the run file
                 sed -i -e "s@export OMP_NUM_THREADS@# export OMP_NUM_THREADS@g" \
                        -e "s@. ~/init/init@# . ~/init/init@g" \
-                       -e "s@./geos@# ./geos@g" \
-                       -e "s@jid1=@# jid1=@g" \
-                       -e "s@--dependency=afterok:\${jid1##\* } @@g" ${run_name}.run
+                       -e "s@./geos@# ./geos@g" ${run_name}.run
 
-                # Remove old output files and resubmit
-                \rm -f TROPOMI_operator_*
+                # Remove old output file and resubmit
+                \rm preprocess_GC*.out
                 ./${run_name}.run
 
                 # Exit directory
                 cd ..
             fi
         else
-            # Check that the output dir has been cleared
-            cleanup_check=$(ls ${run_dir}/OutputDir/ | wc -w)
-            if [[ $cleanup_check > 0 ]]; then
+            # Check for completion of operator
+            operator_check=$(ls ${run_dir}/ProcessedDir/ | wc -w)
+            if [[ $operator_check != 365 ]]; then
+                echo "Operator failed -- ${run_name}"
+
+                if "$RestartProcesses"; then
+                    # Enter the run directory
+                    cd ${run_dir}
+
+                    # Modify the run file
+                    sed -i -e "s@export OMP_NUM_THREADS@# export OMP_NUM_THREADS@g" \
+                           -e "s@. ~/init/init@# . ~/init/init@g" \
+                           -e "s@./geos@# ./geos@g" \
+                           -e "s@jid1=@# jid1=@g" \
+                           -e "s@--dependency=afterok:\${jid1##\* } @@g" ${run_name}.run
+
+                    # Remove old output files and resubmit
+                    \rm -f TROPOMI_operator_*
+                    ./${run_name}.run
+
+                    # Exit directory
+                    cd ..
+                fi
+            else
                 echo "Clean up failed -- ${run_name}"
                 if "$RestartProcesses"; then
                     \rm ${run_dir}/OutputDir/*
                 fi
-            else
-                echo "Success -- ${run_name}"
             fi
         fi
+    else
+        echo "Success -- ${run_name}"
     fi
 fi
 
