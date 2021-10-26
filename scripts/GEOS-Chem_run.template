@@ -24,7 +24,6 @@ log="$id.log"
 INV_PATH="$(dirname $(dirname $(pwd)))"
 SCRIPT_DIR="${INV_PATH}/scripts"
 CODE_DIR="${INV_PATH}/python"
-echo ${INV_PATH}
 
 # Define the directories for post-processing files
 GC_CH4_DIR=$(pwd -P)/OutputDir # CH4 concentrations (current dir)
