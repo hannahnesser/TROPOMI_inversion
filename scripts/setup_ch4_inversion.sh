@@ -38,6 +38,7 @@ DATA_PATH="/n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/gcdata/ExtData"
 
 # Path to TROPOMI observations
 TROP_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
+echo ${TROP_PATH}
 
 # Path to data with accurate stratospheric concentrations
 # and average vertical profiles
@@ -175,6 +176,7 @@ mkdir -p OutputDir
 mkdir -p ProcessedDir
 mkdir -p Restarts
 
+echo ${TROP_PATH}
 ### Update settings in GEOS-Chem_run.template
 sed -i -e "s:invpathinvpath:${INV_PATH}:g" \
        -e "s:halfstephalfstep:${HALFSTEP_PATH}:g" \
