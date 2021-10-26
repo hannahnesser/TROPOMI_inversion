@@ -1,6 +1,9 @@
-cd /n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs
+RestartProcesses=false
 
-for x in $(seq 17 33);
+jac_dir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs"
+cd $jac_dir
+
+for x in $(seq 36 110);
 do
 
 if [ $x -lt 10 ]; then
@@ -14,65 +17,73 @@ else
 fi
 
 run_name="TROPOMI_inversion_${xstr}"
+run_dir="${jac_dir}/${run_name}"
 
 # Check for GC completion
-GC_check=$(tail -n 2 ${run_name}/${run_name}.log | head -n 1)
-if [[ $GC_check != "**************   E N D   O F   G E O S -- C H E M   **************" ]]
+if ! grep -q 'E N D   O F   G E O S -- C H E M' "${run_dir}/${run_name}.log"
 then
     echo "GEOS-Chem failed -- ${run_name}"
     # All GC runs worked in the last set of perturbations, so we're
     # skipping this part for now
 else
-    # echo "All GEOS-Chem simulations completed."
     # Check for completion of preprocessing
-    preprocess_check=$(ls ${run_name}/OutputDir/*_orig | wc -w)
+    preprocess_check=$(ls ${run_dir}/OutputDir/*_orig | wc -w)
     if [[ $preprocess_check != 14 ]]; then
         echo "Preprocessing failed -- ${run_name}"
 
-        # Enter the run directory
-        cd ${run_name}
-
-        # Modify the run file
-        sed -i -e "s@export OMP_NUM_THREADS@# export OMP_NUM_THREADS@g" \
-               -e "s@. ~/init/init@# . ~/init/init@g" \
-               -e "s@./geos@# ./geos@g" ${run_name}.run
-               # -e "s@##SBATCH@#SBATCH@g" \
-               # -e "s@-c 16@-c 1@g" \
-               # -e "s@-t 4-00:00@-t 0-00:10@g" \
-               # -e "s@--mem=20000@--mem=2000@g" \
-
-
-        # Remove old output file and resubmit
-        rm preprocess_GC*.out
-        ./${run_name}.run
-
-        # Exit directory
-        cd ..
-    else
-        # echo "All pre-processing completed."
-        # Check for completion of operator
-        operator_check=$(ls ${run_name}/ProcessedDir/ | wc -w)
-        if [[ $operator_check != 365 ]]; then
-            echo "Operator failed -- ${run_name}"
-
+        if "$RestartProcesses"; then
             # Enter the run directory
             cd ${run_name}
 
             # Modify the run file
             sed -i -e "s@export OMP_NUM_THREADS@# export OMP_NUM_THREADS@g" \
                    -e "s@. ~/init/init@# . ~/init/init@g" \
-                   -e "s@./geos@# ./geos@g" \
-                   -e "s@jid1=@# jid1=@g" \
-                   -e "s@--dependency=afterok:\${jid1##\* } @@g" ${run_name}.run
+                   -e "s@./geos@# ./geos@g" ${run_name}.run
 
-            # Remove old output files and resubmit
-            rm -f TROPOMI_operator_*
+            # Remove old output file and resubmit
+            \rm preprocess_GC*.out
             ./${run_name}.run
 
             # Exit directory
             cd ..
         fi
+    else
+        # Check for completion of operator
+        operator_check=$(ls ${run_dir}/ProcessedDir/ | wc -w)
+        if [[ $operator_check != 365 ]]; then
+            echo "Operator failed -- ${run_name}"
+
+            if "$RestartProcesses"; then
+                # Enter the run directory
+                cd ${run_dir}
+
+                # Modify the run file
+                sed -i -e "s@export OMP_NUM_THREADS@# export OMP_NUM_THREADS@g" \
+                       -e "s@. ~/init/init@# . ~/init/init@g" \
+                       -e "s@./geos@# ./geos@g" \
+                       -e "s@jid1=@# jid1=@g" \
+                       -e "s@--dependency=afterok:\${jid1##\* } @@g" ${run_name}.run
+
+                # Remove old output files and resubmit
+                \rm -f TROPOMI_operator_*
+                ./${run_name}.run
+
+                # Exit directory
+                cd ..
+            fi
+        else
+            # Check that the output dir has been cleared
+            cleanup_check=$(ls ${run_dir}/OutputDir/ | wc -w)
+            if [[ $cleanup_check > 0 ]]; then
+                echo "Clean up failed -- ${run_name}"
+                if "$RestartProcesses"; then
+                    \rm ${run_dir}/OutputDir/*
+                fi
+            fi
+        fi
     fi
 fi
 
 done
+
+# Need to check that all files are removed afterward
