@@ -139,8 +139,8 @@ cp ${SCRIPT_PATH}/*.sh ${JAC_PATH}/${RUN_NAME}/scripts
 cp ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/${RUN_NAME}/scripts
 
 # Change paths
-CODE_PATH="${JAC_PATH}/python"
-SCRIPT_PATH="${JAC_PATH}/scripts"
+CODE_PATH="${JAC_PATH}/${RUN_NAME}/python"
+SCRIPT_PATH="${JAC_PATH}/${RUN_NAME}/scripts"
 
 echo ${TROP_PATH}
 
