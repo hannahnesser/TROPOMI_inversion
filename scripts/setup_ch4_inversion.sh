@@ -22,7 +22,7 @@ UseEvecPerts=true
 export OMP_NUM_THREADS=16
 
 # Path to inversion setup, post-processing code, and scripts
-INV_PATH="$(dirname `pwd`)"
+INV_PATH="$(dirname $(pwd))"
 CODE_PATH="${INV_PATH}/python"
 SCRIPT_PATH="${INV_PATH}/scripts"
 
@@ -65,7 +65,7 @@ RESTART_FILE="/n/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.
 BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
 
 # Jacobian settings
-nPerturbationsMin=34
+nPerturbationsMin=11
 nPerturbationsMax=110 #110
 pPERT="1.0E-8"
 
@@ -124,6 +124,22 @@ fi
 cd ${JAC_PATH}
 
 ##=======================================================================
+## Set up code and script directories (this is always run)
+##=======================================================================
+# Make directories
+mkdir -p ${JAC_PATH}/python
+mkdir -p ${JAC_PATH}/scripts
+
+# Copy python code and scripts
+cp ${CODE_PATH}/*.py ${JAC_PATH}/python
+cp ${SCRIPT_PATH}/*.sh ${JAC_PATH}/scripts
+cp ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/scripts
+
+# Change paths
+CODE_PATH="${JAC_PATH}/python"
+SCRIPT_PATH="${JAC_PATH}/scripts"
+
+##=======================================================================
 ## Set up template run directory
 ##=======================================================================
 if "$SetupTemplateRundir"; then
@@ -137,7 +153,10 @@ mkdir -p jacobian_runs
 cp ${SCRIPT_PATH}/run_jacobian_simulations.sh jacobian_runs/
 sed -i -e "s:{RunName}:${RUN_NAME}:g" jacobian_runs/run_jacobian_simulations.sh
 cp ${SCRIPT_PATH}/submit_jacobian_simulations_array.sh jacobian_runs/
-sed -i -e "s:{START}:${nPerturbationsMin}:g" -e "s:{END}:${nPerturbationsMax}:g" jacobian_runs/submit_jacobian_simulations_array.sh
+sed -i -e "s:codepathcodepath:${CODE_PATH}" \
+       -e "s:scriptpathscriptpath:${SCRIPT_PATH}" \
+       -e "s:{START}:${nPerturbationsMin}:g" \
+       -e "s:{END}:${nPerturbationsMax}:g" jacobian_runs/submit_jacobian_simulations_array.sh
 
 # Obtain GEOS-Chem input files: input.geos, HISTORY.rc, ch4_run, getRunInfo,
 # Makefile, HEMCO_Diagn.rc, and HEMCO_Config.rc
