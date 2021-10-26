@@ -131,9 +131,9 @@ mkdir -p ${JAC_PATH}/${RUN_NAME}/python
 mkdir -p ${JAC_PATH}/${RUN_NAME}/scripts
 
 # Copy python code and scripts
-cp -v ${CODE_PATH}/*.py ${JAC_PATH}/${RUN_NAME}/python
-cp -v ${SCRIPT_PATH}/*.sh ${JAC_PATH}/${RUN_NAME}/scripts
-cp -v ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/${RUN_NAME}/scripts
+cp ${CODE_PATH}/*.py ${JAC_PATH}/${RUN_NAME}/python
+cp ${SCRIPT_PATH}/*.sh ${JAC_PATH}/${RUN_NAME}/scripts
+cp ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/${RUN_NAME}/scripts
 
 # Change paths
 CODE_PATH="${JAC_PATH}/python"
