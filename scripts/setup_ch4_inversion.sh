@@ -153,7 +153,7 @@ mkdir -p jacobian_runs
 cp ${SCRIPT_PATH}/run_jacobian_simulations.sh jacobian_runs/
 sed -i -e "s:{RunName}:${RUN_NAME}:g" jacobian_runs/run_jacobian_simulations.sh
 cp ${SCRIPT_PATH}/submit_jacobian_simulations_array.sh jacobian_runs/
-sed -i -e "s:codepathcodepath:${CODE_PATH}" \
+sed -i -e "s:codepathcodepath:${CODE_PATH}:g" \
        -e "s:scriptpathscriptpath:${SCRIPT_PATH}:g" \
        -e "s:{START}:${nPerturbationsMin}:g" \
        -e "s:{END}:${nPerturbationsMax}:g" jacobian_runs/submit_jacobian_simulations_array.sh
