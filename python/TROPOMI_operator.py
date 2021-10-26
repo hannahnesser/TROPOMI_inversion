@@ -18,9 +18,9 @@ import glob as glob
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 # sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
 # GC_pressure_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
-# GC_ch4_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0100/OutputDir"
-# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0100/ProcessedDir/"
-# MONTHS = [1, 2, 3, 4]
+# GC_ch4_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0034/OutputDir"
+# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0034/ProcessedDir/"
+# MONTHS = [9, 10, 11, 12]
 # jacobian = True
 
 code_dir = sys.argv[1]
@@ -30,8 +30,7 @@ GC_ch4_data_dir = sys.argv[4]
 output_dir = sys.argv[5]
 MONTHS = [int(sys.argv[6])*4 -3 + i for i in range(4)]
 jacobian = bool(sys.argv[7])
-# A Boolean of whether or not this is
-# being run for a jacobian simulation
+reprocess = False
 
 # Load custom packages
 sys.path.append(code_dir)
@@ -237,15 +236,21 @@ def apply_avker(sat_avker, sat_prior, sat_pressure_weight, GC_CH4, filt=None):
 ## List all satellite files for the year and date defined
 ## -------------------------------------------------------------------------##
 # List all raw netcdf TROPOMI files
-allfiles=glob.glob(os.path.join(sat_data_dir, '*.nc'))
-allfiles.sort()
+raw_files = glob.glob(os.path.join(sat_data_dir, '*.nc'))
+raw_files.sort()
+
+# List all of the dates that have already been processed
+if ~reprocess:
+    saved_dates = glob.glob(os.path.join(output_dir, '*.pkl'))
+    saved_dates = [d.split('/')[-1].split('_')[0] for d in saved_dates]
+    saved_dates.sort()
 
 # Create empty list
 Sat_files = {}
 
 # Iterate through the raw TROPOMI data
-for index in range(len(allfiles)):
-    filename = allfiles[index]
+for index in range(len(raw_files)):
+    filename = raw_files[index]
 
     # Get the date (YYYY, MM, and DD) of the raw TROPOMI file
     shortname = re.split('\/|\.', filename)[-2]
@@ -253,11 +258,18 @@ for index in range(len(allfiles)):
     start_date = strdate[4]
     end_date = strdate[6]
 
-    # start condition
+    # Check if the start date is in range
     start = ((int(start_date[:4]) == s.year)
              and (int(start_date[4:6]) in MONTHS))
+
+    # Check if the end date is in range
     end = ((int(end_date[:4]) == s.year)
            and (int(end_date[4:6]) in MONTHS))
+
+    # Check if either date is in saved dates
+    if ~reprocess:
+        start = (start and (start_date not in saved_dates))
+        end = (end and (end_date not in saved_dates))
 
     # Skip observations not in range
     if not (start or end):
