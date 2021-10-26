@@ -131,9 +131,9 @@ mkdir -p ${JAC_PATH}/python
 mkdir -p ${JAC_PATH}/scripts
 
 # Copy python code and scripts
-cp ${CODE_PATH}/*.py ${JAC_PATH}/python
-cp ${SCRIPT_PATH}/*.sh ${JAC_PATH}/scripts
-cp ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/scripts
+cp -v ${CODE_PATH}/*.py ${JAC_PATH}/python
+cp -v ${SCRIPT_PATH}/*.sh ${JAC_PATH}/scripts
+cp -v ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/scripts
 
 # Change paths
 CODE_PATH="${JAC_PATH}/python"
@@ -154,7 +154,7 @@ cp ${SCRIPT_PATH}/run_jacobian_simulations.sh jacobian_runs/
 sed -i -e "s:{RunName}:${RUN_NAME}:g" jacobian_runs/run_jacobian_simulations.sh
 cp ${SCRIPT_PATH}/submit_jacobian_simulations_array.sh jacobian_runs/
 sed -i -e "s:codepathcodepath:${CODE_PATH}" \
-       -e "s:scriptpathscriptpath:${SCRIPT_PATH}" \
+       -e "s:scriptpathscriptpath:${SCRIPT_PATH}:g" \
        -e "s:{START}:${nPerturbationsMin}:g" \
        -e "s:{END}:${nPerturbationsMax}:g" jacobian_runs/submit_jacobian_simulations_array.sh
 
