@@ -38,7 +38,6 @@ DATA_PATH="/n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/gcdata/ExtData"
 
 # Path to TROPOMI observations
 TROP_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
-echo ${TROP_PATH}
 
 # Path to data with accurate stratospheric concentrations
 # and average vertical profiles
@@ -67,7 +66,7 @@ BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.B
 
 # Jacobian settings
 nPerturbationsMin=12
-nPerturbationsMax=12 #110
+nPerturbationsMax=110 #110
 pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
@@ -119,8 +118,6 @@ else
     gridDir="${RES}_${REGION}"
 fi
 
-echo ${TROP_PATH}
-
 ##=======================================================================
 ## Set initial location
 ##=======================================================================
@@ -142,13 +139,11 @@ cp ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/${RUN_NAME}/scripts
 CODE_PATH="${JAC_PATH}/${RUN_NAME}/python"
 SCRIPT_PATH="${JAC_PATH}/${RUN_NAME}/scripts"
 
-echo ${TROP_PATH}
 
 ##=======================================================================
 ## Set up template run directory
 ##=======================================================================
 if "$SetupTemplateRundir"; then
-echo ${TROP_PATH}
 
 mkdir -p ${JAC_PATH}/${RUN_NAME}
 cd ${JAC_PATH}/${RUN_NAME}
@@ -164,7 +159,6 @@ sed -i -e "s:codepathcodepath:${CODE_PATH}:g" \
        -e "s:{START}:${nPerturbationsMin}:g" \
        -e "s:{END}:${nPerturbationsMax}:g" jacobian_runs/submit_jacobian_simulations_array.sh
 
-echo ${TROP_PATH}
 
 # Obtain GEOS-Chem input files: input.geos, HISTORY.rc, ch4_run, getRunInfo,
 # Makefile, HEMCO_Diagn.rc, and HEMCO_Config.rc
@@ -177,7 +171,6 @@ cp -RLv ${GC_INPUTS_PATH}/Makefile ${RUN_TEMPLATE}/
 cp -RLv ${GC_INPUTS_PATH}/HEMCO_Diagn.rc.CH4 ${RUN_TEMPLATE}/HEMCO_Diagn.rc
 cp -RLv ${GC_INPUTS_PATH}/HEMCO_Config.rc.CH4* ${RUN_TEMPLATE}/HEMCO_Config.rc
 
-echo ${TROP_PATH}
 
 # Create run directory structure
 cd $RUN_TEMPLATE
@@ -185,7 +178,6 @@ mkdir -p OutputDir
 mkdir -p ProcessedDir
 mkdir -p Restarts
 
-echo ${TROP_PATH}
 ### Update settings in GEOS-Chem_run.template
 sed -i -e "s:invpathinvpath:${INV_PATH}:g" \
        -e "s:halfstephalfstep:${HALFSTEP_PATH}:g" \
@@ -330,49 +322,6 @@ fi
 cd ..
 
 fi # SetupTemplateRunDir
-
-##=======================================================================
-##  Set up spinup run directory
-##=======================================================================
-if  "$SetupSpinupRun"; then
-
-    ### Define the run directory name
-    spinup_name="${RUN_NAME}_Spinup"
-
-    ### Make the directory
-    runDir="spinup_run"
-    mkdir -p ${runDir}
-
-    ### Copy and point to the necessary data
-    cp -r ${RUN_TEMPLATE}/*  ${runDir}
-    cd $runDir
-
-    ### Link to GEOS-Chem executable instead of having a copy in each run dir
-    rm -rf geos
-    ln -sTf ../${RUN_TEMPLATE}/geos .
-
-    # Link to restart file
-    ln -sTf $RESTART_FILE GEOSChem.Restart.${SPINUP_START}_0000z.nc4
-    
-    ### Update settings in input.geos
-    sed -i -e "s|${START_DATE}|${SPINUP_START}|g" \
-           -e "s|${END_DATE}|${SPINUP_END}|g" \
-	   -e "s|Do analytical inversion?: T|Do analytical inversion?: F|g" \
-	   -e "s|pertpert|1.0|g" \
-           -e "s|clustnumclustnum|0|g" input.geos
-
-    ### Create run script from template
-    sed -e "s:namename:${spinup_name}:g" \
-	-e "s:##:#:g" GEOS-Chem_run.template > ${spinup_name}.run
-    chmod 755 ${spinup_name}.run
-
-    ### Print diagnostics
-    echo "CREATED: ${runDir}"
-    
-    ### Navigate back to top-level directory
-    cd ..
-    
-fi # SetupSpinupRun
 
 ##=======================================================================
 ##  Set up posterior run directory
