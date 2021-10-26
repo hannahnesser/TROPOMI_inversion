@@ -41,7 +41,7 @@ TROP_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
 
 # Path to data with accurate stratospheric concentrations
 # and average vertical profiles
-HALFSTEP_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/"
+HALFSTEP_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_halfstep"
 
 # Path to code
 GC_PATH="${HOME}/CH4_GC/Code.CH4_Inv"
@@ -375,7 +375,7 @@ fi # SetupPosteriorRun
 if "$SetupJacobianRuns"; then
 
 cd ${JAC_PATH}/${RUN_NAME}
-pwd
+
 # Initialize (x=0 is base run, i.e. no perturbation; x=1 is cluster=1; etc.)
 x=$nPerturbationsMin
 
