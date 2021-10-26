@@ -79,6 +79,8 @@ else
                 if "$RestartProcesses"; then
                     \rm ${run_dir}/OutputDir/*
                 fi
+            else
+                echo "Success -- ${run_name}"
             fi
         fi
     fi
