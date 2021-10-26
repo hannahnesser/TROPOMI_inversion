@@ -1,9 +1,9 @@
-RestartProcesses=false
+RestartProcesses=true
 
 jac_dir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs"
 cd $jac_dir
 
-for x in $(seq 11 110);
+for x in $(seq 11 11);
 do
 
 if [ $x -lt 10 ]; then
