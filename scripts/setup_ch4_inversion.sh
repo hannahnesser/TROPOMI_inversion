@@ -37,7 +37,7 @@ JAC_PATH="/n/holyscratch01/jacob_lab/hnesser"
 DATA_PATH="/n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/gcdata/ExtData"
 
 # Path to TROPOMI observations
-TROP_PATH="/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI"
+TROP_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
 
 # Path to data with accurate stratospheric concentrations
 # and average vertical profiles
@@ -65,7 +65,7 @@ RESTART_FILE="/n/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.
 BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
 
 # Jacobian settings
-nPerturbationsMin=11
+nPerturbationsMin=12
 nPerturbationsMax=110 #110
 pPERT="1.0E-8"
 
