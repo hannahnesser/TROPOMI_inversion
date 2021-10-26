@@ -67,7 +67,7 @@ BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.B
 
 # Jacobian settings
 nPerturbationsMin=12
-nPerturbationsMax=110 #110
+nPerturbationsMax=12 #110
 pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
