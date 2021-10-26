@@ -66,9 +66,9 @@ data_dir = sys.argv[3]
 
 # Information about the files
 files = join(data_dir, 'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
-replacement_files = join(input_dir, 'halfstep_outputs',
+replacement_files = join(input_dir, 'OutputDir',
                          'GEOSChem.SpeciesConc.YYYYMMDD_0000z.nc4')
-profiles = join(input_dir, 'vertical_profiles', 'mean_profile_YYYYMM.nc')
+profiles = join(input_dir, 'VerticalProfiles', 'mean_profile_YYYYMM.nc')
 
 # The scale factor for comparison to the mean vertical profiles--how many
 # times bigger or smaller than the mean profile does a methane concetnration
@@ -119,15 +119,15 @@ if profiles is None:
         avg = avg.mean(['lat', 'lon', 'time'])
 
         # Save out
-        if not exists(join(input_dir, 'vertical_profiles')):
-            makedirs(join(input_dir, 'vertical_profiles'))
-        avg.to_netcdf(join(input_dir, 'vertical_profiles',
+        if not exists(join(input_dir, 'VerticalProfiles')):
+            makedirs(join(input_dir, 'VerticalProfiles'))
+        avg.to_netcdf(join(input_dir, 'VerticalProfiles',
                            f'mean_profile_{settings.year}{month:02d}.nc'))
 
         print('Saved the mean vertical profile.')
 
     # Update profiles
-    profiles = join(input_dir, 'vertical_profiles', 'mean_profile_YYYYMM.nc')
+    profiles = join(input_dir, 'VerticalProfiles', 'mean_profile_YYYYMM.nc')
 
 ## ------------------------------------------------------------------------ ##
 ## Replace stratosphere
