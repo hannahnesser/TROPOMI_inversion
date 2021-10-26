@@ -119,6 +119,8 @@ else
     gridDir="${RES}_${REGION}"
 fi
 
+echo ${TROP_PATH}
+
 ##=======================================================================
 ## Set initial location
 ##=======================================================================
@@ -140,10 +142,13 @@ cp ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/${RUN_NAME}/scripts
 CODE_PATH="${JAC_PATH}/python"
 SCRIPT_PATH="${JAC_PATH}/scripts"
 
+echo ${TROP_PATH}
+
 ##=======================================================================
 ## Set up template run directory
 ##=======================================================================
 if "$SetupTemplateRundir"; then
+echo ${TROP_PATH}
 
 mkdir -p ${JAC_PATH}/${RUN_NAME}
 cd ${JAC_PATH}/${RUN_NAME}
@@ -159,6 +164,8 @@ sed -i -e "s:codepathcodepath:${CODE_PATH}:g" \
        -e "s:{START}:${nPerturbationsMin}:g" \
        -e "s:{END}:${nPerturbationsMax}:g" jacobian_runs/submit_jacobian_simulations_array.sh
 
+echo ${TROP_PATH}
+
 # Obtain GEOS-Chem input files: input.geos, HISTORY.rc, ch4_run, getRunInfo,
 # Makefile, HEMCO_Diagn.rc, and HEMCO_Config.rc
 mkdir -p ${RUN_TEMPLATE}
@@ -169,6 +176,8 @@ cp -RLv ${GC_INPUTS_PATH}/getRunInfo ${RUN_TEMPLATE}/
 cp -RLv ${GC_INPUTS_PATH}/Makefile ${RUN_TEMPLATE}/
 cp -RLv ${GC_INPUTS_PATH}/HEMCO_Diagn.rc.CH4 ${RUN_TEMPLATE}/HEMCO_Diagn.rc
 cp -RLv ${GC_INPUTS_PATH}/HEMCO_Config.rc.CH4* ${RUN_TEMPLATE}/HEMCO_Config.rc
+
+echo ${TROP_PATH}
 
 # Create run directory structure
 cd $RUN_TEMPLATE
