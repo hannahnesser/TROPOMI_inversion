@@ -65,7 +65,7 @@ RESTART_FILE="/n/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.
 BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
 
 # Jacobian settings
-nPerturbationsMin=111
+nPerturbationsMin=112
 nPerturbationsMax=434 #110
 pPERT="1.0E-8"
 
