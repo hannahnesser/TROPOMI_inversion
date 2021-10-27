@@ -1,5 +1,5 @@
 # Boolean options
-RestartProcesses=true
+RestartProcesses=false
 
 # Directories
 jac_dir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs"
