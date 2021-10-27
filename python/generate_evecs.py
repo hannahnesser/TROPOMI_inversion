@@ -30,9 +30,9 @@ if __name__ == '__main__':
         data_dir = f'{base_dir}inversion_data/'
 
     # User preferences
-    calculate_evecs = False
+    calculate_evecs = True
     format_evecs = True
-    calculate_avker = False
+    calculate_avker = True
     pct_of_info = [50, 90, 95, 99, 99.9]
     snr = None
     rank = None
