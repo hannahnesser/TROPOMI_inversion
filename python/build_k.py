@@ -16,14 +16,15 @@ if __name__ == '__main__':
     if run_with_script:
         month = int(sys.argv[1])
         prior_dir = sys.argv[2]
-        perturbation_dirs = sys.argv[3:-2]
-        perturbation_dirs.sort()
-        data_dir = sys.argv[-2]
-        code_dir = sys.argv[-1]
+        perturbation_dirs = sys.argv[3]
+        n_perturbation_dirs = int(sys.argv[4])
+        data_dir = sys.argv[5]
+        code_dir = sys.argv[6]
     else:
         month = 1
         prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
-        perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_????'
+        perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_NNNN'
+        n_perturbation_dirs = 100
         data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
         code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
@@ -51,11 +52,9 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Create list of perturbation directories
     ## ---------------------------------------------------------------------##
-    if not run_with_script:
-        perturbation_dirs = glob.glob(perturbation_dirs)
-        perturbation_dirs = [p for p in perturbation_dirs
-                             if p.split('_')[-1] != '0000']
-        perturbation_dirs.sort()
+    perturbation_dirs = [perturbation_dirs.replace('NNNN', f'{i:04d}')
+                         for i in range(1, n_perturbation_dirs+1)]
+    perturbation_dirs.sort()
 
     ## ---------------------------------------------------------------------##
     ## Load the data for the prior simulation
