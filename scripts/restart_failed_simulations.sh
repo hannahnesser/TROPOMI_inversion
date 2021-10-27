@@ -38,8 +38,9 @@ else
     cleanup_check=$(ls ${run_dir}/OutputDir/ | wc -w)
     if [[ $cleanup_check > 0 ]]; then
         # Check for completion of preprocessing
-        preprocess_check=$(ls ${run_dir}/OutputDir/*_orig | wc -w)
-        if [[ $preprocess_check != 14 ]]; then
+        preprocess_check_1=$(ls ${run_dir}/OutputDir/*_orig | wc -w)
+        preprocess_check_2=$(ls ${run_dir}/OutputDir/GEOSChem.SpeciesConc*.nc4 | wc -w)
+        if [[ $preprocess_check_1 != 14 || $preprocess_check_2 != 366 ]]; then
             echo "Preprocessing failed -- ${run_name}"
 
             if "$RestartProcesses"; then
@@ -49,7 +50,8 @@ else
                 # Modify the run file
                 sed -i -e "s@export OMP_NUM_THREADS@# export OMP_NUM_THREADS@g" \
                        -e "s@. ~/init/init@# . ~/init/init@g" \
-                       -e "s@./geos@# ./geos@g" ${run_name}.run
+                       -e "s@./geos@# ./geos@g" \
+                       -e "s@echo@# echo@g" ${run_name}.run
 
                 # Remove old output file and resubmit
                 \rm preprocess_GC*.out
