@@ -1,5 +1,5 @@
 # Boolean options
-RestartProcesses=false
+RestartProcesses=true
 
 # Directories
 jac_dir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs"
@@ -11,7 +11,7 @@ cp ${inv_dir}/python/*.py $(dirname ${jac_dir})/python
 cp ${inv_dir}/scripts/*.sh $(dirname ${jac_dir})/scripts
 cp ${inv_dir}/scripts/GEOS-Chem_run.template $(dirname ${jac_dir})/scripts
 
-for x in $(seq 12 110);
+for x in $(seq 12 112);
 do
 
 if [ $x -lt 10 ]; then
