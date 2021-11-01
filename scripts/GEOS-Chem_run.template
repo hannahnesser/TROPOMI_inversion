@@ -61,9 +61,7 @@ jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-3 ${SCRIPT_DIR}/apply_T
 # Clean up
 #-------------------------------------------------
 # Provide additional checks that it worked
-preprocess_check_1=$(ls ${GC_CH4_DIR}/*_orig | wc -w)
-preprocess_check_2=$(ls ${GC_CH4_DIR}/GEOSChem.SpeciesConc*.nc4 | wc -w)
-if [[ ${id##*_} != "0000" && $preprocess_check_1 == 14 && $preprocess_check_2 == 366 ]]
+if [[ ${id##*_} != "0000" ]]
 then
   jid3=$(sbatch --dependency=afterok:${jid2##* } ${SCRIPT_DIR}/clean_up.sh ${GC_CH4_DIR})
 fi

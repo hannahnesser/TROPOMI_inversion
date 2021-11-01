@@ -11,5 +11,11 @@
 
 GC_CH4_DIR=${1}
 
-rm HEMCO_restart.*
-rm ${GC_CH4_DIR}/*
+preprocess_check_1=$(ls ${GC_CH4_DIR}/*_orig | wc -w)
+preprocess_check_2=$(ls ${GC_CH4_DIR}/GEOSChem.SpeciesConc*.nc4 | wc -w)
+if [[ $preprocess_check_1 == 14 && $preprocess_check_2 == 366 ]]
+then
+  echo "Cleaning up!"
+  rm HEMCO_restart.*
+  rm ${GC_CH4_DIR}/*
+fi
