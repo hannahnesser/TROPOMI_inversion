@@ -139,7 +139,6 @@ cp ${SCRIPT_PATH}/GEOS-Chem_run.template ${JAC_PATH}/${RUN_NAME}/scripts
 CODE_PATH="${JAC_PATH}/${RUN_NAME}/python"
 SCRIPT_PATH="${JAC_PATH}/${RUN_NAME}/scripts"
 
-
 ##=======================================================================
 ## Set up template run directory
 ##=======================================================================
@@ -154,9 +153,7 @@ mkdir -p jacobian_runs
 cp ${SCRIPT_PATH}/run_jacobian_simulations.sh jacobian_runs/
 sed -i -e "s:{RunName}:${RUN_NAME}:g" jacobian_runs/run_jacobian_simulations.sh
 cp ${SCRIPT_PATH}/submit_jacobian_simulations_array.sh jacobian_runs/
-sed -i -e "s:codepathcodepath:${CODE_PATH}:g" \
-       -e "s:scriptpathscriptpath:${SCRIPT_PATH}:g" \
-       -e "s:{START}:${nPerturbationsMin}:g" \
+sed -i -e "s:{START}:${nPerturbationsMin}:g" \
        -e "s:{END}:${nPerturbationsMax}:g" jacobian_runs/submit_jacobian_simulations_array.sh
 
 
@@ -382,97 +379,101 @@ x=$nPerturbationsMin
 # Create run directory for each cluster so we can apply perturbation to each
 while [[ $x -le $nPerturbationsMax && $x -ge $nPerturbationsMin ]];do
 
-   ### Positive or negative perturbation
-   PERT=$pPERT
-   xUSE=$x
+    ### Positive or negative perturbation
+    PERT=$pPERT
+    xUSE=$x
 
-   ### Add zeros to string name
-   if [ $x -lt 10 ]; then
-      xstr="000${x}"
-   elif [ $x -lt 100 ]; then
-      xstr="00${x}"
-   elif [ $x -lt 1000 ]; then
-      xstr="0${x}"
-   else
-      xstr="${x}"
-   fi
+    ### Add zeros to string name
+    if [ $x -lt 10 ]; then
+       xstr="000${x}"
+    elif [ $x -lt 100 ]; then
+       xstr="00${x}"
+    elif [ $x -lt 1000 ]; then
+       xstr="0${x}"
+    else
+       xstr="${x}"
+    fi
 
-   ### Define the run directory name
-   name="${RUN_NAME}_${xstr}"
+    ### Define the run directory name
+    name="${RUN_NAME}_${xstr}"
 
-   ### Make the directory
-   runDir="./jacobian_runs/${name}"
-   mkdir -p ${runDir}
+    ### Make the directory
+    runDir="./jacobian_runs/${name}"
+    mkdir -p ${runDir}
 
-   ### Copy and point to the necessary data
-   cp -r ${RUN_TEMPLATE}/*  ${runDir}
-   cd $runDir
+    ### Copy and point to the necessary data
+    cp -r ${RUN_TEMPLATE}/*  ${runDir}
+    cd $runDir
 
-   ### Link to GEOS-Chem executable instead of having a copy in each run dir
-   rm -rf geos
-   ln -sTf ../../${RUN_TEMPLATE}/geos geos
+    ### Link to GEOS-Chem executable instead of having a copy in each run dir
+    rm -rf geos
+    ln -sTf ../../${RUN_TEMPLATE}/geos geos
 
-   # Link to restart file
-   if "$DO_SPINUP"; then
-       ln -s ../../spinup_run/GEOSChem.Restart.${SPINUP_END}_0000z.nc4 GEOSChem.Restart.${START_DATE}_0000z.nc4
-   else
-       ln -sTf $RESTART_FILE GEOSChem.Restart.${START_DATE}_0000z.nc4
-   fi
-   
-   ### Update settings in input.geos
-   sed -i -e "s:pertpert:${PERT}:g" \
-          -e "s:clustnumclustnum:${xUSE}:g" input.geos
+    # Link to restart file
+    if "$DO_SPINUP"; then
+        ln -s ../../spinup_run/GEOSChem.Restart.${SPINUP_END}_0000z.nc4 GEOSChem.Restart.${START_DATE}_0000z.nc4
+    else
+        ln -sTf $RESTART_FILE GEOSChem.Restart.${START_DATE}_0000z.nc4
+    fi
 
-   # Turn on LevelEdgeDiags for the prior run
-   if [ $x -eq 0 ]; then
-       sed -i -e 's/#'\''LevelEdgeDiags/'\''LevelEdgeDiags/g' \
-	      -e 's/LevelEdgeDiags.frequency:   00000100 000000/LevelEdgeDiags.frequency:   00000000 010000/g' \
-	      -e 's/LevelEdgeDiags.duration:    00000100 000000/LevelEdgeDiags.duration:    00000001 000000/g' \
-	      -e 's/LevelEdgeDiags.mode:        '\''time-averaged/LevelEdgeDiags.mode:        '\''instantaneous/g' HISTORY.rc
+    ### Update settings in input.geos
+    sed -i -e "s:pertpert:${PERT}:g" \
+           -e "s:clustnumclustnum:${xUSE}:g" input.geos
 
-       JAC="False"
-   fi
+    # Turn on LevelEdgeDiags for the prior run
+    if [ $x -eq 0 ]; then
+        OLD="Do analytical inversion?: T"
+        NEW="Do analytical inversion?: F"
+        sed -i "s/$OLD/$NEW/g" input.geos
 
-   # Update settings for non-prior runs
-   if [ $x -gt 0 -a "${UseEvecPerts}" ]; then
-       ### Update settings in input.geos
-       # Turn on eigenvector perturbations
-       OLD="Eigenvector pert.?  : F"
-       NEW="Eigenvector pert.?  : T"
-       sed -i "s/$OLD/$NEW/g" input.geos
+        sed -i -e 's/#'\''LevelEdgeDiags/'\''LevelEdgeDiags/g' \
+ 	      -e 's/LevelEdgeDiags.frequency:   00000100 000000/LevelEdgeDiags.frequency:   00000000 010000/g' \
+ 	      -e 's/LevelEdgeDiags.duration:    00000100 000000/LevelEdgeDiags.duration:    00000001 000000/g' \
+ 	      -e 's/LevelEdgeDiags.mode:        '\''time-averaged/LevelEdgeDiags.mode:        '\''instantaneous/g' HISTORY.rc
 
-       ### Update settings in HEMCO_Config.rc
-       # Section extension switches
-       OLD="EVECS                  :       false"
-       NEW="EVECS                  :       true"
-       sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
+        JAC="False"
+    fi
 
-       # Eigenvector file
-       OLD="/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations/evec_perturbations_evecnumevecnum.nc"
-       NEW="${EVEC_PATH}/${EVEC_FILE//evecnumevecnum/${xstr}}"
-       sed -i "s:$OLD:$NEW:g" HEMCO_Config.rc
+    # Update settings for non-prior runs
+    if [ $x -gt 0 -a "${UseEvecPerts}" ]; then
+        ### Update settings in input.geos
+        # Turn on eigenvector perturbations
+        OLD="Eigenvector pert.?  : F"
+        NEW="Eigenvector pert.?  : T"
+        sed -i "s/$OLD/$NEW/g" input.geos
 
-       ### Update HEMCO_Diagn.rcx
-       NEW="EmisCH4_Evecs        CH4    0   15   -1   2   kg/m2/s  CH4_emissions_from_eigenvectors"
-       sed -i "/\#EOC/i$NEW" HEMCO_Diagn.rc
+        ### Update settings in HEMCO_Config.rc
+        # Section extension switches
+        OLD="EVECS                  :       false"
+        NEW="EVECS                  :       true"
+        sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
-       JAC="TRUE"
-   fi
+        # Eigenvector file
+        OLD="/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations/evec_perturbations_evecnumevecnum.nc"
+        NEW="${EVEC_PATH}/${EVEC_FILE//evecnumevecnum/${xstr}}"
+        sed -i "s:$OLD:$NEW:g" HEMCO_Config.rc
 
-   ### Create run script from template
-   sed -e "s:namename:${name}:g" \
-       -e "s:jacjac:${JAC}:g" GEOS-Chem_run.template > ${name}.run
-   chmod 755 ${name}.run
-   rm GEOS-Chem_run.template
+        ### Update HEMCO_Diagn.rcx
+        NEW="EmisCH4_Evecs        CH4    0   15   -1   2   kg/m2/s  CH4_emissions_from_eigenvectors"
+        sed -i "/\#EOC/i$NEW" HEMCO_Diagn.rc
 
-   # ### Navigate back to top-level directory
-   cd ../..
+        JAC="TRUE"
+    fi
 
-   ### Increment
-   x=$[$x+1]
+    ### Create run script from template
+    sed -e "s:namename:${name}:g" \
+        -e "s:jacjac:${JAC}:g" GEOS-Chem_run.template > ${name}.run
+    chmod 755 ${name}.run
+    rm GEOS-Chem_run.template
 
-   ### Print diagnostics
-   echo "CREATED: ${runDir}"
+    # ### Navigate back to top-level directory
+    cd ../..
+
+    ### Increment
+    x=$[$x+1]
+
+    ### Print diagnostics
+    echo "CREATED: ${runDir}"
 
 done
 
