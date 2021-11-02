@@ -47,23 +47,26 @@ JAC=jacjac
 # Echo end fin
 echo '===> Run ended at' `date` >> $log
 
-#-------------------------------------------------
-# Pre-process the GEOS-Chem output
-#-------------------------------------------------
-jid1=$(sbatch ${SCRIPT_DIR}/preprocess_GC_output.sh ${CODE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR})
-
-#-------------------------------------------------
-# Run the TROPOMI operator
-#-------------------------------------------------
-jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${OUTPUT_DIR} ${JAC})
-
-#-------------------------------------------------
-# Clean up
-#-------------------------------------------------
-# Provide additional checks that it worked
-if [[ ${id##*_} != "0000" ]]
+# If the run succeeded, go on to pre-processing
+if grep -q 'E N D   O F   G E O S -- C H E M' "${run_dir}/${run_name}.log"
 then
-  jid3=$(sbatch --dependency=afterok:${jid2##* } ${SCRIPT_DIR}/clean_up.sh ${GC_CH4_DIR})
+  #-------------------------------------------------
+  # Pre-process the GEOS-Chem output
+  #-------------------------------------------------
+  jid1=$(sbatch ${SCRIPT_DIR}/preprocess_GC_output.sh ${CODE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR})
+
+  #-------------------------------------------------
+  # Run the TROPOMI operator
+  #-------------------------------------------------
+  jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${OUTPUT_DIR} ${JAC})
+
+  #-------------------------------------------------
+  # Clean up
+  #-------------------------------------------------
+  if [[ ${id##*_} != "0000" ]]
+  then
+    jid3=$(sbatch --dependency=afterok:${jid2##* } ${SCRIPT_DIR}/clean_up.sh ${GC_CH4_DIR})
+  fi
 fi
 
 # Exit normally
