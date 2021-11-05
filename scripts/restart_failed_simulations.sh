@@ -7,9 +7,9 @@ inv_dir="/n/home04/hnesser/TROPOMI_inversion"
 
 # Set up
 cd $jac_dir
-cp ${inv_dir}/python/*.py $(dirname ${jac_dir})/python
-cp ${inv_dir}/scripts/*.sh $(dirname ${jac_dir})/scripts
-cp ${inv_dir}/scripts/GEOS-Chem_run.template $(dirname ${jac_dir})/scripts
+# cp ${inv_dir}/python/*.py $(dirname ${jac_dir})/python
+# cp ${inv_dir}/scripts/*.sh $(dirname ${jac_dir})/scripts
+# cp ${inv_dir}/scripts/GEOS-Chem_run.template $(dirname ${jac_dir})/scripts
 
 for x in $(seq 12 112);
 do
