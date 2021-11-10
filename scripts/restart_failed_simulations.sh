@@ -8,7 +8,7 @@ inv_dir="/n/home04/hnesser/TROPOMI_inversion"
 # Set up
 cd $jac_dir
 
-for x in $(seq 0 0);
+for x in $(seq 11 112);
 do
 
 if [ $x -lt 10 ]; then
