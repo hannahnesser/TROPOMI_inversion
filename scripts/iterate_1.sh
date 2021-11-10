@@ -6,10 +6,10 @@ NPERT_DIRS=100
 SHORT_TERM_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion"
 LONG_TERM_DATA_DIR="/n/seasasfs02/hnesser/TROPOMI_inversion"
 CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
-NUM_EVECS="10"
+NUM_EVECS="100"
 
 # Build the Jacobian
-jid1=$(sbatch --array=1-12 build_k_monthly.sh ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIR} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
+jid1=$(sbatch --array=1-12 build_k_monthly.sh ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 
 # Calculate the prior preconditioned Hessian
 jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 generate_pph.sh "1" ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
