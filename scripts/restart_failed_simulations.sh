@@ -1,5 +1,5 @@
 # Boolean options
-RestartProcesses=true
+RestartProcesses=false
 
 # Directories
 jac_dir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs"
@@ -8,7 +8,7 @@ inv_dir="/n/home04/hnesser/TROPOMI_inversion"
 # Set up
 cd $jac_dir
 
-for x in $(seq 11 112);
+for x in $(seq 113 434);
 do
 
 if [ $x -lt 10 ]; then
