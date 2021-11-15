@@ -36,4 +36,4 @@ python -u ${python_dir}/python/generate_evecs.py ${@}
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
-rm -rf ${DATA_DIR}dask-worker-space
+rm -rf ${DATA_DIR}/dask-worker-space
