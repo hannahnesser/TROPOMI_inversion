@@ -29,7 +29,7 @@ source activate ~/python/miniconda/envs/TROPOMI_inversion
 
 echo "Activated ${CONDA_PREFIX}"
 
-rm -rf ${DATA_DIR}dask-worker-space-${MONTH}
+rm -rf ${DATA_DIR}/dask-worker-space-${MONTH}
 
 ## -------------------------------------------------------------------------##
 ## Run the script
@@ -42,4 +42,4 @@ python -u ${python_dir}/python/generate_pph.py ${MONTH} ${@}
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
-rm -rf ${DATA_DIR}dask-worker-space-${MONTH}
+rm -rf ${DATA_DIR}/dask-worker-space-${MONTH}
