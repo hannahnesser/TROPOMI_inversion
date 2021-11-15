@@ -6,7 +6,7 @@
 #SBATCH -N 1
 #SBATCH -p huce_intel
 #SBATCH --mem 45000
-#SBATCH -t 0-06:00
+#SBATCH -t 0-10:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=hnesser@g.harvard.edu
 
@@ -17,6 +17,7 @@
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 MONTH="${SLURM_ARRAY_TASK_ID}"
+DATA_DIR=${2}
 
 ## -------------------------------------------------------------------------##
 ## Load and prepare the environment
