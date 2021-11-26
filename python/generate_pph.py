@@ -41,7 +41,7 @@ if __name__ == '__main__':
     i0 = 0
     print(f'{"i0": >22}{"i1": >11}{"n": >11}')
     for m in range(1, month+1):
-        k_m = gc.read_file(f'{data_dir}/k0_m{m:02d}.nc')
+        k_m = gc.read_file(f'{data_dir}/k{niter}_m{m:02d}.nc')
         i1 = i0 + k_m.shape[0]
         print(f'Month {m:2d} : {i0:11d}{i1:11d}{(i1-i0):11d}')
 
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     ## Generate the prior pre-conditioned Hessian for that month
     ## ---------------------------------------------------------------------##
     # Load k_m
-    k_m = gc.read_file(f'{data_dir}/k0_m{month:02d}.nc', chunks=chunks)
+    k_m = gc.read_file(f'{data_dir}/k{niter}_m{month:02d}.nc', chunks=chunks)
 
     # Calculate the monthly prior pre-conditioned Hessian
     sasqrtkt = k_m*(sa**0.5)
