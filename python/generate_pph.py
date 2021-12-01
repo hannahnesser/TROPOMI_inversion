@@ -37,16 +37,29 @@ if __name__ == '__main__':
     # Observational error
     so = gc.read_file(f'{data_dir}/so.nc')
 
+    # Observation mask
+    obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
+
     # Get the indices for the month using generic chunks
     i0 = 0
-    print(f'{"i0": >22}{"i1": >11}{"n": >11}')
+    count = 0
+    print(f'{"i0": >22}{"i1": >11}{"n": >11}{"filter":>11}')
     for m in range(1, month+1):
+        # Read/subset files
         k_m = gc.read_file(f'{data_dir}/k{niter}_m{m:02d}.nc')
-        i1 = i0 + k_m.shape[0]
-        print(f'Month {m:2d} : {i0:11d}{i1:11d}{(i1-i0):11d}')
+        of_m = obs_filter[obs_filter['MONTH'] == m]['FILTER'].sum()
 
+        # Update indices
+        i1 = i0 + k_m.shape[0]
+
+        # Print information
+        print(f'Month {m:2d} : {i0:11d}{i1:11d}{(i1-i0):11d}{of_m:11d}')
+
+        count += (i1 - i0)
         if m != month:
             i0 = i1
+
+    print(count)
 
     # Subset so
     so_m = so[i0:i1]

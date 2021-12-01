@@ -24,7 +24,7 @@ if __name__ == '__main__':
         month = 1
         prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
         perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_NNNN'
-        n_perturbation_dirs = 100
+        n_perturbation_dirs = 434
         data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
         code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
@@ -106,6 +106,8 @@ if __name__ == '__main__':
     # Make a monthly reduced-dimension Jacobian (nobs x npert)
     kw_m = np.array([]).reshape(prior.shape[0], 0)
     for p in perturbation_dirs:
+        print(p)
+
         # Load files
         pert_files = glob.glob(f'{p}/ProcessedDir/{s.year:04d}{month:02d}??_GCtoTROPOMI.pkl')
         pert_files.sort()
