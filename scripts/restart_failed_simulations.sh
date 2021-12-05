@@ -1,14 +1,15 @@
-# Boolean options
-RestartProcesses=false
+# Input options
+RestartProcesses=${1}
+Min=${2}
+Max=${3}
 
 # Directories
 jac_dir="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs"
-inv_dir="/n/home04/hnesser/TROPOMI_inversion"
 
 # Set up
 cd $jac_dir
 
-for x in $(seq 113 434);
+for x in $(seq ${Min} ${Max});
 do
 
 if [ $x -lt 10 ]; then
