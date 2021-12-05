@@ -88,7 +88,6 @@ if __name__ == '__main__':
     cluster = LocalCluster(n_workers=n_workers,
                            threads_per_worker=threads_per_worker)
     client = Client(cluster)
-    print(client)
 
     # Set chunk size.
     # We take the squareroot of the max chunk size and scale it down by 5
@@ -96,8 +95,6 @@ if __name__ == '__main__':
     nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
     nobs_chunk = 4e4 # int(max_chunk_size/nstate_chunk/5)
     chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
-    print('State vector chunks : ', nstate_chunk)
-    print('Obs vector chunks   : ', nobs_chunk)
 
     ## ---------------------------------------------------------------------##
     ## Generate the prior pre-conditioned Hessian for that month
@@ -107,7 +104,6 @@ if __name__ == '__main__':
 
     # Initialize our loop
     i = int(0)
-    count = 0
     n = 5e4
     pph_m = xr.DataArray(np.zeros((nstate, nstate)),
                          dims=['nstate_0', 'nstate_1'],
@@ -128,10 +124,10 @@ if __name__ == '__main__':
         pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
         # Persist
+        print('Persisting the prior pre-conditioned Hessian.')
         pph_i = pph_i.persist()
         progress(pph_i)
-        print('Prior-pre-conditioned Hessian calculated.')
-        pph_m += pph_i
+        pph_m = pph_m + pph_i
 
         # Then save out part of what we need for the posterior solution
         pre_xhat_i = da.tensordot(sasqrt_kt_i.T/so_i, ydiff_i, axes=(1, 0))
@@ -139,14 +135,13 @@ if __name__ == '__main__':
                                   name=f'pre_xhat{niter}_m{month:02d}')
 
         # Persist
-        sasqrt_kt_soinv_ydiff_m = sasqrt_kt_soinv_ydiff_m.persist()
-        progress(sasqrt_kt_soinv_ydiff_m)
-        print('Pre-xhat calculated.')
-        pre_xhat_m += pre_xhat_i
+        print('Persisting the pre-xhat calculation.')
+        pre_xhat_i = pre_xhat_i.persist()
+        progress(pre_xhat_i)
+        pre_xhat_m = pre_xhat_m + pre_xhat_i
 
         # Step up
-        count += 1
-        i += n
+        i = int(i + n)
 
     # Save out
     start_time = time.time()
