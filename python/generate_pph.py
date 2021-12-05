@@ -1,10 +1,13 @@
 if __name__ == '__main__':
-    import sys
     import time
+    start_time_global = time.time()
+
+    import sys
     import xarray as xr
     import dask.array as da
     import numpy as np
     import pandas as pd
+    import math
 
     ## ---------------------------------------------------------------------##
     ## Set user preferences
@@ -111,7 +114,9 @@ if __name__ == '__main__':
                          name=f'pph{niter}_m{month:02d}')
     pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
                               name=f'pre_xhat{niter}_m{month:02d}')
+    print(f'Iterating through {(math.ceil(nobs/n))} chunks.')
     while i <= nobs:
+        print('-'*75)
         # Subset the Jacobian and observational error
         k_i = k_m[i:(i + int(n)), :]
         so_i = so_m[i:(i + int(n))]
@@ -128,6 +133,7 @@ if __name__ == '__main__':
         print('Persisting the prior pre-conditioned Hessian.')
         start_time = time.time()
         pph_i = pph_i.persist()
+        progress(pph_i)
         pph_i.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}_{count:d}.nc')
         active_time = (time.time() - start_time)/60
         print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
@@ -150,6 +156,7 @@ if __name__ == '__main__':
         count += 1
 
     # Now sum up the component parts
+    print('-'*75)
     client.restart()
     pph_m = xr.DataArray(np.zeros((nstate, nstate)),
                          dims=['nstate_0', 'nstate_1'],
@@ -174,12 +181,14 @@ if __name__ == '__main__':
     print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
 
     start_time = time.time()
-    pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}.nc')
+    np.save(f'{data_dir}/pre_xhat{niter}_m{month:02d}.npy', pre_xhat_m)
     active_time = (time.time() - start_time)/60
     print(f'xhat preparation for month {month} completed ({active_time} min).')
 
     # Exit
-    print('Code Complete.')
+    print('-'*75)
+    active_time_global = (time.time() - start_time_global)/60
+    print(f'Code Complete ({active_time_global} min).')
     print('-'*75)
     client.shutdown()
     sys.exit()
