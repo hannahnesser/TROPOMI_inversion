@@ -124,32 +124,26 @@ if __name__ == '__main__':
                              name=f'pph{niter}_m{month:02d}')
         pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
-        # Persist
+        # Persist and save
         print('Persisting the prior pre-conditioned Hessian.')
-        pph_i = pph_i.persist()
-        progress(pph_i)
-
-        # Save out
         start_time = time.time()
+        pph_i = pph_i.persist()
         pph_i.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}_{count:d}.nc')
         active_time = (time.time() - start_time)/60
-        print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
+        print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
         # Then save out part of what we need for the posterior solution
         pre_xhat_i = da.tensordot(sasqrt_kt_i.T/so_i, ydiff_i, axes=(1, 0))
         pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
                                   name=f'pre_xhat{niter}_m{month:02d}')
 
-        # Persist
+        # Persist and save
         print('Persisting the pre-xhat calculation.')
-        pre_xhat_i = pre_xhat_i.persist()
-        progress(pre_xhat_i)
-
-        # Save out
         start_time = time.time()
+        pre_xhat_i = pre_xhat_i.persist()
         pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:d}.nc')
         active_time = (time.time() - start_time)/60
-        print(f'xhat preparation for month {month} completed ({active_time} min).')
+        print(f'xhat preparation {count} saved ({active_time} min).')
 
         # Step up
         i = int(i + n)
@@ -164,8 +158,8 @@ if __name__ == '__main__':
                               name=f'pre_xhat{niter}_m{month:02d}')
     for i in range(count):
         print(f'Loading count {i}.')
-        temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}_{count:d}.nc')
-        temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:d}.nc')
+        temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}_{i:d}.nc')
+        temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{i:d}.nc')
         pph_m += temp1
         pre_xhat_m += temp2
 
