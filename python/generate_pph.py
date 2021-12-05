@@ -48,7 +48,7 @@ if __name__ == '__main__':
     ydiff = y - ya
 
     # Observation mask
-    obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
+    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{niter}.csv', header=0)
 
     # Get the indices for the month using generic chunks
     i0 = 0
