@@ -105,13 +105,14 @@ if __name__ == '__main__':
     # Load k_m
     k_m = gc.read_file(f'{data_dir}/k{niter}_m{month:02d}.nc', chunks=chunks)
 
+    # Initialize our loop
     i = int(0)
     count = 0
     n = 5e4
     pph_m = xr.DataArray(np.zeros((nstate, nstate)),
                          dims=['nstate_0', 'nstate_1'],
                          name=f'pph{niter}_m{month:02d}')
-    pre_xhat_m = xr.DataArray(np.zeros((nstate, nstate)), dims=['nstate'],
+    pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
                               name=f'pre_xhat{niter}_m{month:02d}')
     while i <= nobs:
         # Subset the Jacobian and observational error
