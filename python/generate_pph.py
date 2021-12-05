@@ -104,6 +104,7 @@ if __name__ == '__main__':
 
     # Initialize our loop
     i = int(0)
+    count = 0
     n = 5e4
     pph_m = xr.DataArray(np.zeros((nstate, nstate)),
                          dims=['nstate_0', 'nstate_1'],
@@ -127,7 +128,12 @@ if __name__ == '__main__':
         print('Persisting the prior pre-conditioned Hessian.')
         pph_i = pph_i.persist()
         progress(pph_i)
-        pph_m = pph_m + pph_i
+
+        # Save out
+        start_time = time.time()
+        pph_i.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}_{count:d}.nc')
+        active_time = (time.time() - start_time)/60
+        print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
 
         # Then save out part of what we need for the posterior solution
         pre_xhat_i = da.tensordot(sasqrt_kt_i.T/so_i, ydiff_i, axes=(1, 0))
@@ -138,10 +144,34 @@ if __name__ == '__main__':
         print('Persisting the pre-xhat calculation.')
         pre_xhat_i = pre_xhat_i.persist()
         progress(pre_xhat_i)
-        pre_xhat_m = pre_xhat_m + pre_xhat_i
+
+        # Save out
+        start_time = time.time()
+        pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:d}.nc')
+        active_time = (time.time() - start_time)/60
+        print(f'xhat preparation for month {month} completed ({active_time} min).')
 
         # Step up
         i = int(i + n)
+        count += 1
+
+    # Now sum up the component parts
+    client.restart()
+    pph_m = xr.DataArray(np.zeros((nstate, nstate)),
+                         dims=['nstate_0', 'nstate_1'],
+                         name=f'pph{niter}_m{month:02d}')
+    pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
+                              name=f'pre_xhat{niter}_m{month:02d}')
+    for i in range(count):
+        print(f'Loading count {i}.')
+        temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}_{count:d}.nc')
+        temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:d}.nc')
+        pph_m += temp1
+        pre_xhat_m += temp2
+
+    # Load into memory
+    pph_m = pph_m.compute()
+    pre_xhat_m = np.array(pre_xhat_m.compute().values)
 
     # Save out
     start_time = time.time()
