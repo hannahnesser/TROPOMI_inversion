@@ -15,11 +15,12 @@ if __name__ == '__main__':
     run_with_script = True
     if run_with_script:
         month = int(sys.argv[1])
-        prior_dir = sys.argv[2]
-        perturbation_dirs = sys.argv[3]
-        n_perturbation_dirs = int(sys.argv[4])
-        data_dir = sys.argv[5]
-        code_dir = sys.argv[6]
+        niter = sys.argv[2]
+        prior_dir = sys.argv[3]
+        perturbation_dirs = sys.argv[4]
+        n_perturbation_dirs = int(sys.argv[5])
+        data_dir = sys.argv[6]
+        code_dir = sys.argv[7]
     else:
         month = 1
         prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
@@ -46,7 +47,7 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load the observation filter
     ## ---------------------------------------------------------------------##
-    obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
+    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{niter}.csv', header=0)
     obs_filter = obs_filter[obs_filter['MONTH'] == month]['FILTER'].values
 
     ## ---------------------------------------------------------------------##
