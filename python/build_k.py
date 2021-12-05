@@ -137,6 +137,10 @@ if __name__ == '__main__':
     kpi_m = kpi_m.persist()
     progress(kpi_m)
 
+    # Print out some information
+    print(f'Maximum: {kpi_m.max().values}')
+    print(f'Minimum: {kpi_m.min().values}')
+
     # Save out
     start_time = time.time()
     kpi_m.to_netcdf(f'{data_dir}/k1_m{month:02d}.nc')
