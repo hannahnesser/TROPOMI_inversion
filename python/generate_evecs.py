@@ -23,7 +23,7 @@ if __name__ == '__main__':
         output_dir = sys.argv[4]
         code_dir = sys.argv[5]
     else:
-        niter = 0
+        niter = 1
         n_evecs = int(10)
         base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
         code_dir = f'{base_dir}python/'
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # User preferences
     calculate_evecs = True
     format_evecs = True
-    calculate_avker = True
+    solve_inversion = True
     pct_of_info = [50, 90, 95, 99, 99.9]
     snr = None
     rank = None
@@ -85,16 +85,22 @@ if __name__ == '__main__':
     ## Calculate the eigenvectors
     ## ---------------------------------------------------------------------##
     if calculate_evecs:
-        # Sum together the monthly PPHs
+        # Sum together the monthly PPHs and the pre-xhat calculation
         pph = xr.DataArray(np.zeros((nstate, nstate)),
                            dims=['nstate_0', 'nstate_1'], name=f'pph{niter}')
+        pre_xhat = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
+                                name=f'pre_xhat{niter}')
         for m in s.months:
             print(f'Loading month {m}.')
-            temp = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}.nc')
-            pph += temp
+            temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}.nc')
+            temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{month:02d}')
+            # print(m, temp1.min(), temp1.max())
+            pph += temp1
+            pre_xhat += temp2
 
-        # Load pph into memory
+        # Load into memory
         pph = pph.compute()
+        pre_xhat = np.array(pre_xhat.compute().values)
 
         # Calculate the eigenvectors (this is the time consuming step)
         evals_h, evecs = eigh(pph)
@@ -125,6 +131,7 @@ if __name__ == '__main__':
         reduction = evecs.T * (1/sa**0.5)
 
         # Save out the matrices
+        np.save(f'{data_dir}/pre_xhat{niter}.npy', pre_xhat)
         np.save(f'{data_dir}/evecs{niter}.npy', evecs)
         np.save(f'{data_dir}/evals_h{niter}.npy', evals_h)
         np.save(f'{data_dir}/evals_q{niter}.npy', evals_q)
@@ -134,6 +141,7 @@ if __name__ == '__main__':
         print('Eigendecomposition complete.\n')
 
     else:
+        pre_xhat = np.load(f'{data_dir}/pre_xhat{niter}.npy')
         evals_h = np.load(f'{data_dir}/evals_h{niter}.npy')
         evecs = np.load(f'{data_dir}/evecs{niter}.npy')
         prolongation = np.load(f'{data_dir}/prolongation{niter}.npy')
@@ -183,42 +191,46 @@ if __name__ == '__main__':
             gc.save_HEMCO_netcdf(pert, f'{output_dir}/inversion_data/eigenvectors{niter}', f'evec_pert_{(i+1):04d}.nc')
             print(f'Saved eigenvector {(i+1)} : {output_dir}/inversion_data/eigenvectors{niter}/evec_pert_{(i+1):04d}.nc')
 
-    # ## ---------------------------------------------------------------------##
-    # ## Calculate the averaging kernel
-    # ## ---------------------------------------------------------------------##
-    # if calculate_avker:
-    #     print('Calculating averaging kernel.')
-    #     for p in pct_of_info:
-    #         print(f'Using {p} percent of information content.')
-    #         # Figure out the fraction of information content
-    #         # if sum(x is not None for x in [p, snr, rank]) > 1:
-    #         #     raise AttributeError('Conflicting rank arguments provided.')
-    #         # elif sum(x is not None for x in [p, snr, rank]) == 0:
-    #         #     raise AttributeError('Insufficient rank arguments provided.')
-    #         # elif p is not None:
-    #         rank = ip.get_rank(evals_q=evals_q, pct_of_info=p/100)
-    #         # diff = np.abs(DOFS_frac - (p/100))
-    #         # rank = np.argwhere(diff == np.min(diff))[0][0]
-    #         suffix = f'_poi{p}'
-    #         # elif snr is not None:
-    #         #     evals_h[evals_h < 0] = 0
-    #         #     diff = np.abs(evals_h**0.5 - snr)
-    #         #     rank = np.argwhere(diff == np.min(diff))[0][0]
-    #         #     suffix = f'_snr{snr}'
-    #         # else:
-    #         #     suffix = f'_rank{rank}'
-    #         # print(f'Rank = {rank}')
+    ## ---------------------------------------------------------------------##
+    ## Solve the inversion
+    ## ---------------------------------------------------------------------##
+    if solve_inversion:
+        print('Calculating averaging kernel.')
+        for p in pct_of_info:
+            print(f'Using {p} percent of information content.')
+            # Figure out the fraction of information content
+            # if sum(x is not None for x in [p, snr, rank]) > 1:
+            #     raise AttributeError('Conflicting rank arguments provided.')
+            # elif sum(x is not None for x in [p, snr, rank]) == 0:
+            #     raise AttributeError('Insufficient rank arguments provided.')
+            # elif p is not None:
+            rank = ip.get_rank(evals_q=evals_q, pct_of_info=p/100)
+            # diff = np.abs(DOFS_frac - (p/100))
+            # rank = np.argwhere(diff == np.min(diff))[0][0]
+            suffix = f'_poi{p}'
+            # elif snr is not None:
+            #     evals_h[evals_h < 0] = 0
+            #     diff = np.abs(evals_h**0.5 - snr)
+            #     rank = np.argwhere(diff == np.min(diff))[0][0]
+            #     suffix = f'_snr{snr}'
+            # else:
+            #     suffix = f'_rank{rank}'
+            # print(f'Rank = {rank}')
 
-    #         # Subset the evals and evecs
-    #         evals_q_sub = evals_q[:rank]
-    #         evecs_sub = evecs[:, :rank]
+            # Subset the evals and evecs
+            evals_h_sub = evals_h[:rank]
+            evals_q_sub = evals_q[:rank]
+            evecs_sub = evecs[:, :rank]
 
-    #         # Calculate the posterior and averaging kernel
-    #         # (we can leave off Sa when it's constant)
-    #         # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
-    #         a = (evecs_sub*evals_q_sub) @ evecs_sub.T
+            # Calculate the posterior and averaging kernel
+            # (we can leave off Sa when it's constant)
+            # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
+            a = (evecs_sub*evals_q_sub) @ evecs_sub.T
+            xhat = (evecs_sub*sa*(1/(1+evals_h_sub))) @ evecs_sub.T @ pre_xhat
 
-    #         # Save the result
-    #         np.save(f'{data_dir}/a{niter}{suffix}.npy', a)
-    #         np.save(f'{data_dir}/dofs{niter}{suffix}.npy', np.diagonal(a))
+            # Save the result
+            np.save(f'{data_dir}/a{niter}{suffix}.npy', a)
+            np.save(f'{data_dir}/dofs{niter}{suffix}.npy', np.diagonal(a))
+            np.save(f'{data_dir}/xhat{niter}{suffix}.npy', xhat)
+
     print('CODE COMPLETE')
