@@ -108,6 +108,11 @@ if __name__ == '__main__':
     i = int(0)
     count = 0
     n = 5e4
+    pph_m = xr.DataArray(np.zeros((nstate, nstate)),
+                         dims=['nstate_0', 'nstate_1'],
+                         name=f'pph{niter}_m{month:02d}')
+    pre_xhat_m = xr.DataArray(np.zeros((nstate, nstate)), dims=['nstate'],
+                              name=f'pre_xhat{niter}_m{month:02d}')
     while i <= nobs:
         # Subset the Jacobian and observational error
         k_i = k_m[i:(i + int(n)), :]
@@ -125,33 +130,33 @@ if __name__ == '__main__':
         pph_i = pph_i.persist()
         progress(pph_i)
         print('Prior-pre-conditioned Hessian calculated.')
-
-        # Save out
-        start_time = time.time()
-        pph_i.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}_{count:02d}.nc')
-        active_time = (time.time() - start_time)/60
-        print(f'Prior-pre-conditioned Hessian {count} for month {month} saved ({active_time} min).')
+        pph_m += pph_i
 
         # Then save out part of what we need for the posterior solution
-        sasqrt_kt_soinv_ydiff_i = da.tensordot(sasqrt_kt_i.T/so_i, ydiff_i,
-                                               axes=(1, 0))
-        sasqrt_kt_soinv_ydiff_i = xr.DataArray(sasqrt_kt_soinv_ydiff_i,
-                                               dims=['nstate'],
-                                               name=f'pre_xhat{niter}_m{month:02d}')
+        pre_xhat_i = da.tensordot(sasqrt_kt_i.T/so_i, ydiff_i, axes=(1, 0))
+        pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
+                                  name=f'pre_xhat{niter}_m{month:02d}')
 
         # Persist
         sasqrt_kt_soinv_ydiff_m = sasqrt_kt_soinv_ydiff_m.persist()
         progress(sasqrt_kt_soinv_ydiff_m)
-
-        # Save out
-        start_time = time.time()
-        sasqrt_kt_soinv_ydiff_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:02d}.nc')
-        active_time = (time.time() - start_time)/60
-        print(f'xhat preparation {count} for month {month} completed ({active_time} min).')
+        print('Pre-xhat calculated.')
+        pre_xhat_m += pre_xhat_i
 
         # Step up
         count += 1
         i += n
+
+    # Save out
+    start_time = time.time()
+    pph_m.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}.nc')
+    active_time = (time.time() - start_time)/60
+    print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
+
+    start_time = time.time()
+    pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}.nc')
+    active_time = (time.time() - start_time)/60
+    print(f'xhat preparation for month {month} completed ({active_time} min).')
 
     # Exit
     print('Code Complete.')
