@@ -3,6 +3,8 @@ if __name__ == '__main__':
     start_time_global = time.time()
 
     import sys
+    from os import remove
+    import glob
     import xarray as xr
     import dask.array as da
     import numpy as np
@@ -165,7 +167,7 @@ if __name__ == '__main__':
                               name=f'pre_xhat{niter}_m{month:02d}')
     for i in range(count):
         print(f'Loading count {i}.')
-        temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}_{i:d}.nc')
+        temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{month:02d}_{i:d}.nc')
         temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{i:d}.nc')
         pph_m += temp1
         pre_xhat_m += temp2
@@ -184,6 +186,12 @@ if __name__ == '__main__':
     np.save(f'{data_dir}/pre_xhat{niter}_m{month:02d}.npy', pre_xhat_m)
     active_time = (time.time() - start_time)/60
     print(f'xhat preparation for month {month} completed ({active_time} min).')
+
+    # Clean up
+    files = glob.glob(f'{data_dir}/pph{niter}_m{month:02d}_*.nc')
+    files += glob.glob(f'{data_dir}/pre_xhat{niter}_m{month:02d}_*.nc')
+    for f in files:
+       remove(f)
 
     # Exit
     print('-'*75)
