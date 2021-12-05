@@ -131,6 +131,7 @@ if __name__ == '__main__':
         reduction = evecs.T * (1/sa**0.5)
 
         # Save out the matrices
+        pph.to_netcdf(f'{data_dir}/pph{niter}.nc')
         np.save(f'{data_dir}/pre_xhat{niter}.npy', pre_xhat)
         np.save(f'{data_dir}/evecs{niter}.npy', evecs)
         np.save(f'{data_dir}/evals_h{niter}.npy', evals_h)
