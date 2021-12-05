@@ -93,7 +93,7 @@ if __name__ == '__main__':
         for m in s.months:
             print(f'Loading month {m}.')
             temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}.nc')
-            temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{month:02d}')
+            temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{month:02d}.nc')
             # print(m, temp1.min(), temp1.max())
             pph += temp1
             pre_xhat += temp2
