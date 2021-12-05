@@ -37,6 +37,11 @@ if __name__ == '__main__':
     # Observational error
     so = gc.read_file(f'{data_dir}/so.nc')
 
+    # Observations
+    y = gc.read_file(f'{data_dir}/y.nc')
+    ya = gc.read_file(f'{data_dir}/ya.nc')
+    ydiff = y - ya
+
     # Observation mask
     obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
 
@@ -59,10 +64,9 @@ if __name__ == '__main__':
         if m != month:
             i0 = i1
 
-    print(count)
-
     # Subset so
     so_m = so[i0:i1]
+    ydiff_m = ydiff[i0:i1]
     nobs = so_m.shape[0]
 
     ## -------------------------------------------------------------------- ##
@@ -78,11 +82,7 @@ if __name__ == '__main__':
                      'temporary_directory' : f'{data_dir}/dask-worker-space-{month}'})
 
     # Open cluster and client
-    if nobs > 4e5:
-        n_workers = 1
-    else:
-        n_workers = 2
-
+    n_workers = 4
     threads_per_worker = 2
 
     cluster = LocalCluster(n_workers=n_workers,
@@ -90,10 +90,7 @@ if __name__ == '__main__':
     client = Client(cluster)
     print(client)
 
-    # We now calculate chunk size.
-    # n_threads = n_workers*threads_per_worker
-    # max_chunk_size = gc.calculate_chunk_size(available_memory_GB,
-    #                                          n_threads=n_threads)
+    # Set chunk size.
     # We take the squareroot of the max chunk size and scale it down by 5
     # to be safe. It's a bit unclear why this works best in tests.
     nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
@@ -108,26 +105,91 @@ if __name__ == '__main__':
     # Load k_m
     k_m = gc.read_file(f'{data_dir}/k{niter}_m{month:02d}.nc', chunks=chunks)
 
-    # Calculate the monthly prior pre-conditioned Hessian
-    sasqrtkt = k_m*(sa**0.5)
-    pph_m = da.tensordot(sasqrtkt.T/so_m, sasqrtkt, axes=(1, 0))
-    pph_m = xr.DataArray(pph_m, dims=['nstate_0', 'nstate_1'],
-                         name=f'pph{niter}_m{month:02d}')
-    pph_m = pph_m.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
-    print('Prior-pre-conditioned Hessian calculated.')
+    i = int(0)
+    count = 0
+    n = 5e4
+    while i <= nobs:
+        # Subset the Jacobian and observational error
+        k_i = k_m[i:(i + int(n)), :]
+        so_i = so_m[i:(i + int(n))]
+        ydiff_i = ydiff_m[i:(i + int(n))]
 
-    # Persist
-    pph_m = pph_m.persist()
-    progress(pph_m)
+        # Calculate the PPH for that subset
+        sasqrt_kt_i = k_i*(sa**0.5)
+        pph_i = da.tensordot(sasqrt_kt_i.T/so_i, sasqrt_kt_i, axes=(1, 0))
+        pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
+                             name=f'pph{niter}_m{month:02d}')
+        pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
-    # Save out
-    start_time = time.time()
-    pph_m.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}.nc')
-    active_time = (time.time() - start_time)/60
-    print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
+        # Persist
+        pph_i = pph_i.persist()
+        progress(pph_i)
+        print('Prior-pre-conditioned Hessian calculated.')
+
+        # Save out
+        start_time = time.time()
+        pph_i.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}_{count:02d}.nc')
+        active_time = (time.time() - start_time)/60
+        print(f'Prior-pre-conditioned Hessian {count} for month {month} saved ({active_time} min).')
+
+        # Then save out part of what we need for the posterior solution
+        sasqrt_kt_soinv_ydiff_i = da.tensordot(sasqrt_kt_i.T/so_i, ydiff_i,
+                                               axes=(1, 0))
+        sasqrt_kt_soinv_ydiff_i = xr.DataArray(sasqrt_kt_soinv_ydiff_i,
+                                               dims=['nstate'],
+                                               name=f'pre_xhat{niter}_m{month:02d}')
+
+        # Persist
+        sasqrt_kt_soinv_ydiff_m = sasqrt_kt_soinv_ydiff_m.persist()
+        progress(sasqrt_kt_soinv_ydiff_m)
+
+        # Save out
+        start_time = time.time()
+        sasqrt_kt_soinv_ydiff_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:02d}.nc')
+        active_time = (time.time() - start_time)/60
+        print(f'xhat preparation {count} for month {month} completed ({active_time} min).')
+
+        # Step up
+        count += 1
+        i += n
 
     # Exit
     print('Code Complete.')
     print('-'*75)
     client.shutdown()
     sys.exit()
+
+    # # Calculate the monthly prior pre-conditioned Hessian
+    # sasqrt_kt = k_m*(sa**0.5)
+    # pph_m = da.tensordot(sasqrt_kt.T/so_m, sasqrt_kt, axes=(1, 0))
+    # pph_m = xr.DataArray(pph_m, dims=['nstate_0', 'nstate_1'],
+    #                      name=f'pph{niter}_m{month:02d}')
+    # pph_m = pph_m.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
+    # print('Prior-pre-conditioned Hessian calculated.')
+
+    # # Persist
+    # pph_m = pph_m.persist()
+    # progress(pph_m)
+
+    # # Save out
+    # start_time = time.time()
+    # pph_m.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}.nc')
+    # active_time = (time.time() - start_time)/60
+    # print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
+
+    # # Then save out part of what we need for the posterior solution
+    # sasqrt_kt_soinv_ydiff_m = da.tensordot(sasqrt_kt.T/so_m, ydiff_m,
+    #                                        axes=(1, 0))
+    # sasqrt_kt_soinv_ydiff_m = xr.DataArray(sasqrt_kt_soinv_ydiff_m,
+    #                                        dims=['nstate'],
+    #                                        name=f'pre_xhat{niter}_m{month:02d}')
+
+    # # Persist
+    # sasqrt_kt_soinv_ydiff_m = sasqrt_kt_soinv_ydiff_m.persist()
+    # progress(sasqrt_kt_soinv_ydiff_m)
+
+    # # Save out
+    # start_time = time.time()
+    # sasqrt_kt_soinv_ydiff_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}.nc')
+    # active_time = (time.time() - start_time)/60
+    # print(f'xhat preparation for month {month} completed ({active_time} min).')
