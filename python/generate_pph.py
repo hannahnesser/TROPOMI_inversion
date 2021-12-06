@@ -39,12 +39,18 @@ if __name__ == '__main__':
     sa = gc.read_file(f'{data_dir}/sa.nc')
     nstate = sa.shape[0]
 
+    # Observational suffix
+    if niter == '0':
+        obs_suffix = '0'
+    else:
+        obs_suffix = ''
+
     # Observational error
-    so = gc.read_file(f'{data_dir}/so.nc')
+    so = gc.read_file(f'{data_dir}/so{obs_suffix}.nc')
 
     # Observations
-    y = gc.read_file(f'{data_dir}/y.nc')
-    ya = gc.read_file(f'{data_dir}/ya.nc')
+    y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc')
+    ya = gc.read_file(f'{data_dir}/ya{obs_suffix}.nc')
     ydiff = y - ya
 
     # Observation mask
@@ -119,6 +125,7 @@ if __name__ == '__main__':
     print(f'Iterating through {(math.ceil(nobs/n))} chunks.')
     while i <= nobs:
         print('-'*75)
+        print(f'Chunk {count}')
         # Subset the Jacobian and observational error
         k_i = k_m[i:(i + int(n)), :]
         so_i = so_m[i:(i + int(n))]
