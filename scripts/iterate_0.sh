@@ -23,7 +23,7 @@ jid2=$(sbatch --dependency=afterok:${jid1##* } generate_k0_monthly.sh ${LONG_TER
 # Command structure:
 # sbatch generate_k0_nstate data_dir code_dir
 jid3=$(sbatch --dependency=afterok:${jid2##* } --array=1-12 generate_pph.sh "0" ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
-# sbatch --array=1-12 generate_pph.sh ${SHORT_TERM_DATA_DIR} ${CODE_DIR}
+# sbatch --array=1-12 generate_pph.sh "0" ${SHORT_TERM_DATA_DIR} ${CODE_DIR}
 
 # Fourth and finally, calculate the eigenvectors
 jid4=$(sbatch --dependency=afterok:${jid3##* } generate_evecs.sh "0" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR})
