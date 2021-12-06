@@ -164,6 +164,9 @@ if __name__ == '__main__':
         i = int(i + n)
         count += 1
 
+        # Restart the client
+        client.restart()
+
     # Now sum up the component parts
     print('-'*75)
     client.restart()
