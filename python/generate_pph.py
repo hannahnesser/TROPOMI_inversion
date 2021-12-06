@@ -184,7 +184,7 @@ if __name__ == '__main__':
 
     # Load into memory
     pph_m = pph_m.compute()
-    pre_xhat_m = np.array(pre_xhat_m.compute().values)
+    pre_xhat_m = pre_xhat_m.compute().values
 
     # Save out
     start_time = time.time()
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
 
     start_time = time.time()
-    np.save(f'{data_dir}/pre_xhat{niter}_m{month:02d}.npy', pre_xhat_m)
+    pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}.npy')
     active_time = (time.time() - start_time)/60
     print(f'xhat preparation for month {month} completed ({active_time} min).')
 
