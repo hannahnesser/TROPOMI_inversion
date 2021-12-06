@@ -47,7 +47,11 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load the observation filter
     ## ---------------------------------------------------------------------##
-    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{niter}.csv', header=0)
+    if niter == '0':
+        obs_filter = pd.read_csv(f'{data_dir}/obs_filter0.csv', header=0)
+    else:
+        obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
+
     obs_filter = obs_filter[obs_filter['MONTH'] == month]['FILTER'].values
 
     ## ---------------------------------------------------------------------##
