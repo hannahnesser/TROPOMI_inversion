@@ -179,7 +179,7 @@ if __name__ == '__main__':
 
     # Load into memory
     pph_m = pph_m.compute()
-    pre_xhat_m = pre_xhat_m.compute().values
+    pre_xhat_m = pre_xhat_m.compute()
 
     # Save out
     start_time = time.time()
