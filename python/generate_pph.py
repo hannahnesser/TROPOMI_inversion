@@ -151,7 +151,7 @@ if __name__ == '__main__':
         print('Persisting the pre-xhat calculation.')
         start_time = time.time()
         pre_xhat_i = pre_xhat_i.persist()
-        pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:d}.nc')
+        pre_xhat_i.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:d}.nc')
         active_time = (time.time() - start_time)/60
         print(f'xhat preparation {count} saved ({active_time} min).')
 
