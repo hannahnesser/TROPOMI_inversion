@@ -142,7 +142,7 @@ if __name__ == '__main__':
         print('Eigendecomposition complete.\n')
 
     else:
-        pre_xhat = np.load(f'{data_dir}/pre_xhat{niter}.nc')
+        pre_xhat = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}.nc')
         evals_h = np.load(f'{data_dir}/evals_h{niter}.npy')
         evecs = np.load(f'{data_dir}/evecs{niter}.npy')
         prolongation = np.load(f'{data_dir}/prolongation{niter}.npy')
