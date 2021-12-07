@@ -93,17 +93,14 @@ if __name__ == '__main__':
         for m in s.months:
             print(f'Loading month {m}.')
             temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}.nc')
-            temp2 = np.load(f'{data_dir}/pre_xhat{niter}_m{m:02d}.npy')
-            # temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{m:02d}.nc')
-            temp2 = xr.DataArray(temp2, dims=['nstate'],
-                                 name=f'pre_xhat{niter}')
+            temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{m:02d}.nc')
             # print(m, temp1.min(), temp1.max())
             pph += temp1
             pre_xhat += temp2
 
         # Load into memory
         pph = pph.compute()
-        pre_xhat = np.array(pre_xhat.compute().values)
+        pre_xhat = pre_xhat.compute()
 
         # Calculate the eigenvectors (this is the time consuming step)
         evals_h, evecs = eigh(pph)
@@ -135,7 +132,7 @@ if __name__ == '__main__':
 
         # Save out the matrices
         pph.to_netcdf(f'{data_dir}/pph{niter}.nc')
-        np.save(f'{data_dir}/pre_xhat{niter}.npy', pre_xhat)
+        pre_xhat.to_netcdf(f'{data_dir}/pre_xhat{niter}.npy')
         np.save(f'{data_dir}/evecs{niter}.npy', evecs)
         np.save(f'{data_dir}/evals_h{niter}.npy', evals_h)
         np.save(f'{data_dir}/evals_q{niter}.npy', evals_q)
@@ -145,7 +142,7 @@ if __name__ == '__main__':
         print('Eigendecomposition complete.\n')
 
     else:
-        pre_xhat = np.load(f'{data_dir}/pre_xhat{niter}.npy')
+        pre_xhat = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}.nc')
         evals_h = np.load(f'{data_dir}/evals_h{niter}.npy')
         evecs = np.load(f'{data_dir}/evecs{niter}.npy')
         prolongation = np.load(f'{data_dir}/prolongation{niter}.npy')
@@ -230,7 +227,7 @@ if __name__ == '__main__':
             # (we can leave off Sa when it's constant)
             # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
             a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-            xhat = (evecs_sub*sa*(1/(1+evals_h_sub))) @ evecs_sub.T @ pre_xhat
+            xhat = (((evecs_sub*sa*(1/(1+evals_h_sub))) @ evecs_sub.T @ pre_xhat.values) + np.ones(pre_xhat.values.shape))
 
             # Save the result
             np.save(f'{data_dir}/a{niter}{suffix}.npy', a)
