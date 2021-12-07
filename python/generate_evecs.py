@@ -205,11 +205,7 @@ if __name__ == '__main__':
             # elif sum(x is not None for x in [p, snr, rank]) == 0:
             #     raise AttributeError('Insufficient rank arguments provided.')
             # elif p is not None:
-            if niter == 1:
-                evals_q_orig = np.load(f'{data_dir}/evals_q0.npy')
-            else:
-                evals_q_orig = evals_q
-
+            evals_q_orig = np.load(f'{data_dir}/evals_q0.npy')
             rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=p/100)
             # diff = np.abs(DOFS_frac - (p/100))
             # rank = np.argwhere(diff == np.min(diff))[0][0]
