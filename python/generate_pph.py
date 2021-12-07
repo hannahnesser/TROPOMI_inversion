@@ -188,7 +188,7 @@ if __name__ == '__main__':
     print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
 
     start_time = time.time()
-    pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}.npy')
+    pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}.nc')
     active_time = (time.time() - start_time)/60
     print(f'xhat preparation for month {month} completed ({active_time} min).')
 
