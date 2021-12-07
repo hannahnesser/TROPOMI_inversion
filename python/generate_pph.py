@@ -54,7 +54,7 @@ if __name__ == '__main__':
     ydiff = y - ya
 
     # Observation mask
-    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{niter}.csv', header=0)
+    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{obs_suffix}.csv', header=0)
 
     # Get the indices for the month using generic chunks
     i0 = 0
@@ -117,11 +117,6 @@ if __name__ == '__main__':
     i = int(0)
     count = 0
     n = 5e4
-    pph_m = xr.DataArray(np.zeros((nstate, nstate)),
-                         dims=['nstate_0', 'nstate_1'],
-                         name=f'pph{niter}_m{month:02d}')
-    pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
-                              name=f'pre_xhat{niter}_m{month:02d}')
     print(f'Iterating through {(math.ceil(nobs/n))} chunks.')
     while i <= nobs:
         print('-'*75)
