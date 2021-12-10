@@ -27,4 +27,4 @@ echo "Activated ${CONDA_PREFIX}"
 ## Run the script
 ## -------------------------------------------------------------------------##
 echo "Initiating script"
-python -u ${CODE_DIR}/TROPOMI_operator.py ${@} $MONTH >> operator_${MONTH}.log
+python -u ${CODE_DIR}/TROPOMI_operator.py ${@} $MONTH
