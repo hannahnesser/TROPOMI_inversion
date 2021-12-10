@@ -31,8 +31,8 @@ if __name__ == '__main__':
 
     # User preferences
     calculate_evecs = False
-    format_evecs = False
-    solve_inversion = True
+    format_evecs = True
+    solve_inversion = False
     pct_of_info = [50, 90, 95, 99, 99.9]
     snr = None
     rank = None
