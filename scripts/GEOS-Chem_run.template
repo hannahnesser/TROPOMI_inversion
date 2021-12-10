@@ -48,7 +48,7 @@ JAC=jacjac
 echo '===> Run ended at' `date` >> $log
 
 #-------------------------------------------------
-# Start post-processing
+# Post-processing
 #-------------------------------------------------
 # If the run succeeded, go on to post-processing
 if grep -q 'E N D   O F   G E O S -- C H E M' "${run_dir}/${run_name}.log"
