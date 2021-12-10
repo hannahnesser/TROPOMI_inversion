@@ -1,7 +1,7 @@
 #!/bin/bash
 
-PRIOR_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final"
-PERT_DIRS="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_NNNN"
+PRIOR_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs0/TROPOMI_inversion_0000_final"
+PERT_DIRS="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs0/TROPOMI_inversion_NNNN"
 NPERT_DIRS=434
 SHORT_TERM_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion"
 LONG_TERM_DATA_DIR="/n/seasasfs02/hnesser/TROPOMI_inversion"
