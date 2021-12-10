@@ -31,11 +31,12 @@ code_dir = sys.argv[1]
 sat_data_dir = sys.argv[2]
 GC_pressure_dir = sys.argv[3]
 GC_ch4_dir = sys.argv[4]
-GC_ch4_halfstep_data_dir = sys.argv[5]
+GC_ch4_halfstep_dir = sys.argv[5]
 output_dir = sys.argv[6]
 jacobian = bool(sys.argv[7])
 MONTHS = [int(sys.argv[8])*4 -3 + i for i in range(4)]
 reprocess = False
+
 # MONTHS = np.arange(1, 13)
 
 # Load custom packages
