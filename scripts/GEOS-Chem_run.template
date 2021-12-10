@@ -51,7 +51,7 @@ echo '===> Run ended at' `date` >> $log
 # Post-processing
 #-------------------------------------------------
 # If the run succeeded, go on to post-processing
-if grep -q 'E N D   O F   G E O S -- C H E M' "${log}"
+if grep -q 'E N D   O F   G E O S -- C H E M' $log
 then
   # Run the TROPOMI operator
   jid1=$(sbatch --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR} ${OUTPUT_DIR} ${JAC})
