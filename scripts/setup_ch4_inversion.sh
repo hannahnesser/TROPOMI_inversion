@@ -65,8 +65,8 @@ RESTART_FILE="/n/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.
 BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
 
 # Jacobian settings
-nPerturbationsMin=111
-nPerturbationsMax=434 #110
+nPerturbationsMin=1
+nPerturbationsMax=100 #110
 pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
@@ -349,7 +349,7 @@ if  "$SetupPosteriorRun"; then
     
     ### Update settings in input.geos
     sed -i -e "s|Do analytical inversion?: T|Do analytical inversion?: F|g" \
-	   -e "s|pertpert|1.0|g" \
+	       -e "s|pertpert|1.0|g" \
            -e "s|clustnumclustnum|0|g" input.geos
 
     ### Create run script from template
