@@ -47,25 +47,20 @@ JAC=jacjac
 # Echo end fin
 echo '===> Run ended at' `date` >> $log
 
-# If the run succeeded, go on to pre-processing
+#-------------------------------------------------
+# Start post-processing
+#-------------------------------------------------
+# If the run succeeded, go on to post-processing
 if grep -q 'E N D   O F   G E O S -- C H E M' "${run_dir}/${run_name}.log"
 then
-  #-------------------------------------------------
-  # Pre-process the GEOS-Chem output
-  #-------------------------------------------------
-  jid1=$(sbatch ${SCRIPT_DIR}/preprocess_GC_output.sh ${CODE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR})
-
-  #-------------------------------------------------
   # Run the TROPOMI operator
-  #-------------------------------------------------
-  jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${OUTPUT_DIR} ${JAC})
+  jid1=$(sbatch --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR} ${OUTPUT_DIR} ${JAC})
+  # python -u ${CODE_DIR}/TROPOMI_operator.py ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR} ${OUTPUT_DIR} ${JAC} >> $log
 
-  #-------------------------------------------------
   # Clean up
-  #-------------------------------------------------
   if [[ ${id##*_} != "0000" ]]
   then
-    jid3=$(sbatch --dependency=afterok:${jid2##* } ${SCRIPT_DIR}/clean_up.sh ${GC_CH4_DIR})
+    sbatch --dependency=afterok:${jid1##* } ${SCRIPT_DIR}/clean_up.sh ${GC_CH4_DIR} ${OUTPUT_DIR}
   fi
 fi
 
