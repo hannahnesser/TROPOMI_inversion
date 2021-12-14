@@ -18,7 +18,7 @@ import glob as glob
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 # sat_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
 # GC_pressure_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
-# GC_ch4_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0010/OutputDir"
+# GC_ch4_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
 # GC_ch4_halfstep_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_halfstep"
 # output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0034/ProcessedDir/"
 # jacobian = True
@@ -214,6 +214,7 @@ def correct_GC(ch4_data, ch4_halfstep_data_dir, date, scale_factor=5):
         # Open the new file (that will replace the problem values)
         new = get_diagnostic(f'{ch4_halfstep_data_dir}/OutputDir',
                              'SpeciesConc', date)['SpeciesConc_CH4']
+        new = gc.subset_data_latlon(new, *s.lats, *s.lons)
 
         # Check for time dimension
         if len(new.time) != 24:
