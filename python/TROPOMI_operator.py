@@ -209,7 +209,7 @@ def correct_GC(ch4_data, ch4_halfstep_data_dir, date, scale_factor=5):
         old = ch4_data.where(diff >=1, drop=True).squeeze()
         for l in old.lev.values:
             old_dat = old.sel(lev=l).values
-            print(l, np.nanmin(old_dat), np.nanmax(old_dat))
+            # print(l, np.nanmin(old_dat), np.nanmax(old_dat))
 
         # Open the new file (that will replace the problem values)
         new = get_diagnostic(f'{ch4_halfstep_data_dir}/OutputDir',
