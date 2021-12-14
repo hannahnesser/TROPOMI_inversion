@@ -16,28 +16,36 @@ import glob as glob
 ## Read in user preferences
 ## -------------------------------------------------------------------------##
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-# sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-# GC_pressure_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
-# GC_ch4_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0034/OutputDir"
+# sat_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
+# GC_pressure_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
+# GC_ch4_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
+# GC_ch4_halfstep_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_halfstep"
 # output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0034/ProcessedDir/"
-# MONTHS = [9, 10, 11, 12]
 # jacobian = True
+# reprocess = True
+# MONTHS = [12]
+# # MONTHS = [9, 10, 11, 12]
+# # jacobian = True
 
 code_dir = sys.argv[1]
 sat_data_dir = sys.argv[2]
-GC_pressure_data_dir = sys.argv[3]
-GC_ch4_data_dir = sys.argv[4]
-output_dir = sys.argv[5]
-MONTHS = [int(sys.argv[6])*4 -3 + i for i in range(4)]
+GC_pressure_dir = sys.argv[3]
+GC_ch4_dir = sys.argv[4]
+GC_ch4_halfstep_dir = sys.argv[5]
+output_dir = sys.argv[6]
 jacobian = bool(sys.argv[7])
+MONTHS = [int(sys.argv[8])*4 -3 + i for i in range(4)]
 reprocess = False
+
+# MONTHS = np.arange(1, 13)
 
 # Load custom packages
 sys.path.append(code_dir)
 import gcpy as gc
 import inversion_settings as s
 
-print(f'Applying TROPOMI operator for {s.year}-{MONTHS}\n')
+# print(f'Applying TROPOMI operator for {s.year}-{MONTHS}\n')
+print('Applying TROPOMI operator\n')
 
 ## -------------------------------------------------------------------------##
 ## Define functions
@@ -148,14 +156,17 @@ def get_diagnostic(data_dir, diag_name, date):
     data = xr.open_dataset(filename)
     return data
 
-def read_GC(ch4_data_dir, pedge_data_dir, date):
-    # Start by downloading methane data (ppb)
+def read_GC(ch4_data_dir, ch4_halfstep_data_dir, pedge_data_dir, date):
+    # Start by downloading and formatting the methane data (ppb)
     data = get_diagnostic(ch4_data_dir, 'SpeciesConc', date)
     data = data[['SpeciesConc_CH4']]*1e9
+    data = gc.subset_data_latlon(data, *s.lats, *s.lons)
+    data = correct_GC(data, ch4_halfstep_data_dir, date)
 
     # Get pressure information (hPa)
     pres = get_diagnostic(pedge_data_dir,
                           'LevelEdgeDiags', date)[['Met_PEDGE']]
+    pres = gc.subset_data_latlon(pres, *s.lats, *s.lons)
     data = xr.merge([data, pres])
     pres.close()
 
@@ -172,7 +183,51 @@ def read_GC(ch4_data_dir, pedge_data_dir, date):
         # print('Filling data with the first hour.')
         data = gc.fill_GC_first_hour(data)
 
+    # Return the output
     return data
+
+def correct_GC(ch4_data, ch4_halfstep_data_dir, date, scale_factor=5):
+    # Load the vertical profile
+    vp = xr.open_dataset(f'{ch4_halfstep_data_dir}/VerticalProfiles/mean_profile_{(date[:6])}.nc')['SpeciesConc_CH4']*1e9
+
+    # Subset the CH4 data
+    ch4_data = ch4_data['SpeciesConc_CH4']
+
+    # Check if any values are more than 5x greater than or less than
+    # the profile
+    diff = np.abs(xr.ufuncs.log10(ch4_data)/np.log10(scale_factor) -
+                  xr.ufuncs.log10(vp)/np.log10(scale_factor))
+
+    # Replace the bottom level with 0s
+    diff = diff.where(diff.lev < 0.5, 0)
+
+    # If so, replace those values
+    if (diff >= 1).any():
+        print(f'Replacing data on {date}')
+
+        # The original file, only where the problem values are
+        old = ch4_data.where(diff >=1, drop=True).squeeze()
+        for l in old.lev.values:
+            old_dat = old.sel(lev=l).values
+            # print(l, np.nanmin(old_dat), np.nanmax(old_dat))
+
+        # Open the new file (that will replace the problem values)
+        new = get_diagnostic(f'{ch4_halfstep_data_dir}/OutputDir',
+                             'SpeciesConc', date)['SpeciesConc_CH4']
+        new = gc.subset_data_latlon(new, *s.lats, *s.lons)
+
+        # Check for time dimension
+        if len(new.time) != 24:
+            new = gc.fill_GC_first_hour(new)
+
+        # Fill in the data by replacing the entire level
+        cond = ch4_data.lev.isin(old.lev.values)
+        ch4_data = ch4_data.where(~cond, new)
+
+    return ch4_data.to_dataset()
+
+    # save out file
+    # data.to_netcdf(join(data_dir, file))
 
 def GC_to_sat_levels(GC_CH4, GC_edges, sat_edges):
     '''
@@ -240,7 +295,7 @@ raw_files = glob.glob(os.path.join(sat_data_dir, '*.nc'))
 raw_files.sort()
 
 # List all of the dates that have already been processed
-if ~reprocess:
+if not reprocess:
     saved_dates = glob.glob(os.path.join(output_dir, '*.pkl'))
     saved_dates = [d.split('/')[-1].split('_')[0] for d in saved_dates]
     saved_dates.sort()
@@ -267,7 +322,7 @@ for index in range(len(raw_files)):
            and (int(end_date[4:6]) in MONTHS))
 
     # Check if either date is in saved dates
-    if ~reprocess:
+    if not reprocess:
         start = (start and (start_date not in saved_dates))
         end = (end and (end_date not in saved_dates))
 
@@ -314,7 +369,7 @@ for date, filenames in Sat_files.items():
     print(f'{date} : {NN} observations')
 
     # Then, read in the GC data for these dates.
-    GC = read_GC(GC_ch4_data_dir, GC_pressure_data_dir, date)
+    GC = read_GC(GC_ch4_dir, GC_ch4_halfstep_dir, GC_pressure_dir, date)
 
     # Find the grid box and time indices corresponding to TROPOMI obs
     iGC, jGC, tGC = nearest_loc(GC, TROPOMI)
@@ -342,6 +397,8 @@ for date, filenames in Sat_files.items():
     #       np.mean(GC_on_sat - TROPOMI['methane'].values))
     # print('Standard deviation : ',
     #       np.std(GC_on_sat - TROPOMI['methane'].values))
+    if np.isnan(GC_on_sat).sum() > 0:
+        print('NAN VALUES ARE PRESENT')
 
     # Save out values
     # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,

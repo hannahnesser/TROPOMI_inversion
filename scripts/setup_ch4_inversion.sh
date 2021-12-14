@@ -9,7 +9,7 @@
 
 # Turn on/off different steps. This will allow you to come back to this
 # script and set up different stages later.
-SetupTemplateRundir=false
+SetupTemplateRundir=true
 SetupSpinupRun=false
 SetupJacobianRuns=true
 SetupInversion=false
@@ -40,8 +40,9 @@ DATA_PATH="/n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/gcdata/ExtData"
 TROP_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
 
 # Path to data with accurate stratospheric concentrations
-# and average vertical profiles
+# and average vertical profiles, as well as the path to
 HALFSTEP_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_halfstep"
+PEDGE_PATH="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
 
 # Path to code
 GC_PATH="${HOME}/CH4_GC/Code.CH4_Inv"
@@ -65,13 +66,13 @@ RESTART_FILE="/n/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.
 BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
 
 # Jacobian settings
-nPerturbationsMin=111
-nPerturbationsMax=434 #110
+nPerturbationsMin=1
+nPerturbationsMax=100 #110
 pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
 # (use evecnumevecnum to substitute for the number)
-EVEC_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/eigenvectors0"
+EVEC_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/eigenvectors1"
 EVEC_FILE="evec_pert_evecnumevecnum.nc"
 
 # Grid settings (Nested NA)
@@ -178,6 +179,7 @@ mkdir -p Restarts
 ### Update settings in GEOS-Chem_run.template
 sed -i -e "s:invpathinvpath:${INV_PATH}:g" \
        -e "s:halfstephalfstep:${HALFSTEP_PATH}:g" \
+       -e "s:pedgepedge:${PEDGE_PATH}:g" \
        -e "s:satdirsatdir:${TROP_PATH}:g" GEOS-Chem_run.template
 
 ### Update settings in input.geos
@@ -349,7 +351,7 @@ if  "$SetupPosteriorRun"; then
     
     ### Update settings in input.geos
     sed -i -e "s|Do analytical inversion?: T|Do analytical inversion?: F|g" \
-	   -e "s|pertpert|1.0|g" \
+	       -e "s|pertpert|1.0|g" \
            -e "s|clustnumclustnum|0|g" input.geos
 
     ### Create run script from template

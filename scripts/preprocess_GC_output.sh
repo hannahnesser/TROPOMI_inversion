@@ -5,8 +5,8 @@
 #SBATCH -c 1
 #SBATCH -N 1
 #SBATCH -p huce_intel
-#SBATCH --mem 4000
-#SBATCH -t 0-02:00
+#SBATCH --mem 3000
+#SBATCH -t 0-01:00
 ##SBATCH --mail-type=END
 
 ## -------------------------------------------------------------------------##
