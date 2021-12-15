@@ -3,7 +3,7 @@
 #SBATCH -J {RunName}
 #SBATCH -c 16
 #SBATCH -N 1
-#SBATCH -p huce_intel
+#SBATCH -p huce_cascade
 #SBATCH --mem 20000
 #SBATCH -t 4-00:00
 
