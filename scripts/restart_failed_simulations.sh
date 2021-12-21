@@ -92,7 +92,6 @@ else
             else
                 echo "Clean up failed -- ${run_name}"
                 if "$RestartProcesses"; then
-                    echo "We are doing it"
                     \rm ${run_dir}/OutputDir/*
                 fi
             fi
