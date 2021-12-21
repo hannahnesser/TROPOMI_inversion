@@ -38,17 +38,23 @@ if [[ $check_gc && $check_pp ]]
 then
   echo "Cleaning up!"
   rm HEMCO_restart.*
-  rm ${GC_CH4_DIR}/*
+  rm OutputDir/*
 elif [[ ! $check_gc ]]
+then
   echo "GEOS-Chem check failed."
 elif [[ ! $check_pp ]]
+then
   if [[ ! $check_pp_strat ]]
+  then
     echo "Stratospheric data replacement failed."
   elif [[ ! $check_pp_nans ]]
+  then
     echo "NaN values are present in the TROPOMI operator output."
   elif [[ ! $check_pp_count ]]
+  then
     echo "There are an incorrect number of post-processed files."
   elif [[ ! $check_pp_size ]]
+  then
     echo "There are post-processed files with size 0."
   fi
 fi
