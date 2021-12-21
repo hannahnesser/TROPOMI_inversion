@@ -33,12 +33,14 @@ then
     # skipping this part for now
 else
     # Check that the output dir has been cleared
-    cleanup_check=$(ls ${run_dir}/OutputDir/ | wc -w)
-    if [[ $cleanup_check > 0 ]]; then
+    check_pp_clean=$(ls ${run_dir}/OutputDir/ | wc -w)
+    if [[ $check_pp_clean > 0 ]]; then
         # Check for completion of preprocessing
-        preprocess_check_1=$(ls ${run_dir}/OutputDir/*_orig | wc -w)
+        ## Check that stratospheric data in 14 files are replaced
+        [[ $(grep --no-filename 'Replacing data on' ${run_dir}/TROPOMI_operator_*.out | sort -u | wc -l) == 14 ]] && check_pp_strat=true || check_pp_strat=false
+        [[ $(ls ${run_dir}/OutputDir/GEOSChem.SpeciesConc*.nc4 | wc -w) == 366 ]] && check_gc_count=true || check_gc_count=false
         preprocess_check_2=$(ls ${run_dir}/OutputDir/GEOSChem.SpeciesConc*.nc4 | wc -w)
-        if [[ $preprocess_check_1 != 14 || $preprocess_check_2 != 366 ]]; then
+        if [[ ! $check_pp_strat || ! $check_gc_count ]]; then
             echo "Preprocessing failed -- ${run_name}"
 
             if "$RestartProcesses"; then
@@ -60,8 +62,13 @@ else
             fi
         else
             # Check for completion of operator
-            operator_check=$(ls ${run_dir}/ProcessedDir/ | wc -w)
-            if [[ $operator_check != 365 ]]; then
+            [[ $(ls ${run_dir}/ProcessedDir/ | wc -w) == 365 ]] && check_pp_count=true || check_pp_count=false
+            # Check that the post-proocessing output is not size 0
+            min_file_size=($(ls -lSh ProcessedDir | tail -n 1))
+            min_file_size=${min_file_size[4]}
+            [[ $min_file_size  == 208 ]] && check_pp_size=true || check_pp_size=false
+
+            if [[ ! $check_pp_count || ! $check_pp_size ]]; then
                 echo "Operator failed -- ${run_name}"
 
                 if "$RestartProcesses"; then
