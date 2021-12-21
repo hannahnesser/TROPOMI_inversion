@@ -64,7 +64,7 @@ else
             # Check for completion of operator
             [[ $(ls ${run_dir}/ProcessedDir/ | wc -w) == 365 ]] && check_pp_count=true || check_pp_count=false
             # Check that the post-proocessing output is not size 0
-            min_file_size=($(ls -lSh ProcessedDir | tail -n 1))
+            min_file_size=($(ls -lSh ${run_dir}/ProcessedDir | tail -n 1))
             min_file_size=${min_file_size[4]}
             [[ $min_file_size  == 208 ]] && check_pp_size=true || check_pp_size=false
 
