@@ -303,128 +303,26 @@ print('Data is loaded.')
 print(f'm = {data.shape[0]}')
 
 ## ----------------------------------------- ##
-## Average the TROPOMI data on the grid
-## ----------------------------------------- ##
-# Group spatial bias on the grid
-s_b_orig = data.groupby(['LAT_CENTER', 'LON_CENTER',
-                         'SEASON']).mean()[['OBS', 'MOD', 'DIFF']]
-s_b_orig = s_b_orig.to_xarray().rename({'LAT_CENTER' : 'lats',
-                                        'LON_CENTER' : 'lons',
-                                        'SEASON' : 'season'})
-print('Original spatial bias analyzed.')
-
-## ----------------------------------------- ##
-## Load and grid the GOSAT data
-## ----------------------------------------- ##
-if compare_gosat and type(gosat) == list:
-    ## ----------------------------------------- ##
-    ## Load data for the year
-    ## ----------------------------------------- ##
-    gosat_data = pd.DataFrame(columns=['DATE', 'LAT', 'LON', 'OBS'])
-    for file in gosat:
-        # Check if that file is in the data directory
-        if file.split('/')[-1] not in listdir(gosat_dir):
-            print(f'{file} is not in the data directory.')
-            continue
-
-        # Load the data.
-        gosat_fields = ['latitude', 'longitude', 'xch4', 'xch4_quality_flag']
-        new_data = gc.read_file(join(gosat_dir, file))[gosat_fields]
-        new_data = new_data.where((new_data['xch4_quality_flag'] == 0) &
-                                  (new_data['latitude'] > settings.lat_min) &
-                                  (new_data['latitude'] < settings.lat_max) &
-                                  (new_data['longitude'] > settings.lon_min) &
-                                  (new_data['longitude'] < settings.lon_max),
-                                  drop=True)
-        new_data = new_data.rename({'latitude' : 'LAT', 'longitude' : 'LON',
-                                    'xch4' : 'OBS'})
-        new_data = new_data[['LAT', 'LON', 'OBS']].to_dataframe()
-        new_data['DATE'] = int(file.split('-')[-2])
-
-        # Concatenate
-        gosat_data = pd.concat([gosat_data, new_data]).reset_index(drop=True)
-
-    # Save nearest latitude and longitude centers
-    gosat_data['LAT_CENTER'] = lats[gc.nearest_loc(gosat_data['LAT'].values,
-                                                   lats)]
-    gosat_data['LON_CENTER'] = lons[gc.nearest_loc(gosat_data['LON'].values,
-                                                   lons)]
-
-    # Save the data out
-    print(f'Saving data in {output_dir}/{settings.year}_gosat.pkl')
-    gc.save_obj(gosat_data, join(output_dir, f'{settings.year}_gosat.pkl'))
-
-    # Grid the GOSAT data
-    gosat_grid = gosat_data.groupby(['LAT_CENTER', 'LON_CENTER',
-                                     'DATE']).mean()['OBS']
-    gosat_grid = gosat_grid.to_xarray().rename({'LAT_CENTER' : 'lats',
-                                                'LON_CENTER' : 'lons',
-                                                'DATE' : 'date'})
-    gosat_grid.to_netcdf(join(output_dir, f'{settings.year}_gosat_gridded.nc'))
-
-elif compare_gosat and type(gosat) == str:
-    ## ----------------------------------------- ##
-    ## Load data for the year
-    ## ----------------------------------------- ##
-    print(f'Opening data in {output_dir}/{gosat}')
-    gosat_grid = gc.read_file(join(output_dir, f'{gosat}'))
-
-if compare_gosat:
-    trop_grid = data.groupby(['LAT_CENTER', 'LON_CENTER',
-                              'DATE']).mean()[['OBS', 'BLENDED_ALBEDO']]
-    trop_grid = trop_grid.to_xarray().rename({'LAT_CENTER' : 'lats',
-                                              'LON_CENTER' : 'lons',
-                                              'DATE' : 'date'})
-
-    # Take the difference and convert to dataframe
-    trop_grid['DIFF'] = (trop_grid['OBS'] - gosat_grid)
-    diff_grid = trop_grid.to_dataframe()[['OBS', 'BLENDED_ALBEDO']]
-    diff_grid = diff_grid.dropna().reset_index()
-
-    # Add a month column
-    diff_grid['MONTH'] = diff_grid['date'].astype(str).str[4:6].astype(int)
-
-    # Cut into blended albedo bins
-    diff_grid['BLENDED_ALBEDO_BIN'] = pd.cut(diff_grid['BLENDED_ALBEDO'],
-                                             blended_albedo_bins)
-
-    # Group
-    diff_grid = diff_grid
-
-# Add in blended albedo
-
-## ----------------------------------------- ##
 ## Make and save observational mask
 ## ----------------------------------------- ##
 # Create a vector for storing the observational filter
-# obs_filter_old = np.ones(data.shape[0], dtype=bool)
 obs_filter = np.ones(data.shape[0], dtype=bool)
 if filter_on_blended_albedo:
     BAF_filter = ((data['MONTH'].isin(np.arange(6, 9, 1))) |
                   (data['BLENDED_ALBEDO'] < blended_albedo_threshold))
-    # BAF_filter = ((data['MONTH'].isin(np.arange(5, 11, 1))) |
-    #               (data['BLENDED_ALBEDO'] < blended_albedo_threshold))
     obs_filter = (obs_filter & BAF_filter)
-    # obs_filter_old = (obs_filter_old & BAF_filter_old)
 
 if filter_on_albedo:
     albedo_filter = (data['ALBEDO_SWIR'] > albedo_threshold)
     obs_filter = (obs_filter & albedo_filter)
-    # obs_filter_old = (obs_filter_old & albedo_filter)
 
 if filter_on_seasonal_latitude:
     latitude_filter = ((data['MONTH'].isin(np.arange(3, 12, 1))) |
                        (data['LAT'] <= 50))
     obs_filter = (obs_filter & latitude_filter)
-    # obs_filter_old = (obs_filter_old & latitude_filter)
 
 obs_filter = pd.DataFrame({'MONTH' : data['MONTH'], 'FILTER' :  obs_filter})
 obs_filter.to_csv(join(output_dir, 'obs_filter.csv'))
-
-# obs_filter_old = pd.DataFrame({'MONTH' : data['MONTH'],
-#                                'FILTER' :  obs_filter_old})
-# obs_filter_old.to_csv(join(output_dir, 'obs_filter_old.csv'))
-# obs_filter = copy.deepcopy(obs_filter_old)
 
 ## ----------------------------------------- ##
 ## Additional data corrections
@@ -474,7 +372,6 @@ if filter_on_blended_albedo:
                     f'blended_albedo_filter{suffix}')
         plt.close()
 
-
     # Apply the blended albedo filter
     data = apply_filter(data, BAF_filter, 'blended albedo')
 
@@ -506,6 +403,131 @@ if (filter_on_blended_albedo or filter_on_albedo or
     gc.save_obj(data, join(output_dir, f'{settings.year}_corrected.pkl'))
 
 nobs = data.shape[0]
+
+## ----------------------------------------- ##
+## Compare TROPOMI to GOSAT
+## ----------------------------------------- ##
+# Load data
+if compare_gosat and type(gosat) == list:
+    gosat_data = pd.DataFrame(columns=['DATE', 'LAT', 'LON', 'OBS'])
+    for file in gosat:
+        # Check if that file is in the data directory
+        if file.split('/')[-1] not in listdir(gosat_dir):
+            print(f'{file} is not in the data directory.')
+            continue
+
+        # Load the data.
+        gosat_fields = ['latitude', 'longitude', 'xch4', 'xch4_quality_flag']
+        new_data = gc.read_file(join(gosat_dir, file))[gosat_fields]
+        new_data = new_data.where((new_data['xch4_quality_flag'] == 0) &
+                                  (new_data['latitude'] > settings.lat_min) &
+                                  (new_data['latitude'] < settings.lat_max) &
+                                  (new_data['longitude'] > settings.lon_min) &
+                                  (new_data['longitude'] < settings.lon_max),
+                                  drop=True)
+        new_data = new_data.rename({'latitude' : 'LAT', 'longitude' : 'LON',
+                                    'xch4' : 'OBS'})
+        new_data = new_data[['LAT', 'LON', 'OBS']].to_dataframe()
+        new_data['DATE'] = int(file.split('-')[-2])
+
+        # Concatenate
+        gosat_data = pd.concat([gosat_data, new_data]).reset_index(drop=True)
+
+    # Save nearest latitude and longitude centers
+    gosat_data['LAT_CENTER'] = lats[gc.nearest_loc(gosat_data['LAT'].values,
+                                                   lats)]
+    gosat_data['LON_CENTER'] = lons[gc.nearest_loc(gosat_data['LON'].values,
+                                                   lons)]
+
+    # Save the data out
+    print(f'Saving data in {output_dir}/{settings.year}_gosat.pkl')
+    gc.save_obj(gosat_data, join(output_dir, f'{settings.year}_gosat.pkl'))
+
+    # Grid the GOSAT data
+    gosat_grid = gosat_data.groupby(['LAT_CENTER', 'LON_CENTER',
+                                     'DATE']).mean()['OBS']
+    gosat_grid = gosat_grid.to_xarray().rename({'LAT_CENTER' : 'lats',
+                                                'LON_CENTER' : 'lons',
+                                                'DATE' : 'date'})
+    gosat_grid.to_netcdf(join(output_dir, f'{settings.year}_gosat_gridded.nc'))
+
+elif compare_gosat and type(gosat) == str:
+    print(f'Opening data in {output_dir}/{gosat}')
+    gosat_grid = gc.read_file(join(output_dir, f'{gosat}'))
+
+    # Grid the TROPOMI data
+    trop_grid = data.groupby(['LAT_CENTER', 'LON_CENTER',
+                              'DATE']).mean()[['OBS', 'BLENDED_ALBEDO']]
+    trop_grid = trop_grid.to_xarray().rename({'LAT_CENTER' : 'lats',
+                                              'LON_CENTER' : 'lons',
+                                              'DATE' : 'date'})
+
+    # Take the difference and convert to dataframe
+    trop_grid['DIFF'] = (trop_grid['OBS'] - gosat_grid)
+    diff_grid = trop_grid.to_dataframe()[['DIFF', 'BLENDED_ALBEDO']]
+    diff_grid = diff_grid.dropna().reset_index()
+
+    # Add a month column
+    diff_grid['MONTH'] = diff_grid['date'].astype(str).str[4:6].astype(int)
+
+    # Cut into blended albedo bins and latitude bins
+    diff_grid['BLENDED_ALBEDO_BIN'] = pd.cut(diff_grid['BLENDED_ALBEDO'],
+                                             blended_albedo_bins)
+    diff_grid['LAT_BIN'] = pd.cut(diff_grid['lats'], lat_bins)
+
+    # Save the data out
+    # print(f'Saving data in {output_dir}/{settings.year}_gosat_diff.pkl')
+    # gc.save_obj(diff_grid, join(output_dir, f'{settings.year}_gosat_diff.pkl'))
+
+if compare_gosat:
+    # Group GOSAT-TROPOMI analysis
+    ba_b_gos = gc.group_data(diff_grid, groupby=['BLENDED_ALBEDO_BIN'])
+    bam_b_gos = gc.group_data(diff_grid, groupby=['BLENDED_ALBEDO_BIN',
+                                                  'MONTH'])
+    bal_b_gos = gc.group_data(diff_grid, groupby=['BLENDED_ALBEDO_BIN',
+                                                  'LAT_BIN'])
+
+    # Get midpoints
+    ba_b_gos['BLENDED_ALBEDO'] = ba_b_gos['BLENDED_ALBEDO_BIN'].apply(lambda x: x.mid)
+    bam_b_gos['BLENDED_ALBEDO'] = bam_b_gos['BLENDED_ALBEDO_BIN'].apply(lambda x: x.mid)
+    bal_b_gos['BLENDED_ALBEDO'] = bal_b_gos['BLENDED_ALBEDO_BIN'].apply(lambda x: x.mid)
+
+    ## ----------------------------------------- ##
+    ## Plot
+    ## ----------------------------------------- ##
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.errorbar(ba_b_gos['BLENDED_ALBEDO'], ba_b_gos['mean'],
+                yerr=ba_b_gos['std'], color=fp.color(4))
+    ax.set_xticks(np.arange(0, 3.1, 0.25))
+    ax.set_xlim(0, 2.25)
+    ax.set_ylim(-30, 30)
+    ax = fp.add_labels(ax, 'Blended Albedo', 'TROPOMI - GOSAT')
+    ax = fp.add_title(ax, 'Blended Albedo Bias in TROPOMI - GOSAT')
+    for i, m in enumerate(np.unique(bam_b_gos['MONTH'])):
+        d = bam_b_gos[bam_b_gos['MONTH'] == m]
+        ax.plot(d['BLENDED_ALBEDO'].values, d['mean'].values,
+                color=fp.color(i, lut=12), label=m, lw=0.5)
+    fp.add_legend(ax, bbox_to_anchor=(1, 0.5),
+                  loc='center left', ncol=1)
+    fp.save_fig(fig, plot_dir, f'gosat_blended_albedo_bias_month{suffix}')
+    plt.close()
+
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.errorbar(ba_b_gos['BLENDED_ALBEDO'], ba_b_gos['mean'],
+                yerr=ba_b_gos['std'], color=fp.color(4))
+    ax.set_xticks(np.arange(0, 3.1, 0.25))
+    ax.set_xlim(0, 2.25)
+    ax.set_ylim(-30, 30)
+    ax = fp.add_labels(ax, 'Blended Albedo', 'TROPOMI - GOSAT')
+    ax = fp.add_title(ax, 'Blended Albedo Bias in TROPOMI - GOSAT')
+    for i, lb in enumerate(np.unique(bal_b_gos['LAT_BIN'])):
+        d = bal_b_gos[bal_b_gos['LAT_BIN'] == lb]
+        ax.plot(d['BLENDED_ALBEDO'].values, d['mean'].values,
+                color=fp.color(i, lut=10), label=lb, lw=0.5)
+    fp.add_legend(ax, bbox_to_anchor=(1, 0.5),
+                  loc='center left', ncol=1)
+    fp.save_fig(fig, plot_dir, f'gosat_blended_albedo_bias_lat{suffix}')
+    plt.close()
 
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
