@@ -39,7 +39,6 @@ else
         ## Check that stratospheric data in 14 files are replaced
         [[ $(grep --no-filename 'Replacing data on' ${run_dir}/TROPOMI_operator_*.out | sort -u | wc -l) == 14 ]] && check_pp_strat=true || check_pp_strat=false
         [[ $(ls ${run_dir}/OutputDir/GEOSChem.SpeciesConc*.nc4 | wc -w) == 366 ]] && check_gc_count=true || check_gc_count=false
-        preprocess_check_2=$(ls ${run_dir}/OutputDir/GEOSChem.SpeciesConc*.nc4 | wc -w)
         if [[ ! $check_pp_strat || ! $check_gc_count ]]; then
             echo "Preprocessing failed -- ${run_name}"
 
