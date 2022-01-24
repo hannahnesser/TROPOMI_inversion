@@ -12,7 +12,7 @@ FORMAT_EVECS="False"
 SOLVE_INVERSION="True"
 
 # Build the Jacobian
-jid1=$(sbatch --array=1-12 build_k_monthly.sh "2" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR} ${SAVE_KPI})
+jid1=$(sbatch --array=1-12 build_k_monthly.sh "2" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 
 # Calculate the prior preconditioned Hessian
 jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 generate_pph.sh "2" ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
