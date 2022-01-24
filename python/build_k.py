@@ -128,29 +128,22 @@ if __name__ == '__main__':
     kw_m = kw_m.chunk(chunks={'nobs' : nobs_chunk, 'nvec' : nvec_chunk})
 
     ## ---------------------------------------------------------------------##
-    ## Transform the reduced-dimension Jacobian Kw into state space
+    ## Save and exit
     ## ---------------------------------------------------------------------##
-    # Calculate the reduced rank jacobian
+    # Transform the reduced-dimension Jacobian Kw into state space
     kpi_m = da.tensordot(kw_m, reduction, axes=(1, 0))
     kpi_m = xr.DataArray(kpi_m, dims=['nobs', 'nstate'])
     kpi_m = kpi_m.chunk({'nobs' : 5e3, 'nstate' : -1})
 
-    ## ---------------------------------------------------------------------##
-    ## Save and exit
-    ## ---------------------------------------------------------------------##
     # Persist
     kpi_m = kpi_m.persist()
     progress(kpi_m)
-
-    # Print out some information
-    print(f'Maximum: {kpi_m.max().values}')
-    print(f'Minimum: {kpi_m.min().values}')
 
     # Save out
     start_time = time.time()
     kpi_m.to_netcdf(f'{data_dir}/k1_m{month:02d}.nc')
     active_time = (time.time() - start_time)/60
-    print(f'K for month {month} saved ({active_time} min).')
+    print(f'Kpi for month {month} saved ({active_time} min).')
 
     # Exit
     print('Code Complete.')

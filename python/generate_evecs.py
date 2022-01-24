@@ -22,18 +22,21 @@ if __name__ == '__main__':
         data_dir = sys.argv[3]
         output_dir = sys.argv[4]
         code_dir = sys.argv[5]
+        calculate_evecs = bool(sys.argv[6])
+        format_evecs = bool(sys.argv[7])
+        solve_inversion = bool(sys.argv[8])
     else:
         niter = 1
         n_evecs = int(10)
         base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
         code_dir = f'{base_dir}python/'
         data_dir = f'{base_dir}inversion_data/'
+        calculate_evecs = False
+        format_evecs = False
+        solve_inversion = False
 
     # User preferences
-    calculate_evecs = False
-    format_evecs = True
-    solve_inversion = False
-    pct_of_info = [50, 90, 95, 99, 99.9]
+    pct_of_info = [50, 80, 90, 95, 99, 99.9]
     snr = None
     rank = None
 

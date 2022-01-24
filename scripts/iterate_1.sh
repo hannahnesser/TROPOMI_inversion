@@ -7,6 +7,9 @@ SHORT_TERM_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initia
 LONG_TERM_DATA_DIR="/n/seasasfs02/hnesser/TROPOMI_inversion"
 CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 NUM_EVECS="2613"
+CALCULATE_EVECS="True"
+FORMAT_EVECS="True"
+SOLVE_INVERSION="False"
 
 # Build the Jacobian
 jid1=$(sbatch --array=1-12 build_k_monthly.sh "1" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
@@ -17,6 +20,6 @@ jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-12 generate_pph.sh "1" 
 # sbatch --array=8 generate_pph.sh "1" ${SHORT_TERM_DATA_DIR} ${CODE_DIR}
 
 # Calculate the eigenvectors
-jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "1" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR})
+jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "1" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SOLVE_INVERSION})
 # jid3=$(sbatch --dependency=afterok:51606797 generate_evecs.sh "1" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR})
 # sbatch generate_evecs.sh "1" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR}
