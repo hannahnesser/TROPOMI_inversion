@@ -99,7 +99,7 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load and subset the reduction operator
     ## ---------------------------------------------------------------------##
-    reduction = np.load(f'{data_dir}/reduction0.npy')
+    reduction = np.load(f'{data_dir}/reduction{(int(niter)-1)}.npy')
     reduction = reduction[:len(perturbation_dirs), :]
     reduction = xr.DataArray(reduction, dims=['nvec', 'nstate'])
     reduction = reduction.chunk(chunks={'nvec' : nvec_chunk,
