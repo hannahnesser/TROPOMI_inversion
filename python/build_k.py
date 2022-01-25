@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
     # Save out
     start_time = time.time()
-    kpi_m.to_netcdf(f'{data_dir}/k1_m{month:02d}.nc')
+    kpi_m.to_netcdf(f'{data_dir}/k{niter}_m{month:02d}.nc')
     active_time = (time.time() - start_time)/60
     print(f'Kpi for month {month} saved ({active_time} min).')
 
