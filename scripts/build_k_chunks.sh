@@ -2,10 +2,10 @@
 
 #SBATCH -J build_kpi
 #SBATCH -o %x_%j_%a.out
-#SBATCH -c 12
+#SBATCH -c 11
 #SBATCH -N 1
 #SBATCH -p huce_cascade
-#SBATCH --mem 45000
+#SBATCH --mem 40000
 #SBATCH -t 0-07:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=hnesser@g.harvard.edu
