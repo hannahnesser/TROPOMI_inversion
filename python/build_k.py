@@ -91,7 +91,7 @@ if __name__ == '__main__':
                      'distributed.comm.timeouts.tcp' : 240,
                      'distributed.adaptive.wait-count' : 180,
                      'array.slicing.split_large_chunks' : False,
-                     'temporary_directory' : f'{data_dir}/dask-worker-space-{month}'})
+                     'temporary_directory' : f'{data_dir}/dask-worker-space-{chunk}'})
     nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
     nobs_chunk = 4e4 # int(max_chunk_size/nstate_chunk/5)
     nvec_chunk = len(perturbation_dirs)
