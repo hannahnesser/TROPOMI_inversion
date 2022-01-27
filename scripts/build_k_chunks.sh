@@ -13,7 +13,7 @@
 ## -------------------------------------------------------------------------##
 ## Set user preferences
 ## -------------------------------------------------------------------------##
-MONTH="${SLURM_ARRAY_TASK_ID}"
+CHUNK="${SLURM_ARRAY_TASK_ID}"
 DATA_DIR=${5}
 
 ## -------------------------------------------------------------------------##
@@ -26,7 +26,7 @@ source activate ~/python/miniconda/envs/TROPOMI_inversion
 
 echo "Activated ${CONDA_PREFIX}"
 
-rm -rf ${DATA_DIR}/dask-worker-space-${MONTH}
+rm -rf ${DATA_DIR}/dask-worker-space-${CHUNK}
 
 ## -------------------------------------------------------------------------##
 ## Run the script
@@ -34,9 +34,9 @@ rm -rf ${DATA_DIR}/dask-worker-space-${MONTH}
 echo "Initiating script"
 
 python_dir=$(dirname `pwd`)
-python -u ${python_dir}/python/build_k.py ${MONTH} ${@}
+python -u ${python_dir}/python/build_k.py ${CHUNK} ${@}
 
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
-rm -rf ${DATA_DIR}/dask-worker-space-${MONTH}
+rm -rf ${DATA_DIR}/dask-worker-space-${CHUNK}
