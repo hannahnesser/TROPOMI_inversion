@@ -17,10 +17,11 @@ if __name__ == '__main__':
     # Cannon
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-    month = int(sys.argv[1])
-    niter = sys.argv[2]
-    data_dir = sys.argv[3]
-    code_dir = sys.argv[4]
+    chunk = int(sys.argv[1])
+    chunk_size = int(sys.argv[2])
+    niter = sys.argv[3]
+    data_dir = sys.argv[4]
+    code_dir = sys.argv[5]
 
     # Import custom packages
     import sys
@@ -28,9 +29,9 @@ if __name__ == '__main__':
     import gcpy as gc
     import inversion_settings as s
 
-    # Month
+    # chunk
     print('-'*75)
-    print(f'Calculating the prior pre-conditioned Hessian for month {month}')
+    print(f'Calculating the prior pre-conditioned Hessian for chunk {chunk}')
 
     ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
@@ -56,24 +57,9 @@ if __name__ == '__main__':
     # Observation mask
     obs_filter = pd.read_csv(f'{data_dir}/obs_filter{obs_suffix}.csv', header=0)
 
-    # Get the indices for the month using generic chunks
-    i0 = 0
-    count = 0
-    print(f'{"i0": >22}{"i1": >11}{"n": >11}{"filter":>11}')
-    for m in range(1, month+1):
-        # Read/subset files
-        k_m = gc.read_file(f'{data_dir}/k{niter}_m{m:02d}.nc')
-        of_m = obs_filter[obs_filter['MONTH'] == m]['FILTER'].sum()
-
-        # Update indices
-        i1 = i0 + k_m.shape[0]
-
-        # Print information
-        print(f'Month {m:2d} : {i0:11d}{i1:11d}{(i1-i0):11d}{of_m:11d}')
-
-        count += (i1 - i0)
-        if m != month:
-            i0 = i1
+    # Get the indices for the chunk
+    i0 = (chunk - 1)*chunk_size
+    i1 = chunk*chunk_size
 
     # Subset so
     so_m = so[i0:i1]
@@ -90,7 +76,7 @@ if __name__ == '__main__':
                      'distributed.comm.timeouts.tcp' : 150,
                      'distributed.adaptive.wait-count' : 90,
                      'array.slicing.split_large_chunks' : False,
-                     'temporary_directory' : f'{data_dir}/dask-worker-space-{month}'})
+                     'temporary_directory' : f'{data_dir}/dask-worker-space-{chunk}'})
 
     # Open cluster and client
     n_workers = 4
@@ -108,10 +94,10 @@ if __name__ == '__main__':
     chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
 
     ## ---------------------------------------------------------------------##
-    ## Generate the prior pre-conditioned Hessian for that month
+    ## Generate the prior pre-conditioned Hessian for that chunk
     ## ---------------------------------------------------------------------##
     # Load k_m
-    k_m = gc.read_file(f'{data_dir}/k{niter}_m{month:02d}.nc', chunks=chunks)
+    k_m = gc.read_file(f'{data_dir}/iteration{niter}/k{niter}_c{chunk:02d}.nc', chunks=chunks)
 
     # Initialize our loop
     i = int(0)
@@ -130,7 +116,7 @@ if __name__ == '__main__':
         sasqrt_kt_i = k_i*(sa**0.5)
         pph_i = da.tensordot(sasqrt_kt_i.T/so_i, sasqrt_kt_i, axes=(1, 0))
         pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
-                             name=f'pph{niter}_m{month:02d}')
+                             name=f'pph{niter}_c{chunk:02d}')
         pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
         # Persist and save
@@ -138,20 +124,20 @@ if __name__ == '__main__':
         start_time = time.time()
         pph_i = pph_i.persist()
         progress(pph_i)
-        pph_i.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}_{count:d}.nc')
+        pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_{count:d}.nc')
         active_time = (time.time() - start_time)/60
         print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
         # Then save out part of what we need for the posterior solution
         pre_xhat_i = da.tensordot(sasqrt_kt_i.T/so_i, ydiff_i, axes=(1, 0))
         pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
-                                  name=f'pre_xhat{niter}_m{month:02d}')
+                                  name=f'pre_xhat{niter}_c{chunk:02d}')
 
         # Persist and save
         print('Persisting the pre-xhat calculation.')
         start_time = time.time()
         pre_xhat_i = pre_xhat_i.persist()
-        pre_xhat_i.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{count:d}.nc')
+        pre_xhat_i.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_{count:d}.nc')
         active_time = (time.time() - start_time)/60
         print(f'xhat preparation {count} saved ({active_time} min).')
 
@@ -167,13 +153,13 @@ if __name__ == '__main__':
     client.restart()
     pph_m = xr.DataArray(np.zeros((nstate, nstate)),
                          dims=['nstate_0', 'nstate_1'],
-                         name=f'pph{niter}_m{month:02d}')
+                         name=f'pph{niter}_c{chunk:02d}')
     pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
-                              name=f'pre_xhat{niter}_m{month:02d}')
+                              name=f'pre_xhat{niter}_c{chunk:02d}')
     for i in range(count):
         print(f'Loading count {i}.')
-        temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{month:02d}_{i:d}.nc')
-        temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{month:02d}_{i:d}.nc')
+        temp1 = xr.open_dataarray(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_{i:d}.nc')
+        temp2 = xr.open_dataarray(f'{data_dir}/iteration{niiter}/xhat/pre_xhat{niter}_c{chunk:02d}_{i:d}.nc')
         pph_m += temp1
         pre_xhat_m += temp2
 
@@ -183,18 +169,18 @@ if __name__ == '__main__':
 
     # Save out
     start_time = time.time()
-    pph_m.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}.nc')
+    pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}.nc')
     active_time = (time.time() - start_time)/60
-    print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
+    print(f'Prior-pre-conditioned Hessian for chunk {chunk} saved ({active_time} min).')
 
     start_time = time.time()
-    pre_xhat_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}.nc')
+    pre_xhat_m.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}.nc')
     active_time = (time.time() - start_time)/60
-    print(f'xhat preparation for month {month} completed ({active_time} min).')
+    print(f'xhat preparation for chunk {chunk} completed ({active_time} min).')
 
     # Clean up
-    files = glob.glob(f'{data_dir}/pph{niter}_m{month:02d}_*.nc')
-    files += glob.glob(f'{data_dir}/pre_xhat{niter}_m{month:02d}_*.nc')
+    files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_*.nc')
+    files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_*.nc')
     for f in files:
        remove(f)
 

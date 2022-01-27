@@ -93,10 +93,10 @@ if __name__ == '__main__':
                            dims=['nstate_0', 'nstate_1'], name=f'pph{niter}')
         pre_xhat = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
                                 name=f'pre_xhat{niter}')
-        for m in s.months:
+        for c in range(1, 25):
             print(f'Loading month {m}.')
-            temp1 = xr.open_dataarray(f'{data_dir}/pph{niter}_m{m:02d}.nc')
-            temp2 = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}_m{m:02d}.nc')
+            temp1 = xr.open_dataarray(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{c:02d}.nc')
+            temp2 = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{c:02d}.nc')
             # print(m, temp1.min(), temp1.max())
             pph += temp1
             pre_xhat += temp2
@@ -134,24 +134,24 @@ if __name__ == '__main__':
         reduction = evecs.T * (1/sa**0.5)
 
         # Save out the matrices
-        pph.to_netcdf(f'{data_dir}/pph{niter}.nc')
-        pre_xhat.to_netcdf(f'{data_dir}/pre_xhat{niter}.nc')
-        np.save(f'{data_dir}/evecs{niter}.npy', evecs)
-        np.save(f'{data_dir}/evals_h{niter}.npy', evals_h)
-        np.save(f'{data_dir}/evals_q{niter}.npy', evals_q)
-        np.save(f'{data_dir}/prolongation{niter}.npy', prolongation)
-        np.save(f'{data_dir}/reduction{niter}.npy', reduction)
+        pph.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}.nc')
+        pre_xhat.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}.nc')
+        np.save(f'{data_dir}/iteration{niter}/operators/evecs{niter}.npy', evecs)
+        np.save(f'{data_dir}/iteration{niter}/operators/evals_h{niter}.npy', evals_h)
+        np.save(f'{data_dir}/iteration{niter}/operators/evals_q{niter}.npy', evals_q)
+        np.save(f'{data_dir}/iteration{niter}/operators/prolongation{niter}.npy', prolongation)
+        np.save(f'{data_dir}/iteration{niter}/operators/reduction{niter}.npy', reduction)
 
         print('Eigendecomposition complete.\n')
 
     else:
-        pre_xhat = xr.open_dataarray(f'{data_dir}/pre_xhat{niter}.nc')
-        evals_h = np.load(f'{data_dir}/evals_h{niter}.npy')
-        evecs = np.load(f'{data_dir}/evecs{niter}.npy')
-        prolongation = np.load(f'{data_dir}/prolongation{niter}.npy')
+        pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}.nc')
+        evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}.npy')
+        evecs = np.load(f'{data_dir}/iteration{niter}/operators/evecs{niter}.npy')
+        prolongation = np.load(f'{data_dir}/iteration{niter}/operators/prolongation{niter}.npy')
         if not local:
-            evals_q = np.load(f'{data_dir}/evals_q{niter}.npy')
-            reduction = np.load(f'{data_dir}/reduction{niter}.npy')
+            evals_q = np.load(f'{data_dir}/iteration{niter}/operators/evals_q{niter}.npy')
+            reduction = np.load(f'{data_dir}/iteration{niter}/operators/reduction{niter}.npy')
         else:
             evals_q = evals_h/(1 + evals_h)
 
@@ -208,7 +208,7 @@ if __name__ == '__main__':
             # elif sum(x is not None for x in [p, snr, rank]) == 0:
             #     raise AttributeError('Insufficient rank arguments provided.')
             # elif p is not None:
-            evals_q_orig = np.load(f'{data_dir}/evals_q0.npy')
+            evals_q_orig = np.load(f'{data_dir}/iteration{niter}/operators/evals_q0.npy')
             rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=p/100)
             # diff = np.abs(DOFS_frac - (p/100))
             # rank = np.argwhere(diff == np.min(diff))[0][0]
@@ -235,8 +235,8 @@ if __name__ == '__main__':
                     (evecs_sub*sa*(1/(1+evals_h_sub))) @ evecs_sub.T @ pre_xhat.values)
 
             # Save the result
-            np.save(f'{data_dir}/a{niter}{suffix}.npy', a)
-            np.save(f'{data_dir}/dofs{niter}{suffix}.npy', np.diagonal(a))
-            np.save(f'{data_dir}/xhat{niter}{suffix}.npy', xhat)
+            np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
+            np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', np.diagonal(a))
+            np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
 
     print('CODE COMPLETE')

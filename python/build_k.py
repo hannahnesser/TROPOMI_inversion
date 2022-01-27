@@ -14,19 +14,22 @@ if __name__ == '__main__':
     # Cannon
     run_with_script = True
     if run_with_script:
-        month = int(sys.argv[1])
-        niter = sys.argv[2]
-        prior_dir = sys.argv[3]
-        perturbation_dirs = sys.argv[4]
-        n_perturbation_dirs = int(sys.argv[5])
-        data_dir = sys.argv[6]
-        code_dir = sys.argv[7]
+        chunk = int(sys.argv[1])
+        chunk_size = int(sys.argv[2])
+        niter = sys.argv[3]
+        prior_dir = sys.argv[4]
+        perturbation_dirs = sys.argv[5]
+        n_perturbation_dirs = int(sys.argv[6])
+        data_dir = sys.argv[7]
+        code_dir = sys.argv[8]
     else:
-        month = 1
+        chunk = 1
+        chunk_size = 125000
+        niter = '1'
         prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
         perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_NNNN'
         n_perturbation_dirs = 434
-        data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
+        data_dir = f'/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
         code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
     # Import custom packages
@@ -52,7 +55,15 @@ if __name__ == '__main__':
     else:
         obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
 
-    obs_filter = obs_filter[obs_filter['MONTH'] == month]['FILTER'].values
+    obs_filter = obs_filter['FILTER']
+    i = np.cumsum(obs_filter) - 1
+    i0 = np.where(i == (chunk-1)*chunk_size)[0][0]
+    try:
+        i1 = np.where(i == chunk*chunk_size)[0][0]
+    except IndexError:
+        i1 = obs_filter.shape[0]
+    obs_filter[:i0] = False
+    obs_filter[i1:] = False
 
     ## ---------------------------------------------------------------------##
     ## Create list of perturbation directories
@@ -64,7 +75,7 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load the data for the prior simulation
     ## ---------------------------------------------------------------------##
-    prior_files = glob.glob(f'{prior_dir}/ProcessedDir/{s.year:04d}{month:02d}??_GCtoTROPOMI.pkl')
+    prior_files = glob.glob(f'{prior_dir}/ProcessedDir/{s.year:04d}????_GCtoTROPOMI.pkl')
     prior_files.sort()
     prior = get_model_ch4(prior_files)
     prior = prior[obs_filter]
@@ -99,51 +110,51 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load and subset the reduction operator
     ## ---------------------------------------------------------------------##
-    reduction = np.load(f'{data_dir}/reduction{(int(niter)-1)}.npy')
+    reduction = np.load(f'{data_dir}/iteration{(int(niter)-1)}/operators/reduction{(int(niter)-1)}.npy')
     reduction = reduction[:len(perturbation_dirs), :]
     reduction = xr.DataArray(reduction, dims=['nvec', 'nstate'])
     reduction = reduction.chunk(chunks={'nvec' : nvec_chunk,
                                         'nstate' : nstate_chunk})
 
     ## ---------------------------------------------------------------------##
-    ## Iterate through the perturbation directories to build monthly Kw
+    ## Iterate through the perturbation directories to build a chunk of Kw
     ## ---------------------------------------------------------------------##
-    # Make a monthly reduced-dimension Jacobian (nobs x npert)
-    kw_m = np.array([]).reshape(prior.shape[0], 0)
+    # Make one chunk of the reduced-dimension Jacobian (nobs x npert)
+    kw_c = np.array([]).reshape(prior.shape[0], 0)
     for p in perturbation_dirs:
         print(p)
 
         # Load files
-        pert_files = glob.glob(f'{p}/ProcessedDir/{s.year:04d}{month:02d}??_GCtoTROPOMI.pkl')
+        pert_files = glob.glob(f'{p}/ProcessedDir/{s.year:04d}????_GCtoTROPOMI.pkl')
         pert_files.sort()
         pert = get_model_ch4(pert_files)
         pert = pert[obs_filter]
 
         # Get and save the Jacobian column
         diff = (pert - prior).reshape((-1, 1))
-        kw_m = np.concatenate((kw_m, diff), axis=1)
+        kw_c = np.concatenate((kw_c, diff), axis=1)
 
     # Convert to xarray
-    kw_m = xr.DataArray(kw_m, dims=['nobs', 'nvec'])
-    kw_m = kw_m.chunk(chunks={'nobs' : nobs_chunk, 'nvec' : nvec_chunk})
+    kw_c = xr.DataArray(kw_c, dims=['nobs', 'nvec'])
+    kw_c = kw_c.chunk(chunks={'nobs' : nobs_chunk, 'nvec' : nvec_chunk})
 
     ## ---------------------------------------------------------------------##
     ## Save and exit
     ## ---------------------------------------------------------------------##
     # Transform the reduced-dimension Jacobian Kw into state space
-    kpi_m = da.tensordot(kw_m, reduction, axes=(1, 0))
-    kpi_m = xr.DataArray(kpi_m, dims=['nobs', 'nstate'])
-    kpi_m = kpi_m.chunk({'nobs' : 5e3, 'nstate' : -1})
+    kpi_c = da.tensordot(kw_c, reduction, axes=(1, 0))
+    kpi_c = xr.DataArray(kpi_c, dims=['nobs', 'nstate'])
+    kpi_c = kpi_c.chunk({'nobs' : 5e3, 'nstate' : -1})
 
     # Persist
-    kpi_m = kpi_m.persist()
-    progress(kpi_m)
+    kpi_c = kpi_c.persist()
+    progress(kpi_c)
 
     # Save out
     start_time = time.time()
-    kpi_m.to_netcdf(f'{data_dir}/k{niter}_m{month:02d}.nc')
+    kpi_c.to_netcdf(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc')
     active_time = (time.time() - start_time)/60
-    print(f'Kpi for month {month} saved ({active_time} min).')
+    print(f'Kpi for chunk {chunk} saved ({active_time} min).')
 
     # Exit
     print('Code Complete.')
