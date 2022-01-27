@@ -534,7 +534,8 @@ if compare_gosat:
                 color=fp.color(i, lut=4), label=f'TROPOMI {s}')
         d = gosat_data[gosat_data['SEASON'] == s]['OBS']
         GOSAT_mean = d.mean()
-        print(f'  Difference of means: {(TROPOMI_mean - GOSAT_mean):.2f}  TROPOMI std: {TROPOMI_std:.2f}')
+        GOSAT_std = d.std()
+        print(f'  Difference of means: {(TROPOMI_mean - GOSAT_mean):.2f}  TROPOMI std: {TROPOMI_std:.2f}  GOSAT std: {GOSAT_std:.2f}')
         ax.hist(d, histtype='step', density=True, bins=50,
                 color=fp.color(i, lut=4), ls='--', label=f'GOSAT {s}')
     ax.set_xlim(1750, 1950)
@@ -1063,4 +1064,5 @@ if calculate_so:
     so.to_netcdf(join(output_dir, 'so.nc'))
 
 print(f'Number of observations : {nobs}')
+print('Number of observations in February : ', data['OBS'][data['MONTH'] == 2].shape)
 print('=== CODE COMPLETE ====')
