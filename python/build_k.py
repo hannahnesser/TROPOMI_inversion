@@ -25,7 +25,7 @@ if __name__ == '__main__':
     else:
         chunk = 1
         chunk_size = 125000
-        niter = '1'
+        niter = '2'
         prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
         perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_NNNN'
         n_perturbation_dirs = 434
@@ -55,15 +55,17 @@ if __name__ == '__main__':
     else:
         obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
 
-    obs_filter = obs_filter['FILTER']
-    i = np.cumsum(obs_filter) - 1
+    i = np.cumsum(obs_filter['FILTER']) - 1
     i0 = np.where(i == (chunk-1)*chunk_size)[0][0]
     try:
         i1 = np.where(i == chunk*chunk_size)[0][0]
     except IndexError:
         i1 = obs_filter.shape[0]
-    obs_filter[:i0] = False
-    obs_filter[i1:] = False
+    months = np.unique(obs_filter[i0:i1]['MONTH'])
+    obs_filter.loc[obs_filter.index[:i0], 'FILTER'] = False
+    obs_filter.loc[obs_filter.index[i1:], 'FILTER'] = False
+    obs_filter = obs_filter[obs_filter['MONTH'].isin(months)]['FILTER']
+    count += obs_filter.sum()
 
     ## ---------------------------------------------------------------------##
     ## Create list of perturbation directories
@@ -76,6 +78,8 @@ if __name__ == '__main__':
     ## Load the data for the prior simulation
     ## ---------------------------------------------------------------------##
     prior_files = glob.glob(f'{prior_dir}/ProcessedDir/{s.year:04d}????_GCtoTROPOMI.pkl')
+    prior_files = [p for p in prior_files
+                   if int(p.split('/')[-1].split('_')[0][4:6]) in months]
     prior_files.sort()
     prior = get_model_ch4(prior_files)
     prior = prior[obs_filter]
@@ -126,6 +130,8 @@ if __name__ == '__main__':
 
         # Load files
         pert_files = glob.glob(f'{p}/ProcessedDir/{s.year:04d}????_GCtoTROPOMI.pkl')
+        pert_files = [p for p in pert_files
+                      if int(p.split('/')[-1].split('_')[0][4:6]) in months]
         pert_files.sort()
         pert = get_model_ch4(pert_files)
         pert = pert[obs_filter]
