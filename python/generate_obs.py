@@ -1064,5 +1064,8 @@ if calculate_so:
     so.to_netcdf(join(output_dir, 'so.nc'))
 
 print(f'Number of observations : {nobs}')
+print('Number of observations in January : ', data['OBS'][data['MONTH'] == 1].shape)
 print('Number of observations in February : ', data['OBS'][data['MONTH'] == 2].shape)
+print('Number of observations in March : ', data['OBS'][data['MONTH'] == 3].shape)
+
 print('=== CODE COMPLETE ====')
