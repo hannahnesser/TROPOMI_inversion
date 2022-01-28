@@ -90,7 +90,7 @@ if __name__ == '__main__':
     # We take the squareroot of the max chunk size and scale it down by 5
     # to be safe. It's a bit unclear why this works best in tests.
     nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
-    nobs_chunk = 4e4 # int(max_chunk_size/nstate_chunk/5)
+    nobs_chunk = 5e4 # int(max_chunk_size/nstate_chunk/5)
     chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
 
     ## ---------------------------------------------------------------------##
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     count = 0
     n = 5e4
     print(f'Iterating through {(math.ceil(nobs/n))} chunks.')
-    while i <= nobs:
+    while i < nobs:
         print('-'*75)
         print(f'Chunk {count}')
         # Subset the Jacobian and observational error
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     for i in range(count):
         print(f'Loading count {i}.')
         temp1 = xr.open_dataarray(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_{i:d}.nc')
-        temp2 = xr.open_dataarray(f'{data_dir}/iteration{niiter}/xhat/pre_xhat{niter}_c{chunk:02d}_{i:d}.nc')
+        temp2 = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_{i:d}.nc')
         pph_m += temp1
         pre_xhat_m += temp2
 
