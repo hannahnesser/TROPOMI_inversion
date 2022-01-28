@@ -36,9 +36,20 @@ if __name__ == '__main__':
         solve_inversion = False
 
     # User preferences
-    pct_of_info = [50, 80, 90, 95, 99, 99.9]
+    pct_of_info = [50, 80, 90, 99.9]
     snr = None
     rank = None
+
+    # Scale
+    rf = None
+    sa_scale = None
+
+    # Define suffixes for saving
+    suffix = ''
+    if rf is not None:
+        suffix = suffix + f'_rf{rf}'
+    if sa_scale is not None:
+        suffix = suffix + f'_sa{(0.5*sa_scale)}'
 
     ## -------------------------------------------------------------------- ##
     ## Set up working environment
@@ -147,13 +158,12 @@ if __name__ == '__main__':
     else:
         pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}.nc')
         evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}.npy')
+        # evals_q = evals_h/(1 + evals_h)
         evecs = np.load(f'{data_dir}/iteration{niter}/operators/evecs{niter}.npy')
         prolongation = np.load(f'{data_dir}/iteration{niter}/operators/prolongation{niter}.npy')
         if not local:
             evals_q = np.load(f'{data_dir}/iteration{niter}/operators/evals_q{niter}.npy')
             reduction = np.load(f'{data_dir}/iteration{niter}/operators/reduction{niter}.npy')
-        else:
-            evals_q = evals_h/(1 + evals_h)
 
     ## ---------------------------------------------------------------------##
     ## Format the eigenvectors for HEMCO
@@ -208,11 +218,11 @@ if __name__ == '__main__':
             # elif sum(x is not None for x in [p, snr, rank]) == 0:
             #     raise AttributeError('Insufficient rank arguments provided.')
             # elif p is not None:
-            evals_q_orig = np.load(f'{data_dir}/iteration{niter}/operators/evals_q0.npy')
+            evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
             rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=p/100)
             # diff = np.abs(DOFS_frac - (p/100))
             # rank = np.argwhere(diff == np.min(diff))[0][0]
-            suffix = f'_poi{p}'
+            suffix = suffix + f'_poi{p}'
             # elif snr is not None:
             #     evals_h[evals_h < 0] = 0
             #     diff = np.abs(evals_h**0.5 - snr)
@@ -221,6 +231,21 @@ if __name__ == '__main__':
             # else:
             #     suffix = f'_rank{rank}'
             # print(f'Rank = {rank}')
+
+            # If RF is defined, scale
+            if rf is not None:
+                evals_h *= rf
+                pre_xhat *= rf
+
+            # If sa_scale is defined, scale
+            if sa_scale is not None:
+                evals_h *= sa_scale**2
+                pre_xhat *= sa_scale
+                sa *= sa_scale**2
+
+            # Recompute evals_q.
+            if (rf is not None) or (sa_scale is not None):
+                evals_q = evals_h/(1 + evals_h)
 
             # Subset the evals and evecs
             evals_h_sub = evals_h[:rank]
