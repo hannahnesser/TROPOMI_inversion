@@ -97,7 +97,7 @@ if __name__ == '__main__':
     ## Generate the prior pre-conditioned Hessian for that chunk
     ## ---------------------------------------------------------------------##
     # Load k_m
-    k_m = gc.read_file(f'{data_dir}/iteration{niter}/k{niter}_c{chunk:02d}.nc', chunks=chunks)
+    k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc', chunks=chunks)
 
     # Initialize our loop
     i = int(0)
