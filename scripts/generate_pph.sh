@@ -5,7 +5,7 @@
 #SBATCH -c 10
 #SBATCH -N 1
 #SBATCH -p huce_cascade
-#SBATCH --mem 35000
+#SBATCH --mem 40000
 #SBATCH -t 0-01:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=hnesser@g.harvard.edu
