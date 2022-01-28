@@ -104,7 +104,7 @@ if __name__ == '__main__':
                            dims=['nstate_0', 'nstate_1'], name=f'pph{niter}')
         pre_xhat = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
                                 name=f'pre_xhat{niter}')
-        for c in range(1, 25):
+        for c in range(1, 21):
             print(f'Loading chunk {c}.')
             temp1 = xr.open_dataarray(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{c:02d}.nc')
             temp2 = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{c:02d}.nc')
