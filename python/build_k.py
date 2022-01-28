@@ -65,7 +65,6 @@ if __name__ == '__main__':
     obs_filter.loc[obs_filter.index[:i0], 'FILTER'] = False
     obs_filter.loc[obs_filter.index[i1:], 'FILTER'] = False
     obs_filter = obs_filter[obs_filter['MONTH'].isin(months)]['FILTER']
-    count += obs_filter.sum()
 
     ## ---------------------------------------------------------------------##
     ## Create list of perturbation directories
