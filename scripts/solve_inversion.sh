@@ -10,13 +10,13 @@ NUM_EVECS="2613"
 CALCULATE_EVECS="True"
 FORMAT_EVECS="False"
 SOLVE_INVERSION="True"
-CHUNK_SIZE=125000
+CHUNK_SIZE=150000
 
 # Build the Jacobian
-jid1=$(sbatch --array=1-24 build_k_chunks.sh ${CHUNK_SIZE} "2" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
+jid1=$(sbatch --array=1-20 build_k_chunks.sh ${CHUNK_SIZE} "2" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 
 # Calculate the prior preconditioned Hessian
-jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-24 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
+jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 
 # Calculate the eigenvectors
 jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SOLVE_INVERSION})
