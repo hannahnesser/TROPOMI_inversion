@@ -22,9 +22,9 @@ if __name__ == '__main__':
         data_dir = sys.argv[3]
         output_dir = sys.argv[4]
         code_dir = sys.argv[5]
-        calculate_evecs = (sys.argv[6])
-        format_evecs = (sys.argv[7])
-        solve_inversion = (sys.argv[8])
+        calculate_evecs = sys.argv[6]
+        format_evecs = sys.argv[7]
+        solve_inversion = sys.argv[8]
     else:
         niter = 1
         n_evecs = int(10)
@@ -35,16 +35,24 @@ if __name__ == '__main__':
         format_evecs = False
         solve_inversion = False
 
-    print(calculate_evecs)
-    print(format_evecs)
-    print(solve_inversion)
-
-    if calculate_evecs:
+    # Convert strings to booleans
+    if calculate_evecs == 'True':
+        calculate_evecs = True
         print('Calculating eigenvectors.')
-    if format_evecs:
+    else:
+        calculate_evecs = False
+
+    if format_evecs == 'True':
+        format_evecs = True
         print('Formatting eigenvectors.')
-    if solve_inversion:
+    else:
+        format_evecs = False
+
+    if solve_inversion == 'True':
+        solve_inversion = True
         print('Solving inversion.')
+    else:
+        solve_inversion = False
 
     # User preferences
     pct_of_info = [50, 80, 90, 99.9]
