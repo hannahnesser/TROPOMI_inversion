@@ -22,9 +22,9 @@ if __name__ == '__main__':
         data_dir = sys.argv[3]
         output_dir = sys.argv[4]
         code_dir = sys.argv[5]
-        calculate_evecs = bool(sys.argv[6])
-        format_evecs = bool(sys.argv[7])
-        solve_inversion = bool(sys.argv[8])
+        calculate_evecs = (sys.argv[6])
+        format_evecs = (sys.argv[7])
+        solve_inversion = (sys.argv[8])
     else:
         niter = 1
         n_evecs = int(10)
