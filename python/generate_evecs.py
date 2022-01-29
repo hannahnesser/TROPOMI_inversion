@@ -63,13 +63,6 @@ if __name__ == '__main__':
     rf = None
     sa_scale = None
 
-    # Define suffixes for saving
-    suffix = ''
-    if rf is not None:
-        suffix = suffix + f'_rf{rf}'
-    if sa_scale is not None:
-        suffix = suffix + f'_sa{(0.5*sa_scale)}'
-
     ## -------------------------------------------------------------------- ##
     ## Set up working environment
     ## -------------------------------------------------------------------- ##
@@ -230,6 +223,12 @@ if __name__ == '__main__':
     if solve_inversion:
         print('Calculating averaging kernel.')
         for p in pct_of_info:
+            suffix = ''
+            if rf is not None:
+                suffix = suffix + f'_rf{rf}'
+            if sa_scale is not None:
+                suffix = suffix + f'_sa{(0.5*sa_scale)}'
+
             print(f'Using {p} percent of information content.')
             # Figure out the fraction of information content
             # if sum(x is not None for x in [p, snr, rank]) > 1:
