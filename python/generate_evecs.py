@@ -35,6 +35,10 @@ if __name__ == '__main__':
         format_evecs = False
         solve_inversion = False
 
+    print(calculate_evecs)
+    print(format_evecs)
+    print(solve_inversion)
+
     if calculate_evecs:
         print('Calculating eigenvectors.')
     if format_evecs:
