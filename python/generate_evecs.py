@@ -35,6 +35,13 @@ if __name__ == '__main__':
         format_evecs = False
         solve_inversion = False
 
+    if calculate_evecs:
+        print('Calculating eigenvectors.')
+    if format_evecs:
+        print('Formatting eigenvectors.')
+    if solve_inversion:
+        print('Solving inversion.')
+
     # User preferences
     pct_of_info = [50, 80, 90, 99.9]
     snr = None
