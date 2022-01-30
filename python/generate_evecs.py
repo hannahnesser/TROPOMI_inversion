@@ -25,6 +25,8 @@ if __name__ == '__main__':
         calculate_evecs = sys.argv[6]
         format_evecs = sys.argv[7]
         solve_inversion = sys.argv[8]
+        rf = int(sys.argv[9])
+        sa_scale = int(sys.argv[10])
     else:
         niter = 1
         n_evecs = int(10)
@@ -34,6 +36,8 @@ if __name__ == '__main__':
         calculate_evecs = False
         format_evecs = False
         solve_inversion = False
+        rf = None
+        sa_scale = None
 
     # Convert strings to booleans
     if calculate_evecs == 'True':
@@ -58,10 +62,6 @@ if __name__ == '__main__':
     pct_of_info = [50, 80, 90, 99.9]
     snr = None
     rank = None
-
-    # Scale
-    rf = None
-    sa_scale = None
 
     ## -------------------------------------------------------------------- ##
     ## Set up working environment
