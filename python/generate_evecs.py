@@ -25,8 +25,8 @@ if __name__ == '__main__':
         calculate_evecs = sys.argv[6]
         format_evecs = sys.argv[7]
         solve_inversion = sys.argv[8]
-        rf = int(sys.argv[9])
-        sa_scale = int(sys.argv[10])
+        rf = float(sys.argv[9])
+        sa_scale = float(sys.argv[10])
     else:
         niter = 1
         n_evecs = int(10)
