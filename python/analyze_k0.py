@@ -54,31 +54,31 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 ########################################################################
 ### FIGURE : EIGENVALUES
 ########################################################################
-evals_q = np.load(f'{data_dir}evals_q0.npy')
-evals_h = np.load(f'{data_dir}evals_h0.npy')
-# evals_h[evals_h < 0] = 0
-snr = evals_h**0.5
-DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
+# evals_q = np.load(f'{data_dir}evals_q0.npy')
+# evals_h = np.load(f'{data_dir}evals_h0.npy')
+# # evals_h[evals_h < 0] = 0
+# snr = evals_h**0.5
+# DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
 
-fig, ax = fp.get_figax(aspect=3)
+# fig, ax = fp.get_figax(aspect=3)
 
-# DOFS frac
-ax.plot(100*DOFS_frac, label='Information content spectrum',
-        c=fp.color(3), lw=2)
-for p in [0.5, 0.8, 0.85, 0.9, 0.95, 0.97, 0.98, 0.99]:
-    diff = np.abs(DOFS_frac - p)
-    rank = np.argwhere(diff == np.min(diff))[0][0]
-    print(p, rank)
-    ax.scatter(rank, 100*DOFS_frac[rank], marker='*', s=80, c=fp.color(3))
-    ax.text(rank, 100*DOFS_frac[rank]-5, f'{int(100*p):d}%%',
-            ha='left', va='top', c=fp.color(3))
-ax.set_xlabel('Eigenvector index', fontsize=config.LABEL_FONTSIZE*config.SCALE,
-              labelpad=config.LABEL_PAD)
-ax.set_ylabel('Percentage of DOFS', fontsize=config.LABEL_FONTSIZE*config.SCALE,
-              labelpad=config.LABEL_PAD, color=fp.color(3))
-ax.tick_params(axis='both', which='both',
-               labelsize=config.LABEL_FONTSIZE*config.SCALE)
-ax.tick_params(axis='y', labelcolor=fp.color(3))
+# # DOFS frac
+# ax.plot(100*DOFS_frac, label='Information content spectrum',
+#         c=fp.color(3), lw=2)
+# for p in [0.5, 0.8, 0.85, 0.9, 0.95, 0.97, 0.98, 0.99]:
+#     diff = np.abs(DOFS_frac - p)
+#     rank = np.argwhere(diff == np.min(diff))[0][0]
+#     print(p, rank)
+#     ax.scatter(rank, 100*DOFS_frac[rank], marker='*', s=80, c=fp.color(3))
+#     ax.text(rank, 100*DOFS_frac[rank]-5, f'{int(100*p):d}%%',
+#             ha='left', va='top', c=fp.color(3))
+# ax.set_xlabel('Eigenvector index', fontsize=config.LABEL_FONTSIZE*config.SCALE,
+#               labelpad=config.LABEL_PAD)
+# ax.set_ylabel('Percentage of DOFS', fontsize=config.LABEL_FONTSIZE*config.SCALE,
+#               labelpad=config.LABEL_PAD, color=fp.color(3))
+# ax.tick_params(axis='both', which='both',
+#                labelsize=config.LABEL_FONTSIZE*config.SCALE)
+# ax.tick_params(axis='y', labelcolor=fp.color(3))
 
 # # SNR
 # ax2 = ax.twinx()
@@ -195,7 +195,7 @@ ax.tick_params(axis='y', labelcolor=fp.color(3))
 # fp.save_fig(fig, plot_dir, 'fig_kw')
 
 # ########################################################################
-# ### FIGURE : INITIAL AVERAGING KERNEL SENSITIVITIES
+# ### FIGURE : FIRST ESTIMATE
 # ########################################################################
 # # Load clusters
 # clusters_plot = xr.open_dataarray(f'{data_dir}clusters.nc')
@@ -241,6 +241,60 @@ ax.tick_params(axis='y', labelcolor=fp.color(3))
 #     fig, ax, c = ip.plot_state(xhat, clusters_plot, title=title,
 #                                **xhat_kwargs)
 #     fp.save_fig(fig, plot_dir, f'fig_est1_xhat_{f}_update')
+
+#     # Reset cbar kwargs
+#     avker_kwargs['cbar_kwargs'] = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
+#     xhat_kwargs['cbar_kwargs'] = {'title' : r'Scale factor'}
+
+
+
+# ########################################################################
+# ### FIGURE : SECOND ESTIMATE
+# ########################################################################
+# # Load clusters
+# clusters_plot = xr.open_dataarray(f'{data_dir}clusters.nc')
+
+# # Standard plotting preferences
+# avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
+# avker_kwargs = {'cmap' : plasma_trans, 'vmin' : 0, 'vmax' : 1,
+#                 'cbar_kwargs' : avker_cbar_kwargs,
+#                 'map_kwargs' : small_map_kwargs}
+
+# xhat_cbar_kwargs = {'title' : r'Scale factor'}
+# xhat_kwargs = {'cmap' : 'PuOr_r', 'vmin' : 0.5, 'vmax' : 1.5,
+#                'default_value' : 1,
+#                'cbar_kwargs' : xhat_cbar_kwargs,
+#                'map_kwargs' : small_map_kwargs}
+
+
+# # Fraction of information contents
+# # fracs = [90, 95, 98, 99, 99.9]
+# # fracs = [99.9]
+# suffixes = ['poi50', 'poi80', 'poi90', 'poi99.9']
+
+# # Load initial averaging kernel
+# for f in suffixes:
+#     dofs = np.load(f'{data_dir}dofs2_{f}.npy')
+#     xhat = np.load(f'{data_dir}xhat2_{f}.npy')
+#     # xhat += np.ones(xhat.shape)
+
+#     # Filter
+#     xhat[dofs < 0.01] = 1
+
+#     # Plot averaging kernel sensitivities
+#     title = f'First update of information content' # ({f}\%)'
+#     fig, ax, c = ip.plot_state(dofs, clusters_plot, title=title,
+#                                **avker_kwargs)
+#     ax.text(0.025, 0.05, 'DOFS = %d' % round(dofs.sum()),
+#             fontsize=config.LABEL_FONTSIZE*config.SCALE,
+#             transform=ax.transAxes)
+#     fp.save_fig(fig, plot_dir, f'fig_est2_dofs_{f}_update')
+
+#     # Plot posterior scaling factors
+#     title = f'First update of emissions scale factors' # ({f}\%)'
+#     fig, ax, c = ip.plot_state(xhat, clusters_plot, title=title,
+#                                **xhat_kwargs)
+#     fp.save_fig(fig, plot_dir, f'fig_est2_xhat_{f}_update')
 
 #     # Reset cbar kwargs
 #     avker_kwargs['cbar_kwargs'] = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
@@ -322,6 +376,32 @@ ax.tick_params(axis='y', labelcolor=fp.color(3))
 #                                 cbar_kwargs={'title' : 'Eigenvector\nvalue',
 #                                              'ticks' : [-0.01, 0, 0.01]})
 # fp.save_fig(fig, plot_dir, 'fig_est0_evecs')
+
+########################################################################
+### FIGURE : SECOND GUESS EIGENVECTORS
+########################################################################
+# Eigenvectors
+# evecs = [f'{data_dir}evec_pert_{i:02d}.nc' for i in range(1, 10)]
+# i = 1
+# for v in evecs:
+#     ev = xr.open_dataarray(v)
+#     fig, ax, c = ip.plot_state_format(ev, cmap='RdBu_r',
+#                                       vmin=-0.1, vmax=0.1)
+#     fp.save_fig(fig, plot_dir, f'fig_est0_evec_{i:02d}')
+#     i += 1
+
+rows = 4
+cols = 4
+nevecs = rows*cols
+n0 = 430
+evecs = np.load(f'{data_dir}prolongation1.npy')
+clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
+fig, ax, c = ip.plot_state_grid(evecs[:,n0:(n0+nevecs)], rows, cols, clusters,
+                                titles=[f'{n0+i}' for i in range(1, nevecs+1)],
+                                cmap='RdBu_r', vmin=-0.01, vmax=0.01,
+                                cbar_kwargs={'title' : 'Eigenvector\nvalue',
+                                             'ticks' : [-0.01, 0, 0.01]})
+fp.save_fig(fig, plot_dir, f'fig_est1_evecs_{n0}_{n0+nevecs}')
 
 ########################################################################
 ### FIGURE : FIGURE OUT EIGENVECTOR WEIGHTING
