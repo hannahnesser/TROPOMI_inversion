@@ -116,8 +116,11 @@ if __name__ == '__main__':
         xhat = (1 + (evecs*sa*(1/(1+evals_h))) @ evecs.T @ pre_xhat)
         return np.array(xhat)
 
-    def calculate_A():
-        ...
+    def calculate_dofs(evecs, evals_h, sa=None):
+        # This formulation definitely only works with constant errors
+        evals_q = evals_h/(1 + evals_h)
+        a = (evecs*evals_q) @ evecs.T
+        return np.diagonal(a)
 
     ## -------------------------------------------------------------------- ##
     ## Open files
@@ -177,6 +180,7 @@ if __name__ == '__main__':
         rfs = [1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 5, 10]
         ja = np.zeros(len(rfs))
         jo = np.zeros(len(rfs))
+        n = np.zeros(len(rfs))
         for i, rf_i in enumerate(rfs):
             print(i, rf_i)
             # Scale the relevant terms by RF
@@ -194,11 +198,16 @@ if __name__ == '__main__':
             ja[i] = ((xhat - np.ones(xhat.shape))**2/sa.reshape(-1,)).sum()
             # jo[i] = ((y.values - yhat)**2/(so.reshape(-1,)/rf_i)).sum()
 
+            # Calculate the functional state vector size
+            dofs = calculate_dofs(evecs_sub, evals_h_i)
+            n[i] = (dofs >= 0.01).sum()
+
         # Chooose rf?
 
         # Save the result
         np.save(f'{data_dir}/iteration{niter}/ja{niter}.npy', ja)
         # np.save(f'{data_dir}/iteration{niter}/jo{niter}.npy', jo)
+        np.save(f'{data_dir}/iteration{niter}/n_functional.npy', n)
 
     # ## ---------------------------------------------------------------------##
     # ## Solve the inversion
@@ -246,9 +255,4 @@ if __name__ == '__main__':
     #     np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', np.diagonal(a))
     #     np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
 
-
-
-
-
-
-    # print('CODE COMPLETE')
+    print('CODE COMPLETE')
