@@ -24,9 +24,6 @@ if __name__ == '__main__':
         code_dir = sys.argv[5]
         calculate_evecs = sys.argv[6]
         format_evecs = sys.argv[7]
-        solve_inversion = sys.argv[8]
-        rf = float(sys.argv[9])
-        sa_scale = float(sys.argv[10])
     else:
         niter = 1
         n_evecs = int(10)
@@ -35,9 +32,6 @@ if __name__ == '__main__':
         data_dir = f'{base_dir}inversion_data/'
         calculate_evecs = False
         format_evecs = False
-        solve_inversion = False
-        rf = None
-        sa_scale = None
 
     # Convert strings to booleans
     if calculate_evecs == 'True':
@@ -51,12 +45,6 @@ if __name__ == '__main__':
         print('Formatting eigenvectors.')
     else:
         format_evecs = False
-
-    if solve_inversion == 'True':
-        solve_inversion = True
-        print('Solving inversion.')
-    else:
-        solve_inversion = False
 
     # User preferences
     pct_of_info = [50, 80, 90, 99.9]
@@ -168,21 +156,18 @@ if __name__ == '__main__':
         print('Eigendecomposition complete.\n')
 
     else:
-        pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}.nc')
         evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}.npy')
         # evals_q = evals_h/(1 + evals_h)
-        evecs = np.load(f'{data_dir}/iteration{niter}/operators/evecs{niter}.npy')
         prolongation = np.load(f'{data_dir}/iteration{niter}/operators/prolongation{niter}.npy')
         if not local:
             evals_q = np.load(f'{data_dir}/iteration{niter}/operators/evals_q{niter}.npy')
-            reduction = np.load(f'{data_dir}/iteration{niter}/operators/reduction{niter}.npy')
 
     ## ---------------------------------------------------------------------##
     ## Format the eigenvectors for HEMCO
     ## ---------------------------------------------------------------------##
     if format_evecs:
-        # First, print information about the rank/percent of information content/
-        # SNR associated with the number of evecs provided
+        # First, print information about the rank/percent of information
+        # content/SNR associated with the number of evecs provided
         DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
         print(f'SAVING OUT {n_evecs} EIGENVECTORS')
         print(f'% DOFS : {(100*DOFS_frac[n_evecs])}')
@@ -194,7 +179,6 @@ if __name__ == '__main__':
         # Iterate through columns and save out HEMCO-appropriate files
         for i in range(n_evecs):
             pert = ip.match_data_to_clusters(prolongation[:, i], clusters, 0)
-            # pert = ip.match_data_to_clusters(prolongation[:, i], clusters, 0)
 
             # Define HEMCO attributes
             long_name = 'Eigenvector perturbations'
@@ -207,79 +191,5 @@ if __name__ == '__main__':
                           'Conventions' : 'COARDS',
                           'History' : datetime.now().strftime('%Y-%m-%d %H:%M')}
 
-            # Scaling (for a later date)
-            # for s in evec_scaling:
-            #     suffix = f'_{(i+1):04d}_{s}'
-            #     pert.attrs = {'Title' : title_str, 'Scaling' : s}
-            #     p = deepcopy(pert)
-            #     p['evec_pert'] *= float(s)
-
             gc.save_HEMCO_netcdf(pert, f'{output_dir}/inversion_data/eigenvectors{niter}', f'evec_pert_{(i+1):04d}.nc')
             print(f'Saved eigenvector {(i+1)} : {output_dir}/inversion_data/eigenvectors{niter}/evec_pert_{(i+1):04d}.nc')
-
-    ## ---------------------------------------------------------------------##
-    ## Solve the inversion
-    ## ---------------------------------------------------------------------##
-    if solve_inversion:
-        print('Calculating averaging kernel.')
-        for p in pct_of_info:
-            suffix = ''
-            if rf is not None:
-                suffix = suffix + f'_rf{rf}'
-            if sa_scale is not None:
-                suffix = suffix + f'_sa{(0.5*sa_scale)}'
-
-            print(f'Using {p} percent of information content.')
-            # Figure out the fraction of information content
-            # if sum(x is not None for x in [p, snr, rank]) > 1:
-            #     raise AttributeError('Conflicting rank arguments provided.')
-            # elif sum(x is not None for x in [p, snr, rank]) == 0:
-            #     raise AttributeError('Insufficient rank arguments provided.')
-            # elif p is not None:
-            evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
-            rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=p/100)
-            # diff = np.abs(DOFS_frac - (p/100))
-            # rank = np.argwhere(diff == np.min(diff))[0][0]
-            suffix = suffix + f'_poi{p}'
-            # elif snr is not None:
-            #     evals_h[evals_h < 0] = 0
-            #     diff = np.abs(evals_h**0.5 - snr)
-            #     rank = np.argwhere(diff == np.min(diff))[0][0]
-            #     suffix = f'_snr{snr}'
-            # else:
-            #     suffix = f'_rank{rank}'
-            # print(f'Rank = {rank}')
-
-            # If RF is defined, scale
-            if rf is not None:
-                evals_h *= rf
-                pre_xhat *= rf
-
-            # If sa_scale is defined, scale
-            if sa_scale is not None:
-                evals_h *= sa_scale**2
-                pre_xhat *= sa_scale
-                sa *= sa_scale**2
-
-            # Recompute evals_q.
-            if (rf is not None) or (sa_scale is not None):
-                evals_q = evals_h/(1 + evals_h)
-
-            # Subset the evals and evecs
-            evals_h_sub = evals_h[:rank]
-            evals_q_sub = evals_q[:rank]
-            evecs_sub = evecs[:, :rank]
-
-            # Calculate the posterior and averaging kernel
-            # (we can leave off Sa when it's constant)
-            # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
-            a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-            xhat = (np.ones(pre_xhat.values.shape) +
-                    (evecs_sub*sa*(1/(1+evals_h_sub))) @ evecs_sub.T @ pre_xhat.values)
-
-            # Save the result
-            np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
-            np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', np.diagonal(a))
-            np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
-
-    print('CODE COMPLETE')
