@@ -1,6 +1,7 @@
 from os.path import join
 from os import listdir
 import sys
+import glob
 import copy
 import xarray as xr
 import numpy as np
@@ -251,54 +252,59 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 # ########################################################################
 # ### FIGURE : SECOND ESTIMATE
 # ########################################################################
-# # Load clusters
-# clusters_plot = xr.open_dataarray(f'{data_dir}clusters.nc')
+# Load clusters
+clusters_plot = xr.open_dataarray(f'{data_dir}clusters.nc')
 
-# # Standard plotting preferences
-# avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
-# avker_kwargs = {'cmap' : plasma_trans, 'vmin' : 0, 'vmax' : 1,
-#                 'cbar_kwargs' : avker_cbar_kwargs,
-#                 'map_kwargs' : small_map_kwargs}
+# Standard plotting preferences
+avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
+avker_kwargs = {'cmap' : plasma_trans, 'vmin' : 0, 'vmax' : 1,
+                'cbar_kwargs' : avker_cbar_kwargs,
+                'map_kwargs' : small_map_kwargs}
 
-# xhat_cbar_kwargs = {'title' : r'Scale factor'}
-# xhat_kwargs = {'cmap' : 'PuOr_r', 'vmin' : 0.5, 'vmax' : 1.5,
-#                'default_value' : 1,
-#                'cbar_kwargs' : xhat_cbar_kwargs,
-#                'map_kwargs' : small_map_kwargs}
+xhat_cbar_kwargs = {'title' : r'Scale factor'}
+xhat_kwargs = {'cmap' : 'PuOr_r', 'vmin' : 0.7, 'vmax' : 1.3,
+               'default_value' : 1,
+               'cbar_kwargs' : xhat_cbar_kwargs,
+               'map_kwargs' : small_map_kwargs}
 
 
-# # Fraction of information contents
-# # fracs = [90, 95, 98, 99, 99.9]
-# # fracs = [99.9]
+# Fraction of information contents
+# fracs = [90, 95, 98, 99, 99.9]
+# fracs = [99.9]
 # suffixes = ['poi50', 'poi80', 'poi90', 'poi99.9']
+suffixes = glob.glob(f'{data_dir}/dofs2*poi80*')
+suffixes = [s.split('/')[-1][6:-4] for s in suffixes]
 
-# # Load initial averaging kernel
-# for f in suffixes:
-#     dofs = np.load(f'{data_dir}dofs2_{f}.npy')
-#     xhat = np.load(f'{data_dir}xhat2_{f}.npy')
-#     # xhat += np.ones(xhat.shape)
+# Load initial averaging kernel
+for f in suffixes:
+    dofs = np.load(f'{data_dir}dofs2_{f}.npy')
+    xhat = np.load(f'{data_dir}xhat2_{f}.npy')
+    # xhat += np.ones(xhat.shape)
 
-#     # Filter
-#     xhat[dofs < 0.01] = 1
+    # Filter
+    xhat[dofs < 0.01] = 1
+    dofs[dofs < 0.01] = 0
 
-#     # Plot averaging kernel sensitivities
-#     title = f'First update of information content' # ({f}\%)'
-#     fig, ax, c = ip.plot_state(dofs, clusters_plot, title=title,
-#                                **avker_kwargs)
-#     ax.text(0.025, 0.05, 'DOFS = %d' % round(dofs.sum()),
-#             fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#             transform=ax.transAxes)
-#     fp.save_fig(fig, plot_dir, f'fig_est2_dofs_{f}_update')
+    # Plot averaging kernel sensitivities
+    title = f'First update of information content' # ({f}\%)'
+    fig, ax, c = ip.plot_state(dofs, clusters_plot, title=title,
+                               **avker_kwargs)
+    ax.text(0.025, 0.05, 'DOFS = %d' % round(dofs.sum()),
+            fontsize=config.LABEL_FONTSIZE*config.SCALE,
+            transform=ax.transAxes)
+    fp.save_fig(fig, plot_dir, f'fig_est2_dofs_{f}')
+    plt.close()
 
-#     # Plot posterior scaling factors
-#     title = f'First update of emissions scale factors' # ({f}\%)'
-#     fig, ax, c = ip.plot_state(xhat, clusters_plot, title=title,
-#                                **xhat_kwargs)
-#     fp.save_fig(fig, plot_dir, f'fig_est2_xhat_{f}_update')
+    # Plot posterior scaling factors
+    title = f'First update of emissions scale factors' # ({f}\%)'
+    fig, ax, c = ip.plot_state(xhat, clusters_plot, title=title,
+                               **xhat_kwargs)
+    fp.save_fig(fig, plot_dir, f'fig_est2_xhat_{f}')
+    plt.close()
 
-#     # Reset cbar kwargs
-#     avker_kwargs['cbar_kwargs'] = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
-#     xhat_kwargs['cbar_kwargs'] = {'title' : r'Scale factor'}
+    # Reset cbar kwargs
+    avker_kwargs['cbar_kwargs'] = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
+    xhat_kwargs['cbar_kwargs'] = {'title' : r'Scale factor'}
 
 
 # ########################################################################
@@ -390,18 +396,18 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 #     fp.save_fig(fig, plot_dir, f'fig_est0_evec_{i:02d}')
 #     i += 1
 
-rows = 4
-cols = 4
-nevecs = rows*cols
-n0 = 430
-evecs = np.load(f'{data_dir}prolongation1.npy')
-clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
-fig, ax, c = ip.plot_state_grid(evecs[:,n0:(n0+nevecs)], rows, cols, clusters,
-                                titles=[f'{n0+i}' for i in range(1, nevecs+1)],
-                                cmap='RdBu_r', vmin=-0.01, vmax=0.01,
-                                cbar_kwargs={'title' : 'Eigenvector\nvalue',
-                                             'ticks' : [-0.01, 0, 0.01]})
-fp.save_fig(fig, plot_dir, f'fig_est1_evecs_{n0}_{n0+nevecs}')
+# rows = 4
+# cols = 4
+# nevecs = rows*cols
+# n0 = 430
+# evecs = np.load(f'{data_dir}prolongation1.npy')
+# clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
+# fig, ax, c = ip.plot_state_grid(evecs[:,n0:(n0+nevecs)], rows, cols, clusters,
+#                                 titles=[f'{n0+i}' for i in range(1, nevecs+1)],
+#                                 cmap='RdBu_r', vmin=-0.01, vmax=0.01,
+#                                 cbar_kwargs={'title' : 'Eigenvector\nvalue',
+#                                              'ticks' : [-0.01, 0, 0.01]})
+# fp.save_fig(fig, plot_dir, f'fig_est1_evecs_{n0}_{n0+nevecs}')
 
 ########################################################################
 ### FIGURE : FIGURE OUT EIGENVECTOR WEIGHTING
