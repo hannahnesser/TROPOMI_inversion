@@ -186,19 +186,19 @@ if __name__ == '__main__':
             # Calculate the posterior
             xhat = calculate_xhat(evecs_sub, evals_h_i, pre_xhat_i.values, sa)
 
-            # Calculate the posterior observations
-            yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
-            yhat += c.values
+            # # Calculate the posterior observations
+            # yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
+            # yhat += c.values
 
             # Calculate and save the cost function for the prior term
-            ja[i] = ((xhat - np.ones(xhat.shape))**2/sa).sum()
-            jo[i] = ((y.values - yhat)**2/(so.reshape(-1,)/rf_i)).sum()
+            ja[i] = ((xhat - np.ones(xhat.shape))**2/sa.reshape(-1,)).sum()
+            # jo[i] = ((y.values - yhat)**2/(so.reshape(-1,)/rf_i)).sum()
 
         # Chooose rf?
 
         # Save the result
         np.save(f'{data_dir}/iteration{niter}/ja{niter}.npy', ja)
-        np.save(f'{data_dir}/iteration{niter}/jo{niter}.npy', jo)
+        # np.save(f'{data_dir}/iteration{niter}/jo{niter}.npy', jo)
 
     # ## ---------------------------------------------------------------------##
     # ## Solve the inversion
