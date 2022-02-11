@@ -9,9 +9,9 @@ CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 NUM_EVECS="2613"
 CALCULATE_EVECS="False"
 FORMAT_EVECS="False"
-SOLVE_INVERSION="True"
+OPTIMIZE_RF="True"
 CHUNK_SIZE=150000
-RF="0.25"
+RF="0.1"
 SA_SCALE="1"
 
 # Build the Jacobian
@@ -21,6 +21,9 @@ jid1=$(sbatch --array=1-20 build_k_chunks.sh ${CHUNK_SIZE} "2" ${PRIOR_DIR} ${PE
 jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 
 # Calculate the eigenvectors
-jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SOLVE_INVERSION} ${RF} ${SA_SCALE})
+jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS})
+# jid3=$(sbatch generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SOLVE_INVERSION})
 
-
+# Solve the inversion
+jid4=$(sbatch --dependency=afterok:${jid3##* } run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${OPTIMIZE_RF} ${RF} ${SA_SCALE})
+# jid4=$(sbatch run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${OPTIMIZE_RF} ${RF} ${SA_SCALE})
