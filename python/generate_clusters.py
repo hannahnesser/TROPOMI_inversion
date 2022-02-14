@@ -161,7 +161,9 @@ gc.save_HEMCO_netcdf(clusters, output_dir, 'clusters.nc')
 # Print information on clusters
 emis_tot = emis.sum().values
 cluster_tot = emis.where(clusters['Clusters'] > 0).sum().values
+cluster_min = emis.where(clusters['Clusters'] > 0).min().values
 print(cluster_tot, emis_tot, cluster_tot/emis_tot)
+print(cluster_min)
 
 ## -------------------------------------------------------------------------##
 ## Plot the result
