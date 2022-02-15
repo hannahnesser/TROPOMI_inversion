@@ -77,13 +77,12 @@ HEMCO_diagnostics.{settings.year:04d}{mm:02d}010000.nc'
              for mm in settings.months]
 # emis_file = f'{base_dir}/prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
 clusters = f'{data_dir}/clusters.nc'
+clusters = xr.open_dataarray(clusters)
+nstate = int(clusters.max().values)
+print(nstate)
 
 # Set relative prior error covariance value
 rel_err = 0.5
-
-## -------------------------------------------------------------------------##
-## Save out absolute and relative priors
-## -------------------------------------------------------------------------##
 
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
@@ -101,19 +100,69 @@ if 'time' in emis.dims:
     name = 'HEMCO_diagnostics.2019.nc'
     emis.to_netcdf(f'{base_dir}/prior/total_emissions/{name}')
 
+# Save out area as km2
+area = emis['AREA']/(1000*1000)
+area = ip.clusters_2d_to_1d(clusters, area)
+area = xr.DataArray(area, dims=('nstate'))
+area.to_netcdf(join(data_dir, 'area.nc'))
+
 # Print a summary table
 summ = emis[[var for var in emis.keys() if var[:4] == 'Emis']]*emis['AREA']
 summ *= 1e-9*(60*60*24*365) # Adjust units to Tg/yr
+# summ = xr.where(clusters > 0)
 summ = summ.sum(dim=['lat', 'lon'])
+tally = 0
 for k in summ.keys():
+    if k != 'EmisCH4_Total':
+        tally += summ[k].values
     print(f'{k:>20} {summ[k].values:.2f}')
+print('-'*50)
+print(f'               Total {tally:.2f}')
+print('-'*50)
 
 # Adjust units to Mg/km2/yr
 emis *= 1e-3*(60*60*24*365)*(1000*1000)
 
-## ---------------------------------- ##
+# Isolate soil absorption
+soil_abs = emis['EmisCH4_SoilAbsorb']
+soil_abs = ip.clusters_2d_to_1d(clusters, soil_abs)
+soil_abs = xr.DataArray(soil_abs, dims=('nstate'))
+soil_abs.to_netcdf(join(data_dir, 'soil_abs.nc'))
+
+# Calculate total emissions
+tot_emis = emis['EmisCH4_Total'] - emis['EmisCH4_SoilAbsorb']
+tot_emis = ip.clusters_2d_to_1d(clusters, tot_emis)
+tot_emis = xr.DataArray(tot_emis, dims=('nstate'))
+tot_emis.to_netcdf(join(data_dir, 'xa_abs.nc'))
+
+## -------------------------------------------------------------------------##
+## Group by sector
+## -------------------------------------------------------------------------##
+emissions = {'wetlands' : 'Wetlands',
+             'livestock' : 'Livestock',
+             'fossil' : ['Coal', 'Oil', 'Gas'],
+             'waste' : ['Wastewater', 'Landfills'],
+             'other_bio' : ['Termites', 'Seeps', 'BiomassBurn', 'Lakes'],
+             'other_anth' : ['Rice', 'OtherAnth']}
+
+for label, categories in emissions.items():
+    # Get emissions
+    if type(categories) == str:
+        e = emis['EmisCH4_%s' % categories].squeeze()
+    elif type(categories) == list:
+        e = sum(emis['EmisCH4_%s' % em].squeeze()
+                for em in categories)
+
+    # Flatten
+    e = ip.clusters_2d_to_1d(clusters, e)
+
+    # Saveouut
+    e = xr.DataArray(e, dims=('nstate'))
+    e.to_netcdf(join(data_dir, f'xa_{label}.nc'))
+
+## -------------------------------------------------------------------------##
 ## Plot
-## ---------------------------------- ##
+## -------------------------------------------------------------------------##
 if plot_dir is not None:
     emissions = ['Wetlands', 'Livestock',
                 ['Coal', 'Oil', 'Gas'],
@@ -136,9 +185,9 @@ if plot_dir is not None:
         axis = fp.format_map(axis, lats=emis.lat, lons=emis.lon)
         if type(emissions[i]) == str:
             e = emis['EmisCH4_%s' % emissions[i]].squeeze()
-        elif type(emissions[i] == list):
+        elif type(emissions[i]) == list:
             e = sum(emis['EmisCH4_%s' % em].squeeze()
-                    for em in emissions [i])
+                    for em in emissions[i])
 
         c = e.plot(ax=axis, cmap=colormap, vmin=0, vmax=5,
                    add_colorbar=False)
@@ -155,12 +204,6 @@ print('The minimum positive emission is',
       np.abs(emis.where(emis > 0).min()).values)
 
 ## -------------------------------------------------------------------------##
-## Open clusters
-## -------------------------------------------------------------------------##
-clusters = xr.open_dataarray(clusters)
-nstate = int(clusters.max().values)
-
-## -------------------------------------------------------------------------##
 ## Generate prior and prior error covariance
 ## -------------------------------------------------------------------------##
 # Relative prior
@@ -173,11 +216,11 @@ sa = rel_err**2*np.ones(nstate)
 sa = xr.DataArray(sa, dims=('nstate'))
 sa.to_netcdf(join(data_dir, 'sa.nc'))
 
-# Absolute prior
-xa_abs = ip.clusters_2d_to_1d(clusters, emis)
-xa_abs = xr.DataArray(xa_abs, dims=('nstate'))
-xa_abs.to_netcdf(join(data_dir, 'xa_abs.nc'))
+# # Absolute prior
+# xa_abs = ip.clusters_2d_to_1d(clusters, emis)
+# xa_abs = xr.DataArray(xa_abs, dims=('nstate'))
+# xa_abs.to_netcdf(join(data_dir, 'xa_abs.nc'))
 
 # Absolute errors
-sa_abs = sa*xa_abs**2
+sa_abs = sa*tot_emis**2
 sa_abs.to_netcdf(join(data_dir, 'sa_abs.nc'))
