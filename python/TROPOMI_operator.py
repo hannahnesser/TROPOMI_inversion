@@ -20,7 +20,7 @@ import glob as glob
 # GC_pressure_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
 # GC_ch4_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
 # GC_ch4_halfstep_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_halfstep"
-# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0034/ProcessedDir/"
+# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/ProcessedDir/"
 # jacobian = True
 # reprocess = True
 # MONTHS = [12]
@@ -409,7 +409,7 @@ for date, filenames in Sat_files.items():
     # Save out values
     # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
     # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
-    if jacobian:
+    if not jacobian:
         N = 10
     else:
         N = 2
