@@ -33,11 +33,17 @@ GC_pressure_dir = sys.argv[3]
 GC_ch4_dir = sys.argv[4]
 GC_ch4_halfstep_dir = sys.argv[5]
 output_dir = sys.argv[6]
-jacobian = bool(sys.argv[7])
+jacobian = sys.argv[7]
 MONTHS = [int(sys.argv[8])*4 -3 + i for i in range(4)]
 reprocess = False
 
 # MONTHS = np.arange(1, 13)
+
+# Convert strings to booleans
+if jacobian == 'True':
+    jacobian = True
+else:
+    jacobian = False
 
 # Load custom packages
 sys.path.append(code_dir)
