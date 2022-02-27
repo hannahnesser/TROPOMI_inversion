@@ -46,6 +46,7 @@ import sys
 
 import math
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 import matplotlib.pyplot as plt
@@ -140,11 +141,14 @@ tot_emis.to_netcdf(join(data_dir, 'xa_abs.nc'))
 ## -------------------------------------------------------------------------##
 emissions = {'wetlands' : 'Wetlands',
              'livestock' : 'Livestock',
-             'fossil' : ['Coal', 'Oil', 'Gas'],
-             'waste' : ['Wastewater', 'Landfills'],
-             'other_bio' : ['Termites', 'Seeps', 'BiomassBurn', 'Lakes'],
-             'other_anth' : ['Rice', 'OtherAnth']}
+             'coal' : 'Coal',
+             'oil' : 'Oil',
+             'gas' : 'Gas',
+             'landfills' : 'Landfills',
+             'wastewater' : 'Wastewater',
+             'other' : ['Termites', 'Seeps', 'BiomassBurn', 'Lakes', 'Rice', 'OtherAnth']}
 
+w = pd.DataFrame(columns=emissions.keys())
 for label, categories in emissions.items():
     # Get emissions
     if type(categories) == str:
@@ -157,8 +161,13 @@ for label, categories in emissions.items():
     e = ip.clusters_2d_to_1d(clusters, e)
 
     # Saveouut
-    e = xr.DataArray(e, dims=('nstate'))
-    e.to_netcdf(join(data_dir, f'xa_{label}.nc'))
+    # e = xr.DataArray(e, dims=('nstate'))
+    # e.to_netcdf(join(data_dir, f'xa_{label}.nc'))
+    w[label] = e
+    # print(label)
+    # print(e)
+
+w.to_csv(join(data_dir, f'w.csv'), index=False)
 
 ## -------------------------------------------------------------------------##
 ## Plot
