@@ -12,7 +12,7 @@ FORMAT_EVECS="False"
 OPTIMIZE_RF="False"
 CHUNK_SIZE=150000
 RF="0.5"
-SA_SCALE="2"
+SA="2"
 
 # Build the Jacobian
 jid1=$(sbatch --array=1-20 build_k_chunks.sh ${CHUNK_SIZE} "2" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
@@ -26,4 +26,4 @@ jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "2" ${NUM_EVECS
 
 # Solve the inversion
 jid4=$(sbatch --dependency=afterok:${jid3##* } run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${OPTIMIZE_RF} ${RF} ${SA_SCALE})
-# jid4=$(sbatch run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${OPTIMIZE_RF} ${RF} ${SA_SCALE})
+# jid4=$(sbatch run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CODE_DIR} ${OPTIMIZE_RF} ${RF} ${SA})
