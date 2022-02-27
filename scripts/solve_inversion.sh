@@ -9,10 +9,10 @@ CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 NUM_EVECS="2613"
 CALCULATE_EVECS="False"
 FORMAT_EVECS="False"
-OPTIMIZE_RF="False"
+OPTIMIZE_RF="True"
 CHUNK_SIZE=150000
-RF="0.5"
-SA="2"
+RF="1"
+SA="1"
 
 # Build the Jacobian
 jid1=$(sbatch --array=1-20 build_k_chunks.sh ${CHUNK_SIZE} "2" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
