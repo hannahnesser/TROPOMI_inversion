@@ -2,10 +2,10 @@
 
 #SBATCH -J solve_inv
 #SBATCH -o %x_%j_%a.out
-#SBATCH -c 10
+#SBATCH -c 6
 #SBATCH -N 1
-#SBATCH -p huce_cascade
-#SBATCH --mem 45000
+#SBATCH -p test
+#SBATCH --mem 20000
 #SBATCH -t 0-12:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=hnesser@g.harvard.edu
