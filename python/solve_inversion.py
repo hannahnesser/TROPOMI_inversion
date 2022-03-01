@@ -233,6 +233,7 @@ if __name__ == '__main__':
     ## Solve the inversion
     ## ---------------------------------------------------------------------##
     # p = 80
+    pct_of_info = [99.9]
     for p in pct_of_info:
         suffix = ''
         if rf is not None:
@@ -278,4 +279,4 @@ if __name__ == '__main__':
         np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
         np.save(f'{data_dir}/iteration{niter}/xhat/shat{niter}{suffix}.npy', shat)
 
-        print('CODE COMPLETE')
+    print('CODE COMPLETE')
