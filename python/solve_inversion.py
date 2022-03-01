@@ -185,27 +185,28 @@ if __name__ == '__main__':
         # errors. Then save out the prior and observational cost function
         rfs = [1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 2]
         DOFS_threshold = [0.01, 0.05, 0.1]
+        sa_i = 1
         # sas = [0.1, 0.25, 0.5, 0.75, 1, 2]
         # sas = [1.5, 2, 3]
         ja = np.zeros((len(rfs), len(DOFS_threshold)))
         # jo = np.zeros((len(rfs), len(DOFS_threshold)))
         n = np.zeros((len(rfs), len(DOFS_threshold)))
         for i, rf_i in enumerate(rfs):
-            print(f'Solving the invesion for RF = {rf_i} and Sa = 1')
+            print(f'Solving the invesion for RF = {rf_i} and Sa = {sa_i}')
 
             # Scale the relevant terms by RF and Sa
-            evals_h_i = 1**2*rf_i*copy.deepcopy(evals_h_sub)/0.25
-            pre_xhat_i = 1*rf_i*copy.deepcopy(pre_xhat)/0.5
+            evals_h_i = sa_i**2*rf_i*copy.deepcopy(evals_h_sub)/0.25
+            pre_xhat_i = sa_i*rf_i*copy.deepcopy(pre_xhat)/0.5
 
             # Calculate the posterior
             xhat = calculate_xhat(evecs_sub, evals_h_i,
-                                  pre_xhat_i.values, 1)
+                                  pre_xhat_i.values, sa_i)
             dofs = calculate_dofs(evecs_sub, evals_h_i)
 
             # Subset the posterior
             for j, t_i in enumerate(DOFS_threshold):
                 xhat_sub = xhat[dofs >= t_i]
-                ja[i, j] = ((xhat_sub - np.ones(xhat_sub.shape))**2/1**2).sum()
+                ja[i, j] = ((xhat_sub - 1)**2/sa_i**2).sum()
                 n[i, j] = len(xhat_sub)
 
 
@@ -224,7 +225,7 @@ if __name__ == '__main__':
             # n[i, j] = (dofs >= 0.01).sum()
 
         # Save the result
-        np.save(f'{data_dir}/iteration{niter}/ja{niter}_dofs_threshhold.npy', ja)
+        np.save(f'{data_dir}/iteration{niter}/ja{niter}_dofs_threshold.npy', ja)
         # np.save(f'{data_dir}/iteration{niter}/jo{niter}_long_2.npy', jo)
         np.save(f'{data_dir}/iteration{niter}/n_functional_dofs_threshold.npy', n)
 
@@ -232,48 +233,49 @@ if __name__ == '__main__':
     ## Solve the inversion
     ## ---------------------------------------------------------------------##
     # p = 80
-    # suffix = ''
-    # if rf is not None:
-    #     suffix = suffix + f'_rf{rf}'
-    # if sa_in is not None:
-    #     suffix = suffix + f'_sa{(sa_in)}'
+    for p in pct_of_info:
+        suffix = ''
+        if rf is not None:
+            suffix = suffix + f'_rf{rf}'
+        if sa_in is not None:
+            suffix = suffix + f'_sa{(sa_in)}'
 
-    # print(f'Using {p} percent of information content.')
-    # evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
-    # rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=p/100)
-    # suffix = suffix + f'_poi{p}'
+        print(f'Using {p} percent of information content.')
+        evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
+        rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=p/100)
+        suffix = suffix + f'_poi{p}'
 
-    # # If RF is defined, scale
-    # if rf is not None:
-    #     evals_h *= rf
-    #     pre_xhat *= rf
+        # If RF is defined, scale
+        if rf is not None:
+            evals_h *= rf
+            pre_xhat *= rf
 
-    # # If sa_in is defined, scale
-    # if sa_in is not None:
-    #     evals_h *= sa_in**2/0.25
-    #     pre_xhat *= sa_in/0.5
-    #     sa *= sa_in**2/0.25
+        # If sa_in is defined, scale
+        if sa_in is not None:
+            evals_h *= sa_in**2/0.25
+            pre_xhat *= sa_in/0.5
+            sa *= sa_in**2/0.25
 
-    # # Recompute evals_q.
-    # evals_q = evals_h/(1 + evals_h)
+        # Recompute evals_q.
+        evals_q = evals_h/(1 + evals_h)
 
-    # # Subset the evals and evecs
-    # evals_h_sub = evals_h[:rank]
-    # evals_q_sub = evals_q[:rank]
-    # evecs_sub = evecs[:, :rank]
+        # Subset the evals and evecs
+        evals_h_sub = evals_h[:rank]
+        evals_q_sub = evals_q[:rank]
+        evecs_sub = evecs[:, :rank]
 
-    # # Calculate the posterior and averaging kernel
-    # # (we can leave off Sa when it's constant)
-    # # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
-    # # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-    # dofs = calculate_dofs(evecs_sub, evals_h_sub)
-    # xhat = calculate_xhat(evecs_sub, evals_h_sub, pre_xhat.values, sa)
-    # shat = calculate_shat(evecs_sub, evals_h_sub, sa)
+        # Calculate the posterior and averaging kernel
+        # (we can leave off Sa when it's constant)
+        # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
+        # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
+        dofs = calculate_dofs(evecs_sub, evals_h_sub)
+        xhat = calculate_xhat(evecs_sub, evals_h_sub, pre_xhat.values, sa)
+        shat = calculate_shat(evecs_sub, evals_h_sub, sa)
 
-    # # Save the result
-    # # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
-    # np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
-    # np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
-    # np.save(f'{data_dir}/iteration{niter}/xhat/shat{niter}{suffix}.npy', shat)
+        # Save the result
+        # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
+        np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
+        np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
+        np.save(f'{data_dir}/iteration{niter}/xhat/shat{niter}{suffix}.npy', shat)
 
-    print('CODE COMPLETE')
+        print('CODE COMPLETE')
