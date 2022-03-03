@@ -40,6 +40,12 @@ if __name__ == '__main__':
     sa = gc.read_file(f'{data_dir}/sa.nc')
     nstate = sa.shape[0]
 
+    # Absolute prior
+    xa_abs = xr.open_dataarray(f'{data_dir}/xa_abs.nc')
+
+    # Convert sa to absolute
+    sa = sa*(xa_abs**2)
+
     # Observational suffix
     if niter == '0':
         obs_suffix = '0'
@@ -113,8 +119,8 @@ if __name__ == '__main__':
         ydiff_i = ydiff_m[i:(i + int(n))]
 
         # Calculate the PPH for that subset
-        sasqrt_kt_i = k_i*(sa**0.5)
-        pph_i = da.tensordot(sasqrt_kt_i.T/so_i, sasqrt_kt_i, axes=(1, 0))
+        k_sasqrt_i = k_i*(sa**0.5)
+        pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
         pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
                              name=f'pph{niter}_c{chunk:02d}')
         pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
@@ -129,7 +135,7 @@ if __name__ == '__main__':
         print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
         # Then save out part of what we need for the posterior solution
-        pre_xhat_i = da.tensordot(sasqrt_kt_i.T/so_i, ydiff_i, axes=(1, 0))
+        pre_xhat_i = da.tensordot(k_sasqrt_i.T/so_i, ydiff_i, axes=(1, 0))
         pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
                                   name=f'pre_xhat{niter}_c{chunk:02d}')
 
