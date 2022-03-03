@@ -233,7 +233,7 @@ if __name__ == '__main__':
     ## Solve the inversion
     ## ---------------------------------------------------------------------##
     # p = 80
-    pct_of_info = [99.9]
+    # pct_of_info = [99.9]
     for p in pct_of_info:
         suffix = ''
         if rf is not None:
