@@ -104,7 +104,7 @@ def match_data_to_clusters(data, clusters, default_value=0):
 
     return result
 
-def clusters_2d_to_1d(clusters, data):
+def clusters_2d_to_1d(clusters, data, fill_value=0):
     '''
     Flattens data on the GEOS-Chem grid, and ensures the resulting order is
     ascending with respect to cluster number.
@@ -130,6 +130,10 @@ def clusters_2d_to_1d(clusters, data):
 
     # Remove non-cluster datapoints
     data = data[data['clusters'] > 0]
+
+    # Fill nans that may result from data and clusters being different
+    # shapes
+    data = data.fillna(fill_value)
 
     # Sort
     data = data.sort_values(by='clusters')
@@ -463,8 +467,9 @@ def plot_state_format(data, default_value=0, cbar=True, **kw):
     # Get kw
     title = kw.pop('title', '')
     kw['cmap'] = kw.get('cmap', 'viridis')
-    kw['vmin'] = kw.get('vmin', data.min())
-    kw['vmax'] = kw.get('vmax', data.max())
+    if 'norm' not in kw:
+        kw['vmin'] = kw.get('vmin', data.min())
+        kw['vmax'] = kw.get('vmax', data.max())
     kw['add_colorbar'] = False
     cbar_kwargs = kw.pop('cbar_kwargs', {})
     label_kwargs = kw.pop('label_kwargs', {})
