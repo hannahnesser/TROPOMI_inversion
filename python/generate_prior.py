@@ -83,7 +83,7 @@ nstate = int(clusters.max().values)
 print(nstate)
 
 # Set relative prior error covariance value
-rel_err = 0.5
+rel_err = 1
 
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
@@ -233,3 +233,12 @@ sa.to_netcdf(join(data_dir, 'sa.nc'))
 # Absolute errors
 sa_abs = sa*tot_emis**2
 sa_abs.to_netcdf(join(data_dir, 'sa_abs.nc'))
+
+# Varying errors
+sa_var = 1*tot_emis.mean()/tot_emis
+sa_var[sa_var < 1] = 1
+sa_var[sa_var > 5] = 5
+sa_var.to_netcdf(join(data_dir, 'sa_var.nc'))
+
+# s_a_vec = 0.5*x_a.mean()/x_a
+# s_a_vec[s_a_vec < 0.5] = 0.5
