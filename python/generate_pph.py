@@ -37,7 +37,7 @@ if __name__ == '__main__':
     ## Load pertinent data that defines state and observational dimension
     ## ---------------------------------------------------------------------##
     # Prior error
-    sa = gc.read_file(f'{data_dir}/sa.nc')
+    sa = gc.read_file(f'{data_dir}/sa_var.nc')
     nstate = sa.shape[0]
 
     # Absolute prior
