@@ -27,16 +27,17 @@ import format_plots as fp
 import inversion_settings as s
 
 ## ------------------------------------------------------------------------ ##
-## Set user preferences
+## Directories
 ## ------------------------------------------------------------------------ ##
-# Local preferences
 base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python/'
 data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
 
+## ------------------------------------------------------------------------ ##
+## Set plotting preferences
+## ------------------------------------------------------------------------ ##
 # Colormaps
-# c = plt.cm.get_cmap('inferno', lut=10)
 plasma_trans = fp.cmap_trans('plasma')
 plasma_trans_r = fp.cmap_trans('plasma_r')
 rdbu_trans = fp.cmap_trans_center('RdBu_r', nalpha=70)
@@ -47,18 +48,21 @@ magma_trans = fp.cmap_trans('magma')
 # print(viridis_trans)
 
 # Small (i.e. non-default) figure settings
-# small_map_kwargs = {'draw_labels' : False}
+small_map_kwargs = {'draw_labels' : False}
 small_fig_kwargs = {'max_width' : 4,
                     'max_height' : 3.5}
 
+## ------------------------------------------------------------------------ ##
+## Set user preferences and load data
+## ------------------------------------------------------------------------ ##
 DOFS_filter = 0.05
 
 # Load clusters
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 
-########################################################################
-### FIGURE : EIGENVALUES
-########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: Eigenvalues
+## ------------------------------------------------------------------------ ##
 # evals_q = np.load(f'{data_dir}evals_q0.npy')
 # evals_h = np.load(f'{data_dir}evals_h0.npy')
 # # evals_h[evals_h < 0] = 0
@@ -105,9 +109,9 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 
 # fp.save_fig(fig, plot_dir, 'eigenvalues_update')
 
-########################################################################
-### FIGURE : RESOLUTION CONTEXT
-########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: Resolution context
+## ------------------------------------------------------------------------ ##
 # # MA lat/lon lims
 # lat_min = 40
 # lat_max = 44
@@ -136,9 +140,9 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 # # Save
 # fp.save_fig(fig, plot_dir, f'resolution')
 
-########################################################################
-### FIGURE : JACOBIAN COLUMN
-########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: Jacobian column
+## ------------------------------------------------------------------------ ##
 # # Cluster = 11046
 
 # 40.013712, -80.612467
@@ -170,9 +174,9 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 # # Save
 # fp.save_fig(fig, plot_dir, f'fig_k1')
 
-########################################################################
-### FIGURE : JACOBIAN COLUMN KW
-########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: Kw column
+## ------------------------------------------------------------------------ ##
 # # Remove emissions from buffer grid cells
 # fig, ax = fp.get_figax(rows=2, cols=4,
 #                        maps=True, lats=clusters.lat, lons=clusters.lon)
@@ -200,105 +204,9 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 
 # fp.save_fig(fig, plot_dir, 'fig_kw')
 
-########################################################################
-### FIGURE : REGULARIZATION FACTOR
-########################################################################
-# # rfs = np.array([1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 5, 10])
-# rfs = np.array([1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1])
-# sas = np.array([0.1, 0.25, 0.5, 0.75, 1, 2])
-# ja = np.load(f'{data_dir}/ja2_long_2.npy')
-# # ja2 = np.load(f'{data_dir}/ja2_long_2.npy')
-# # ja = np.concatenate([ja, ja2], axis=1)
-
-# jo = np.load(f'{data_dir}/jo2_long_2.npy')
-# # jo2 = np.load(f'{data_dir}/jo2_long_2.npy')
-# # jo = np.concatenate([jo, jo2], axis=1)
-
-# # Get state vector and observational dimensions
-# nstate = gc.read_file(f'{data_dir}/xa.nc').shape[0]
-# nstate_func = np.load(f'{data_dir}/n_functional_2.npy')
-# # nstate_func2 = np.load(f'{data_dir}/n_functional_2.npy')
-# # nstate_func = np.concatenate([nstate_func, nstate_func2], axis=1)
-# nobs = gc.read_file(f'{data_dir}/y.nc').shape[0]
-
-# # Normalize for vector length
-# print(nstate_func)
-# ja = ja/nstate_func
-# jo = (jo/rfs.reshape((-1, 1)))/nobs
-
-# print(ja)
-
-# lims = [[0, 1], [0, 1]]
-# label = ['ja', 'jo']
-# letter = ['A', 'O']
-# for i, var in enumerate([ja, jo]):
-#     # # Plot
-#     fig, ax = fp.get_figax(aspect=len(ja)/len(jo))
-#     cax = fp.add_cax(fig, ax)
-
-#     # Plot
-#     # c = ax.contour(rfs, sas, ja.T)
-#     c = ax.imshow(var, vmin=lims[i][0], vmax=lims[i][1])
-
-#     # Labels
-#     ax.set_xticks(np.arange(0, len(sas)))
-#     ax.set_xticklabels(sas)
-#     ax.set_ylim(-0.5, len(rfs)-0.5)
-#     ax.set_yticks(np.arange(0, len(rfs)))
-#     ax.set_yticklabels(rfs)
-#     ax = fp.add_labels(ax, 'Prior errors', 'Regularization factor')
-
-#     # Colorbar
-#     cb = fig.colorbar(c, cax=cax)#, ticks=np.arange(0, 6, 1))
-#     cb = fp.format_cbar(cb, cbar_title=r'$J_{A}(\hat{x})$')
-
-#     fp.save_fig(fig, plot_dir, f'fig_rfs_sas_{label[i]}')
-
-# # Labels
-# # ax = fp.add_labels(ax, '')
-# fig, ax = fp.get_figax(aspect=2)
-# ax.plot(rfs, ja[:, sas == 0.5], c=fp.color(3), ls='-', marker='.',
-#         label=r'$J_{A}(\hat{x})$')
-# ax.plot(rfs, jo[:, sas == 0.5], c=fp.color(6), ls='-', marker='.',
-#         label=r'$J_{O}(\hat{x})$')
-# ax.axhline(1, ls='--', color='grey')
-# ax.set_xscale('log')
-# ax.set_ylim(0, 2)
-
-# # Labels
-# ax = fp.add_legend(ax)
-# ax = fp.add_labels(ax, 'Regularization factor', 'Cost function')
-
-# # Save
-# fp.save_fig(fig, plot_dir, 'fig_rfs')
-
-# ########################################################################
-# ### FIGURE : PRIOR ERROR ESTIMATION
-# ########################################################################
-# def alpha(a0, ka, an, L, L0=0.1):
-#     return a0*np.exp(-ka*(L-L0)) + an
-
-# def beta(b0, kb, L, L0=0.1):
-#     return b0*np.exp(-kb*(L-L0))
-
-# livestock = [0.89, 3.1, 0.12, 0, 0]
-# nat_gas = [0.28, 4.2, 0.25, 0.09, 3.9]
-# landfills = [0, 0, 0.51, 0.08, 2.0]
-# wastewater = [0.78, 1.4, 0.21, 0.06, 6.9]
-# petroleum = [0, 0, 0.87, 0.04, 197]
-# sources = {'livestock' : livestock, 'nat_gas' : nat_gas,
-#            'landfills' : landfills, 'wastewater' : wastewater,
-#            'petroleum' : petroleum}
-
-# for s, coefs in sources.items():
-#     a = alpha(coefs[0], coefs[1], coefs[2], 0.25)
-#     b = beta(coefs[3], coefs[4], 0.25)
-#     print(f'{s:<20}{a:.2f}  {b:.2f}')
-
-
-# ########################################################################
-# ### FIGURE : FIRST ESTIMATE
-# ########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: First estimate
+## ------------------------------------------------------------------------ ##
 # # Standard plotting preferences
 # avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
 # avker_kwargs = {'cmap' : plasma_trans, 'vmin' : 0, 'vmax' : 1,
@@ -345,301 +253,9 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 #     avker_kwargs['cbar_kwargs'] = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
 #     xhat_kwargs['cbar_kwargs'] = {'title' : r'Scale factor'}
 
-
-
-
-########################################################################
-### FIGURE : SECOND ESTIMATE
-########################################################################
-# # Standard plotting preferences
-# avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
-# avker_kwargs = {'cmap' : plasma_trans, 'vmin' : 0, 'vmax' : 1,
-#                 'cbar_kwargs' : avker_cbar_kwargs,
-#                 'map_kwargs' : small_map_kwargs}
-
-# xhat_cbar_kwargs = {'title' : r'Scale factor'}
-# xhat_kwargs = {'cmap' : 'PuOr_r', 'vmin' : 0, 'vmax' : 2,
-#                'default_value' : 1,
-#                'cbar_kwargs' : xhat_cbar_kwargs,
-#                'map_kwargs' : small_map_kwargs}
-
-# # Fraction of information contents
-# # fracs = [90, 95, 98, 99, 99.9]
-# # fracs = [99.9]
-# # suffixes = ['poi50', 'poi80', 'poi90', 'poi99.9']
-# # suffixes = glob.glob(f'{data_dir}/dofs2*poi80*')
-# # suffixes = [s.split('/')[-1][6:-4] for s in suffixes]
-
-# # for sa_i in ['0.5', '0.75', '1.0']:
-f = f'rf0.5_sa2.0_poi80'
-
-# # Load
-# dofs = np.load(f'{data_dir}dofs2_{f}.npy')
-# xhat = np.load(f'{data_dir}xhat2_{f}.npy')
-# # xhat += np.ones(xhat.shape)
-
-# # Filter
-# xhat[dofs < 0.01] = 1
-# dofs[dofs < 0.01] = 0
-
-# # Subset to ID only large corrections
-# xhat_sub = copy.deepcopy(xhat)
-# xhat_sub[dofs < 0.01] = 1
-# xhat_sub[xhat_sub > (xhat[dofs >= 0.01].mean() + xhat[dofs >= 0.01].std())]
-# xhat[dofs >= 0.01]
-
-
-# # Plot averaging kernel sensitivities
-# title = f'Averaging kernel sensitivities' # ({f}\%)'
-# fig, ax, c = ip.plot_state(dofs, clusters, title=title,
-#                            **avker_kwargs)
-# ax.text(0.025, 0.05, 'DOFS = %d' % round(dofs.sum()),
-#         fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#         transform=ax.transAxes)
-# fp.save_fig(fig, plot_dir, f'fig_est2_dofs_{f}')
-# plt.close()
-
-# # Plot posterior scaling factors
-# title = f'Posterior emission scale factors' # ({f}\%)'
-# fig, ax, c = ip.plot_state(xhat, clusters, title=title,
-#                            **xhat_kwargs)
-# fp.save_fig(fig, plot_dir, f'fig_est2_xhat_{f}')
-# plt.close()
-
-# # Reset cbar kwargs
-# avker_kwargs['cbar_kwargs'] = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
-# xhat_kwargs['cbar_kwargs'] = {'title' : r'Scale factor'}
-
-# ########################################################################
-# ### FIGURE : SECOND ESTIMATE BAR CHART
-# ########################################################################
-# # List emissions categories
-# emis = ['wetlands', 'livestock', 'coal', 'oil', 'gas', 'landfills',
-#         'wastewater', 'other']
-# emis_labels = ['Wetlands', 'Livestock', 'Coal', 'Oil', 'Gas', 'Landfills',
-#                'Wastewater', 'Other']
-
-# # Define function to open masks
-# def open_mask(country, data_dir=data_dir):
-#     data = xr.open_dataset(f'{data_dir}{country}_Mask.001x001.nc')
-#     data = data.squeeze(drop=True)['MASK']
-#     return data
-
-# # Define function to regrid the masks to the inversion resolution
-# def regrid_mask(mask, clusters):
-#     # Subset mask to be as small as possible
-#     mask = mask.where(mask > 0, drop=True)
-#     mask = mask.fillna(0)
-
-#     # Regrid
-#     rg = mask.interp(lat=clusters.lat, lon=clusters.lon, method='linear')
-
-#     # Flatten and return
-#     flat = ip.clusters_2d_to_1d(clusters, rg)
-#     return flat
-
-# # Open masks and create a total_mask array as well as a mask dictionary
-# mex_mask = regrid_mask(open_mask('Mexico'), clusters)
-# can_mask = regrid_mask(open_mask('Canada'), clusters)
-# conus_mask = regrid_mask(open_mask('CONUS'), clusters)
-# total_mask = mex_mask + can_mask + conus_mask
-# masks = {'Canada' : can_mask, 'CONUS' : conus_mask, 'Mexico' : mex_mask}
-
-# # Normalize with the total mask to deal with places that have bloopers
-# for c, m in masks.items():
-#     # fig, ax, _ = ip.plot_state(m, clusters)
-#     # plt.show()
-#     tmp = m/total_mask
-#     tmp = np.nan_to_num(tmp, 0)
-#     masks[c] = tmp
-
-# # Recalculate the total mask
-# total_mask = masks['Canada'] + masks['CONUS'] + masks['Mexico']
-
-# # Define a mask for Central American and Caribbean countries
-# other_mask = 1 - copy.deepcopy(total_mask)
-# other_mask = ip.match_data_to_clusters(other_mask, clusters)
-# other_countries_cond = (((other_mask.lon > -92)   & (other_mask.lat < 18.3)) |
-#                         ((other_mask.lon > -90)   & (other_mask.lat < 19.8)) |
-#                         ((other_mask.lon > -86)   & (other_mask.lat < 24))   |
-#                         ((other_mask.lon > -79.5) & (other_mask.lat < 27))   |
-#                         ((other_mask.lon > -66)   & (other_mask.lat < 36)))
-# other_mask = other_mask.where(other_countries_cond, 0)
-# other_mask = ip.clusters_2d_to_1d(clusters, other_mask)
-# masks['Other'] = other_mask
-
-# ## Now deal with off shore emissions and spare grid cells
-# # Set up a mask that has identifying numbers for the country that
-# # occupies most of the grid cell
-# total_mask_id = np.zeros(total_mask.shape) # Default
-# total_mask_id[masks['Mexico'] > 0] = 1 # Mexico
-# total_mask_id[masks['CONUS'] > masks['Mexico']] = 2 # CONUS
-# total_mask_id[masks['Canada'] > masks['CONUS']] = 3 # Canada
-
-# # Match that to clusters and set areas where the mask == 0 to nan so
-# # that those values can be interpolated using neareswt neighbors
-# total_mask_id = ip.match_data_to_clusters(total_mask_id, clusters)
-# total_mask_id = total_mask_id.where(total_mask_id > 0)
-# total_mask_id = total_mask_id.interpolate_na(dim='lat', method='nearest')
-# total_mask_id = ip.clusters_2d_to_1d(clusters, total_mask_id)
-
-# # Replace values from "other" that were falsely filled
-# total_mask_id[masks['Other'] > 0] = 4 # Other
-
-# # Distribute into each country's mask
-# for i, country in enumerate(['Mexico', 'CONUS', 'Canada']):
-#     temp_mask = copy.deepcopy(total_mask_id)
-#     temp_mask[temp_mask != (i + 1)] = 0
-#     temp_mask[temp_mask > 0] = 1
-#     temp_bool = (masks[country] == 0) & (temp_mask > 0)
-#     masks[country][temp_bool] = temp_mask[temp_bool]
-
-# # Recalculate the total mask
-# total_mask = (masks['Canada'] + masks['CONUS'] + masks['Mexico'] +
-#               masks['Other'])
-
-# # Still need to confirm that these add to proper values!
-
-# # Load prior
-# xa_abs = xr.open_dataarray(f'{data_dir}xa_abs.nc')
-# area = xr.open_dataarray(f'{data_dir}area.nc')
-# xa_abs = xa_abs*area*1e-6 # Tg/yr
-
-# # Calculate total emissions for the best case
-# dofs = np.load(f'{data_dir}dofs2_{f}.npy')
-# xhat = np.load(f'{data_dir}xhat2_{f}.npy')
-
-# # # Filter on DOFS
-# # xhat[dofs < DOFS_filter] = 1
-# # dofs[dofs < DOFS_filter] = 0
-
-# xhat_abs = (xhat*xa_abs)
-# print(f'Total prior emissions            : {xa_abs.sum().values}')
-# print(f'Total posterior emissions        : {xhat_abs.sum().values}')
-# print(f'Difference                       : {(xhat_abs.sum().values - xa_abs.sum().values)}')
-# print(f'Maximum scale factor             : {xhat.max()}')
-# print(f'Minimum scale factor             : {xhat.min()}')
-# print(f'Number of negative scale factors : {(xhat < 0).sum()}')
-
-# fig, ax = fp.get_figax(aspect=2)
-# xhat_sub = xhat[dofs >= DOFS_filter]
-# ax.hist(xhat_sub, bins=500, density=True, color=fp.color(7))
-# ax.axvline(xhat_sub.mean(), color='grey', ls='-')
-# ax.axvline(xhat_sub.mean() + xhat_sub.std(), color='grey', ls='--')
-# ax.axvline(xhat_sub.mean() - xhat_sub.std(), color='grey', ls='--')
-# ax.set_xlim(0, 2)
-# fp.save_fig(fig, plot_dir, 'fig_xhat_dist')
-
-# # Sectoral emissions: Load the sectoral attribution matrix
-# w = pd.read_csv(f'{data_dir}w.csv')
-# w = w.T*area.values*1e-6 # Convert to Tg/yr
-# # w = w/w.sum(axis=0) # Normalize
-# # w[np.isnan(w)] = 0 # Deal with nans
-
-# country_emis = {}
-# for country, mask in masks.items():
-#     print('-'*30)
-#     print(country)
-#     sect_emis = pd.DataFrame(columns=['prior', 'post', 'diff',
-#                                       'prior_sub', 'post_sub', 'diff_sub',
-#                                       'err_sub'])
-#                                       #'diff_sub_pos', 'diff_sub_neg'])
-#     w_c = copy.deepcopy(w)*mask # convert to Tg/yr in the country
-
-#     # Get prior and posterior absolute emissions
-#     sect_emis['prior'] = w_c.sum(axis=1)
-#     sect_emis['post'] = (w_c*xhat).sum(axis=1)
-#     sect_emis['diff'] = sect_emis['post'] - sect_emis['prior']
-
-#     # Get prior and posterior absolute emissions only where DOFS > DOFS_filter
-#     sect_emis['prior_sub'] = w_c.loc[:, dofs >= DOFS_filter].sum(axis=1)
-#     sect_emis['post_sub'] = (w_c*xhat).loc[:, dofs >= DOFS_filter].sum(axis=1)
-#     sect_emis['diff_sub'] = sect_emis['post_sub'] - sect_emis['prior_sub']
-
-
-#     print(sect_emis)
-
-
-
-#     for i, e in enumerate(emis):
-#         # Open sectoral emissions and convert units
-#         xa_abs_e = xr.open_dataarray(f'{data_dir}xa_{e}.nc')
-#         xa_abs_e = xa_abs_e*area*1e-6*mask # Convert to Tg/yr in the country
-
-#         # Save out prior and post emissions
-#         sect_emis.at[e, 'prior'] = xa_abs_e.sum().values
-#         sect_emis.at[e, 'post'] = (xhat*xa_abs_e).sum().values
-#         sect_emis.at[e, 'diff'] = sect_emis['post'] - sect_emis['prior']
-
-#         xa_abs_sub_e = xa_abs_e[dofs >= 0.01]
-#         xhat_abs_sub_e = (xhat*xa_abs_e)[dofs >= 0.01]
-#         sect_emis.at[e, 'prior_sub'] = xa_abs_sub_e.sum().values
-#         sect_emis.at[e, 'post_sub'] = xhat_abs_sub_e.sum().values
-#         sect_emis.at[e, 'diff_sub'] = sect_emis['post_sub'] - sect_emis['prior_sub']
-
-#         pos = (xhat_abs_sub_e - xa_abs_sub_e)[xhat_sub >= 1].sum().values
-#         neg = (xhat_abs_sub_e - xa_abs_sub_e)[xhat_sub < 1].sum().values
-#         sect_emis.at[e, 'diff_sub_pos'] = pos
-#         sect_emis.at[e, 'diff_sub_neg'] = neg
-
-#     country_emis[country] = sect_emis
-
-# # Plot histogram (at least take #1)
-# xs = np.arange(0, len(emis))
-# fig, axis = fp.get_figax(aspect=2, cols=3)
-# j = 0
-# lims = [[0, 12], [0, 12], [0, 3]]
-# for country, sect_emis in country_emis.items():
-#     ax = axis[j]
-#     ax.text(0.95, 0.95, country, ha='right', va='top',
-#             fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#             transform=ax.transAxes)
-#     ax.bar(xs - 0.16, sect_emis['prior'], width=0.3,
-#            color='white', edgecolor=fp.color(2*j+2), label='Prior (all)')
-#     ax.bar(xs - 0.16, sect_emis['prior_sub'], width=0.3, color=fp.color(2*j+2),
-#            label='Prior (optimized)')
-#     ax.bar(xs + 0.16, sect_emis['post'], width=0.3,
-#            color='white', edgecolor=fp.color(2*j+2), alpha=0.5,
-#            label='Posterior (all)')
-#     ax.bar(xs + 0.16, sect_emis['post_sub'], width=0.3,
-#            color=fp.color(2*j+2), alpha=0.5, label='Posterior (optimized)')
-#     # for i, e in enumerate(emis):
-#     #     ax.arrow(x=i + 0.13, y=sect_emis.at[e, 'prior_sub'],
-#     #              dx=0, dy=sect_emis.at[e, 'diff_sub_pos'],
-#     #              color=fp.color(2*j+2), width=0.002, head_width=0.0025)
-#     #     ax.arrow(x=i + 0.19,
-#     #              y=sect_emis.at[e, 'prior_sub'] + sect_emis.at[e, 'diff_sub_pos'],
-#     #              dx=0, dy=sect_emis.at[e, 'diff_sub_neg'],
-#     #              color=fp.color(2*j+2), width=0.002, head_width=0.0025)
-#     ax.set_ylim(lims[j])
-#     # ax.bar(xs + 0.2, sect_emis['post_sub_pos'], width=0.1, color=fp.color(7))
-#     # ax = fp.add_legend(ax)
-
-#     j += 1
-
-# axis[0] = fp.add_labels(axis[0], '', 'Emissions\n' + r'[Tg a$^{-1}$]')
-# for i in range(3):
-#     if i > 0:
-#         axis[i] = fp.add_labels(axis[i], '', '')
-#     axis[i].set_xticks(xs)
-#     axis[i].set_xticklabels(emis_labels, rotation=90, ha='center',
-#                             fontsize=config.TICK_FONTSIZE*config.SCALE/1.5)
-
-# fp.save_fig(fig, plot_dir, 'fig_sectoral_bar')
-
-# ########################################################################
-# ### FIGURE : PERMIAN COMPARISON
-# ########################################################################
-# permian = xr.open_dataset(f'{data_dir}clusters_permian.nc')
-# c = clusters.squeeze(drop=True).to_dataset()
-# print(c)
-# print(permian)
-# c['permian'] = permian
-# print(c)
-
-# ########################################################################
-# ### FIGURE : PRIOR ERROR STANDARD DEVIATION
-# ########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: Prior error standard deviation
+## ------------------------------------------------------------------------ ##
 # # Load prior error
 # sa_vec = gc.read_file(f'{data_dir}sa_abs.nc')
 # sd_vec = sa_vec**0.5
@@ -652,9 +268,9 @@ f = f'rf0.5_sa2.0_poi80'
 #                            map_kwargs=small_map_kwargs)
 # fp.save_fig(fig, plot_dir, 'fig_prior_error')
 
-# ########################################################################
-# ### FIGURE : OBSERVATIONAL DENSITY
-# ########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: Observational density
+## ------------------------------------------------------------------------ ##
 # # Load observations
 # obs = gc.read_file(f'{data_dir}2019_corrected.pkl')
 
