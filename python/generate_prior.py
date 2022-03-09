@@ -85,6 +85,33 @@ print(nstate)
 # Set relative prior error covariance value
 rel_err = 1
 
+## ------------------------------------------------------------------------ ##
+## Figure out what the relative prior errors should be set at
+## ------------------------------------------------------------------------ ##
+def alpha(a0, ka, an, L, L0=0.1):
+    return a0*np.exp(-ka*(L-L0)) + an
+
+def beta(b0, kb, L, L0=0.1):
+    return b0*np.exp(-kb*(L-L0))
+
+livestock = [0.89, 3.1, 0.12, 0, 0]
+nat_gas = [0.28, 4.2, 0.25, 0.09, 3.9]
+landfills = [0, 0, 0.51, 0.08, 2.0]
+wastewater = [0.78, 1.4, 0.21, 0.06, 6.9]
+petroleum = [0, 0, 0.87, 0.04, 197]
+sources = {'livestock' : livestock, 'nat_gas' : nat_gas,
+           'landfills' : landfills, 'wastewater' : wastewater,
+           'petroleum' : petroleum}
+
+for s, coefs in sources.items():
+    a = alpha(coefs[0], coefs[1], coefs[2], 0.25)
+    b = beta(coefs[3], coefs[4], 0.25)
+    a2 = alpha(coefs[0], coefs[1], coefs[2], 0.3125)
+    b2 = beta(coefs[3], coefs[4], 0.3125)
+
+    print(f'0.25   {s:<20}{a:.2f}  {b:.2f}')
+    print(f'0.3125 {s:<20}{a2:.2f}  {b2:.2f}')
+
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
 ## -------------------------------------------------------------------------##
