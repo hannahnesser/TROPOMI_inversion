@@ -43,8 +43,8 @@ if __name__ == '__main__':
     # Absolute prior
     xa_abs = xr.open_dataarray(f'{data_dir}/xa_abs.nc')
 
-    # Convert sa to absolute
-    sa = sa*(xa_abs**2)
+    # # Convert sa to absolute
+    # sa = sa*(xa_abs**2)
 
     # Observational suffix
     if niter == '0':
