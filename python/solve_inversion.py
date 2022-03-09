@@ -126,7 +126,7 @@ if __name__ == '__main__':
         # This formulation only works with diagonal errors
         sa_evecs = evecs*(sa**0.5)
         shat = (sa_evecs*(1/(1 + evals_h))) @ sa_evecs.T
-        return np.diagonal(shat)
+        return shat
 
     ## -------------------------------------------------------------------- ##
     ## Open files
