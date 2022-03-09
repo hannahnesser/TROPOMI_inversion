@@ -321,12 +321,16 @@ c['Permian'] = permian['Clusters']
 cell_idx, cell_cnt  = np.unique(c['Permian'], return_counts=True)
 cell_idx = cell_idx[cell_cnt == 1]
 cell_idx = cell_idx[~np.isnan(cell_idx)]
+permian
+# There are good reasons to move this onto the Permian cluster file
 
 # Subset over the Permian
 c = c.where(c['Permian'].isin(cell_idx))['Clusters']
 
+print(c)
+
 # Flatten and create boolean
-c = ip.clusters_2d_to_1d(clusters, c)
+c = ip.clusters_2d_to_1d(permian, c)
 c[c > 0] = 1
 # c = c.astype(bool)
 
@@ -339,9 +343,6 @@ for dofs_t in [0.01, 0.05, 0.1, 0.25]:
 xhat_permian = xhat*c
 
 # Calculate emissions
-xa_abs = xr.open_dataarray(f'{data_dir}xa_abs.nc')
-area = xr.open_dataarray(f'{data_dir}area.nc')
-xa_abs = xa_abs*area*1e-6 # Tg/yr
 xa_abs_permian = xa_abs*c
 xhat_abs_permian = xhat_permian*xa_abs_permian
 print(f'Total prior emissions            : {xa_abs_permian.sum().values}')
@@ -349,7 +350,7 @@ print(f'Total posterior emissions        : {xhat_abs_permian.sum().values}')
 print(f'Difference                       : {(xhat_abs_permian.sum().values - xa_abs_permian.sum().values)}')
 
 
-# # Plot posterior scaling factors
+# Plot posterior scaling factors
 # xhat_cbar_kwargs = {'title' : r'Scale factor'}
 # xhat_kwargs = {'cmap' : 'PuOr_r', 'vmin' : 0, 'vmax' : 2,
 #                'default_value' : 1,
