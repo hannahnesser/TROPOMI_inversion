@@ -61,55 +61,6 @@ DOFS_filter = 0.05
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 
 ## ------------------------------------------------------------------------ ##
-## Figure: Eigenvalues
-## ------------------------------------------------------------------------ ##
-# evals_q = np.load(f'{data_dir}evals_q0.npy')
-# evals_h = np.load(f'{data_dir}evals_h0.npy')
-# # evals_h[evals_h < 0] = 0
-# snr = evals_h**0.5
-# DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
-
-# fig, ax = fp.get_figax(aspect=3)
-
-# # DOFS frac
-# ax.plot(100*DOFS_frac, label='Information content spectrum',
-#         c=fp.color(3), lw=2)
-# for p in [0.5, 0.8, 0.85, 0.9, 0.95, 0.97, 0.98, 0.99]:
-#     diff = np.abs(DOFS_frac - p)
-#     rank = np.argwhere(diff == np.min(diff))[0][0]
-#     print(p, rank)
-#     ax.scatter(rank, 100*DOFS_frac[rank], marker='*', s=80, c=fp.color(3))
-#     ax.text(rank, 100*DOFS_frac[rank]-5, f'{int(100*p):d}%%',
-#             ha='left', va='top', c=fp.color(3))
-# ax.set_xlabel('Eigenvector index', fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#               labelpad=config.LABEL_PAD)
-# ax.set_ylabel('Percentage of DOFS', fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#               labelpad=config.LABEL_PAD, color=fp.color(3))
-# ax.tick_params(axis='both', which='both',
-#                labelsize=config.LABEL_FONTSIZE*config.SCALE)
-# ax.tick_params(axis='y', labelcolor=fp.color(3))
-
-# # SNR
-# ax2 = ax.twinx()
-# ax2.plot(snr, label='Signal-to-noise ratio spectrum', c=fp.color(6), lw=2)
-# for r in [1, 2]:
-#     diff = np.abs(snr - r)
-#     rank = np.argwhere(diff == np.min(diff))[0][0]
-#     ax2.scatter(rank, snr[rank], marker='.', s=80, c=fp.color(6))
-#     ax2.text(rank-200, snr[rank], f'{r:d}', ha='right', va='center',
-#              c=fp.color(6))
-# ax2.set_ylabel('Signal-to-noise ratio',
-#                fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#               labelpad=config.LABEL_PAD, color=fp.color(6))
-# ax2.tick_params(axis='y', which='both',
-#                 labelsize=config.LABEL_FONTSIZE*config.SCALE,
-#                 labelcolor=fp.color(6))
-
-# ax = fp.add_title(ax, 'Initial Estimate Information Content Spectrum')
-
-# fp.save_fig(fig, plot_dir, 'eigenvalues_update')
-
-## ------------------------------------------------------------------------ ##
 ## Figure: Resolution context
 ## ------------------------------------------------------------------------ ##
 # # MA lat/lon lims
@@ -307,9 +258,58 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 #                                   map_kwargs=small_map_kwargs)
 # fp.save_fig(fig, plot_dir, 'fig_tropomi_obs_density')
 
-########################################################################
-### FIGURE : INITIAL EIGENVECTORS
-########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: Eigenvalues
+## ------------------------------------------------------------------------ ##
+# evals_q = np.load(f'{data_dir}evals_q0.npy')
+# evals_h = np.load(f'{data_dir}evals_h0.npy')
+# # evals_h[evals_h < 0] = 0
+# snr = evals_h**0.5
+# DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
+
+# fig, ax = fp.get_figax(aspect=3)
+
+# # DOFS frac
+# ax.plot(100*DOFS_frac, label='Information content spectrum',
+#         c=fp.color(3), lw=2)
+# for p in [0.5, 0.8, 0.85, 0.9, 0.95, 0.97, 0.98, 0.99]:
+#     diff = np.abs(DOFS_frac - p)
+#     rank = np.argwhere(diff == np.min(diff))[0][0]
+#     print(p, rank)
+#     ax.scatter(rank, 100*DOFS_frac[rank], marker='*', s=80, c=fp.color(3))
+#     ax.text(rank, 100*DOFS_frac[rank]-5, f'{int(100*p):d}%%',
+#             ha='left', va='top', c=fp.color(3))
+# ax.set_xlabel('Eigenvector index', fontsize=config.LABEL_FONTSIZE*config.SCALE,
+#               labelpad=config.LABEL_PAD)
+# ax.set_ylabel('Percentage of DOFS', fontsize=config.LABEL_FONTSIZE*config.SCALE,
+#               labelpad=config.LABEL_PAD, color=fp.color(3))
+# ax.tick_params(axis='both', which='both',
+#                labelsize=config.LABEL_FONTSIZE*config.SCALE)
+# ax.tick_params(axis='y', labelcolor=fp.color(3))
+
+# # SNR
+# ax2 = ax.twinx()
+# ax2.plot(snr, label='Signal-to-noise ratio spectrum', c=fp.color(6), lw=2)
+# for r in [1, 2]:
+#     diff = np.abs(snr - r)
+#     rank = np.argwhere(diff == np.min(diff))[0][0]
+#     ax2.scatter(rank, snr[rank], marker='.', s=80, c=fp.color(6))
+#     ax2.text(rank-200, snr[rank], f'{r:d}', ha='right', va='center',
+#              c=fp.color(6))
+# ax2.set_ylabel('Signal-to-noise ratio',
+#                fontsize=config.LABEL_FONTSIZE*config.SCALE,
+#               labelpad=config.LABEL_PAD, color=fp.color(6))
+# ax2.tick_params(axis='y', which='both',
+#                 labelsize=config.LABEL_FONTSIZE*config.SCALE,
+#                 labelcolor=fp.color(6))
+
+# ax = fp.add_title(ax, 'Initial Estimate Information Content Spectrum')
+
+# fp.save_fig(fig, plot_dir, 'eigenvalues_update')
+
+## ------------------------------------------------------------------------ ##
+## Figure: Initial eigenvectors
+## ------------------------------------------------------------------------ ##
 # # Eigenvectors
 # # evecs = [f'{data_dir}evec_pert_{i:02d}.nc' for i in range(1, 10)]
 # # i = 1
@@ -329,9 +329,9 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 #                                              'ticks' : [-0.01, 0, 0.01]})
 # fp.save_fig(fig, plot_dir, 'fig_est0_evecs')
 
-########################################################################
-### FIGURE : SECOND GUESS EIGENVECTORS
-########################################################################
+## ------------------------------------------------------------------------ ##
+## Figure: Updated eigenvectors
+## ------------------------------------------------------------------------ ##
 # Eigenvectors
 # evecs = [f'{data_dir}evec_pert_{i:02d}.nc' for i in range(1, 10)]
 # i = 1
@@ -354,79 +354,5 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 #                                 cbar_kwargs={'title' : 'Eigenvector\nvalue',
 #                                              'ticks' : [-0.01, 0, 0.01]})
 # fp.save_fig(fig, plot_dir, f'fig_est1_evecs_{n0}_{n0+nevecs}')
-
-########################################################################
-### FIGURE : FIGURE OUT EIGENVECTOR WEIGHTING
-########################################################################
-# # Load raw emissions data
-# emis_file = f'{base_dir}prior/total_emissions/HEMCO_diagnostics.{s.year}.nc'
-# emis = gc.read_file(emis_file)
-# emis = emis['EmisCH4_Total']#*emis['AREA']
-
-# # fig, ax = fp.get_figax(maps=True, lats=emis.lat, lons=emis.lon)
-# # ax = fp.format_map(ax, lats=emis.lat, lons=emis.lon)
-# # cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
-
-# # c = emis.plot(ax=ax, cmap=viridis_trans, vmin=0, vmax=1e-9,
-# #               add_colorbar=False)
-# # cb = fig.colorbar(c, cax=cax)#, ticks=np.arange(0, 6, 1))
-# # cb = fp.format_cbar(cb, cbar_title=r'Emissions (?)')
-# # ax = fp.add_title(ax, 'Test')
-
-# # fp.save_fig(fig, plot_dir, 'evec_weighting_test_1')
-
-
-# # Remove emissions from buffer grid cells
-# fig, ax = fp.get_figax(rows=2, cols=4,
-#                        maps=True, lats=emis.lat, lons=emis.lon)
-# plt.subplots_adjust(hspace=0.5)
-# cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
-
-# for i, axis in enumerate(ax.flatten()):
-#     # i = 1
-#     evec_g = ip.match_data_to_clusters(evecs[:, i], clusters, 0)
-#     emis_sub = xr.where(np.isclose(evec_g, 0, atol=1e-8), 0, 1e-8*evec_g/emis)
-#     # evec_g/emis
-
-#     # fig, axis = fp.get_figax(maps=True, lats=emis.lat, lons=emis.lon)
-#     axis = fp.format_map(axis, lats=emis.lat, lons=emis.lon)
-
-#     c = emis_sub.plot(ax=axis, cmap='RdBu_r', vmin=-0.5, vmax=0.5,
-#                       add_colorbar=False)
-#     cb = fig.colorbar(c, cax=cax)#, ticks=[])
-#     cb = fp.format_cbar(cb, cbar_title=r'Fraction of Emissions')
-#     axis = fp.add_title(axis, f'Eigenvector {(i+1)}')
-
-# fp.save_fig(fig, plot_dir, 'evec_weighting_test_2')
-
-# # evecs = xr.open_dataarray(f'{data_dir}evec_pert_01.nc')
-# # fig, ax = fp.get_figax(maps=True, lats=emis.lat, lons=emis.lon)
-# # ax = fp.format_map(ax, lats=emis.lat, lons=emis.lon)
-# # cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
-# # c = evecs.plot(ax=ax, cmap='RdBu_r', vmin=-0.01, vmax=0.01, add_colorbar=False)
-# # cb = fig.colorbar(c, cax=cax)
-# # cb = fp.format_cbar(cb, cbar_title=r'Eigenvector perturbations kg/m2/s')
-# # fp.save_fig(fig, plot_dir, 'evec_formatting_test')
-
-
-# # fig, ax = fp.get_figax()
-# # ax.hist(emis_sub.values)
-# # fp.save_fig(fig, plot_dir, 'evec_weighting_test_2b')
-
-
-# # Adjust units to Mg/km2/yr
-# # emis *= 1e-3*(60*60*24*365)*(1000*1000)
-
-# # evals = 'evals_h0.npy'
-# # evals = np.load(f'{data_dir}{evals}')
-# # evals[evals < 0] = 0
-# # diff = np.abs(evals**0.5 - 1.25)
-# # rank = np.argwhere(diff == np.min(diff))[0][0]
-# # print(rank)
-
-#             # fig, ax, c = ip.plot_state(prolongation[i, :], clusters,
-#             #                            title='First Pertubation')
-#             # # pert['evec_pert'].plot()
-#             # plt.show()
 
 
