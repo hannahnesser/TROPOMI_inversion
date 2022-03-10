@@ -17,6 +17,7 @@ if __name__ == '__main__':
     # Cannon
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+    print(sys.argv)
     chunk = int(sys.argv[1])
     chunk_size = int(sys.argv[2])
     niter = sys.argv[3]
