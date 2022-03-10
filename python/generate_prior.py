@@ -265,6 +265,7 @@ sa_abs.to_netcdf(join(data_dir, 'sa_abs.nc'))
 sa_var = 1*tot_emis.mean()/tot_emis
 sa_var[sa_var < 1] = 1
 sa_var[sa_var > 5] = 5
+sa_var = sa_var**2
 sa_var.to_netcdf(join(data_dir, 'sa_var.nc'))
 
 # s_a_vec = 0.5*x_a.mean()/x_a
