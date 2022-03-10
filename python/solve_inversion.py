@@ -51,6 +51,10 @@ if __name__ == '__main__':
     else:
         optimize_rf = False
 
+    if suffix == 'None':
+        suffix = ''
+
+
     # User preferences
     # pct_of_info = [50, 70, 75, 80, 90, 99.9]
     pct_of_info = 80
