@@ -30,6 +30,9 @@ if __name__ == '__main__':
     suffix = sys.argv[10]
     code_dir = sys.argv[11]
 
+    if suffix == 'None':
+        suffix = ''
+
     # Import custom packages
     import sys
     sys.path.append(code_dir)

@@ -49,6 +49,9 @@ if __name__ == '__main__':
     else:
         format_evecs = False
 
+    if suffix == 'None':
+        suffix = ''
+
     # User preferences
     pct_of_info = [50, 80, 90, 99.9]
     snr = None
