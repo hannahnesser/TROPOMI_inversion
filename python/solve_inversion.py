@@ -137,7 +137,6 @@ if __name__ == '__main__':
     ## -------------------------------------------------------------------- ##
     # Prior error
     sa = gc.read_file(sa_file)
-    sa *= sa_scale**2
     sa = sa.values.reshape(-1, 1)
     nstate = sa.shape[0]
 
@@ -157,6 +156,7 @@ if __name__ == '__main__':
     ## Optimize the regularization factor via cost function analysis
     ## ---------------------------------------------------------------------##
     if optimize_rf:
+        # THIS MIGHT BE WRONG AFTER SWITCHING PASSAGE OF SA AND SO
         # To calculate the cost function for the observational term,
         # we need to load the true observations and the constant term
         ## Load the observations
@@ -200,8 +200,8 @@ if __name__ == '__main__':
             print(f'Solving the invesion for RF = {rf_i} and Sa = {sa_i}')
 
             # Scale the relevant terms by RF and Sa
-            evals_h_i = sa_i**2*rf_i*copy.deepcopy(evals_h_sub)/0.25
-            pre_xhat_i = sa_i*rf_i*copy.deepcopy(pre_xhat)/0.5
+            evals_h_i = sa_i**2*rf_i*copy.deepcopy(evals_h_sub)
+            pre_xhat_i = sa_i*rf_i*copy.deepcopy(pre_xhat)
 
             # Calculate the posterior
             xhat = calculate_xhat(evecs_sub, evals_h_i,
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     if rf is not None:
         suffix = suffix + f'_rf{rf}'
     if sa_in is not None:
-        suffix = suffix + f'_sa{(sa_in)}'
+        suffix = suffix + f'_sax{sa_scale}'
 
     print(f'Using {pct_of_info} percent of information content.')
     evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
@@ -251,12 +251,13 @@ if __name__ == '__main__':
     if rf is not None:
         evals_h *= rf
         pre_xhat *= rf
+        so /= rf
 
     # If sa_in is defined, scale
     if sa_in is not None:
-        evals_h *= sa_in**2/0.25
-        pre_xhat *= sa_in/0.5
-        sa *= sa_in**2/0.25
+        evals_h *= sa_scale**2
+        pre_xhat *= sa_scale
+        sa *= sa_scale**2
 
     # Recompute evals_q.
     evals_q = evals_h/(1 + evals_h)
