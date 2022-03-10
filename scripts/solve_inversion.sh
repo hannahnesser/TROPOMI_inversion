@@ -26,17 +26,21 @@ SA_SCALE="1"
 RF="1"
 
 # Saving out
-FILE_SUFFIX=""
+FILE_SUFFIX="" #"_savar"
 
 # Build the Jacobian
 jid1=$(sbatch --array=1-20 build_k_chunks.sh ${CHUNK_SIZE} "2" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
 
 # Calculate the prior preconditioned Hessian
-jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${FILE_SUFFIX} ${CODE_DIR})
+## For this, we assume that the scaling on Sa and on So are 1 (we pass these arguments explicitly
+## to avoid confusion)
+jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${SA_FILE} "1" ${SO_FILE} "1" ${YA_FILE} ${FILE_SUFFIX} ${CODE_DIR})
 # jid2=$(sbatch --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${FILE_SUFFIX} ${CODE_DIR})
 
 # Calculate the eigenvectors
-jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SA_FILE} ${SA_SCALE} ${FILE_SUFFIX} ${CODE_DIR})
+## For this, we assume that the scaling on Sa is 1 (we pass this argument explicitly
+## to avoid confusion)
+jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SA_FILE} "1" ${FILE_SUFFIX} ${CODE_DIR})
 # jid3=$(sbatch generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SA_FILE} ${SA_SCALE} ${FILE_SUFFIX} ${CODE_DIR})
 
 # Solve the inversion
