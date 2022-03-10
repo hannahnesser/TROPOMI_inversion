@@ -21,7 +21,13 @@ if __name__ == '__main__':
     chunk_size = int(sys.argv[2])
     niter = sys.argv[3]
     data_dir = sys.argv[4]
-    code_dir = sys.argv[5]
+    sa_file = sys.argv[5]
+    sa_scale = float(sys.argv[6])
+    so_file = sys.argv[7]
+    rf = float(sys.argv[8])
+    ya_file = sys.argv[9]
+    suffix = sys.argv[10]
+    code_dir = sys.argv[11]
 
     # Import custom packages
     import sys
@@ -37,14 +43,9 @@ if __name__ == '__main__':
     ## Load pertinent data that defines state and observational dimension
     ## ---------------------------------------------------------------------##
     # Prior error
-    sa = gc.read_file(f'{data_dir}/sa_var.nc')
+    sa = gc.read_file(sa_file)
+    sa *= sa_scale**2
     nstate = sa.shape[0]
-
-    # Absolute prior
-    xa_abs = xr.open_dataarray(f'{data_dir}/xa_abs.nc')
-
-    # # Convert sa to absolute
-    # sa = sa*(xa_abs**2)
 
     # Observational suffix
     if niter == '0':
@@ -53,11 +54,12 @@ if __name__ == '__main__':
         obs_suffix = ''
 
     # Observational error
-    so = gc.read_file(f'{data_dir}/so{obs_suffix}.nc')
+    so = gc.read_file(so_file)
+    so /= rf
 
     # Observations
     y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc')
-    ya = gc.read_file(f'{data_dir}/ya{obs_suffix}.nc')
+    ya = gc.read_file(ya_file)
     ydiff = y - ya
 
     # Observation mask
@@ -175,12 +177,12 @@ if __name__ == '__main__':
 
     # Save out
     start_time = time.time()
-    pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}.nc')
+    pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}.nc')
     active_time = (time.time() - start_time)/60
     print(f'Prior-pre-conditioned Hessian for chunk {chunk} saved ({active_time} min).')
 
     start_time = time.time()
-    pre_xhat_m.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}.nc')
+    pre_xhat_m.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}.nc')
     active_time = (time.time() - start_time)/60
     print(f'xhat preparation for chunk {chunk} completed ({active_time} min).')
 
@@ -197,38 +199,3 @@ if __name__ == '__main__':
     print('-'*75)
     client.shutdown()
     sys.exit()
-
-    # # Calculate the monthly prior pre-conditioned Hessian
-    # sasqrt_kt = k_m*(sa**0.5)
-    # pph_m = da.tensordot(sasqrt_kt.T/so_m, sasqrt_kt, axes=(1, 0))
-    # pph_m = xr.DataArray(pph_m, dims=['nstate_0', 'nstate_1'],
-    #                      name=f'pph{niter}_m{month:02d}')
-    # pph_m = pph_m.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
-    # print('Prior-pre-conditioned Hessian calculated.')
-
-    # # Persist
-    # pph_m = pph_m.persist()
-    # progress(pph_m)
-
-    # # Save out
-    # start_time = time.time()
-    # pph_m.to_netcdf(f'{data_dir}/pph{niter}_m{month:02d}.nc')
-    # active_time = (time.time() - start_time)/60
-    # print(f'Prior-pre-conditioned Hessian for month {month} saved ({active_time} min).')
-
-    # # Then save out part of what we need for the posterior solution
-    # sasqrt_kt_soinv_ydiff_m = da.tensordot(sasqrt_kt.T/so_m, ydiff_m,
-    #                                        axes=(1, 0))
-    # sasqrt_kt_soinv_ydiff_m = xr.DataArray(sasqrt_kt_soinv_ydiff_m,
-    #                                        dims=['nstate'],
-    #                                        name=f'pre_xhat{niter}_m{month:02d}')
-
-    # # Persist
-    # sasqrt_kt_soinv_ydiff_m = sasqrt_kt_soinv_ydiff_m.persist()
-    # progress(sasqrt_kt_soinv_ydiff_m)
-
-    # # Save out
-    # start_time = time.time()
-    # sasqrt_kt_soinv_ydiff_m.to_netcdf(f'{data_dir}/pre_xhat{niter}_m{month:02d}.nc')
-    # active_time = (time.time() - start_time)/60
-    # print(f'xhat preparation for month {month} completed ({active_time} min).')

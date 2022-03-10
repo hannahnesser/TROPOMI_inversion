@@ -21,9 +21,12 @@ if __name__ == '__main__':
         n_evecs = int(sys.argv[2])
         data_dir = sys.argv[3]
         output_dir = sys.argv[4]
-        code_dir = sys.argv[5]
-        calculate_evecs = sys.argv[6]
-        format_evecs = sys.argv[7]
+        calculate_evecs = sys.argv[5]
+        format_evecs = sys.argv[6]
+        sa_file = sys.argv[7]
+        sa_scale = float(sys.argv[8])
+        suffix = sys.argv[9]
+        code_dir = sys.argv[10]
     else:
         niter = 1
         n_evecs = int(10)
@@ -91,7 +94,8 @@ if __name__ == '__main__':
     ## Load global quantities
     ## -------------------------------------------------------------------- ##
     # State vector dimension
-    sa = gc.read_file(f'{data_dir}/sa.nc')
+    sa = gc.read_file(sa_file)
+    sa *= sa_scale**2
     sa = sa.values.reshape(-1, 1)
     nstate = sa.shape[0]
 
@@ -106,8 +110,8 @@ if __name__ == '__main__':
                                 name=f'pre_xhat{niter}')
         for c in range(1, 21):
             print(f'Loading chunk {c}.')
-            temp1 = xr.open_dataarray(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{c:02d}.nc')
-            temp2 = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{c:02d}.nc')
+            temp1 = xr.open_dataarray(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{c:02d}.nc')
+            temp2 = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{c:02d}.nc')
             # print(m, temp1.min(), temp1.max())
             pph += temp1
             pre_xhat += temp2
@@ -145,22 +149,22 @@ if __name__ == '__main__':
         reduction = evecs.T * (1/sa**0.5)
 
         # Save out the matrices
-        pph.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}.nc')
-        pre_xhat.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}.nc')
-        np.save(f'{data_dir}/iteration{niter}/operators/evecs{niter}.npy', evecs)
-        np.save(f'{data_dir}/iteration{niter}/operators/evals_h{niter}.npy', evals_h)
-        np.save(f'{data_dir}/iteration{niter}/operators/evals_q{niter}.npy', evals_q)
-        np.save(f'{data_dir}/iteration{niter}/operators/prolongation{niter}.npy', prolongation)
-        np.save(f'{data_dir}/iteration{niter}/operators/reduction{niter}.npy', reduction)
+        pph.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}.nc')
+        pre_xhat.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}.nc')
+        np.save(f'{data_dir}/iteration{niter}/operators/evecs{niter}{suffix}.npy', evecs)
+        np.save(f'{data_dir}/iteration{niter}/operators/evals_h{niter}{suffix}.npy', evals_h)
+        np.save(f'{data_dir}/iteration{niter}/operators/evals_q{niter}{suffix}.npy', evals_q)
+        np.save(f'{data_dir}/iteration{niter}/operators/prolongation{niter}{suffix}.npy', prolongation)
+        np.save(f'{data_dir}/iteration{niter}/operators/reduction{niter}{suffix}.npy', reduction)
 
         print('Eigendecomposition complete.\n')
 
     else:
-        evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}.npy')
+        evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}{suffix}.npy')
         # evals_q = evals_h/(1 + evals_h)
-        prolongation = np.load(f'{data_dir}/iteration{niter}/operators/prolongation{niter}.npy')
+        prolongation = np.load(f'{data_dir}/iteration{niter}/operators/prolongation{niter}{suffix}.npy')
         if not local:
-            evals_q = np.load(f'{data_dir}/iteration{niter}/operators/evals_q{niter}.npy')
+            evals_q = np.load(f'{data_dir}/iteration{niter}/operators/evals_q{niter}{suffix}.npy')
 
     ## ---------------------------------------------------------------------##
     ## Format the eigenvectors for HEMCO
