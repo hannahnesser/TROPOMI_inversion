@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
     def calculate_xhat(evecs, evals_h, pre_xhat, sa):
         # (this formulation only works with constant errors I think)
-        xhat = (1 + (sa**0.5)*(evecs*(1/(1+evals_h))) @ evecs.T @ pre_xhat)
+        xhat = 1 + ((sa**0.5)*(evecs*(1/(1+evals_h))) @ evecs.T @ pre_xhat)
         return np.array(xhat)
 
     def calculate_dofs(evecs, evals_h, sa):
