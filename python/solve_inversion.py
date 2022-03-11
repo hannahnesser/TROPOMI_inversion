@@ -243,7 +243,7 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     if rf is not None:
         suffix = suffix + f'_rf{rf}'
-    if sa_in is not None:
+    if sa_scale is not None:
         suffix = suffix + f'_sax{sa_scale}'
 
     print(f'Using {pct_of_info} percent of information content.')
@@ -258,7 +258,7 @@ if __name__ == '__main__':
         so /= rf
 
     # If sa_in is defined, scale
-    if sa_in is not None:
+    if sa_scale is not None:
         evals_h *= sa_scale**2
         pre_xhat *= sa_scale
         sa *= sa_scale**2
