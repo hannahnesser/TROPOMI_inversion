@@ -275,7 +275,7 @@ if __name__ == '__main__':
     # (we can leave off Sa when it's constant)
     # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
     # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-    dofs = calculate_dofs(evecs_sub, evals_h_sub)
+    dofs = calculate_dofs(evecs_sub, evals_h_sub, sa)
     xhat = calculate_xhat(evecs_sub, evals_h_sub, pre_xhat.values, sa)
     shat = calculate_shat(evecs_sub, evals_h_sub, sa)
 
