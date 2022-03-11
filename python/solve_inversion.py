@@ -287,7 +287,7 @@ if __name__ == '__main__':
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
     np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
-    np.save(f'{data_dir}/iteration{niter}/xhat/shat{niter}{suffix}.npy', shat)
+    np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
     np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suffix}.npy', yhat)
 
 print('CODE COMPLETE')
