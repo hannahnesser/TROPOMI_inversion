@@ -290,4 +290,4 @@ if __name__ == '__main__':
     np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
     np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suffix}.npy', yhat)
 
-print('CODE COMPLETE')
+    print('CODE COMPLETE')
