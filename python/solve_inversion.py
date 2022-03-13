@@ -144,19 +144,18 @@ if __name__ == '__main__':
     sa = sa.values.reshape(-1, 1)
     nstate = sa.shape[0]
 
+    # If sa_scale is defined, scale
+    if sa_scale is not None:
+        evals_h *= sa_scale**2
+        pre_xhat *= sa_scale
+        sa *= sa_scale**2
+
     # Observational error (apply RF later)
     so = gc.read_file(so_file)
     so = so.values.reshape(-1, 1)
     nobs = so.shape[0]
 
-    # Initial pre_xhat information
-    pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}.nc')
-
-    # Eigenvectors and eigenvalues
-    evecs = np.load(f'{data_dir}/iteration{niter}/operators/evecs{niter}{suffix}.npy')
-    evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}{suffix}.npy')
-
-    ## Load or solve for the constant value
+    # Load or solve for the constant value
     try:
         # Try loading the constant value
         c = gc.read_file(c_file)
@@ -174,6 +173,22 @@ if __name__ == '__main__':
         c = xr.DataArray(c, dims=('nobs'))
         c.to_netcdf(c_file)
 
+    # Initial pre_xhat information
+    pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}.nc')
+
+    # Eigenvectors and eigenvalues
+    evecs = np.load(f'{data_dir}/iteration{niter}/operators/evecs{niter}{suffix}.npy')
+    evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}{suffix}.npy')
+
+    # Subset the eigenvectors and eigenvalues
+    print(f'Using {pct_of_info} percent of information content.')
+    evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
+    rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=pct_of_info/100)
+
+    # Subset the evals and evecs
+    evals_h_sub = evals_h[:rank]
+    evecs_sub = evecs[:, :rank]
+
     ## ---------------------------------------------------------------------##
     ## Optimize the regularization factor via cost function analysis
     ## ---------------------------------------------------------------------##
@@ -184,38 +199,31 @@ if __name__ == '__main__':
         ## Load the observations
         y = gc.read_file(f'{data_dir}/y.nc')
 
-        # We will solve the inversion using 80% of information content
-        evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
-        rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=80/100)
-        evecs_sub = evecs[:, :rank]
-        evals_h_sub = evals_h[:rank]
-
         # Iterate through different regularization factors and prior
         # errors. Then save out the prior and observational cost function
         rfs = [1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 2]
         DOFS_threshold = [0.01, 0.05, 0.1]
-        sa_i = 1
         # sas = [0.1, 0.25, 0.5, 0.75, 1, 2]
         # sas = [1.5, 2, 3]
         ja = np.zeros((len(rfs), len(DOFS_threshold)))
         # jo = np.zeros((len(rfs), len(DOFS_threshold)))
         n = np.zeros((len(rfs), len(DOFS_threshold)))
         for i, rf_i in enumerate(rfs):
-            print(f'Solving the invesion for RF = {rf_i} and Sa = {sa_i}')
+            print(f'Solving the invesion for RF = {rf_i} and Sa = {sa}')
 
             # Scale the relevant terms by RF and Sa
-            evals_h_i = sa_i**2*rf_i*copy.deepcopy(evals_h_sub)
-            pre_xhat_i = sa_i*rf_i*copy.deepcopy(pre_xhat)
+            evals_h_i = rf_i*copy.deepcopy(evals_h_sub)
+            pre_xhat_i = rf_i*copy.deepcopy(pre_xhat)
 
             # Calculate the posterior
             xhat = calculate_xhat(evecs_sub, evals_h_i,
-                                  pre_xhat_i.values, sa_i)
-            dofs = calculate_dofs(evecs_sub, evals_h_i)
+                                  pre_xhat_i.values, sa)
+            dofs = calculate_dofs(evecs_sub, evals_h_i, sa)
 
             # Subset the posterior
             for j, t_i in enumerate(DOFS_threshold):
                 xhat_sub = xhat[dofs >= t_i]
-                ja[i, j] = ((xhat_sub - 1)**2/sa_i**2).sum()
+                ja[i, j] = ((xhat_sub - 1)**2/sa**2).sum()
                 n[i, j] = len(xhat_sub)
 
 
@@ -241,14 +249,11 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Solve the inversion
     ## ---------------------------------------------------------------------##
+    # set the suffix
     if rf is not None:
         suffix = suffix + f'_rf{rf}'
     if sa_scale is not None:
         suffix = suffix + f'_sax{sa_scale}'
-
-    print(f'Using {pct_of_info} percent of information content.')
-    evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
-    rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=pct_of_info/100)
     suffix = suffix + f'_poi{pct_of_info}'
 
     # If RF is defined, scale
@@ -257,19 +262,9 @@ if __name__ == '__main__':
         pre_xhat *= rf
         so /= rf
 
-    # If sa_in is defined, scale
-    if sa_scale is not None:
-        evals_h *= sa_scale**2
-        pre_xhat *= sa_scale
-        sa *= sa_scale**2
-
     # Recompute evals_q.
     evals_q = evals_h/(1 + evals_h)
-
-    # Subset the evals and evecs
-    evals_h_sub = evals_h[:rank]
     evals_q_sub = evals_q[:rank]
-    evecs_sub = evecs[:, :rank]
 
     # Calculate the posterior and averaging kernel
     # (we can leave off Sa when it's constant)
