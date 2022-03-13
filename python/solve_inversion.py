@@ -144,12 +144,6 @@ if __name__ == '__main__':
     sa = sa.values.reshape(-1, 1)
     nstate = sa.shape[0]
 
-    # If sa_scale is defined, scale
-    if sa_scale is not None:
-        evals_h *= sa_scale**2
-        pre_xhat *= sa_scale
-        sa *= sa_scale**2
-
     # Observational error (apply RF later)
     so = gc.read_file(so_file)
     so = so.values.reshape(-1, 1)
@@ -179,6 +173,12 @@ if __name__ == '__main__':
     # Eigenvectors and eigenvalues
     evecs = np.load(f'{data_dir}/iteration{niter}/operators/evecs{niter}{suffix}.npy')
     evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}{suffix}.npy')
+
+    # If sa_scale is defined, scale everything
+    if sa_scale is not None:
+        evals_h *= sa_scale**2
+        pre_xhat *= sa_scale
+        sa *= sa_scale**2
 
     # Subset the eigenvectors and eigenvalues
     print(f'Using {pct_of_info} percent of information content.')
