@@ -120,10 +120,9 @@ if __name__ == '__main__':
 
         return np.concatenate(kx)
 
-    def calculate_xhat(evecs, evals_h, pre_xhat, sa):
+    def calculate_xhat(shat, kt_so_ydiff):
         # (this formulation only works with constant errors I think)
-        xhat = 1 + ((sa**0.5)*(evecs*(1/(1+evals_h))) @ evecs.T @ pre_xhat)
-        return np.array(xhat)
+        return np.array(1 + shat @ kt_so_ydiff)
 
     def calculate_dofs(evecs, evals_h, sa):
         evals_q = evals_h/(1 + evals_h)
@@ -135,6 +134,12 @@ if __name__ == '__main__':
         sa_evecs = evecs*(sa**0.5)
         shat = (sa_evecs*(1/(1 + evals_h))) @ sa_evecs.T
         return shat
+
+    def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
+        shat = calculate_shat(evecs, evals_h, sa)
+        xhat = calculate_xhat(shat, kt_so_ydiff)
+        dofs = calculate_dofs(evecs, evals_h, sa)
+        return xhat, shat, dofs
 
     ## -------------------------------------------------------------------- ##
     ## Open files
@@ -168,7 +173,7 @@ if __name__ == '__main__':
         c.to_netcdf(c_file)
 
     # Initial pre_xhat information
-    pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}.nc')
+    pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}.nc').values
 
     # Eigenvectors and eigenvalues
     evecs = np.load(f'{data_dir}/iteration{niter}/operators/evecs{niter}{suffix}.npy')
@@ -213,19 +218,16 @@ if __name__ == '__main__':
 
             # Scale the relevant terms by RF and Sa
             evals_h_i = rf_i*copy.deepcopy(evals_h_sub)
-            pre_xhat_i = rf_i*copy.deepcopy(pre_xhat)
+            p_i = rf_i*copy.deepcopy(pre_xhat)
 
             # Calculate the posterior
-            xhat = calculate_xhat(evecs_sub, evals_h_i,
-                                  pre_xhat_i.values, sa)
-            dofs = calculate_dofs(evecs_sub, evals_h_i, sa)
+            xhat, shat, dofs = solve_inversion(evecs_sub, evals_h_i, sa, p_i)
 
             # Subset the posterior
             for j, t_i in enumerate(DOFS_threshold):
                 xhat_sub = xhat[dofs >= t_i]
                 ja[i, j] = ((xhat_sub - 1)**2/sa**2).sum()
                 n[i, j] = len(xhat_sub)
-
 
             # # # Calculate the posterior observations
             # yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
@@ -270,9 +272,7 @@ if __name__ == '__main__':
     # (we can leave off Sa when it's constant)
     # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
     # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-    dofs = calculate_dofs(evecs_sub, evals_h_sub, sa)
-    xhat = calculate_xhat(evecs_sub, evals_h_sub, pre_xhat.values, sa)
-    shat = calculate_shat(evecs_sub, evals_h_sub, sa)
+    xhat, shat, dofs = solve_inversion(evecs_sub, evals_h_sub, sa, pre_xhat)
 
     # Calculate the posterior observations
     yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
