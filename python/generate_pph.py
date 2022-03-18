@@ -141,7 +141,7 @@ if __name__ == '__main__':
         print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
         # Then save out part of what we need for the posterior solution
-        pre_xhat_i = da.tensordot(k_sasqrt_i.T/so_i, ydiff_i, axes=(1, 0))
+        pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
         pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
                                   name=f'pre_xhat{niter}_c{chunk:02d}')
 
