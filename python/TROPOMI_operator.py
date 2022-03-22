@@ -361,12 +361,12 @@ for date, filenames in Sat_files.items():
     preprocess = lambda d: filter_tropomi(d, date,
                                           s.lon_min, s.lon_max,
                                           s.lat_min, s.lat_max)
-    TROPOMI2 = xr.open_mfdataset(filenames, concat_dim='nobs',
+    TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
                                 combine='nested',
                                 chunks=10000,
                                 mask_and_scale=False,
                                 preprocess=preprocess)
-    TROPOMI2 = process_tropomi(TROPOMI2, date)
+    TROPOMI = process_tropomi(TROPOMI, date)
 
     if TROPOMI is None:
         print(f'{date} : 0 observations')
