@@ -97,6 +97,9 @@ def filter_tropomi(data, date, lon_min, lon_max, lat_min, lat_max):
                        & (data['time'][:, 1] == int(date[4:6]))
                        & (data['time'][:, 2] == int(date[6:]))), drop=True)
 
+    # Filter on nan cloud fraction values
+    # data = data.dropna(dim='nobs', how='any')
+
     return data
 
 def process_tropomi(data, date):
@@ -358,11 +361,12 @@ for date, filenames in Sat_files.items():
     preprocess = lambda d: filter_tropomi(d, date,
                                           s.lon_min, s.lon_max,
                                           s.lat_min, s.lat_max)
-    TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
+    TROPOMI2 = xr.open_mfdataset(filenames, concat_dim='nobs',
                                 combine='nested',
                                 chunks=10000,
+                                mask_and_scale=False,
                                 preprocess=preprocess)
-    TROPOMI = process_tropomi(TROPOMI, date)
+    TROPOMI2 = process_tropomi(TROPOMI2, date)
 
     if TROPOMI is None:
         print(f'{date} : 0 observations')
@@ -410,7 +414,7 @@ for date, filenames in Sat_files.items():
     # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
     # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
     if not jacobian:
-        N = 10
+        N = 11
     else:
         N = 2
     OBS_MOD = np.zeros([NN, N],dtype=np.float32)
@@ -425,6 +429,11 @@ for date, filenames in Sat_files.items():
         OBS_MOD[:, 7] = TROPOMI['albedo'][:,1]
         OBS_MOD[:, 8] = TROPOMI['albedo'][:,0]
         OBS_MOD[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
+
+        # and finally get a cloud fraction variable to deal
+        # with the bug in cloud fraction (since this was accidentally
+        # excluded in the filter_TROPOMI function)
+        OBS_MOD[:, 10] = TROPOMI['cloud_fraction'].isnull().sum(axis=1).values
 
     save_obj(OBS_MOD, os.path.join(output_dir, date + '_GCtoTROPOMI.pkl'))
     # print('================================')
