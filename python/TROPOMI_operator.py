@@ -222,7 +222,7 @@ def correct_GC(ch4_data, ch4_halfstep_data_dir, date, scale_factor=5):
 
         # Open the new file (that will replace the problem values)
         new = get_diagnostic(f'{ch4_halfstep_data_dir}/OutputDir',
-                             'SpeciesConc', date)['SpeciesConc_CH4']*1e9
+                             'SpeciesConc', date)['SpeciesConc_CH4']#*1e9
         new = gc.subset_data_latlon(new, *s.lats, *s.lons)
 
         # Check for time dimension
