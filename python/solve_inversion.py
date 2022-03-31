@@ -182,7 +182,7 @@ if __name__ == '__main__':
     # If sa_scale is defined, scale everything
     if sa_scale is not None:
         evals_h *= sa_scale**2
-        pre_xhat *= sa_scale
+        # pre_xhat *= sa_scale
         sa *= sa_scale**2
 
     # Subset the eigenvectors and eigenvalues
