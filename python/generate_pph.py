@@ -215,7 +215,7 @@ if __name__ == '__main__':
         start_time = time.time()
         pph_bc = pph_bc.persist()
         progress(pph_bc)
-        pph_bc.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}_bc.nc')
+        pph_bc.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_bc.nc')
         active_time = (time.time() - start_time)/60
         print(f'Prior-pre-conditioned Hessian for the BC saved ({active_time} min).')
 
@@ -228,7 +228,7 @@ if __name__ == '__main__':
         print('Persisting the pre-xhat calculation for the BC.')
         start_time = time.time()
         pre_xhat_bc = pre_xhat_bc.persist()
-        pre_xhat_bc.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_bc.nc')
+        pre_xhat_bc.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_bc.nc')
         active_time = (time.time() - start_time)/60
         print(f'xhat preparation for the BC saved ({active_time} min).')
 
