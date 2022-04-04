@@ -44,6 +44,11 @@ def color(k, cmap='plasma', lut=10):
     c = plt.cm.get_cmap(cmap, lut=lut)
     return colors.to_hex(c(k))
 
+def cmap_from_color(color_high, color_low=(1, 1, 1), N=100):
+    rgb_map = [color_low, colors.to_rgb(color_high)]
+    cmap = colors.LinearSegmentedColormap.from_list('cmap', rgb_map, N=N)
+    return cmap
+
 def cmap_trans(cmap, ncolors=300, nalpha=20):
     color_array = plt.get_cmap(cmap)(range(ncolors))
 
@@ -104,6 +109,8 @@ def make_axes(rows=1, cols=1, aspect=None,
     kw = {}
     if maps:
         kw['subplot_kw'] = {'projection' : ccrs.PlateCarree()}
+    kw['sharex'] = fig_kwargs.pop('sharex', False)
+    kw['sharey'] = fig_kwargs.pop('sharey', False)
     # if (rows + cols) > 2:
     #     kw['constrained_layout'] = True
         # figsize = tuple(f*1.5 for f in figsize)
