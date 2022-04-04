@@ -119,6 +119,13 @@ if __name__ == '__main__':
             pph += temp1
             pre_xhat += temp2
 
+        if niter == '2':
+            # Add in the contribution from the BC
+            temp1 = xr.open_dataarray(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_bc.nc')
+            temp2 = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_bc.nc')
+            pph += temp1
+            pre_xhat += temp2
+
         # Load into memory
         pph = pph.compute()
         pre_xhat = pre_xhat.compute()

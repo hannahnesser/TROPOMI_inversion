@@ -24,7 +24,7 @@ if __name__ == '__main__':
         code_dir = sys.argv[8]
     else:
         chunk = 1
-        chunk_size = 125000
+        chunk_size = 150000
         niter = '2'
         prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
         perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_NNNN'
@@ -160,6 +160,45 @@ if __name__ == '__main__':
     kpi_c.to_netcdf(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc')
     active_time = (time.time() - start_time)/60
     print(f'Kpi for chunk {chunk} saved ({active_time} min).')
+
+    # If it's the first chunk, also create the Jacobian for the boundary
+    # conditions
+    if chunk == 1:
+        # Reload the obs_filter without subsetting
+        obs_filter = pd.read_csv(f'{data_dir}/obs_filter.csv', header=0)
+        obs_filter = obs_filter['FILTER']
+
+        # Reload the prior (since we need all observations)
+        prior_files = glob.glob(f'{prior_dir}/ProcessedDir/{s.year:04d}????_GCtoTROPOMI.pkl')
+        prior_files.sort()
+        prior = get_model_ch4(prior_files)
+        prior = prior[obs_filter]
+
+        # Load the Jacobian for the BC elements
+        kbc = np.array([]).reshape(prior.shape[0], 0)
+        for p in ['N', 'S', 'E', 'W']:
+            p = f'/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_{p}BC'
+            print(p)
+
+            # Load files
+            pert_files = glob.glob(f'{p}/ProcessedDir/{s.year:04d}????_GCtoTROPOMI.pkl')
+            pert_files.sort()
+            pert = get_model_ch4(pert_files)
+            pert = pert[obs_filter]
+
+            # Get and save the Jacobian column
+            diff = (pert - prior).reshape((-1, 1))
+            kbc = np.concatenate((kbc, diff), axis=1)
+
+        # Convert to xarray and persist
+        kbc = xr.DataArray(kbc, dims=['nobs', 'nbc'])/0.5
+        kbc = kbc.persist()
+
+        # Save out
+        start_time = time.time()
+        kbc.to_netcdf(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc')
+        active_time = (time.time() - start_time)/60
+        print(f'KBC saved ({active_time} min).')
 
     # Exit
     print('Code Complete.')
