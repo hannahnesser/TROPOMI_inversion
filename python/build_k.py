@@ -33,7 +33,6 @@ if __name__ == '__main__':
         code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
     # Import custom packages
-    import sys
     sys.path.append(code_dir)
     import gcpy as gc
     import inversion_settings as s
@@ -191,7 +190,7 @@ if __name__ == '__main__':
             kbc = np.concatenate((kbc, diff), axis=1)
 
         # Convert to xarray and persist
-        kbc = xr.DataArray(kbc, dims=['nobs', 'nbc'])/0.5
+        kbc = xr.DataArray(kbc, dims=['nobs', 'nstate'])/0.5
         kbc = kbc.persist()
 
         # Save out
