@@ -175,7 +175,7 @@ if __name__ == '__main__':
     # Now sum up the component parts
     print('-'*75)
     client.restart()
-    if niter == 2:
+    if niter == '2':
         nstate += 4
     pph_m = xr.DataArray(np.zeros((nstate, nstate)),
                          dims=['nstate_0', 'nstate_1'],
