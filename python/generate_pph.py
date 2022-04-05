@@ -175,10 +175,10 @@ if __name__ == '__main__':
     # Now sum up the component parts
     print('-'*75)
     client.restart()
-    pph_m = xr.DataArray(np.zeros((nstate, nstate)),
+    pph_m = xr.DataArray(np.zeros((nstate + 4, nstate + 4)),
                          dims=['nstate_0', 'nstate_1'],
                          name=f'pph{niter}_c{chunk:02d}')
-    pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
+    pre_xhat_m = xr.DataArray(np.zeros((nstate + 4,)), dims=['nstate'],
                               name=f'pre_xhat{niter}_c{chunk:02d}')
     for i in range(count):
         print(f'Loading count {i}.')
