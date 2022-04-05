@@ -15,8 +15,11 @@ if __name__ == '__main__':
     ## Set user preferences
     ## ---------------------------------------------------------------------##
     # Cannon
-    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/initial_inversion'
+    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+    # niter = '2'
+    # chunk = 1
+    # chunk_size = 150000
     print(sys.argv)
     chunk = int(sys.argv[1])
     chunk_size = int(sys.argv[2])
@@ -49,7 +52,7 @@ if __name__ == '__main__':
     # Prior error
     sa = gc.read_file(sa_file)
     sa *= sa_scale**2
-    sa_bc = 0.01**2
+    sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
     nstate = sa.shape[0]
 
     # Observational suffix
@@ -109,8 +112,16 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Generate the prior pre-conditioned Hessian for that chunk
     ## ---------------------------------------------------------------------##
-    # Load k_m
-    k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc', chunks=chunks)
+    # Load k_m and k_bc
+    k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
+                       chunks=chunks)
+    k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
+                                chunks=chunks)
+    k_bc = k_bc[i0:i1, :]
+
+    # Combine the two Jacobians and add on sa
+    k_m = xr.concat([k_m, k_bc], dim='nstate')
+    sa = xr.concat([sa, sa_bc], dim='nstate')
 
     # Initialize our loop
     i = int(0)
@@ -196,41 +207,6 @@ if __name__ == '__main__':
     files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_*.nc')
     for f in files:
        remove(f)
-
-    # Finally, if chunk == 1, generate the PPH for the boundary condition
-    if chunk == 1:
-        # Read the associated Jacobian matrix
-        k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
-                            chunks={'nobs' : nobs_chunk, 'nbc' : 4})
-
-        # Calculate PPH
-        k_sasqrt = k_bc*sa_bc
-        pph_bc = da.tensordot(k_sasqrt.T/so, k_sasqrt, axes=(1, 0))
-        pph_bc = xr.DataArray(pph_bc, dims=['nstate_0', 'nstate_1'],
-                             name=f'pph{niter}_bc')
-        pph_bc = pph_bc.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
-
-        # Persist and save
-        print('Persisting the prior pre-conditioned Hessian for the BC.')
-        start_time = time.time()
-        pph_bc = pph_bc.persist()
-        progress(pph_bc)
-        pph_bc.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_bc.nc')
-        active_time = (time.time() - start_time)/60
-        print(f'Prior-pre-conditioned Hessian for the BC saved ({active_time} min).')
-
-        # Then save out part of what we need for the posterior solution
-        pre_xhat_bc = da.tensordot(k_bc.T/so, ydiff, axes=(1, 0))
-        pre_xhat_bc = xr.DataArray(pre_xhat_bc, dims=['nstate'],
-                                  name=f'pre_xhat{niter}_bc')
-
-        # Persist and save
-        print('Persisting the pre-xhat calculation for the BC.')
-        start_time = time.time()
-        pre_xhat_bc = pre_xhat_bc.persist()
-        pre_xhat_bc.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_bc.nc')
-        active_time = (time.time() - start_time)/60
-        print(f'xhat preparation for the BC saved ({active_time} min).')
 
     # Exit
     print('-'*75)
