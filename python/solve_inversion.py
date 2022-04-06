@@ -147,6 +147,12 @@ if __name__ == '__main__':
     # Prior error
     sa = gc.read_file(sa_file)
     sa = sa.values.reshape(-1, 1)
+
+    # If niter == 2, add in BC
+    if niter == '2':
+        sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
+
+    # Get the state vector dimension
     nstate = sa.shape[0]
 
     # Observational error (apply RF later)
