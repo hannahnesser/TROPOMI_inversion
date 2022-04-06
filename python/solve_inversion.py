@@ -22,6 +22,12 @@ if __name__ == '__main__':
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
         # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
         # niter = '2'
+        # ya_file = f'{data_dir}/ya.nc'
+        # c_file = f'{data_dir}/c.nc'
+        # so_file = f'{data_dir}/so.nc'
+        # sa_file = f'{data_dir}/sa.nc'
+        # sa_scale = 1
+        # rf = 1
         niter = sys.argv[1]
         data_dir = sys.argv[2]
         output_dir = sys.argv[3]
@@ -101,10 +107,10 @@ if __name__ == '__main__':
         k_files = glob.glob(f'{k_dir}/k{niter}_c??.nc')
         k_files.sort()
 
-        # if niter == 2, also load the boundary condition K
-        if niter == '2':
-            k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
-                                     chunks=chunks)
+        # # if niter == 2, also load the boundary condition K
+        # if niter == '2':
+        #     k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
+        #                              chunks=chunks)
 
         # Start time
         start_time = time.time()
@@ -117,11 +123,11 @@ if __name__ == '__main__':
             print('-', end='')
             k_n = xr.open_dataarray(kf, chunks=chunks)
             # Append the BC K if it's the second iteration
-            if niter == '2':
-                i1 = i0 + k_n.shape[0]
-                k_bc_n = k_bc[i0:i1, :]
-                k_n = xr.concat([k_n, k_bc_n], dim='nstate')
-                i0 = copy.deepcopy(i1)
+            # if niter == '2':
+            #     i1 = i0 + k_n.shape[0]
+            #     k_bc_n = k_bc[i0:i1, :]
+            #     k_n = xr.concat([k_n, k_bc_n], dim='nstate')
+            #     i0 = copy.deepcopy(i1)
             k_n = da.tensordot(k_n, x_data, axes=(1, 0))
             k_n = k_n.compute()
             kx.append(k_n)
@@ -158,9 +164,9 @@ if __name__ == '__main__':
     sa = gc.read_file(sa_file)
     sa = sa.values.reshape(-1, 1)
 
-    # If niter == 2, add in BC
-    if niter == '2':
-        sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
+    # # If niter == 2, add in BC
+    # if niter == '2':
+    #     sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
 
     # Get the state vector dimension
     nstate = sa.shape[0]
