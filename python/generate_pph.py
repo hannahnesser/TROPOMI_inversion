@@ -52,7 +52,7 @@ if __name__ == '__main__':
     # Prior error
     sa = gc.read_file(sa_file)
     sa *= sa_scale**2
-    sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
+    # sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
     nstate = sa.shape[0]
 
     # Observational suffix
@@ -115,13 +115,13 @@ if __name__ == '__main__':
     # Load k_m and k_bc
     k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
                        chunks=chunks)
-    k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
-                                chunks=chunks)
-    k_bc = k_bc[i0:i1, :]
+    # k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
+    #                             chunks=chunks)
+    # k_bc = k_bc[i0:i1, :]
 
     # Combine the two Jacobians and add on sa
-    k_m = xr.concat([k_m, k_bc], dim='nstate')
-    sa = xr.concat([sa, sa_bc], dim='nstate')
+    # k_m = xr.concat([k_m, k_bc], dim='nstate')
+    # sa = xr.concat([sa, sa_bc], dim='nstate')
 
     # Initialize our loop
     i = int(0)
