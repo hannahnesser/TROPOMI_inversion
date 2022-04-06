@@ -119,7 +119,6 @@ if __name__ == '__main__':
             # Append the BC K if it's the second iteration
             if niter == '2':
                 i1 = i0 + k_n.shape[0]
-                print(i0, i1)
                 k_bc_n = k_bc[i0:i1, :]
                 k_n = xr.concat([k_n, k_bc_n], dim='nstate')
                 i0 = copy.deepcopy(i1)
