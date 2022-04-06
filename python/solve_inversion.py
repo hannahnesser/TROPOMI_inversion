@@ -21,7 +21,7 @@ if __name__ == '__main__':
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
         # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
-        # niter = 2
+        # niter = '2'
         niter = sys.argv[1]
         data_dir = sys.argv[2]
         output_dir = sys.argv[3]
@@ -54,7 +54,6 @@ if __name__ == '__main__':
     if suffix == 'None':
         suffix = ''
 
-
     # User preferences
     # pct_of_info = [50, 70, 75, 80, 90, 99.9]
     pct_of_info = 80
@@ -63,7 +62,6 @@ if __name__ == '__main__':
     ## Set up working environment
     ## -------------------------------------------------------------------- ##
     # Import custom packages
-    import sys
     sys.path.append(code_dir)
     import inversion as inv
     import inversion_settings as s
@@ -103,15 +101,28 @@ if __name__ == '__main__':
         k_files = glob.glob(f'{k_dir}/k{niter}_c??.nc')
         k_files.sort()
 
+        # if niter == 2, also load the boundary condition K
+        if niter == '2':
+            k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
+                                     chunks=chunks)
+
         # Start time
         start_time = time.time()
 
         # Iterate
         print('[', end='')
         kx = []
+        i0 = 0
         for i, kf in enumerate(k_files):
             print('-', end='')
             k_n = xr.open_dataarray(kf, chunks=chunks)
+            # Append the BC K if it's the second iteration
+            if niter == '2':
+                i1 = i0 + k_n.shape[0]
+                print(i0, i1)
+                k_bc_n = k_bc[i0:i1, :]
+                k_n = xr.concat([k_n, k_bc_n], dim='nstate')
+                i0 = copy.deepcopy(i1)
             k_n = da.tensordot(k_n, x_data, axes=(1, 0))
             k_n = k_n.compute()
             kx.append(k_n)
