@@ -24,7 +24,7 @@ source activate ~/python/miniconda/envs/TROPOMI_inversion
 echo "Activated ${CONDA_PREFIX}"
 
 DATA_DIR=${2}
-rm -rf ${DATA_DIR}/dask-worker-space*
+rm -rf ${DATA_DIR}/dask-worker-space/
 
 ## -------------------------------------------------------------------------##
 ## Run the script
@@ -37,4 +37,4 @@ python -u ${python_dir}/python/solve_inversion.py ${@}
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
-rm -rf ${DATA_DIR}/dask-worker-space*
+rm -rf ${DATA_DIR}/dask-worker-space/
