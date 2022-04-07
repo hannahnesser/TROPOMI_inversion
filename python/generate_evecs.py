@@ -172,7 +172,6 @@ if __name__ == '__main__':
         for f in files:
            remove(f)
 
-
         print('Eigendecomposition complete.\n')
         print(f'Saved evecs{niter}{suffix}.nc and more.')
 
