@@ -113,8 +113,8 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Generate the prior pre-conditioned Hessian for that chunk
     ## ---------------------------------------------------------------------##
-    # Load k_m and k_bc
     if recompute_pph_parts:
+        # Load k_m and k_bc
         k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
                            chunks=chunks)
         # k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
@@ -174,18 +174,27 @@ if __name__ == '__main__':
             # Restart the client
             client.restart()
 
-    # Now sum up the component parts
-    print('-'*75)
-    client.restart()
+        # Now sum up the component parts
+        print('-'*75)
+        client.restart()
+
+    # Get file lists
+    pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph2_c{chunk:02d}_*.nc')
+    pph_files.sort()
+
+    pre_xhat_files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_*.nc')
+    pre_xhat_files.sort()
+
+    # Initialize
     pph_m = xr.DataArray(np.zeros((nstate, nstate)),
                          dims=['nstate_0', 'nstate_1'],
                          name=f'pph{niter}_c{chunk:02d}')
     pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
                               name=f'pre_xhat{niter}_c{chunk:02d}')
-    for i in range(count):
+    for pf, pxf in zip(pph_files, pre_xhat_files):
         print(f'Loading count {i}.')
-        temp1 = xr.open_dataarray(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_{i:d}.nc')
-        temp2 = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_{i:d}.nc')
+        temp1 = xr.open_dataarray(pf)
+        temp2 = xr.open_dataarray(pxf)
         pph_m += temp1
         pre_xhat_m += temp2
 
