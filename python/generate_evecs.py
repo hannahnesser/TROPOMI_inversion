@@ -166,6 +166,13 @@ if __name__ == '__main__':
         np.save(f'{data_dir}/iteration{niter}/operators/prolongation{niter}{suffix}.npy', prolongation)
         np.save(f'{data_dir}/iteration{niter}/operators/reduction{niter}{suffix}.npy', reduction)
 
+        # Clean up
+        files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c*.nc')
+        files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c*.nc')
+        for f in files:
+           remove(f)
+
+
         print('Eigendecomposition complete.\n')
         print(f'Saved evecs{niter}{suffix}.nc and more.')
 
