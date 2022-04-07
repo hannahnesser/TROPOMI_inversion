@@ -93,7 +93,7 @@ if __name__ == '__main__':
                      'distributed.comm.timeouts.tcp' : 150,
                      'distributed.adaptive.wait-count' : 90,
                      'array.slicing.split_large_chunks' : False,
-                     'temporary_directory' : f'{data_dir}/dask-worker-space-{chunk}'})
+                     'temporary_directory' : f'{data_dir}/pph_dask_worker{suffix}_{chunk}'})
 
     # Open cluster and client
     n_workers = 4

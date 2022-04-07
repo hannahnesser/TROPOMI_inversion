@@ -18,6 +18,7 @@ if __name__ == '__main__':
 
     # Cannon
     if not local:
+        ##output dir is currently unused
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
         # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
@@ -26,7 +27,7 @@ if __name__ == '__main__':
         # c_file = f'{data_dir}/c.nc'
         # so_file = f'{data_dir}/so.nc'
         # sa_file = f'{data_dir}/sa.nc'
-        # sa_scale = 1
+        # sa_scale = 0.75
         # rf = 1
         niter = sys.argv[1]
         data_dir = sys.argv[2]
@@ -84,7 +85,7 @@ if __name__ == '__main__':
         dask.config.set({'distributed.comm.timeouts.connect' : 90,
                          'distributed.comm.timeouts.tcp' : 150,
                          'distributed.adaptive.wait-count' : 90,
-                         'temporary_directory' : data_dir})
+                         'temporary_directory' : f'{data_dir}/inv_dask_worker{suffix}'})
 
         # Open cluster and client
         n_workers = 2
@@ -296,15 +297,17 @@ if __name__ == '__main__':
     # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
     xhat, shat, dofs = solve_inversion(evecs_sub, evals_h_sub, sa, pre_xhat)
 
-    # Calculate the posterior observations
-    yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
-    yhat += c.values
-
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
     np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
     np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
+
+    # Calculate the posterior observations
+    yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
+    yhat += c.values
+
+    # Save the result
     np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suffix}.npy', yhat)
 
     print('CODE COMPLETE')
