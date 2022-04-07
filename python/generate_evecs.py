@@ -167,6 +167,7 @@ if __name__ == '__main__':
         np.save(f'{data_dir}/iteration{niter}/operators/reduction{niter}{suffix}.npy', reduction)
 
         print('Eigendecomposition complete.\n')
+        print(f'Saved evecs{niter}{suffix}.nc and more.')
 
     else:
         evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}{suffix}.npy')
