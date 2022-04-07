@@ -32,6 +32,7 @@ if __name__ == '__main__':
     ya_file = sys.argv[9]
     suffix = sys.argv[10]
     code_dir = sys.argv[11]
+    recompute_pph_parts = True
 
     if suffix == 'None':
         suffix = ''
@@ -113,64 +114,65 @@ if __name__ == '__main__':
     ## Generate the prior pre-conditioned Hessian for that chunk
     ## ---------------------------------------------------------------------##
     # Load k_m and k_bc
-    k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
-                       chunks=chunks)
-    # k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
-    #                             chunks=chunks)
-    # k_bc = k_bc[i0:i1, :]
+    if recompute_pph_parts:
+        k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
+                           chunks=chunks)
+        # k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
+        #                             chunks=chunks)
+        # k_bc = k_bc[i0:i1, :]
 
-    # Combine the two Jacobians and add on sa
-    # k_m = xr.concat([k_m, k_bc], dim='nstate')
-    # sa = xr.concat([sa, sa_bc], dim='nstate')
+        # Combine the two Jacobians and add on sa
+        # k_m = xr.concat([k_m, k_bc], dim='nstate')
+        # sa = xr.concat([sa, sa_bc], dim='nstate')
 
-    # Initialize our loop
-    i = int(0)
-    count = 0
-    n = 5e4
-    print(f'Iterating through {(math.ceil(nobs/n))} chunks.')
-    while i < nobs:
-        print('-'*75)
-        print(f'Chunk {count}')
-        # Subset the Jacobian and observational error
-        k_i = k_m[i:(i + int(n)), :]
-        so_i = so_m[i:(i + int(n))]
-        ydiff_i = ydiff_m[i:(i + int(n))]
+        # Initialize our loop
+        i = int(0)
+        count = 0
+        n = 5e4
+        print(f'Iterating through {(math.ceil(nobs/n))} chunks.')
+        while i < nobs:
+            print('-'*75)
+            print(f'Chunk {count}')
+            # Subset the Jacobian and observational error
+            k_i = k_m[i:(i + int(n)), :]
+            so_i = so_m[i:(i + int(n))]
+            ydiff_i = ydiff_m[i:(i + int(n))]
 
-        # Calculate the PPH for that subset
-        k_sasqrt_i = k_i*(sa**0.5)
-        pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
-        pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
-                             name=f'pph{niter}_c{chunk:02d}')
-        pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
+            # Calculate the PPH for that subset
+            k_sasqrt_i = k_i*(sa**0.5)
+            pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
+            pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
+                                 name=f'pph{niter}_c{chunk:02d}')
+            pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
-        # Persist and save
-        print('Persisting the prior pre-conditioned Hessian.')
-        start_time = time.time()
-        pph_i = pph_i.persist()
-        progress(pph_i)
-        pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_{count:d}.nc')
-        active_time = (time.time() - start_time)/60
-        print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
+            # Persist and save
+            print('Persisting the prior pre-conditioned Hessian.')
+            start_time = time.time()
+            pph_i = pph_i.persist()
+            progress(pph_i)
+            pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_{count:d}.nc')
+            active_time = (time.time() - start_time)/60
+            print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
-        # Then save out part of what we need for the posterior solution
-        pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
-        pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
-                                  name=f'pre_xhat{niter}_c{chunk:02d}')
+            # Then save out part of what we need for the posterior solution
+            pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
+            pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
+                                      name=f'pre_xhat{niter}_c{chunk:02d}')
 
-        # Persist and save
-        print('Persisting the pre-xhat calculation.')
-        start_time = time.time()
-        pre_xhat_i = pre_xhat_i.persist()
-        pre_xhat_i.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_{count:d}.nc')
-        active_time = (time.time() - start_time)/60
-        print(f'xhat preparation {count} saved ({active_time} min).')
+            # Persist and save
+            print('Persisting the pre-xhat calculation.')
+            start_time = time.time()
+            pre_xhat_i = pre_xhat_i.persist()
+            pre_xhat_i.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_{count:d}.nc')
+            active_time = (time.time() - start_time)/60
+            print(f'xhat preparation {count} saved ({active_time} min).')
 
-        # Step up
-        i = int(i + n)
-        count += 1
+            # Step up
+            i = int(i + n)
+            count += 1
 
-        # Restart the client
-        client.restart()
+            # Restart the client
+            client.restart()
 
     # Now sum up the component parts
     print('-'*75)
