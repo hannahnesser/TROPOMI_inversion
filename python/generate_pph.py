@@ -224,6 +224,7 @@ if __name__ == '__main__':
     print('-'*75)
     active_time_global = (time.time() - start_time_global)/60
     print(f'Code Complete ({active_time_global} min).')
+    print(f'Saved pph{niter}{suffix}_c{chunk:02d}.nc and pre_xhat{niter}{suffix}_c{chunk:02d}.nc')
     print('-'*75)
     client.shutdown()
     sys.exit()
