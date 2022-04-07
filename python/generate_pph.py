@@ -142,7 +142,7 @@ if __name__ == '__main__':
             k_sasqrt_i = k_i*(sa**0.5)
             pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
             pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
-                                 name=f'pph{niter}_c{chunk:02d}')
+                                 name=f'pph{niter}{suffix}_c{chunk:02d}')
             pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
             # Persist and save
@@ -150,20 +150,20 @@ if __name__ == '__main__':
             start_time = time.time()
             pph_i = pph_i.persist()
             progress(pph_i)
-            pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_{count:d}.nc')
+            pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
             active_time = (time.time() - start_time)/60
             print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
             # Then save out part of what we need for the posterior solution
             pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
             pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
-                                      name=f'pre_xhat{niter}_c{chunk:02d}')
+                                      name=f'pre_xhat{niter}{suffix}_c{chunk:02d}')
 
             # Persist and save
             print('Persisting the pre-xhat calculation.')
             start_time = time.time()
             pre_xhat_i = pre_xhat_i.persist()
-            pre_xhat_i.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_{count:d}.nc')
+            pre_xhat_i.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
             active_time = (time.time() - start_time)/60
             print(f'xhat preparation {count} saved ({active_time} min).')
 
@@ -182,15 +182,15 @@ if __name__ == '__main__':
     pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph2_c{chunk:02d}_*.nc')
     pph_files.sort()
 
-    pre_xhat_files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_*.nc')
+    pre_xhat_files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     pre_xhat_files.sort()
 
     # Initialize
     pph_m = xr.DataArray(np.zeros((nstate, nstate)),
                          dims=['nstate_0', 'nstate_1'],
-                         name=f'pph{niter}_c{chunk:02d}')
+                         name=f'pph{niter}{suffix}_c{chunk:02d}')
     pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
-                              name=f'pre_xhat{niter}_c{chunk:02d}')
+                              name=f'pre_xhat{niter}{suffix}_c{chunk:02d}')
     for i, files in enumerate(zip(pph_files, pre_xhat_files)):
         print(f'Loading count {i}.')
         pf, pxf = files
@@ -215,8 +215,8 @@ if __name__ == '__main__':
     print(f'xhat preparation for chunk {chunk} completed ({active_time} min).')
 
     # Clean up
-    files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}_c{chunk:02d}_*.nc')
-    files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}_c{chunk:02d}_*.nc')
+    files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
+    files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     for f in files:
        remove(f)
 
