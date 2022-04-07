@@ -78,7 +78,7 @@ if __name__ == '__main__':
         dask.config.set({'distributed.comm.timeouts.connect' : 90,
                          'distributed.comm.timeouts.tcp' : 150,
                          'distributed.adaptive.wait-count' : 90,
-                         'temporary_directory' : data_dir})
+                         'temporary_directory' : f'{data_dir}/evecs_dask_worker{suffix}'})
 
         # Open cluster and client
         n_workers = 2
