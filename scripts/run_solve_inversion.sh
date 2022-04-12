@@ -25,7 +25,7 @@ echo "Activated ${CONDA_PREFIX}"
 
 DATA_DIR=${2}
 SUFFIX=${11}
-rm -rf ${DATA_DIR}/inv_dask_worker{suffix}
+rm -rf ${DATA_DIR}/inv_dask_worker{suffix}/
 
 ## -------------------------------------------------------------------------##
 ## Run the script
@@ -38,4 +38,4 @@ python -u ${python_dir}/python/solve_inversion.py ${@}
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
-rm -rf ${DATA_DIR}/inv_dask_worker{suffix}
+rm -rf ${DATA_DIR}/inv_dask_worker{suffix}/
