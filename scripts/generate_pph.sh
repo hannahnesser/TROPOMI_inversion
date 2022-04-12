@@ -30,7 +30,7 @@ source activate ~/python/miniconda/envs/TROPOMI_inversion
 
 echo "Activated ${CONDA_PREFIX}"
 
-rm -rf ${DATA_DIR}/pph_dask_worker${SUFFIX}_${CHUNK}
+rm -rf ${DATA_DIR}/pph_dask_worker${SUFFIX}_${CHUNK}/
 
 ## -------------------------------------------------------------------------##
 ## Run the script
@@ -43,4 +43,4 @@ python -u ${python_dir}/python/generate_pph.py ${CHUNK} ${@}
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
-rm -rf ${DATA_DIR}/pph_dask_worker${SUFFIX}_${CHUNK}
+rm -rf ${DATA_DIR}/pph_dask_worker${SUFFIX}_${CHUNK}/

@@ -25,7 +25,7 @@ echo "Activated ${CONDA_PREFIX}"
 ## -------------------------------------------------------------------------##
 DATA_DIR=${3}
 SUFFIX=${9}
-rm -rf ${DATA_DIR}/evecs_dask_worker${SUFFIX}
+rm -rf ${DATA_DIR}/evecs_dask_worker${SUFFIX}/
 
 ## -------------------------------------------------------------------------##
 ## Run the script
@@ -38,4 +38,4 @@ python -u ${python_dir}/python/generate_evecs.py ${@}
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
-rm -rf ${DATA_DIR}/evecs_dask_worker${SUFFIX}
+rm -rf ${DATA_DIR}/evecs_dask_worker${SUFFIX}/
