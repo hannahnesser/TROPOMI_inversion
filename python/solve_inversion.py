@@ -18,14 +18,14 @@ if __name__ == '__main__':
 
     # Cannon
     if not local:
-        ##output dir is currently unused
+        # #output dir is currently unused
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
         # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
         # niter = '2'
         # ya_file = f'{data_dir}/ya.nc'
         # c_file = f'{data_dir}/c.nc'
-        # so_file = f'{data_dir}/so.nc'
+        # so_file = f'{data_dir}/so_rgrt.nc'
         # sa_file = f'{data_dir}/sa.nc'
         # sa_scale = 0.75
         # rf = 1
@@ -230,27 +230,28 @@ if __name__ == '__main__':
         # Iterate through different regularization factors and prior
         # errors. Then save out the prior and observational cost function
         rfs = [1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 2]
-        DOFS_threshold = [0.01, 0.05, 0.1]
+        # DOFS_threshold = [0.01, 0.05, 0.1]
+        DOFS_threshold = 0.05
         # sas = [0.1, 0.25, 0.5, 0.75, 1, 2]
         # sas = [1.5, 2, 3]
-        ja = np.zeros((len(rfs), len(DOFS_threshold)))
+        ja = np.zeros((len(rfs)))#, len(DOFS_threshold)))
         # jo = np.zeros((len(rfs), len(DOFS_threshold)))
-        n = np.zeros((len(rfs), len(DOFS_threshold)))
+        n = np.zeros((len(rfs)))#, len(DOFS_threshold)))
         for i, rf_i in enumerate(rfs):
-            print(f'Solving the invesion for RF = {rf_i} and Sa = {sa}')
+            print(f'Solving the invesion for RF = {rf_i} and Sa = {sa[0]}')
 
             # Scale the relevant terms by RF and Sa
             evals_h_i = rf_i*copy.deepcopy(evals_h_sub)
             p_i = rf_i*copy.deepcopy(pre_xhat)
 
             # Calculate the posterior
-            xhat, shat, dofs = solve_inversion(evecs_sub, evals_h_i, sa, p_i)
+            xhat, _, dofs = solve_inversion(evecs_sub, evals_h_i, sa, p_i)
 
             # Subset the posterior
-            for j, t_i in enumerate(DOFS_threshold):
-                xhat_sub = xhat[dofs >= t_i]
-                ja[i, j] = ((xhat_sub - 1)**2/sa**2).sum()
-                n[i, j] = len(xhat_sub)
+            # for j, t_i in enumerate(DOFS_threshold):
+            xhat[dofs < DOFS_threshold] = 1 #t_i]
+            ja[i] = ((xhat - 1)**2/sa.reshape(-1,)).sum()
+            n[i] = (dofs >= DOFS_threshold).sum()
 
             # # # Calculate the posterior observations
             # yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
@@ -303,9 +304,9 @@ if __name__ == '__main__':
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
     np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
 
-    # Calculate the posterior observations
-    yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
-    yhat += c.values
+    # # Calculate the posterior observations
+    # yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
+    # yhat += c.values
 
     # Save the result
     np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suffix}.npy', yhat)
