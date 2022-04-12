@@ -309,7 +309,7 @@ if __name__ == '__main__':
     # yhat += c.values
 
     # Save the result
-    np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suffix}.npy', yhat)
+    # np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suffix}.npy', yhat)
 
     print('CODE COMPLETE')
     print(f'Saved xhat{niter}{suffix}.nc and more.')
