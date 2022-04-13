@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -J save_evecs
-#SBATCH -o %x_%j_%a.out
+#SBATCH -o %x_%j.out
 #SBATCH -c 12
 #SBATCH -N 1
 #SBATCH -p huce_cascade
