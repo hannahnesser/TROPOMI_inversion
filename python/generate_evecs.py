@@ -1,5 +1,6 @@
 if __name__ == '__main__':
     import sys
+    from os import remove
     import glob
     from datetime import datetime
     import xarray as xr
