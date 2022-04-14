@@ -27,7 +27,7 @@ if __name__ == '__main__':
         # c_file = f'{data_dir}/c.nc'
         # so_file = f'{data_dir}/so_rgrt.nc'
         # sa_file = f'{data_dir}/sa.nc'
-        # sa_scale = 0.75
+        # sa_scale = 1
         # rf = 1
         niter = sys.argv[1]
         data_dir = sys.argv[2]
@@ -246,6 +246,11 @@ if __name__ == '__main__':
 
             # Calculate the posterior
             xhat, _, dofs = solve_inversion(evecs_sub, evals_h_i, sa, p_i)
+
+            # Save out
+            suff = suffix + f'_rf{rf_i}' + f'_sax{sa_scale}' + f'_poi{pct_of_info}'
+            np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
+            np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xhat)
 
             # Subset the posterior
             # for j, t_i in enumerate(DOFS_threshold):
