@@ -235,7 +235,7 @@ if __name__ == '__main__':
         # sas = [0.1, 0.25, 0.5, 0.75, 1, 2]
         # sas = [1.5, 2, 3]
         ja = np.zeros((len(rfs)))#, len(DOFS_threshold)))
-        # jo = np.zeros((len(rfs), len(DOFS_threshold)))
+        jo = np.zeros((len(rfs)))#, len(DOFS_threshold)))
         n = np.zeros((len(rfs)))#, len(DOFS_threshold)))
         for i, rf_i in enumerate(rfs):
             print(f'Solving the invesion for RF = {rf_i} and Sa = {sa[0]}')
@@ -247,35 +247,35 @@ if __name__ == '__main__':
             # Calculate the posterior
             xhat, _, dofs = solve_inversion(evecs_sub, evals_h_i, sa, p_i)
 
-            # Save out
-            suff = suffix + f'_rf{rf_i}' + f'_sax{sa_scale}' + f'_poi{pct_of_info}'
-            np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
-            np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xhat)
-
-            # Subset the posterior
-            # for j, t_i in enumerate(DOFS_threshold):
-            xhat[dofs < DOFS_threshold] = 1 #t_i]
-            ja[i] = ((xhat - 1)**2/sa.reshape(-1,)).sum()
-            n[i] = (dofs >= DOFS_threshold).sum()
-
-            # # # Calculate the posterior observations
-            # yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
-            # yhat += c.values
+            # # Calculate the posterior observations
+            yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
+            yhat += c.values
             # There's sort of an interesting question here of how
             # to calculate yhat, given that we subset xhat. This will
             # be pertinent when we do our posterior model comparaison
 
-            # # Calculate and save the cost function for the prior term
-            # ja[i, j] = ((xhat - np.ones(xhat.shape))**2/1**2).sum()
-            # jo[i, j] = ((y.values - yhat)**2/(so.reshape(-1,)/rf_i)).sum()
+            # Save out
+            suff = suffix + f'_rf{rf_i}' + f'_sax{sa_scale}' + f'_poi{pct_of_info}'
+            np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
+            np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xhat)
+            np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suff}.npy', yhat)
+
+            # Subset the posterior
+            # for j, t_i in enumerate(DOFS_threshold):
+            xhat[dofs < DOFS_threshold] = 1 #t_i]
+
+            # Calculate and save the cost function for the prior term
+            ja[i] = ((xhat - 1)**2/sa.reshape(-1,)).sum()
+            jo[i] = ((y.values - yhat)**2/(so.reshape(-1,)/rf_i)).sum()
+            n[i] = (dofs >= DOFS_threshold).sum()
 
             # # Calculate the functional state vector size
             # n[i, j] = (dofs >= 0.01).sum()
 
         # Save the result
-        np.save(f'{data_dir}/iteration{niter}/ja{niter}_dofs_threshold.npy', ja)
-        # np.save(f'{data_dir}/iteration{niter}/jo{niter}_long_2.npy', jo)
-        np.save(f'{data_dir}/iteration{niter}/n_functional_dofs_threshold.npy', n)
+        np.save(f'{data_dir}/iteration{niter}/ja{niter}.npy', ja)
+        np.save(f'{data_dir}/iteration{niter}/jo{niter}.npy', jo)
+        np.save(f'{data_dir}/iteration{niter}/n_functional{niter}.npy', n)
 
     ## ---------------------------------------------------------------------##
     ## Solve the inversion
