@@ -179,7 +179,7 @@ if __name__ == '__main__':
         client.restart()
 
     # Get file lists
-    pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph2_c{chunk:02d}_*.nc')
+    pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
     pph_files.sort()
 
     pre_xhat_files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
