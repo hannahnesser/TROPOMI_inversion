@@ -205,7 +205,6 @@ if __name__ == '__main__':
     # If sa_scale is defined, scale everything
     if sa_scale is not None:
         evals_h *= sa_scale**2
-        # pre_xhat *= sa_scale
         sa *= sa_scale**2
 
     # Subset the eigenvectors and eigenvalues
@@ -214,8 +213,8 @@ if __name__ == '__main__':
     rank = ip.get_rank(evals_q=evals_q_orig, pct_of_info=pct_of_info/100)
 
     # Subset the evals and evecs
-    evals_h_sub = evals_h[:rank]
-    evecs_sub = evecs[:, :rank]
+    evals_h = evals_h[:rank]
+    evecs = evecs[:, :rank]
 
     ## ---------------------------------------------------------------------##
     ## Optimize the regularization factor via cost function analysis
@@ -241,11 +240,11 @@ if __name__ == '__main__':
             print(f'Solving the invesion for RF = {rf_i} and Sa = {sa[0]}')
 
             # Scale the relevant terms by RF and Sa
-            evals_h_i = rf_i*copy.deepcopy(evals_h_sub)
+            evals_h_i = rf_i*copy.deepcopy(evals_h)
             p_i = rf_i*copy.deepcopy(pre_xhat)
 
             # Calculate the posterior
-            xhat, _, dofs = solve_inversion(evecs_sub, evals_h_i, sa, p_i)
+            xhat, _, dofs = solve_inversion(evecs, evals_h_i, sa, p_i)
 
             # # Calculate the posterior observations
             yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
@@ -294,14 +293,14 @@ if __name__ == '__main__':
         so /= rf
 
     # Recompute evals_q.
-    evals_q = evals_h/(1 + evals_h)
-    evals_q_sub = evals_q[:rank]
+    # evals_q = evals_h/(1 + evals_h)
+    # evals_q_sub = evals_q[:rank]
 
     # Calculate the posterior and averaging kernel
     # (we can leave off Sa when it's constant)
     # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
     # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-    xhat, shat, dofs = solve_inversion(evecs_sub, evals_h_sub, sa, pre_xhat)
+    xhat, shat, dofs = solve_inversion(evecs, evals_h, sa, pre_xhat)
 
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
