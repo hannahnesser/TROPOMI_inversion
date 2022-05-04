@@ -55,6 +55,7 @@ if __name__ == '__main__':
     xa_abs_base = gc.read_file(f'{data_dir}/xa_abs.nc')
     xa_abs = gc.read_file(xa_abs_file)
     xa_ratio = xa_abs/xa_abs_base
+    xa_ratio[xa_abs == 0] = 1 # Correct for the one grid cell with 0 emisisons
 
     # Prior error
     sa = gc.read_file(sa_file)
