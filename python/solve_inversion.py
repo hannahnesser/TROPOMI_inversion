@@ -33,14 +33,15 @@ if __name__ == '__main__':
         data_dir = sys.argv[2]
         output_dir = sys.argv[3]
         optimize_rf = sys.argv[4]
-        sa_file = sys.argv[5]
-        sa_scale = float(sys.argv[6])
-        so_file = sys.argv[7]
-        rf = float(sys.argv[8])
-        ya_file = sys.argv[9]
-        c_file = sys.argv[10]
-        suffix = sys.argv[11]
-        code_dir = sys.argv[12]
+        xa_abs_file = sys.argv[5]
+        sa_file = sys.argv[6]
+        sa_scale = float(sys.argv[7])
+        so_file = sys.argv[8]
+        rf = float(sys.argv[9])
+        ya_file = sys.argv[10]
+        c_file = sys.argv[11]
+        suffix = sys.argv[12]
+        code_dir = sys.argv[13]
 
     else:
         niter = 1
