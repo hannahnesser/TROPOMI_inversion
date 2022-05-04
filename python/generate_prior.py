@@ -43,6 +43,7 @@ This script generates netcdfs of the absolute and relative prior emissions and e
 
 from os.path import join
 import sys
+import copy
 
 import math
 import numpy as np
@@ -103,6 +104,10 @@ sources = {'livestock' : livestock, 'nat_gas' : nat_gas,
            'landfills' : landfills, 'wastewater' : wastewater,
            'petroleum' : petroleum}
 
+print('-'*50)
+print('RESOLUTION DEPENDENT ERRORS')
+print('-'*50)
+print('RES    SECTOR              ALPHA BETA')
 for s, coefs in sources.items():
     a = alpha(coefs[0], coefs[1], coefs[2], 0.25)
     b = beta(coefs[3], coefs[4], 0.25)
@@ -111,6 +116,8 @@ for s, coefs in sources.items():
 
     print(f'0.25   {s:<20}{a:.2f}  {b:.2f}')
     print(f'0.3125 {s:<20}{a2:.2f}  {b2:.2f}')
+print('-'*50)
+print('\n')
 
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
@@ -135,6 +142,9 @@ area = xr.DataArray(area, dims=('nstate'))
 area.to_netcdf(join(data_dir, 'area.nc'))
 
 # Print a summary table
+print('-'*50)
+print('SECTORAL EMISSIONS')
+print('-'*50)
 summ = emis[[var for var in emis.keys() if var[:4] == 'Emis']]*emis['AREA']
 summ *= 1e-9*(60*60*24*365) # Adjust units to Tg/yr
 # summ = xr.where(clusters > 0)
@@ -158,7 +168,7 @@ soil_abs = xr.DataArray(soil_abs, dims=('nstate'))
 soil_abs.to_netcdf(join(data_dir, 'soil_abs.nc'))
 
 # Calculate total emissions
-tot_emis = emis['EmisCH4_Total'] - emis['EmisCH4_SoilAbsorb']
+tot_emis = emis['EmisCH4_Total'] #- emis['EmisCH4_SoilAbsorb']
 tot_emis = ip.clusters_2d_to_1d(clusters, tot_emis)
 tot_emis = xr.DataArray(tot_emis, dims=('nstate'))
 tot_emis.to_netcdf(join(data_dir, 'xa_abs.nc'))
@@ -195,6 +205,61 @@ for label, categories in emissions.items():
     # print(e)
 
 w.to_csv(join(data_dir, f'w.csv'), index=False)
+
+## -------------------------------------------------------------------------##
+## Sensitivity tests: Permian
+## -------------------------------------------------------------------------##
+### Permian: EDF inventory instead of EPA inventory
+## 1. Get a list of state vector indices over the Permian
+# a. Open the Permian clusters
+permian = xr.open_dataset(f'{data_dir}/clusters_permian.nc')['Clusters']
+
+# b. Append the Permian clusters to the North American clusters
+c = clusters.squeeze(drop=True).to_dataset()
+c['Permian'] = permian
+
+# c. Discard the buffer cells
+cell_idx, cell_cnt  = np.unique(c['Permian'], return_counts=True)
+cell_idx = cell_idx[cell_cnt == 1]
+cell_idx = cell_idx[~np.isnan(cell_idx)]
+permian = permian.where(permian.isin(cell_idx), 0)
+
+# d. Subset the full clusters over the Permian
+c = c.where(c['Permian'].isin(cell_idx))['Clusters']
+c = c.sel(lat=permian.lat, lon=permian.lon)
+
+# e. Flatten and create list of indices
+permian_idx = (ip.clusters_2d_to_1d(permian, c) - 1).astype(int)
+
+# f. Save
+np.save(f'{data_dir}/permian_idx.npy', permian_idx)
+
+## 2. Subset total prior emissions and oil and natural gas emissions over
+## the Permian (Mg/km2/yr)
+xa_abs_permian = tot_emis[permian_idx]
+xa_abs_permian_ong_epa = (w['oil'] + w['gas'])[permian_idx]
+
+## 3. Get the EDF prior and subset over the Permian
+permian_ong_edf = xr.open_dataset(f'{base_dir}/prior/permian/permian_EDF_2019.nc') # Originally kg/m2/s
+permian_ong_edf = (permian_ong_edf['EmisCH4_Oil']
+                   + permian_ong_edf['EmisCH4_Gas'])
+permian_ong_edf *= 1e-3*(60*60*24*365)*(1000*1000)
+xa_abs_permian_ong_edf = ip.clusters_2d_to_1d(permian, permian_ong_edf)
+
+## 4. Calculate the new total emissions over the Permian and replace them in
+## the whole state vector
+xa_abs_permian += (xa_abs_permian_ong_edf - xa_abs_permian_ong_epa)
+xa_abs_edf = copy.deepcopy(tot_emis)
+xa_abs_edf[permian_idx] = xa_abs_permian
+
+## 5. Save out
+xa_abs_edf = xr.DataArray(xa_abs_edf, dims=('nstate'))
+xa_abs_edf.to_netcdf(join(data_dir, 'xa_abs_edf.nc'))
+
+## -------------------------------------------------------------------------##
+## Sensitivity tests: Wetlands
+## -------------------------------------------------------------------------##
+
 
 ## -------------------------------------------------------------------------##
 ## Plot
