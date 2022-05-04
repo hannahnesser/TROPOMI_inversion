@@ -16,6 +16,7 @@ OPTIMIZE_RF="False"
 CHUNK_SIZE=150000
 
 # Files
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs.nc"
 SA_FILE="${SHORT_TERM_DATA_DIR}/sa.nc"
 SO_FILE="${SHORT_TERM_DATA_DIR}/so.nc" # If niter = 0, this should be so0
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya.nc" # If niter = 0, this should be ya0
@@ -26,7 +27,27 @@ SA_SCALE="1"
 RF="1"
 
 # Saving out
-FILE_SUFFIX="None" #"_savar"
+FILE_SUFFIX="None"
+
+## Sensitivity inversion options ##
+# Regridded errors
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg.nc"
+FILE_SUFFIX="_rg"
+
+# More coarsly regridded errors
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rgrt.nc"
+FILE_SUFFIX="_rgrt"
+
+# More coarsly regridded errors
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg3rt.nc"
+FILE_SUFFIX="_rg3rt"
+
+# More coarsly regridded errors
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
+FILE_SUFFIX="_rg4rt"
+
+# FILE_SUFFIX="_savar"
+# FILE_SUFFIX="_nlc"
 
 # Build the Jacobian
 jid1=$(sbatch --array=1-20 build_k_chunks.sh ${CHUNK_SIZE} "2" ${PRIOR_DIR} ${PERT_DIRS} ${NPERT_DIRS} ${SHORT_TERM_DATA_DIR} ${CODE_DIR})
@@ -34,8 +55,8 @@ jid1=$(sbatch --array=1-20 build_k_chunks.sh ${CHUNK_SIZE} "2" ${PRIOR_DIR} ${PE
 # Calculate the prior preconditioned Hessian
 ## For this, we assume that the scaling on Sa and on So are 1 (we pass these arguments explicitly
 ## to avoid confusion)
-jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${SA_FILE} "1" ${SO_FILE} "1" ${YA_FILE} ${FILE_SUFFIX} ${CODE_DIR})
-# jid2=$(sbatch --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${SA_FILE} "1" ${SO_FILE} "1" ${YA_FILE} ${FILE_SUFFIX} ${CODE_DIR})
+jid2=$(sbatch --dependency=afterok:${jid1##* } --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${XA_ABS_FILE} ${SA_FILE} "1" ${SO_FILE} "1" ${YA_FILE} ${FILE_SUFFIX} ${CODE_DIR})
+# jid2=$(sbatch --array=1-20 generate_pph.sh ${CHUNK_SIZE} "2" ${SHORT_TERM_DATA_DIR} ${XA_ABS_FILE} ${SA_FILE} "1" ${SO_FILE} "1" ${YA_FILE} ${FILE_SUFFIX} ${CODE_DIR})
 
 # Calculate the eigenvectors
 ## For this, we assume that the scaling on Sa is 1 (we pass this argument explicitly
