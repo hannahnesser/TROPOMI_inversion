@@ -46,6 +46,10 @@ FILE_SUFFIX="_rg3rt"
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
 FILE_SUFFIX="_rg4rt"
 
+# Permian sensitivity test
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_.nc"
+
+
 # FILE_SUFFIX="_savar"
 # FILE_SUFFIX="_nlc"
 
