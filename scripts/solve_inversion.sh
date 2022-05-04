@@ -47,8 +47,9 @@ SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
 FILE_SUFFIX="_rg4rt"
 
 # Permian sensitivity test
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_.nc"
-
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf.nc"
+FILE_SUFFIX="_rg4rt_edf"
 
 # FILE_SUFFIX="_savar"
 # FILE_SUFFIX="_nlc"
@@ -69,5 +70,5 @@ jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "2" ${NUM_EVECS
 # jid3=$(sbatch generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SA_FILE} "1" ${FILE_SUFFIX} ${CODE_DIR})
 
 # Solve the inversion
-jid4=$(sbatch --dependency=afterok:${jid3##* } run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${OPTIMIZE_RF} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${C_FILE} ${FILE_SUFFIX} ${CODE_DIR})
-# jid4=$(sbatch run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${OPTIMIZE_RF} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${C_FILE} ${FILE_SUFFIX} ${CODE_DIR})
+jid4=$(sbatch --dependency=afterok:${jid3##* } run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${OPTIMIZE_RF} ${XA_ABS_FILE} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${C_FILE} ${FILE_SUFFIX} ${CODE_DIR})
+# jid4=$(sbatch run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${OPTIMIZE_RF} ${XA_ABS_FILE} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${C_FILE} ${FILE_SUFFIX} ${CODE_DIR})
