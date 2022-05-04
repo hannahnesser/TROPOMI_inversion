@@ -25,13 +25,14 @@ if __name__ == '__main__':
     chunk_size = int(sys.argv[2])
     niter = sys.argv[3]
     data_dir = sys.argv[4]
-    sa_file = sys.argv[5]
-    sa_scale = float(sys.argv[6])
-    so_file = sys.argv[7]
-    rf = float(sys.argv[8])
-    ya_file = sys.argv[9]
-    suffix = sys.argv[10]
-    code_dir = sys.argv[11]
+    xa_abs_file = sys.argv[5]
+    sa_file = sys.argv[6]
+    sa_scale = float(sys.argv[7])
+    so_file = sys.argv[8]
+    rf = float(sys.argv[9])
+    ya_file = sys.argv[10]
+    suffix = sys.argv[11]
+    code_dir = sys.argv[12]
     recompute_pph_parts = True
 
     if suffix == 'None':
@@ -50,6 +51,11 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
     ## ---------------------------------------------------------------------##
+    # Ratio of standard prior to input prior
+    xa_abs_base = gc.read_file(f'{data_dir}/xa_abs.nc')
+    xa_abs = gc.read_file(xa_abs_file)
+    xa_ratio = xa_abs/xa_abs_base
+
     # Prior error
     sa = gc.read_file(sa_file)
     sa *= sa_scale**2
@@ -117,6 +123,7 @@ if __name__ == '__main__':
         # Load k_m and k_bc
         k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
                            chunks=chunks)
+
         # k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
         #                             chunks=chunks)
         # k_bc = k_bc[i0:i1, :]
@@ -124,6 +131,9 @@ if __name__ == '__main__':
         # Combine the two Jacobians and add on sa
         # k_m = xr.concat([k_m, k_bc], dim='nstate')
         # sa = xr.concat([sa, sa_bc], dim='nstate')
+
+        # Scale K by xa_ratio
+        k_m = k_m*xa_ratio
 
         # Initialize our loop
         i = int(0)
