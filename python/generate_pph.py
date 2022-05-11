@@ -25,18 +25,26 @@ if __name__ == '__main__':
     chunk_size = int(sys.argv[2])
     niter = sys.argv[3]
     data_dir = sys.argv[4]
-    xa_abs_file = sys.argv[5]
-    sa_file = sys.argv[6]
-    sa_scale = float(sys.argv[7])
-    so_file = sys.argv[8]
-    rf = float(sys.argv[9])
-    ya_file = sys.argv[10]
-    suffix = sys.argv[11]
-    code_dir = sys.argv[12]
+    optimize_bc = sys.argv[5]
+    xa_abs_file = sys.argv[6]
+    sa_file = sys.argv[7]
+    sa_scale = float(sys.argv[8])
+    so_file = sys.argv[9]
+    rf = float(sys.argv[10])
+    ya_file = sys.argv[11]
+    suffix = sys.argv[12]
+    code_dir = sys.argv[13]
     recompute_pph_parts = True
 
     if suffix == 'None':
         suffix = ''
+
+    if optimize_bc == 'True':
+        optimize_bc = True
+        suffix = '_bc' + suffix
+        print('Optimizing boundary condition elements.')
+    else:
+        optimize_bc = False
 
     # Import custom packages
     import sys
@@ -60,7 +68,8 @@ if __name__ == '__main__':
     # Prior error
     sa = gc.read_file(sa_file)
     sa *= sa_scale**2
-    # sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
+    if optimize_bc:
+        sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
     nstate = sa.shape[0]
 
     # Observational suffix
@@ -125,16 +134,19 @@ if __name__ == '__main__':
         k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
                            chunks=chunks)
 
-        # k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
-        #                             chunks=chunks)
-        # k_bc = k_bc[i0:i1, :]
-
-        # Combine the two Jacobians and add on sa
-        # k_m = xr.concat([k_m, k_bc], dim='nstate')
-        # sa = xr.concat([sa, sa_bc], dim='nstate')
-
         # Scale K by xa_ratio
         k_m = k_m*xa_ratio
+
+        if optimize_bc:
+            # Add on boundary condition elements
+            k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
+                                        chunks=chunks)
+            k_bc = k_bc[i0:i1, :]
+
+            # Combine the two Jacobians and add on to sa
+            k_m = xr.concat([k_m, k_bc], dim='nstate')
+            sa = xr.concat([sa, sa_bc], dim='nstate')
+            nstate = sa.shape[0]
 
         # Initialize our loop
         i = int(0)

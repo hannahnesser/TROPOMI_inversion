@@ -24,7 +24,7 @@ source activate ~/python/miniconda/envs/TROPOMI_inversion
 echo "Activated ${CONDA_PREFIX}"
 
 DATA_DIR=${2}
-SUFFIX=${12}
+SUFFIX=${13}
 rm -rf ${DATA_DIR}/inv_dask_worker{suffix}/
 
 ## -------------------------------------------------------------------------##
