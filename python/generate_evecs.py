@@ -23,12 +23,13 @@ if __name__ == '__main__':
         n_evecs = int(sys.argv[2])
         data_dir = sys.argv[3]
         output_dir = sys.argv[4]
-        calculate_evecs = sys.argv[5]
-        format_evecs = sys.argv[6]
-        sa_file = sys.argv[7]
-        sa_scale = float(sys.argv[8])
-        suffix = sys.argv[9]
-        code_dir = sys.argv[10]
+        optimize_bc = sys.argv[5]
+        calculate_evecs = sys.argv[6]
+        format_evecs = sys.argv[7]
+        sa_file = sys.argv[8]
+        sa_scale = float(sys.argv[9])
+        suffix = sys.argv[10]
+        code_dir = sys.argv[11]
     else:
         niter = 1
         n_evecs = int(10)
@@ -38,7 +39,17 @@ if __name__ == '__main__':
         calculate_evecs = False
         format_evecs = False
 
+    if suffix == 'None':
+        suffix = ''
+
     # Convert strings to booleans
+    if optimize_bc == 'True':
+        optimize_bc = True
+        suffix = '_bc' + suffix
+        print('Optimizing boundary condition elements.')
+    else:
+        optimize_bc = False
+
     if calculate_evecs == 'True':
         calculate_evecs = True
         print('Calculating eigenvectors.')
@@ -50,9 +61,6 @@ if __name__ == '__main__':
         print('Formatting eigenvectors.')
     else:
         format_evecs = False
-
-    if suffix == 'None':
-        suffix = ''
 
     # User preferences
     pct_of_info = [50, 80, 90, 99.9]
@@ -103,9 +111,9 @@ if __name__ == '__main__':
     sa *= sa_scale**2
     sa = sa.values.reshape(-1, 1)
 
-    # # If niter == 2, add in BC
-    # if niter == '2':
-    #     sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
+    # If niter == 2, add in BC
+    if niter == '2':
+        sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
 
     # Get the state vector dimension
     nstate = sa.shape[0]

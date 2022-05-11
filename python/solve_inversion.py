@@ -18,30 +18,31 @@ if __name__ == '__main__':
 
     # Cannon
     if not local:
-        # #output dir is currently unused
+        # output dir is currently unused
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
         # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
         # niter = '2'
         # ya_file = f'{data_dir}/ya.nc'
         # c_file = f'{data_dir}/c.nc'
-        # so_file = f'{data_dir}/so_rgrt.nc'
+        # so_file = f'{data_dir}/so_rg4rt.nc'
         # sa_file = f'{data_dir}/sa.nc'
         # sa_scale = 1
         # rf = 1
         niter = sys.argv[1]
         data_dir = sys.argv[2]
         output_dir = sys.argv[3]
-        optimize_rf = sys.argv[4]
-        xa_abs_file = sys.argv[5]
-        sa_file = sys.argv[6]
-        sa_scale = float(sys.argv[7])
-        so_file = sys.argv[8]
-        rf = float(sys.argv[9])
-        ya_file = sys.argv[10]
-        c_file = sys.argv[11]
-        suffix = sys.argv[12]
-        code_dir = sys.argv[13]
+        optimize_bc = sys.argv[4]
+        optimize_rf = sys.argv[5]
+        xa_abs_file = sys.argv[6]
+        sa_file = sys.argv[7]
+        sa_scale = float(sys.argv[8])
+        so_file = sys.argv[9]
+        rf = float(sys.argv[10])
+        ya_file = sys.argv[11]
+        c_file = sys.argv[12]
+        suffix = sys.argv[13]
+        code_dir = sys.argv[14]
 
     else:
         niter = 1
@@ -52,15 +53,22 @@ if __name__ == '__main__':
         rf = None
         sa_in = None
 
+    if suffix == 'None':
+        suffix = ''
+
     # Convert strings to booleans
+    if optimize_bc == 'True':
+        optimize_bc = True
+        suffix = '_bc' + suffix
+        print('Optimizing boundary condition elements.')
+    else:
+        optimize_bc = False
+
     if optimize_rf == 'True':
         optimize_rf = True
         print('Calculating cost function.')
     else:
         optimize_rf = False
-
-    if suffix == 'None':
-        suffix = ''
 
     # User preferences
     # pct_of_info = [50, 70, 75, 80, 90, 99.9]
@@ -109,10 +117,10 @@ if __name__ == '__main__':
         k_files = glob.glob(f'{k_dir}/k{niter}_c??.nc')
         k_files.sort()
 
-        # # if niter == 2, also load the boundary condition K
-        # if niter == '2':
-        #     k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
-        #                              chunks=chunks)
+        # if niter == 2, also load the boundary condition K
+        if optimize_bc:
+            k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
+                                     chunks=chunks)
 
         # Start time
         start_time = time.time()
@@ -125,11 +133,11 @@ if __name__ == '__main__':
             print('-', end='')
             k_n = xr.open_dataarray(kf, chunks=chunks)
             # Append the BC K if it's the second iteration
-            # if niter == '2':
-            #     i1 = i0 + k_n.shape[0]
-            #     k_bc_n = k_bc[i0:i1, :]
-            #     k_n = xr.concat([k_n, k_bc_n], dim='nstate')
-            #     i0 = copy.deepcopy(i1)
+            if optimize_bc:
+                i1 = i0 + k_n.shape[0]
+                k_bc_n = k_bc[i0:i1, :]
+                k_n = xr.concat([k_n, k_bc_n], dim='nstate')
+                i0 = copy.deepcopy(i1)
             k_n = da.tensordot(k_n, x_data, axes=(1, 0))
             k_n = k_n.compute()
             kx.append(k_n)
@@ -145,7 +153,7 @@ if __name__ == '__main__':
     def calculate_dofs(evecs, evals_h, sa):
         evals_q = evals_h/(1 + evals_h)
         a = sa**0.5*(evecs*evals_q) @ evecs.T*(1/(sa**0.5))
-        return np.diagonal(a)
+        return a
 
     def calculate_shat(evecs, evals_h, sa):
         # This formulation only works with diagonal errors
@@ -173,9 +181,9 @@ if __name__ == '__main__':
     sa = gc.read_file(sa_file)
     sa = sa.values.reshape(-1, 1)
 
-    # # If niter == 2, add in BC
-    # if niter == '2':
-    #     sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
+    # If niter == 2, add in BC
+    if optimize_bc:
+        sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
 
     # Get the state vector dimension
     nstate = sa.shape[0]
@@ -307,7 +315,8 @@ if __name__ == '__main__':
     # (we can leave off Sa when it's constant)
     # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
     # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-    xhat, shat, dofs = solve_inversion(evecs, evals_h, sa, pre_xhat)
+    xhat, shat, a = solve_inversion(evecs, evals_h, sa, pre_xhat)
+    dofs = np.diagonal(a)
 
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
