@@ -25,6 +25,11 @@ echo "Activated ${CONDA_PREFIX}"
 ## -------------------------------------------------------------------------##
 DATA_DIR=${3}
 SUFFIX=${10}
+OPT_BC=${5}
+if [[ ${OPT_BC} == "True" ]]; then
+  SUFFIX="_bc${SUFFIX}"
+fi
+
 rm -rf ${DATA_DIR}/evecs_dask_worker${SUFFIX}/
 
 ## -------------------------------------------------------------------------##

@@ -19,6 +19,10 @@
 CHUNK="${SLURM_ARRAY_TASK_ID}"
 SUFFIX=${11}
 DATA_DIR=${3}
+OPT_BC=${4}
+if [[ ${OPT_BC} == "True" ]]; then
+  SUFFIX="_bc${SUFFIX}"
+fi
 
 ## -------------------------------------------------------------------------##
 ## Load and prepare the environment
