@@ -137,6 +137,7 @@ if __name__ == '__main__':
                 i1 = i0 + k_n.shape[0]
                 k_bc_n = k_bc[i0:i1, :]
                 k_n = xr.concat([k_n, k_bc_n], dim='nstate')
+                x_data = np.append(x_data, np.ones((4,)))
                 i0 = copy.deepcopy(i1)
             k_n = da.tensordot(k_n, x_data, axes=(1, 0))
             k_n = k_n.compute()
@@ -174,7 +175,7 @@ if __name__ == '__main__':
     xa_abs_base = gc.read_file(f'{data_dir}/xa_abs.nc')
     xa_abs = gc.read_file(xa_abs_file)
     xa_ratio = xa_abs/xa_abs_base
-    xa_ratio[xa_abs == 0] = 1 # Correct for the one grid cell with 0 emisisons
+    xa_ratio[(xa_abs_base == 0) & (xa_abs == 0)] = 1 # Correct for the grid cell with 0 emisisons
     xa_ratio = xa_ratio.values.reshape((-1,))
 
     # Prior error
