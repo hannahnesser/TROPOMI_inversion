@@ -62,7 +62,7 @@ import gcpy as gc
 import troppy as tp
 import invpy as ip
 import format_plots as fp
-import inversion_settings as settings
+import inversion_settings as s
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -75,9 +75,9 @@ plot_dir = base_dir + 'plots'
 # The emissions can either be a list of files or a single file
 # with an annual average
 emis_file = [f'{base_dir}/prior/total_emissions/\
-HEMCO_diagnostics.{settings.year:04d}{mm:02d}010000.nc'
-             for mm in settings.months]
-# emis_file = f'{base_dir}/prior/total_emissions/HEMCO_diagnostics.{settings.year}.nc'
+HEMCO_diagnostics.{s.year:04d}{mm:02d}010000.nc'
+             for mm in s.months]
+# emis_file = f'{base_dir}/prior/total_emissions/HEMCO_diagnostics.{s.year}.nc'
 clusters = f'{data_dir}/clusters.nc'
 clusters = xr.open_dataarray(clusters)
 nstate = int(clusters.max().values)
@@ -108,14 +108,14 @@ print('-'*50)
 print('RESOLUTION DEPENDENT ERRORS')
 print('-'*50)
 print('RES    SECTOR              ALPHA BETA')
-for s, coefs in sources.items():
+for ss, coefs in sources.items():
     a = alpha(coefs[0], coefs[1], coefs[2], 0.25)
     b = beta(coefs[3], coefs[4], 0.25)
     a2 = alpha(coefs[0], coefs[1], coefs[2], 0.3125)
     b2 = beta(coefs[3], coefs[4], 0.3125)
 
-    print(f'0.25   {s:<20}{a:.2f}  {b:.2f}')
-    print(f'0.3125 {s:<20}{a2:.2f}  {b2:.2f}')
+    print(f'0.25   {ss:<20}{a:.2f}  {b:.2f}')
+    print(f'0.3125 {ss:<20}{a2:.2f}  {b2:.2f}')
 print('-'*50)
 print('\n')
 
@@ -125,7 +125,7 @@ print('\n')
 emis = gc.read_file(*emis_file)
 
 # Remove emissions from buffer grid cells
-emis = gc.subset_data_latlon(emis, *settings.lats, *settings.lons)
+emis = gc.subset_data_latlon(emis, *s.lats, *s.lons)
 
 if 'time' in emis.dims:
     # Average over time
@@ -207,6 +207,20 @@ for label, categories in emissions.items():
 w.to_csv(join(data_dir, f'w.csv'), index=False)
 
 ## -------------------------------------------------------------------------##
+## Sensitivity tests: Boundary condition
+## -------------------------------------------------------------------------##
+# Get indices corresponding to the functional boundary condition correction
+bc_idx = clusters.where(clusters.lat > s.lat_max - 3*s.lat_delta, drop=True)
+bc_idx = bc_idx.values.astype(int)
+bc_idx = bc_idx[bc_idx > 0] - 1
+bc_idx.sort()
+
+# Set these to zero in the absolute prior
+xa_abs_bc0 = copy.deepcopy(tot_emis)
+xa_abs_bc0[bc_idx] = 0
+xa_abs_bc0.to_netcdf(join(data_dir, 'xa_abs_bc0.nc'))
+
+## -------------------------------------------------------------------------##
 ## Sensitivity tests: Permian
 ## -------------------------------------------------------------------------##
 ### Permian: EDF inventory instead of EPA inventory
@@ -259,7 +273,10 @@ xa_abs_edf.to_netcdf(join(data_dir, 'xa_abs_edf.nc'))
 ## -------------------------------------------------------------------------##
 ## Sensitivity tests: Wetlands
 ## -------------------------------------------------------------------------##
-
+### 50% wetlands
+xa_abs_wetlands50 = copy.deepcopy(tot_emis)
+xa_abs_wetlands50 -= 0.5*w['wetlands']
+xa_abs_wetlands50.to_netcdf(join(data_dir, 'xa_abs_wetlands50.nc'))
 
 ## -------------------------------------------------------------------------##
 ## Plot
