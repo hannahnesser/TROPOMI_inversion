@@ -478,21 +478,21 @@ def plot_state_format(data, default_value=0, cbar=True, **kw):
     fig_kwargs = kw.pop('fig_kwargs', {})
 
     # Get figure
-    lat_range = [data.lat.min(), data.lat.max()]
-    lon_range = [data.lon.min(), data.lon.max()]
+    lat_step = np.median(np.diff(data.lat))
+    lat_range = [data.lat.min().values - lat_step/2,
+                 data.lat.max().values + lat_step/2]
+    lon_step = np.median(np.diff(data.lon))
+    lon_range = [data.lon.min().values - lon_step/2,
+                 data.lon.max().values + lon_step/2]
     fig, ax  = fp.get_figax(maps=True, lats=lat_range, lons=lon_range,
                             **fig_kwargs)
 
     # Plot data
     c = data.plot(ax=ax, snap=True, **kw)
 
-    # Set limits
-    ax.set_xlim(lon_range)
-    ax.set_ylim(lat_range)
-
     # Add title and format map
     ax = fp.add_title(ax, title, **title_kwargs)
-    ax = fp.format_map(ax, data.lat, data.lon, **map_kwargs)
+    ax = fp.format_map(ax, lat_range, lon_range, **map_kwargs)
 
     if cbar:
         cbar_title = cbar_kwargs.pop('title', '')
