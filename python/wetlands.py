@@ -72,6 +72,8 @@ wl = wl['wetland_CH4_emissions']
 wl = wl.sel(lat=slice(s.lat_min, s.lat_max), lon=slice(s.lon_min, s.lon_max),
             time=slice(109, 120))
 
+print(wl)
+
 ## ------------------------------------------------------------------------ ##
 ## Plot
 ## ------------------------------------------------------------------------ ##
@@ -91,7 +93,7 @@ for i, seas in enumerate([[109, 119, 120], [110, 111, 112],
                     transform=axis[i, 0].transAxes)
     for j, mod in enumerate(wl_s.model.values):
         if i == 0:
-            axis[i, j].text(0.5, 1.05, f'{(j+1)}', ha='center', va='bottom',
+            axis[i, j].text(0.5, 1.05, f'{(wl_s.model.values[j])}', ha='center', va='bottom',
                             fontsize=config.LABEL_FONTSIZE*config.SCALE,
                             transform=axis[i, j].transAxes)
         wl_s_m = wl_s.sel(model=mod)
