@@ -13,7 +13,7 @@ NUM_EVECS="1952"
 CALCULATE_EVECS="True"
 FORMAT_EVECS="False"
 OPTIMIZE_RF="False"
-OPTIMIZE_BC="True"
+OPTIMIZE_BC="False"
 CHUNK_SIZE=150000
 
 ## Files
@@ -21,7 +21,7 @@ CHUNK_SIZE=150000
 # and false where we want to set the Jacobian columns to 0
 MASK="None"
 
-# Inversion files
+# Inversion files (DEFAULT)
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs.nc"
 SA_FILE="${SHORT_TERM_DATA_DIR}/sa.nc"
 SO_FILE="${SHORT_TERM_DATA_DIR}/so.nc" # If niter = 0, this should be so0
@@ -36,27 +36,57 @@ RF="1"
 FILE_SUFFIX="None"
 
 ## Sensitivity inversion options ##
-# Regridded errors
+
+# -------------------------------------------------------------#
+# Regridded errors (2x2)
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg.nc"
 FILE_SUFFIX="_rg"
+# -------------------------------------------------------------#
 
-# More coarsly regridded errors
+# -------------------------------------------------------------#
+# More coarsly regridded errors (2x2 and monthly or seasonal?)
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rgrt.nc"
 FILE_SUFFIX="_rgrt"
+# -------------------------------------------------------------#
 
-# More coarsly regridded errors
+# -------------------------------------------------------------#
+# More coarsly regridded errors (3x3 and monthly or seasonal?)
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg3rt.nc"
 FILE_SUFFIX="_rg3rt"
+# -------------------------------------------------------------#
 
-# More coarsly regridded errors
+# -------------------------------------------------------------#
+# More coarsly regridded errors (4x4 and seasonal)
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
 FILE_SUFFIX="_rg4rt"
+# -------------------------------------------------------------#
 
+# -------------------------------------------------------------#
 # Permian sensitivity test
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_edf.nc"
 FILE_SUFFIX="_rg4rt_edf"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Wetland 50% test
+OPTIMIZE_BC="False"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands50.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands50.nc"
+FILE_SUFFIX="_rg4rt_wetlands50"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Boundary condition test
+OPTIMIZE_BC="True"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_bc0.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_bc0.nc"
+FILE_SUFFIX="_rg4rt_bc0"
+# -------------------------------------------------------------#
+
 
 # FILE_SUFFIX="_savar"
 # FILE_SUFFIX="_nlc"
