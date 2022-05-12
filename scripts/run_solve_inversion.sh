@@ -25,6 +25,10 @@ echo "Activated ${CONDA_PREFIX}"
 
 DATA_DIR=${2}
 SUFFIX=${13}
+OPT_BC=${4}
+if [[ ${OPT_BC} == "True" ]]; then
+  SUFFIX="_bc${SUFFIX}"
+fi
 rm -rf ${DATA_DIR}/inv_dask_worker{suffix}/
 
 ## -------------------------------------------------------------------------##
