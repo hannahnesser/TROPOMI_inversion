@@ -121,6 +121,7 @@ if __name__ == '__main__':
         if optimize_bc:
             k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
                                      chunks=chunks)
+            x_data = np.append(x_data, np.ones((4,)))
 
         # Start time
         start_time = time.time()
@@ -137,7 +138,6 @@ if __name__ == '__main__':
                 i1 = i0 + k_n.shape[0]
                 k_bc_n = k_bc[i0:i1, :]
                 k_n = xr.concat([k_n, k_bc_n], dim='nstate')
-                x_data = np.append(x_data, np.ones((4,)))
                 i0 = copy.deepcopy(i1)
             k_n = da.tensordot(k_n, x_data, axes=(1, 0))
             k_n = k_n.compute()
