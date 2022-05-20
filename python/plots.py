@@ -261,13 +261,16 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 ## ------------------------------------------------------------------------ ##
 ## Figure: Eigenvalues
 ## ------------------------------------------------------------------------ ##
-# evals_q = np.load(f'{data_dir}evals_q0.npy')
-# evals_h = np.load(f'{data_dir}evals_h0.npy')
+# # evals_q = np.load(f'{data_dir}evals_q0.npy')
+# evals_h = np.load(f'{data_dir}evals_h2_rgrt.npy')
+# # print(evals_h)
+# evals_q = evals_h/(1+evals_h)
 # # evals_h[evals_h < 0] = 0
 # snr = evals_h**0.5
 # DOFS_frac = np.cumsum(evals_q)/evals_q.sum()
 
 # fig, ax = fp.get_figax(aspect=3)
+# ax.set_xlim(0, 1952)
 
 # # DOFS frac
 # ax.plot(100*DOFS_frac, label='Information content spectrum',
@@ -289,23 +292,26 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 
 # # SNR
 # ax2 = ax.twinx()
-# ax2.plot(snr, label='Signal-to-noise ratio spectrum', c=fp.color(6), lw=2)
-# for r in [1, 2]:
-#     diff = np.abs(snr - r)
-#     rank = np.argwhere(diff == np.min(diff))[0][0]
-#     ax2.scatter(rank, snr[rank], marker='.', s=80, c=fp.color(6))
-#     ax2.text(rank-200, snr[rank], f'{r:d}', ha='right', va='center',
-#              c=fp.color(6))
-# ax2.set_ylabel('Signal-to-noise ratio',
+# # ax2.plot(snr, label='Signal-to-noise ratio spectrum', c=fp.color(6), lw=2)
+# ax2.plot(evals_h, label='PPH eigenvalues', c=fp.color(6), lw=2)
+# # for r in [1, 2]:
+# #     diff = np.abs(snr - r)
+# #     rank = np.argwhere(diff == np.min(diff))[0][0]
+# #     ax2.scatter(rank, snr[rank], marker='.', s=80, c=fp.color(6))
+# #     ax2.text(rank-200, snr[rank], f'{r:d}', ha='right', va='center',
+# #              c=fp.color(6))
+# # ax2.set_ylabel('Signal-to-noise ratio',
+# ax2.set_ylabel('PPH eigenvalues',
 #                fontsize=config.LABEL_FONTSIZE*config.SCALE,
 #               labelpad=config.LABEL_PAD, color=fp.color(6))
 # ax2.tick_params(axis='y', which='both',
 #                 labelsize=config.LABEL_FONTSIZE*config.SCALE,
 #                 labelcolor=fp.color(6))
+# ax2.set_yscale('log')
+# ax2.set_ylim(1e0, 1e5)
+# ax = fp.add_title(ax, 'Final Estimate Information Content Spectrum')
 
-# ax = fp.add_title(ax, 'Initial Estimate Information Content Spectrum')
-
-# fp.save_fig(fig, plot_dir, 'eigenvalues_update')
+# fp.save_fig(fig, plot_dir, 'eigenvalues_final')
 
 ## ------------------------------------------------------------------------ ##
 ## Figure: Initial eigenvectors
@@ -355,4 +361,27 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 #                                              'ticks' : [-0.01, 0, 0.01]})
 # fp.save_fig(fig, plot_dir, f'fig_est1_evecs_{n0}_{n0+nevecs}')
 
+## ------------------------------------------------------------------------ ##
+## Figure: Error distribution comparison
+## ------------------------------------------------------------------------ ##
+labels = ['Native', '1x1', '2x2', '3x3', '4x4']
+fig, ax = fig, ax = fp.get_figax(rows=2, cols=1, aspect=1.75, sharex=True)
+for i, grid in enumerate(['native', 'rg1', 'rg2', 'rg3', 'rg4']):
+    so = pd.Series(xr.open_dataarray(f'{data_dir}/so_{grid}.nc')**0.5)
+    so.plot(ax=ax[0], kind='kde', color=fp.color(2*i),
+                # histtype='step', bins=50, density=True,
+                label=labels[i])
 
+    so_rt = pd.Series(xr.open_dataarray(f'{data_dir}/so_{grid}rt.nc')**0.5)
+    so_rt.plot(ax=ax[1], kind='kde', color=fp.color(2*i),
+                   # histtype='step', bins=50, density=True,
+               label=f'{labels[i]} seasonal')
+
+ax[0] = fp.add_title(ax[0], 'Observational Error')
+ax[0].set_xlim(0, 25)
+ax[1].set_xlim(0, 25)
+ax[0]= fp.add_labels(ax[0], '', 'Count')
+ax[1]= fp.add_labels(ax[1], 'Observational Error (ppb)', 'Count')
+ax[0] = fp.add_legend(ax[0])
+ax[1] = fp.add_legend(ax[1])
+fp.save_fig(fig, plot_dir, f'observational_error_summary')
