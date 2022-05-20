@@ -151,7 +151,7 @@ if __name__ == '__main__':
         # (this formulation only works with constant errors I think)
         return np.array(1 + shat @ kt_so_ydiff)
 
-    def calculate_dofs(evecs, evals_h, sa):
+    def calculate_a(evecs, evals_h, sa):
         evals_q = evals_h/(1 + evals_h)
         a = sa**0.5*(evecs*evals_q) @ evecs.T*(1/(sa**0.5))
         return a
@@ -165,8 +165,8 @@ if __name__ == '__main__':
     def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
         shat = calculate_shat(evecs, evals_h, sa)
         xhat = calculate_xhat(shat, kt_so_ydiff)
-        dofs = calculate_dofs(evecs, evals_h, sa)
-        return xhat, shat, dofs
+        a = calculate_a(evecs, evals_h, sa)
+        return xhat, shat, a
 
     ## -------------------------------------------------------------------- ##
     ## Open files
@@ -260,7 +260,8 @@ if __name__ == '__main__':
             p_i = rf_i*copy.deepcopy(pre_xhat)
 
             # Calculate the posterior
-            xhat, _, dofs = solve_inversion(evecs, evals_h_i, sa, p_i)
+            xhat, _, a = solve_inversion(evecs, evals_h_i, sa, p_i)
+            dofs = np.diagonal(a)
 
             # # Calculate the posterior observations
             yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
