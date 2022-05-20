@@ -12,7 +12,7 @@ CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 NUM_EVECS="1952"
 CALCULATE_EVECS="True"
 FORMAT_EVECS="False"
-OPTIMIZE_RF="False"
+OPTIMIZE_RF="True"
 OPTIMIZE_BC="False"
 CHUNK_SIZE=150000
 
@@ -22,9 +22,10 @@ CHUNK_SIZE=150000
 MASK="None"
 
 # Inversion files (DEFAULT)
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs.nc"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_correct.nc"
 SA_FILE="${SHORT_TERM_DATA_DIR}/sa.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so.nc" # If niter = 0, this should be so0
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so.nc" # If niter = 0, this should be so0
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya.nc" # If niter = 0, this should be ya0
 C_FILE="${SHORT_TERM_DATA_DIR}/c.nc"
 
@@ -33,37 +34,37 @@ SA_SCALE="1"
 RF="1"
 
 # Saving out
-FILE_SUFFIX="None"
+# FILE_SUFFIX="None"
+FILE_SUFFIX="_rg4rt"
 
 ## Sensitivity inversion options ##
 
-# -------------------------------------------------------------#
-# Regridded errors (2x2)
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg.nc"
-FILE_SUFFIX="_rg"
-# -------------------------------------------------------------#
+# # -------------------------------------------------------------#
+# # Regridded errors (2x2)
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg.nc"
+# FILE_SUFFIX="_rg"
+# # -------------------------------------------------------------#
 
-# -------------------------------------------------------------#
-# More coarsly regridded errors (2x2 and monthly or seasonal?)
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rgrt.nc"
-FILE_SUFFIX="_rgrt"
-# -------------------------------------------------------------#
+# # -------------------------------------------------------------#
+# # More coarsly regridded errors (2x2 and monthly or seasonal?)
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt.nc"
+# FILE_SUFFIX="_rg2rt"
+# # -------------------------------------------------------------#
 
-# -------------------------------------------------------------#
-# More coarsly regridded errors (3x3 and monthly or seasonal?)
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg3rt.nc"
-FILE_SUFFIX="_rg3rt"
-# -------------------------------------------------------------#
+# # -------------------------------------------------------------#
+# # More coarsly regridded errors (3x3 and monthly or seasonal?)
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg3rt.nc"
+# FILE_SUFFIX="_rg3rt"
+# # -------------------------------------------------------------#
 
-# -------------------------------------------------------------#
-# More coarsly regridded errors (4x4 and seasonal)
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
-FILE_SUFFIX="_rg4rt"
-# -------------------------------------------------------------#
+# # -------------------------------------------------------------#
+# # More coarsly regridded errors (4x4 and seasonal)
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
+# FILE_SUFFIX="_rg4rt"
+# # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
 # Permian sensitivity test
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_edf.nc"
 FILE_SUFFIX="_rg4rt_edf"
@@ -71,11 +72,16 @@ FILE_SUFFIX="_rg4rt_edf"
 
 # -------------------------------------------------------------#
 # Wetland 50% test
-OPTIMIZE_BC="False"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands50.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands50.nc"
 FILE_SUFFIX="_rg4rt_wetlands50"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Wetland remove ensemble members 3 (1923) and 7 (2913) test
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands37.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands37.nc"
+FILE_SUFFIX="_rg4rt_wetlands37"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
