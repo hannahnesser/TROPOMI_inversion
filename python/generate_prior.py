@@ -81,10 +81,20 @@ HEMCO_diagnostics.{s.year:04d}{mm:02d}010000.nc'
 clusters = f'{data_dir}/clusters.nc'
 clusters = xr.open_dataarray(clusters)
 nstate = int(clusters.max().values)
-print(nstate)
+print(f'n = {nstate}')
 
 # Set relative prior error covariance value
 rel_err = 1
+
+# Sectoral breakdown
+emissions = {'wetlands' : 'Wetlands',
+             'livestock' : 'Livestock',
+             'coal' : 'Coal',
+             'oil' : 'Oil',
+             'gas' : 'Gas',
+             'landfills' : 'Landfills',
+             'wastewater' : 'Wastewater',
+             'other' : ['Termites', 'Seeps', 'BiomassBurn', 'Lakes', 'Rice', 'OtherAnth']}
 
 ## ------------------------------------------------------------------------ ##
 ## Figure out what the relative prior errors should be set at
@@ -127,11 +137,20 @@ emis = gc.read_file(*emis_file)
 # Remove emissions from buffer grid cells
 emis = gc.subset_data_latlon(emis, *s.lats, *s.lons)
 
+days = xr.DataArray([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+                    dims='time')
 if 'time' in emis.dims:
+    # Try comparing the two when you average correctly
+    emis_correct = (emis*days).sum(dim='time')/(days.sum())
+    # print(emis2)
+
     # Average over time
     emis = emis.mean(dim='time')
 
-    # Save summary file
+    # Save summary files
+    name = 'HEMCO_diagnostics_correct.2019.nc'
+    emis_correct.to_netcdf(f'{base_dir}/prior/total_emissions/{name}')
+
     name = 'HEMCO_diagnostics.2019.nc'
     emis.to_netcdf(f'{base_dir}/prior/total_emissions/{name}')
 
@@ -145,7 +164,8 @@ area.to_netcdf(join(data_dir, 'area.nc'))
 print('-'*50)
 print('SECTORAL EMISSIONS')
 print('-'*50)
-summ = emis[[var for var in emis.keys() if var[:4] == 'Emis']]*emis['AREA']
+summ = emis_correct[[var for var in emis_correct.keys()
+                     if var[:4] == 'Emis']]*emis_correct['AREA']
 summ *= 1e-9*(60*60*24*365) # Adjust units to Tg/yr
 # summ = xr.where(clusters > 0)
 summ = summ.sum(dim=['lat', 'lon'])
@@ -159,52 +179,53 @@ print(f'               Total {tally:.2f}')
 print('-'*50)
 
 # Adjust units to Mg/km2/yr
+emis_correct *= 1e-3*(60*60*24*365)*(1000*1000)
 emis *= 1e-3*(60*60*24*365)*(1000*1000)
 
-# Isolate soil absorption
-soil_abs = emis['EmisCH4_SoilAbsorb']
-soil_abs = ip.clusters_2d_to_1d(clusters, soil_abs)
-soil_abs = xr.DataArray(soil_abs, dims=('nstate'))
-soil_abs.to_netcdf(join(data_dir, 'soil_abs.nc'))
+emis_dict = {'correct' : (emis_correct, '_correct'), 'orig' : (emis, '')}
+tot_emis = {}
+for label, ee in emis_dict.items():
+    # Isolate soil absorption
+    soil_abs = ee[0]['EmisCH4_SoilAbsorb']
+    soil_abs = ip.clusters_2d_to_1d(clusters, soil_abs)
+    soil_abs = xr.DataArray(soil_abs, dims=('nstate'))
+    soil_abs.to_netcdf(join(data_dir, f'soil_abs{ee[1]}.nc'))
 
-# Calculate total emissions
-tot_emis = emis['EmisCH4_Total'] #- emis['EmisCH4_SoilAbsorb']
-tot_emis = ip.clusters_2d_to_1d(clusters, tot_emis)
-tot_emis = xr.DataArray(tot_emis, dims=('nstate'))
-tot_emis.to_netcdf(join(data_dir, 'xa_abs.nc'))
+    # Calculate total emissions
+    te = ee[0]['EmisCH4_Total'] #- emis['EmisCH4_SoilAbsorb']
+    te = ip.clusters_2d_to_1d(clusters, te)
+    te = xr.DataArray(te, dims=('nstate'))
+    te.to_netcdf(join(data_dir, f'xa_abs{ee[1]}.nc'))
+    tot_emis[label] = te
 
 ## -------------------------------------------------------------------------##
 ## Group by sector
 ## -------------------------------------------------------------------------##
-emissions = {'wetlands' : 'Wetlands',
-             'livestock' : 'Livestock',
-             'coal' : 'Coal',
-             'oil' : 'Oil',
-             'gas' : 'Gas',
-             'landfills' : 'Landfills',
-             'wastewater' : 'Wastewater',
-             'other' : ['Termites', 'Seeps', 'BiomassBurn', 'Lakes', 'Rice', 'OtherAnth']}
+def sectoral_matrix(raw_emis, suffix, clusters=clusters, emis_cats=emissions):
+    w = pd.DataFrame(columns=emis_cats.keys())
+    for label, categories in emis_cats.items():
+        # Get emissions
+        if type(categories) == str:
+            e = raw_emis['EmisCH4_%s' % categories].squeeze()
+        elif type(categories) == list:
+            e = sum(raw_emis['EmisCH4_%s' % em].squeeze()
+                    for em in categories)
 
-w = pd.DataFrame(columns=emissions.keys())
-for label, categories in emissions.items():
-    # Get emissions
-    if type(categories) == str:
-        e = emis['EmisCH4_%s' % categories].squeeze()
-    elif type(categories) == list:
-        e = sum(emis['EmisCH4_%s' % em].squeeze()
-                for em in categories)
+        # Flatten
+        e = ip.clusters_2d_to_1d(clusters, e)
 
-    # Flatten
-    e = ip.clusters_2d_to_1d(clusters, e)
+        # Saveout
+        # e = xr.DataArray(e, dims=('nstate'))
+        # e.to_netcdf(join(data_dir, f'xa_{label}.nc'))
+        w[label] = e
+        # print(label)
+        # print(e)
 
-    # Saveouut
-    # e = xr.DataArray(e, dims=('nstate'))
-    # e.to_netcdf(join(data_dir, f'xa_{label}.nc'))
-    w[label] = e
-    # print(label)
-    # print(e)
+    w.to_csv(join(data_dir, f'w{suffix}.csv'), index=False)
+    return w
 
-w.to_csv(join(data_dir, f'w.csv'), index=False)
+w_correct = sectoral_matrix(emis_correct, '_correct')
+w = sectoral_matrix(emis, '')
 
 ## -------------------------------------------------------------------------##
 ## Sensitivity tests: Boundary condition
@@ -216,9 +237,11 @@ bc_idx = bc_idx[bc_idx > 0] - 1
 bc_idx.sort()
 
 # Set these to zero in the absolute prior
-xa_abs_bc0 = copy.deepcopy(tot_emis)
+xa_abs_bc0 = copy.deepcopy(tot_emis['correct'])
 xa_abs_bc0[bc_idx] = 0
 xa_abs_bc0.to_netcdf(join(data_dir, 'xa_abs_bc0.nc'))
+
+# We can use the same sectoral breakdown as w_correct.
 
 ## -------------------------------------------------------------------------##
 ## Sensitivity tests: Permian
@@ -250,33 +273,60 @@ np.save(f'{data_dir}/permian_idx.npy', permian_idx)
 
 ## 2. Subset total prior emissions and oil and natural gas emissions over
 ## the Permian (Mg/km2/yr)
-xa_abs_permian = tot_emis[permian_idx]
-xa_abs_permian_ong_epa = (w['oil'] + w['gas'])[permian_idx]
+xa_abs_permian = tot_emis['correct'][permian_idx]
+xa_abs_permian_ong_epa = (w_correct['oil'] + w_correct['gas'])[permian_idx]
 
 ## 3. Get the EDF prior and subset over the Permian
 permian_ong_edf = xr.open_dataset(f'{base_dir}/prior/permian/permian_EDF_2019.nc') # Originally kg/m2/s
-permian_ong_edf = (permian_ong_edf['EmisCH4_Oil']
-                   + permian_ong_edf['EmisCH4_Gas'])
-permian_ong_edf *= 1e-3*(60*60*24*365)*(1000*1000)
-xa_abs_permian_ong_edf = ip.clusters_2d_to_1d(permian, permian_ong_edf)
+permian_o_edf = permian_ong_edf['EmisCH4_Oil']*1e-3*(60*60*24*365)*(1000*1000)
+permian_ng_edf = permian_ong_edf['EmisCH4_Gas']*1e-3*(60*60*24*365)*(1000*1000)
+xa_abs_permian_o_edf = ip.clusters_2d_to_1d(permian, permian_o_edf)
+xa_abs_permian_ng_edf = ip.clusters_2d_to_1d(permian, permian_ng_edf)
 
 ## 4. Calculate the new total emissions over the Permian and replace them in
 ## the whole state vector
-xa_abs_permian += (xa_abs_permian_ong_edf - xa_abs_permian_ong_epa)
-xa_abs_edf = copy.deepcopy(tot_emis)
+xa_abs_permian += (xa_abs_permian_o_edf + xa_abs_permian_ng_edf
+                   - xa_abs_permian_ong_epa)
+xa_abs_edf = copy.deepcopy(tot_emis['correct'])
 xa_abs_edf[permian_idx] = xa_abs_permian
+
+## 4. Calculate a new sectoral attribution matrix
+w_edf = copy.deepcopy(w_correct)
+w_edf['oil'][permian_idx] = xa_abs_permian_o_edf
+w_edf['gas'][permian_idx] = xa_abs_permian_ng_edf
 
 ## 5. Save out
 xa_abs_edf = xr.DataArray(xa_abs_edf, dims=('nstate'))
 xa_abs_edf.to_netcdf(join(data_dir, 'xa_abs_edf.nc'))
+w_edf.to_csv(join(data_dir, f'w_edf.csv'), index=False)
 
 ## -------------------------------------------------------------------------##
 ## Sensitivity tests: Wetlands
 ## -------------------------------------------------------------------------##
 ### 50% wetlands
-xa_abs_wetlands50 = copy.deepcopy(tot_emis)
-xa_abs_wetlands50 -= 0.5*w['wetlands']
+# xa_abs
+xa_abs_wetlands50 = copy.deepcopy(tot_emis['correct'])
+xa_abs_wetlands50 -= 0.5*w_correct['wetlands']
 xa_abs_wetlands50.to_netcdf(join(data_dir, 'xa_abs_wetlands50.nc'))
+
+# Sectoral attribution matrix
+w_wetlands50 = copy.deepcopy(w_correct)
+w_wetlands50['wetlands'] *= 0.5
+w_wetlands50.to_csv(join(data_dir, f'w_wetlands50.csv'), index=False)
+
+## Remove ensemble members 3 (1923) and 7 (2913). The prep work for
+## this test was done in wetlands.py
+wetlands37 = xr.open_dataarray(f'{base_dir}/prior/wetlands/wetlands37.nc')
+wetlands37 = ip.clusters_2d_to_1d(clusters, wetlands37)
+wetlands37 *= 1e-3*(60*60*24*365)*(1000*1000) # kg/m2/s --> Mg/km2/yr
+xa_abs_wetlands37 = copy.deepcopy(tot_emis['correct'])
+xa_abs_wetlands37 = xa_abs_wetlands37 - w_correct['wetlands'] + wetlands37
+xa_abs_wetlands37.to_netcdf(join(data_dir, 'xa_abs_wetlands37.nc'))
+
+# Sectoral attribution matrix
+w_wetlands37 = copy.deepcopy(w_correct)
+w_wetlands37['wetlands'] = wetlands37
+w_wetlands37.to_csv(join(data_dir, f'w_wetlands37.csv'), index=False)
 
 ## -------------------------------------------------------------------------##
 ## Plot
@@ -295,16 +345,16 @@ if plot_dir is not None:
     colormap = fp.cmap_trans('viridis')
 
     ncategory = len(emissions)
-    fig, ax = fp.get_figax(rows=2, cols=math.ceil(ncategory/2),
-                           maps=True, lats=emis.lat, lons=emis.lon)
+    fig, ax = fp.get_figax(rows=2, cols=math.ceil(ncategory/2), maps=True,
+                           lats=emis_correct.lat, lons=emis_correct.lon)
     plt.subplots_adjust(hspace=0.5)
     cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
     for i, axis in enumerate(ax.flatten()):
-        axis = fp.format_map(axis, lats=emis.lat, lons=emis.lon)
+        axis = fp.format_map(axis, lats=emis_correct.lat, lons=emis_correct.lon)
         if type(emissions[i]) == str:
-            e = emis['EmisCH4_%s' % emissions[i]].squeeze()
+            e = emis_correct['EmisCH4_%s' % emissions[i]].squeeze()
         elif type(emissions[i]) == list:
-            e = sum(emis['EmisCH4_%s' % em].squeeze()
+            e = sum(emis_correct['EmisCH4_%s' % em].squeeze()
                     for em in emissions[i])
 
         c = e.plot(ax=axis, cmap=colormap, vmin=0, vmax=5,
@@ -316,10 +366,10 @@ if plot_dir is not None:
     fp.save_fig(fig, plot_dir, 'prior_emissions_2019')
 
 # Select total emissions
-emis = emis['EmisCH4_Total']
+# emis = emis['EmisCH4_Total']
 
 print('The minimum positive emission is',
-      np.abs(emis.where(emis > 0).min()).values)
+      np.abs(emis['EmisCH4_Total'].where(emis['EmisCH4_Total'] > 0).min()).values)
 
 ## -------------------------------------------------------------------------##
 ## Generate prior and prior error covariance
@@ -340,15 +390,15 @@ sa.to_netcdf(join(data_dir, 'sa.nc'))
 # xa_abs.to_netcdf(join(data_dir, 'xa_abs.nc'))
 
 # Absolute errors
-sa_abs = sa*tot_emis**2
+sa_abs = sa*tot_emis['correct']**2
 sa_abs.to_netcdf(join(data_dir, 'sa_abs.nc'))
 
-# Varying errors
-sa_var = 1*tot_emis.mean()/tot_emis
-sa_var[sa_var < 1] = 1
-sa_var[sa_var > 5] = 5
-sa_var = sa_var**2
-sa_var.to_netcdf(join(data_dir, 'sa_var.nc'))
+# # Varying errors
+# sa_var = 1*tot_emis.mean()/tot_emis
+# sa_var[sa_var < 1] = 1
+# sa_var[sa_var > 5] = 5
+# sa_var = sa_var**2
+# sa_var.to_netcdf(join(data_dir, 'sa_var.nc'))
 
 # s_a_vec = 0.5*x_a.mean()/x_a
 # s_a_vec[s_a_vec < 0.5] = 0.5
