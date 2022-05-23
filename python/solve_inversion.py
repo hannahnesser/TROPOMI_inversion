@@ -221,7 +221,10 @@ if __name__ == '__main__':
     # If sa_scale is defined, scale everything
     if sa_scale is not None:
         evals_h *= sa_scale**2
-        sa *= sa_scale**2
+        if optimize_bc:
+            sa[:-4] = sa[:-4]*sa_scale**2
+        else:
+            sa *= sa_scale**2
 
     # Subset the eigenvectors and eigenvalues
     print(f'Using {pct_of_info} percent of information content.')
