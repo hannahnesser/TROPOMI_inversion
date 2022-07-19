@@ -22,7 +22,7 @@ import mpl_toolkits.mplot3d
 from matplotlib.collections import PolyCollection, LineCollection
 import cartopy.crs as ccrs
 import cartopy
-import cartopy.feature
+import cartopy.feature as cf
 from cartopy.mpl.patch import geos_to_path
 
 # sys.path.append('.')
@@ -277,12 +277,13 @@ def format_map(ax, lats, lons,
     # Format
     ax.set_ylim(min(lats), max(lats))
     ax.set_xlim(min(lons), max(lons))
-    ax.add_feature(cartopy.feature.OCEAN, facecolor='0.98', linewidth=0.5)
-    ax.add_feature(cartopy.feature.LAND, facecolor='0.98', linewidth=0.5)
-    ax.add_feature(cartopy.feature.STATES, edgecolor='0.3', linewidth=0.2)
-    ax.add_feature(cartopy.feature.LAKES, facecolor='none', edgecolor='0.3 ',
-                   linewidth=0.2)
-    ax.coastlines(color='0.2', linewidth=0.5)
+    ax.add_feature(cf.OCEAN.with_scale('50m'), facecolor='0.98', linewidth=0.5)
+    ax.add_feature(cf.LAND.with_scale('50m'), facecolor='0.98', linewidth=0.5)
+    ax.add_feature(cf.STATES.with_scale('50m'), edgecolor='0.3', linewidth=0.2,
+                   zorder=10)
+    ax.add_feature(cf.LAKES.with_scale('50m'), facecolor='none',
+                   edgecolor='0.3 ', linewidth=0.2)
+    ax.coastlines(resolution='50m', color='0.2', linewidth=0.5)
 
     # gl = ax.gridlines(**gridline_kwargs)
     # gl.xlabel_style = {'fontsize' : fontsize}
