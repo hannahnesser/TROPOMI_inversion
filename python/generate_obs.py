@@ -186,6 +186,7 @@ analyze_biases = True
 
 # Calculate the error variances?
 calculate_so = True
+err_min = 10
 
 ## ------------------------------------------------------------------------ ##
 ## Get grid information
@@ -199,11 +200,10 @@ lats_l, lons_l = gc.create_gc_grid(*settings.lats, 2, *settings.lons, 2,
                                    centers=False, return_xarray=False)
 
 # Error evaluation grid
-lats_so, lons_so = gc.create_gc_grid(*settings.lats, settings.lat_delta,
-                                     *settings.lons, settings.lon_delta,
+lats_so, lons_so = gc.create_gc_grid(*settings.lats, 2, *settings.lons, 2,
                                      centers=False, return_xarray=False)
 groupby = ['LAT_CENTER_L', 'LON_CENTER_L', 'SEASON']
-err_suffix = '_nativert'
+err_suffix = '_rg2rt'
 
 ## ------------------------------------------------------------------------ ##
 ## Define functions
@@ -521,8 +521,22 @@ if compare_gosat:
     ax.set_xlim(1750, 1950)
     fp.add_legend(ax, bbox_to_anchor=(1, 0.5), loc='center left', ncol=1)
     ax = fp.add_labels(ax, 'XCH4', 'Density')
-    ax = fp.add_title(ax, 'Blended Albedo Bias in TROPOMI - GOSAT')
+    ax = fp.add_title(ax, 'Blended albedo bias in TROPOMI - GOSAT')
     fp.save_fig(fig, plot_dir, f'gosat_tropomi_distributions{suffix}')
+    plt.close()
+
+    # Blended albedo
+    fig, ax = fp.get_figax(aspect=1.75)
+    ax.errorbar(ba_b_gos['BLENDED_ALBEDO'], ba_b_gos['mean'],
+                yerr=ba_b_gos['std'], color=fp.color(4))
+    ax.set_xticks(np.arange(0, 3.1, 0.25))
+    ax.set_xlim(0, 2.25)
+    ax.set_ylim(-30, 30)
+    ax = fp.add_labels(ax, 'Blended albedo', 'TROPOMI - GOSAT')
+    ax = fp.add_title(ax, 'Blended albedo bias in TROPOMI - GOSAT')
+    fp.add_legend(ax, bbox_to_anchor=(1, 0.5),
+                  loc='center left', ncol=1)
+    fp.save_fig(fig, plot_dir, f'gosat_blended_albedo_bias{suffix}')
     plt.close()
 
     # Blended albedo and monthly bias
@@ -532,8 +546,8 @@ if compare_gosat:
     ax.set_xticks(np.arange(0, 3.1, 0.25))
     ax.set_xlim(0, 2.25)
     ax.set_ylim(-30, 30)
-    ax = fp.add_labels(ax, 'Blended Albedo', 'TROPOMI - GOSAT')
-    ax = fp.add_title(ax, 'Blended Albedo Bias in TROPOMI - GOSAT')
+    ax = fp.add_labels(ax, 'Blended albedo', 'TROPOMI - GOSAT')
+    ax = fp.add_title(ax, 'Blended albedo bias in TROPOMI - GOSAT')
     for i, m in enumerate(np.unique(bam_b_gos['MONTH'])):
         d = bam_b_gos[bam_b_gos['MONTH'] == m]
         ax.plot(d['BLENDED_ALBEDO'].values, d['mean'].values,
@@ -550,8 +564,8 @@ if compare_gosat:
     ax.set_xticks(np.arange(0, 3.1, 0.25))
     ax.set_xlim(0, 2.25)
     ax.set_ylim(-30, 30)
-    ax = fp.add_labels(ax, 'Blended Albedo', 'TROPOMI - GOSAT')
-    ax = fp.add_title(ax, 'Blended Albedo Bias in TROPOMI - GOSAT')
+    ax = fp.add_labels(ax, 'Blended albedo', 'TROPOMI - GOSAT')
+    ax = fp.add_title(ax, 'Blended albedo bias in TROPOMI - GOSAT')
     for i, lb in enumerate(np.unique(bal_b_gos['LAT_BIN'])):
         d = bal_b_gos[bal_b_gos['LAT_BIN'] == lb]
         ax.plot(d['BLENDED_ALBEDO'].values, d['mean'].values,
@@ -738,8 +752,8 @@ if analyze_biases:
                     color=fp.color(4))
         ax.set_xticks(np.arange(10, 70, 10))
         ax.set_xlim(10, 60)
-        ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
-        ax = fp.add_title(ax, 'Latitudinal Bias in Prior Run')
+        ax = fp.add_labels(ax, 'Latitude', 'Model - observation')
+        ax = fp.add_title(ax, 'Latitudinal bias in prior run')
         fp.save_fig(fig, plot_dir, f'prior_latitudinal_bias{suffix}')
 
         ## ----------------------------------------- ##
@@ -751,7 +765,7 @@ if analyze_biases:
         ax.errorbar(m_b['month'], m_b['mean'], yerr=m_b['std'],
                     color=fp.color(4))
         ax = fp.add_labels(ax, 'Month', 'Model - Observation')
-        ax = fp.add_title(ax, 'Seasonal Bias in Prior Run')
+        ax = fp.add_title(ax, 'Seasonal bias in prior run')
         fp.save_fig(fig, plot_dir, f'prior_seasonal_bias{suffix}')
         plt.close()
 
@@ -764,8 +778,8 @@ if analyze_biases:
                     color=fp.color(4))
         ax.set_xticks(np.arange(10, 70, 10))
         ax.set_xlim(10, 60)
-        ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
-        ax = fp.add_title(ax, f'Latitudinal Bias in Prior Run')
+        ax = fp.add_labels(ax, 'Latitude', 'Model - observation')
+        ax = fp.add_title(ax, f'Latitudinal bias in prior run')
         linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
         for i, season in enumerate(np.unique(lm_b['SEASON'])):
             d = lm_b[lm_b['SEASON'] == season]
@@ -784,8 +798,8 @@ if analyze_biases:
         ax.errorbar(a_b['ALBEDO'], a_b['mean'], yerr=a_b['std'],
                     color=fp.color(4))
         ax.set_xticks(np.arange(0, 1, 0.2))
-        ax = fp.add_labels(ax, 'Albedo', 'Model - Observation')
-        ax = fp.add_title(ax, 'Albedo Bias in Prior Run')
+        ax = fp.add_labels(ax, 'Albedo', 'Model - observation')
+        ax = fp.add_title(ax, 'Albedo bias in prior run')
         fp.save_fig(fig, plot_dir, f'prior_albedo_bias{suffix}')
         plt.close()
 
@@ -800,8 +814,8 @@ if analyze_biases:
         ax.set_xticks(np.arange(0, 3.1, 0.25))
         ax.set_xlim(0, 2.25)
         ax.set_ylim(-30, 30)
-        ax = fp.add_labels(ax, 'Blended Albedo', 'Model - Observation')
-        ax = fp.add_title(ax, 'Blended Albedo Bias in Prior Run')
+        ax = fp.add_labels(ax, 'Blended albedo', 'Model - observation')
+        ax = fp.add_title(ax, 'Blended albedo bias in prior run')
         # for i, m in enumerate(np.unique(bam_b['MONTH'])):
         #     d = bam_b[bam_b['MONTH'] == m]
         #     ax.plot(d['BLENDED_ALBEDO'].values, d['mean'].values,
@@ -855,7 +869,7 @@ if calculate_so:
     var = data.groupby(groupby).mean()[['VAR', 'OBS']].reset_index()
     var = var.rename(columns={'OBS' : 'AVG_OBS'})
     var['STD'] = var['VAR']**0.5/var['AVG_OBS'] # rrsd
-    # var['VAR'] is sigmasq
+    # # var['VAR'] is sigmasq
 
     # Merge these final variances back into the data (first removing
     # the initial variance calculation, since this was an intermediary)
@@ -873,6 +887,11 @@ if calculate_so:
     print(f'We replace {cond.sum()} instances where the residual error is less than the instrumental error.')
     data.loc[:, 'SO'] = data['VAR']
     data.loc[cond, 'SO'] = data.loc[cond, 'PREC_SQ']
+
+    # Where the variance is less than 100 ppb^2 (err = 10 pppb, set a threshoold
+    cond_t = data['SO'] < err_min**2
+    print(f'We replace {cond_t.sum()} instances where the residual error is less than {err_min} ppb.')
+    data.loc[cond_t, 'SO'] = err_min**2
 
     # and then update std
     data.loc[:, 'STD'] = data['SO']**0.5
@@ -943,6 +962,7 @@ if (plot_dir is not None) and calculate_so:
 
     d_p = d_p.rename(columns={'OBS' : 'AVG_OBS', 'DIFF' : 'AVG_DIFF',
                               'RES_ERR' : 'COUNT'})
+    # d_p = copy.deepcopy(plot_data)
     d_p['STD'] = d_p['VAR']**0.5#/d_p['AVG_OBS']
     d_p = d_p[['STD', 'AVG_OBS', 'AVG_DIFF', 'COUNT']].to_xarray()
     d_p = d_p.rename({'LAT_CENTER' : 'lats', 'LON_CENTER' : 'lons'})
@@ -1084,6 +1104,6 @@ ya.to_netcdf(join(output_dir, 'ya.nc'))
 
 if calculate_so:
     so = xr.DataArray(data['SO'], dims=('nobs'))
-    so.to_netcdf(join(output_dir, f'so{err_suffix}.nc'))
+    so.to_netcdf(join(output_dir, f'so{err_suffix}_{err_min}t.nc'))
 
 print('=== CODE COMPLETE ====')
