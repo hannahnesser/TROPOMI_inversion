@@ -86,6 +86,39 @@ wl_wc = wl_wc.sel(lat=slice(s.lat_min, s.lat_max),
 wl_wc_s = copy.deepcopy(wl_wc)
 wl_wc_s = wl_wc_s.drop_sel(model=[1923, 2913])
 
+# Before averaging, plot the model ensemble
+fig, axis = fp.get_figax(rows=4, cols=9, maps=True,
+                         lats=wl_wc.lat, lons=wl_wc.lon)
+for ax in axis.flatten():
+    ax = fp.format_map(ax, wl_wc.lat, wl_wc.lon, **small_map_kwargs)
+
+days_s= [[31, 31, 28], [31, 30, 31], [30, 31, 31], [30, 31, 30]]
+seasons = ['DJF', 'MAM', 'JJA', 'SON']
+for i, seas in enumerate([[109, 119, 120], [110, 111, 112],
+                          [113, 114, 115], [116, 117, 118]]):
+    wl_s = wl_wc.sel(time=seas)
+    d_s = np.array(days_s[i])
+    wl_s = (wl_s*d_s[None, :, None, None]).sum(axis=1)/d_s.sum()
+    wl_s *= 1e-3*(60*60*24*365)*(1000*1000) # change units to Mg/km2/yr
+    axis[i, 0].text(-0.05, 0.5, seasons[i], rotation='vertical',
+                    ha='right', va='center',
+                    fontsize=config.LABEL_FONTSIZE*config.SCALE,
+                    transform=axis[i, 0].transAxes)
+    for j, mod in enumerate(wl_s.model.values):
+        if i == 0:
+            axis[i, j].text(0.5, 1.05, f'{(wl_s.model.values[j])}', ha='center', va='bottom',
+                            fontsize=config.LABEL_FONTSIZE*config.SCALE,
+                            transform=axis[i, j].transAxes)
+        wl_s_m = wl_s.sel(model=mod)
+        c= wl_s_m.plot(ax=axis[i, j], add_colorbar=False, vmin=0, vmax=10)
+        fp.add_title(axis[i, j], '')
+
+cax = fp.add_cax(fig, axis)
+cb = fig.colorbar(c, cax=cax)
+cb = fp.format_cbar(cb, cbar_title=r'Emissions$\\$(Mg km$^2$ a$^{-1}$)')
+
+fp.save_fig(fig, plot_dir, f'wetland_models')
+
 # For both wl_wc and wl_wc_s, take the mean over the models and the
 # year (we're going to compare regridded total emissions to HEMCO
 # regridded total emissions)
@@ -187,35 +220,6 @@ wl_wc_s_rg.to_netcdf(f'{data_dir}wetlands37.nc')
 ## ------------------------------------------------------------------------ ##
 ## Plot
 ## ------------------------------------------------------------------------ ##
-# fig, axis = fp.get_figax(rows=4, cols=9, maps=True, lats=wl.lat, lons=wl.lon)
-# for ax in axis.flatten():
-#     ax = fp.format_map(ax, wl.lat, wl.lon, **small_map_kwargs)
-
-
-# seasons = ['DJF', 'MAM', 'JJA', 'SON']
-# for i, seas in enumerate([[109, 119, 120], [110, 111, 112],
-#                           [113, 114, 115], [116, 117, 118]]):
-#     wl_s = wl_rg.sel(time=seas)
-#     wl_s = wl_s.mean(dim='time')
-#     axis[i, 0].text(-0.05, 0.5, seasons[i], rotation='vertical',
-#                     ha='right', va='center',
-#                     fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#                     transform=axis[i, 0].transAxes)
-#     for j, mod in enumerate(wl_s.model.values):
-#         if i == 0:
-#             axis[i, j].text(0.5, 1.05, f'{(wl_s.model.values[j])}', ha='center', va='bottom',
-#                             fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#                             transform=axis[i, j].transAxes)
-#         wl_s_m = wl_s.sel(model=mod)
-#         c= wl_s_m.plot(ax=axis[i, j], add_colorbar=False, vmin=0, vmax=50)
-#         fp.add_title(axis[i, j], '')
-
-# cax = fp.add_cax(fig, axis)
-# c = fig.colorbar(c, cax=cax)
-# c = fp.format_cbar(c, '')
-
-# fp.save_fig(fig, plot_dir, f'wetlands_rg')
-
 # Plot both sensitivity tests
 fig, axis = fp.get_figax(rows=1, cols=3, maps=True,
                          lats=clusters.lat, lons=clusters.lon)
