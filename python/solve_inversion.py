@@ -41,7 +41,7 @@ if __name__ == '__main__':
         rf = float(sys.argv[10])
         ya_file = sys.argv[11]
         c_file = sys.argv[12]
-        pct_of_info = float(sys.argv[13])/100
+        pct_of_info = float(sys.argv[13])
         suffix = sys.argv[14]
         code_dir = sys.argv[15]
 
