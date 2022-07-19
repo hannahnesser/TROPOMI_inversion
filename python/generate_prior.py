@@ -129,6 +129,19 @@ for ss, coefs in sources.items():
 print('-'*50)
 print('\n')
 
+## ------------------------------------------------------------------------ ##
+## Define EPA errors 
+## ------------------------------------------------------------------------ ##
+EPA_err_min = pd.Series({'coal' : 0.06, 'gas' : 0.1, 'oil' : 0.12, 
+                            'landfills' : 0.19, 'wastewater' : 0.01, 
+                            'livestock' : 0.05, 'other' : 0.23,
+                            'wetlands' : 0.5})
+
+EPA_err_max = pd.Series({'coal' : 0.07, 'gas' : 0.15, 'oil' : 0.76, 
+                            'landfills' : 0.33, 'wastewater' : 0.2, 
+                            'livestock' : 0.07, 'other' : 0.5,
+                             'wetlands' : 0.5})
+
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
 ## -------------------------------------------------------------------------##
@@ -160,6 +173,9 @@ area = ip.clusters_2d_to_1d(clusters, area)
 area = xr.DataArray(area, dims=('nstate'))
 area.to_netcdf(join(data_dir, 'area.nc'))
 
+## -------------------------------------------------------------------------##
+## Tables
+## -------------------------------------------------------------------------##
 # Print a summary table
 print('-'*50)
 print('SECTORAL EMISSIONS')
@@ -173,11 +189,79 @@ tally = 0
 for k in summ.keys():
     if k != 'EmisCH4_Total':
         tally += summ[k].values
-    print(f'{k:>20} {summ[k].values:.2f}')
+    k_str = k.split('_')[-1]
+    print(f'{k_str:>20} {summ[k].values:.2f}')
 print('-'*50)
 print(f'               Total {tally:.2f}')
 print('-'*50)
 
+# Print a second summary table
+print('-'*65)
+print('SECTORAL NATIONAL EMISSIONS')
+print('-'*65)
+
+# Open masks and create a total_mask array as well as a mask dictionary
+mex_mask = np.load(f'{data_dir}/Mexico_mask.npy') #.reshape((-1, 1))
+can_mask = np.load(f'{data_dir}/Canada_mask.npy') #.reshape((-1, 1))
+conus_mask = np.load(f'{data_dir}/CONUS_mask.npy') #.reshape((-1, 1))
+other_mask = np.load(f'{data_dir}/Other_mask.npy') #.reshape((-1, 1))
+total_mask = mex_mask + can_mask + conus_mask + other_mask
+masks = pd.DataFrame.from_dict({'Canada' : can_mask, 'CONUS' : conus_mask, 
+                                'Mexico' : mex_mask, 'Other' : other_mask})
+
+e_table = {'Natural' : {'Wetlands' : ['Wetlands'],
+                        'Open fires' : ['BiomassBurn'],
+                        'Termites' : ['Termites'],
+                        'Geological seeps' : ['Seeps'],
+                        'Other natural' : ['Lakes']},
+           'Anthropogenic' : {'Livestock' : ['Livestock'],
+                              'Oil and natural gas' : ['Oil', 'Gas'],
+                              'Landfills' : ['Landfills'],
+                              'Coal mining' : ['Coal'],
+                              'Wastewater' : ['Wastewater'],
+                              'Rice cultivation' : ['Rice'],
+                              'Other anthropogenic' : ['OtherAnth']}}
+
+summ = emis_correct[[var for var in emis_correct.keys() if var[:4] == 'Emis']]
+summ *= 1e-9*(60*60*24*365)*(1000*1000) # Tg/km2/yr
+
+# def print_list(list_to_print, n=8):
+#     return f'{}'
+
+c = masks.columns.values
+print(f'Source                {c[0]:>10}{c[1]:>10}{c[2]:>10}{c[3]:>10}')
+print('-'*65)
+# print(f'{'Canada':25}')
+for label, big_cat in e_table.items():
+    total = [0, 0, 0, 0]
+    print(f'{label}')
+    for cat, sources in big_cat.items():
+        # Get gridded emissions sum
+        e = sum(summ[f'EmisCH4_{s}'].squeeze() for s in sources)
+
+        # Flatten
+        e = ip.clusters_2d_to_1d(clusters, e).reshape((-1, 1))
+
+        # Adjust units
+        e *= area.values.reshape((-1, 1))
+
+        # Apply mask and sum
+        e = (e*masks).sum(axis=0).values
+        total = [total[i] + e[i] for i in range(4)]
+
+        print(f'  {cat:20}{e[0]:10.1f}{e[1]:10.1f}{e[2]:10.1f}{e[3]:10.1f}')
+        #{e['CONUS']:5.2f}{e['Mexico']:5.2f}{e['Other']:5.2f}')
+        # print(cat, e)
+        # print(cat, sources)
+    print(f'  Total               {total[0]:10.1f}{total[1]:10.1f}{total[2]:10.1f}{total[3]:10.1f}')
+
+print('-'*65)
+
+# print(emis_correct)
+
+## -------------------------------------------------------------------------##
+## Save xa
+## -------------------------------------------------------------------------##
 # Adjust units to Mg/km2/yr
 emis_correct *= 1e-3*(60*60*24*365)*(1000*1000)
 emis *= 1e-3*(60*60*24*365)*(1000*1000)
@@ -226,6 +310,43 @@ def sectoral_matrix(raw_emis, suffix, clusters=clusters, emis_cats=emissions):
 
 w_correct = sectoral_matrix(emis_correct, '_correct')
 w = sectoral_matrix(emis, '')
+
+## -------------------------------------------------------------------------##
+## Get sectoral errors
+## -------------------------------------------------------------------------##
+sect_err_max = np.sqrt(((w_correct*EPA_err_max)**2).sum(axis=1))/w_correct.sum(axis=1).values
+sect_err_max = np.array(sect_err_max)
+sect_err_max = np.nan_to_num(sect_err_max, 0.5)
+sect_err_max[sect_err_max == 0.0] = 0.5
+
+sect_err_min = np.sqrt(((w_correct*EPA_err_min)**2).sum(axis=1))/w_correct.sum(axis=1).values
+sect_err_min = np.array(sect_err_min)
+sect_err_min = np.nan_to_num(sect_err_min, 0.5)
+sect_err_min[sect_err_min == 0] = 0.5
+
+cbar_kwargs = {'title' : r'Relative errors'}
+small_map_kwargs = {'draw_labels' : False}
+small_fig_kwargs = {'max_width' : 4,
+                    'max_height' : 3.5}
+emis_kwargs = {'cmap' : fp.cmap_trans('viridis'), 'vmin' : 0, 'vmax' : 0.5,
+               'default_value' : 0, 'cbar_kwargs' : cbar_kwargs, 
+               'fig_kwargs' : small_fig_kwargs, 
+               'map_kwargs' : small_map_kwargs}
+# fig, ax = fp.get_figax(rows=1, cols=2, maps=True,
+#                        lats=emis_correct.lat, lons=emis_correct.lon)
+plt.subplots_adjust(hspace=0.5)
+# fig, ax[0], c = ip.plot_state(sect_err_min, clusters, cbar=False,
+#                               title='Minimum sectoral errors',
+#                               fig_kwargs={'figax' : [fig, ax[0]]},
+#                               **emis_kwargs)
+fig, ax, c = ip.plot_state(sect_err_max, clusters, #cbar=False,
+                              title='Sectoral errors',
+                              # fig_kwargs={'figax' : [fig, ax[1]]},
+                              **emis_kwargs)
+# cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
+# cb = fig.colorbar(c, cax=cax, ticks=np.arange(0, 0.6, 0.1))
+# cb = fp.format_cbar(cb, cbar_title=r'Relative errors') 
+fp.save_fig(fig, plot_dir, 'sectoral_errors')
 
 ## -------------------------------------------------------------------------##
 ## Sensitivity tests: Boundary condition
@@ -303,7 +424,7 @@ w_edf.to_csv(join(data_dir, f'w_edf.csv'), index=False)
 ## -------------------------------------------------------------------------##
 ## Sensitivity tests: Wetlands
 ## -------------------------------------------------------------------------##
-### 50% wetlands
+## 50% wetlands
 # xa_abs
 xa_abs_wetlands50 = copy.deepcopy(tot_emis['correct'])
 xa_abs_wetlands50 -= 0.5*w_correct['wetlands']
@@ -313,6 +434,17 @@ xa_abs_wetlands50.to_netcdf(join(data_dir, 'xa_abs_wetlands50.nc'))
 w_wetlands50 = copy.deepcopy(w_correct)
 w_wetlands50['wetlands'] *= 0.5
 w_wetlands50.to_csv(join(data_dir, f'w_wetlands50.csv'), index=False)
+
+## 25% wetlands
+# xa_abs
+xa_abs_wetlands404 = copy.deepcopy(tot_emis['correct'])
+xa_abs_wetlands404 -= (3.04/4.04)*w_correct['wetlands']
+xa_abs_wetlands404.to_netcdf(join(data_dir, 'xa_abs_wetlands404.nc'))
+
+# Sectoral attribution matrix
+w_wetlands404 = copy.deepcopy(w_correct)
+w_wetlands404['wetlands'] /= 4.04
+w_wetlands404.to_csv(join(data_dir, f'w_wetlands404.csv'), index=False)
 
 ## Remove ensemble members 3 (1923) and 7 (2913). The prep work for
 ## this test was done in wetlands.py
@@ -327,6 +459,30 @@ xa_abs_wetlands37.to_netcdf(join(data_dir, 'xa_abs_wetlands37.nc'))
 w_wetlands37 = copy.deepcopy(w_correct)
 w_wetlands37['wetlands'] = wetlands37
 w_wetlands37.to_csv(join(data_dir, f'w_wetlands37.csv'), index=False)
+
+## -------------------------------------------------------------------------##
+## Sensitivity tests: Combination
+## -------------------------------------------------------------------------##
+# EDF and BC0
+xa_abs_edf_bc0 = copy.deepcopy(xa_abs_edf)
+xa_abs_edf_bc0[bc_idx] = 0
+xa_abs_edf_bc0.to_netcdf(join(data_dir, 'xa_abs_edf_bc0.nc'))
+
+# Wetlands 4.04 and BC0
+xa_abs_wetlands404_bc0 = copy.deepcopy(xa_abs_wetlands404)
+xa_abs_wetlands404_bc0[bc_idx] = 0
+xa_abs_wetlands404_bc0.to_netcdf(join(data_dir, 'xa_abs_wetlands404_bc0.nc'))
+
+# EDF and Wetlands 4.04
+xa_abs_wetlands404_edf = copy.deepcopy(xa_abs_edf)
+xa_abs_wetlands404_edf -= (3.04/4.04)*w_correct['wetlands']
+xa_abs_wetlands404_edf.to_netcdf(join(data_dir, 'xa_abs_wetlands404_edf.nc'))
+
+# EDF, Wetlands 4.04, and BC0
+xa_abs_wetlands404_edf_bc0 = copy.deepcopy(xa_abs_edf)
+xa_abs_wetlands404_edf_bc0 -= (3.04/4.04)*w_correct['wetlands']
+xa_abs_wetlands404_edf_bc0[bc_idx] = 0
+xa_abs_wetlands404_edf_bc0.to_netcdf(join(data_dir, 'xa_abs_wetlands404_edf_bc0.nc'))
 
 ## -------------------------------------------------------------------------##
 ## Plot
@@ -365,6 +521,33 @@ if plot_dir is not None:
 
     fp.save_fig(fig, plot_dir, 'prior_emissions_2019')
 
+    # Create another plot comparing orig and correct
+    fig, ax = fp.get_figax(rows=1, cols=3, maps=True, 
+                           lats=emis_correct.lat, lons=emis_correct.lon)
+    for i, axis in enumerate(ax.flatten()):
+        axis = fp.format_map(axis, lats=emis_correct.lat, lons=emis_correct.lon)
+
+    # Mg/km2/yr
+    e = tot_emis['orig']
+    fig, ax[0], c = ip.plot_state(e, clusters, cmap=colormap, vmin=0, vmax=5,
+                                 title='Original prior',
+                                 fig_kwargs={'figax' : [fig, ax[0]]})
+
+    e = tot_emis['correct']
+    fig, ax[1], c = ip.plot_state(e, clusters, cmap=colormap, vmin=0, vmax=5,
+                                 title='Correct prior',
+                                 fig_kwargs={'figax' : [fig, ax[1]]})
+
+    rat = tot_emis['correct']/tot_emis['orig']
+    fig, ax[2], c = ip.plot_state(rat, clusters, cmap='RdBu_r', vmin=0, vmax=2, 
+                                  title='Ratio', default_value=1,
+                                  fig_kwargs={'figax' : [fig, ax[2]]})
+    fp.save_fig(fig, plot_dir, 'corrected_prior')
+
+    fig, ax = fp.get_figax(aspect=2)
+    ax.hist(rat, bins=100)
+    fp.save_fig(fig, plot_dir, 'corrected_prior_ratio_hist')
+
 # Select total emissions
 # emis = emis['EmisCH4_Total']
 
@@ -374,10 +557,10 @@ print('The minimum positive emission is',
 ## -------------------------------------------------------------------------##
 ## Generate prior and prior error covariance
 ## -------------------------------------------------------------------------##
-# Relative prior
-xa = np.ones(nstate)
-xa = xr.DataArray(xa, dims=('nstate'))
-xa.to_netcdf(join(data_dir, 'xa.nc'))
+# # Relative prior
+# xa = np.ones(nstate)
+# xa = xr.DataArray(xa, dims=('nstate'))
+# xa.to_netcdf(join(data_dir, 'xa.nc'))
 
 # Relative errors
 sa = rel_err**2*np.ones(nstate)
@@ -392,6 +575,13 @@ sa.to_netcdf(join(data_dir, 'sa.nc'))
 # Absolute errors
 sa_abs = sa*tot_emis['correct']**2
 sa_abs.to_netcdf(join(data_dir, 'sa_abs.nc'))
+
+# Variable errors
+sa_var_max = xr.DataArray(sect_err_max**2, dims=('nstate'))
+sa_var_max.to_netcdf(join(data_dir, 'sa_var_max.nc'))
+
+sa_var_min = xr.DataArray(sect_err_min**2, dims=('nstate'))
+sa_var_min.to_netcdf(join(data_dir, 'sa_var_min.nc'))
 
 # # Varying errors
 # sa_var = 1*tot_emis.mean()/tot_emis
