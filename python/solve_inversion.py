@@ -25,7 +25,7 @@ if __name__ == '__main__':
         # niter = '2'
         # ya_file = f'{data_dir}/ya.nc'
         # c_file = f'{data_dir}/c.nc'
-        # so_file = f'{data_dir}/so_rg4rt.nc'
+        # so_file = f'{data_dir}/so_rg2rt_10t.nc'
         # sa_file = f'{data_dir}/sa.nc'
         # sa_scale = 1
         # rf = 1
@@ -41,8 +41,9 @@ if __name__ == '__main__':
         rf = float(sys.argv[10])
         ya_file = sys.argv[11]
         c_file = sys.argv[12]
-        suffix = sys.argv[13]
-        code_dir = sys.argv[14]
+        pct_of_info = float(sys.argv[13])/100
+        suffix = sys.argv[14]
+        code_dir = sys.argv[15]
 
     else:
         niter = 1
@@ -72,7 +73,7 @@ if __name__ == '__main__':
 
     # User preferences
     # pct_of_info = [50, 70, 75, 80, 90, 99.9]
-    pct_of_info = 80
+    # pct_of_info = 80
 
     ## -------------------------------------------------------------------- ##
     ## Set up working environment
