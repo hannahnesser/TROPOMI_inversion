@@ -83,7 +83,7 @@ total_mask_id = ip.clusters_2d_to_1d(clusters, total_mask_id)
 total_mask_id[masks['Other'] > 0] = 4 # Other
 
 # Distribute into each country's mask
-for i, country in enumerate(['Mexico', 'CONUS', 'Canada']):
+for i, country in enumerate(['Mexico', 'CONUS', 'Canada', 'Other']):
     temp_mask = copy.deepcopy(total_mask_id)
     temp_mask[temp_mask != (i + 1)] = 0
     temp_mask[temp_mask > 0] = 1
