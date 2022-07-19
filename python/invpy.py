@@ -496,9 +496,14 @@ def plot_state_format(data, default_value=0, cbar=True, **kw):
 
     if cbar:
         cbar_title = cbar_kwargs.pop('title', '')
-        cax = fp.add_cax(fig, ax)
-        cb = fig.colorbar(c, ax=ax, cax=cax, **cbar_kwargs)
-        cb = fp.format_cbar(cb, cbar_title)
+        horiz = cbar_kwargs.pop('horizontal', False)
+        if horiz:
+            orient = 'horizontal'
+        else:
+            orient = 'vertical'
+        cax = fp.add_cax(fig, ax, horizontal=horiz)
+        cb = fig.colorbar(c, ax=ax, cax=cax, orientation=orient, **cbar_kwargs)
+        cb = fp.format_cbar(cb, cbar_title, horizontal=horiz)
         return fig, ax, cb
     else:
         return fig, ax, c
