@@ -12,7 +12,7 @@ CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 NUM_EVECS="1952"
 CALCULATE_EVECS="True"
 FORMAT_EVECS="False"
-OPTIMIZE_RF="True"
+OPTIMIZE_RF="False"
 OPTIMIZE_BC="False"
 CHUNK_SIZE=150000
 
@@ -25,17 +25,18 @@ MASK="None"
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_correct.nc"
 SA_FILE="${SHORT_TERM_DATA_DIR}/sa.nc"
 # SO_FILE="${SHORT_TERM_DATA_DIR}/so.nc" # If niter = 0, this should be so0
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t.nc" # Regridded errors (2x2) with threshold
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya.nc" # If niter = 0, this should be ya0
 C_FILE="${SHORT_TERM_DATA_DIR}/c.nc"
 
 # Scaling factors
 SA_SCALE="1"
 RF="1"
+PCT_OF_INFO="80"
 
 # Saving out
 # FILE_SUFFIX="None"
-FILE_SUFFIX="_rg4rt"
+FILE_SUFFIX="_rg2rt_10t"
 
 ## Sensitivity inversion options ##
 
@@ -46,13 +47,13 @@ FILE_SUFFIX="_rg4rt"
 # # -------------------------------------------------------------#
 
 # # -------------------------------------------------------------#
-# # More coarsly regridded errors (2x2 and monthly or seasonal?)
+# # More coarsly regridded errors (2x2 seasonal?)
 # SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt.nc"
 # FILE_SUFFIX="_rg2rt"
 # # -------------------------------------------------------------#
 
 # # -------------------------------------------------------------#
-# # More coarsly regridded errors (3x3 and monthly or seasonal?)
+# # More coarsly regridded errors (3x3 seasonal?)
 # SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg3rt.nc"
 # FILE_SUFFIX="_rg3rt"
 # # -------------------------------------------------------------#
@@ -64,34 +65,90 @@ FILE_SUFFIX="_rg4rt"
 # # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
+# Variable errors
+SA_FILE="${SHORT_TERM_DATA_DIR}/sa_var_max.nc"
+FILE_SUFFIX="_rg2rt_10t_sa_var_max"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Boundary condition test (Running with both sa standard and sa_var_max)
+OPTIMIZE_BC="True"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_bc0.nc"
+# SA_FILE="${SHORT_TERM_DATA_DIR}/sa_var_max.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_bc0.nc"
+RF="1"
+FILE_SUFFIX="_rg2rt_10t_sa_var_max_bc0"
+# FILE_SUFFIX="_rg2rt_10t_bc0"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
 # Permian sensitivity test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_edf.nc"
-FILE_SUFFIX="_rg4rt_edf"
+# FILE_SUFFIX="_rg2rt_10t_edf"
+FILE_SUFFIX="_rg2rt_10t_sa_var_max_edf"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
 # Wetland 50% test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands50.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands50.nc"
-FILE_SUFFIX="_rg4rt_wetlands50"
+FILE_SUFFIX="_rg2rt_wetlands50"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Wetland 4.04 scaling test
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404.nc"
+# FILE_SUFFIX="_rg2rt_10t_wetlands404"
+FILE_SUFFIX="_rg2rt_10t_sa_var_max_wetlands404"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
 # Wetland remove ensemble members 3 (1923) and 7 (2913) test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands37.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands37.nc"
-FILE_SUFFIX="_rg4rt_wetlands37"
+FILE_SUFFIX="_rg2rt_wetlands37"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
-# Boundary condition test
+# Combine BC0 and wetland 4.04 scaling test
 OPTIMIZE_BC="True"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_bc0.nc"
-C_FILE="${SHORT_TERM_DATA_DIR}/c_bc0.nc"
-FILE_SUFFIX="_rg4rt_bc0"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404_bc0.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404_bc0.nc"
+FILE_SUFFIX="_rg2rt_10t_wetlands404_bc0"
 # -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Combine BC0 and EDF test
+OPTIMIZE_BC="True"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf_bc0.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_edf_bc0.nc"
+FILE_SUFFIX="_rg2rt_10t_edf_bc0"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Combine wetlands 4.04 and EDF test
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404_edf.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404_edf.nc"
+FILE_SUFFIX="_rg2rt_10t_wetlands404_edf"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Combine BC0, EDF, and wetland 4.04 scaling test
+OPTIMIZE_BC="True"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404_edf_bc0.nc"
+C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404_edf_bc0.nc"
+FILE_SUFFIX="_rg2rt_10t_wetlands404_edf_bc0"
+# -------------------------------------------------------------#
+
+# # -------------------------------------------------------------#
+# # Blended albedo threshold of 0.85
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
+# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_ba85.nc"
+# C_FILE="${SHORT_TERM_DATA_DIR}/c_ba85.nc"
+# FILE_SUFFIX="_rg4rt_ba85"
+# # -------------------------------------------------------------#
 
 
 # FILE_SUFFIX="_savar"
