@@ -28,7 +28,8 @@ if __name__ == '__main__':
         niter = '2'
         prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final'
         perturbation_dirs = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_NNNN'
-        n_perturbation_dirs = 434
+        n_perturbation_dirs = 10
+        n_perturbation_min = 1953
         data_dir = f'/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
         code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
