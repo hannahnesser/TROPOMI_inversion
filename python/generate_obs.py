@@ -178,7 +178,7 @@ albedo_bins = np.arange(0, 1.1, 0.05)
 filter_on_seasonal_latitude = True
 
 # Remove latitudinal bias
-remove_latitudinal_bias = True
+remove_latitudinal_bias = False
 lat_bins = np.arange(10, 65, 5)
 
 # Which analyses do you wish to perform?
@@ -967,14 +967,16 @@ if (plot_dir is not None) and calculate_so:
     d_p = d_p[['STD', 'AVG_OBS', 'AVG_DIFF', 'COUNT']].to_xarray()
     d_p = d_p.rename({'LAT_CENTER' : 'lats', 'LON_CENTER' : 'lons'})
 
-    fig, ax = fp.get_figax(rows=1, cols=4, maps=True,
+    fig, ax = fp.get_figax(rows=2, cols=4, maps=True,
                            lats=d_p.lats, lons=d_p.lons,
                            max_width=config.PRES_WIDTH*config.SCALE*1.5,
                            max_height=config.PRES_HEIGHT*config.SCALE*1.5)
-    fig_c, ax_c = fp.get_figax(rows=1, cols=4, maps=True,
-                               lats=d_p.lats, lons=d_p.lons,
-                               max_width=config.PRES_WIDTH*config.SCALE*1.5,
-                               max_height=config.PRES_HEIGHT*config.SCALE*1.5)
+    plt.subplots_adjust(hspace=-0.25, wspace=0.05)
+
+    # fig_c, ax_c = fp.get_figax(rows=1, cols=4, maps=True,
+    #                            lats=d_p.lats, lons=d_p.lons,
+    #                            max_width=config.PRES_WIDTH*config.SCALE*1.5,
+    #                            max_height=config.PRES_HEIGHT*config.SCALE*1.5)
     fig_e, ax_e = fp.get_figax(rows=1, cols=4, maps=True,
                                lats=d_p.lats, lons=d_p.lons,
                                max_width=config.PRES_WIDTH*config.SCALE*1.5,
@@ -986,31 +988,37 @@ if (plot_dir is not None) and calculate_so:
     for i, s in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
         d = d_p.where(d_p.SEASON == s, drop=True)
 
-        c = d['AVG_OBS'].plot(ax=ax[i], cmap='plasma', vmin=1800, vmax=1900,
+        c = d['AVG_OBS'].plot(ax=ax[0, i], cmap='plasma', vmin=1800, vmax=1900,
+                              add_colorbar=False)
+        c_c = d['COUNT'].plot(ax=ax[1, i], cmap='afmhot', vmin=0, vmax=300,
                               add_colorbar=False)
         c_e = d['STD'].plot(ax=ax_e[i], cmap='plasma', vmin=0, vmax=25,
                             add_colorbar=False)
-        c_c = d['COUNT'].plot(ax=ax_c[i], cmap='afmhot', vmin=0, vmax=300,
-                              add_colorbar=False)
+        # c_c = d['COUNT'].plot(ax=ax_c[i], cmap='afmhot', vmin=0, vmax=300,
+        #                       add_colorbar=False)
         c_cb = d['AVG_DIFF'].plot(ax=ax_cb[i], cmap='PuOr_r',
                                   vmin=-30, vmax=30, add_colorbar=False)
-        for j, axis in enumerate([ax[i], ax_e[i], ax_c[i], ax_cb[i]]):
+        for j, axis in enumerate([ax[0, i], ax_e[i], ax_cb[i]]):
             axis = fp.format_map(axis, d.lats, d.lons)
             axis = fp.add_title(axis, s)
-    cax = fp.add_cax(fig, ax)
-    cb = fig.colorbar(c, ax=ax, cax=cax)
+        ax[1, i] = fp.format_map(ax[1, i], d.lats, d.lons)
+        ax[1, i] = fp.add_title(ax[1, i], '')
+
+    cax = fp.add_cax(fig, ax[0, :], cbar_pad_inches=0.075)
+    cb = fig.colorbar(c, ax=ax[0, :], cax=cax)
     cb = fp.format_cbar(cb, 'XCH4\n(ppb)')
+
+    cax_c = fp.add_cax(fig, ax[1, :], cbar_pad_inches=0.075)
+    cb_c = fig.colorbar(c_c, ax=ax[1, :], cax=cax_c, ticks=[50, 150, 250])
+    cb_c = fp.format_cbar(cb_c, 'Count')
+    # fp.save_fig(fig_c, plot_dir, f'counts{suffix}')
+
     fp.save_fig(fig, plot_dir, f'observations{suffix}')
 
     cax_e = fp.add_cax(fig_e, ax_e)
     cb_e = fig.colorbar(c_e, ax=ax_e, cax=cax_e)
     cb_e = fp.format_cbar(cb_e, 'St. Dev.\n(ppb)')
     fp.save_fig(fig_e, plot_dir, f'errors{suffix}')
-
-    cax_c = fp.add_cax(fig_c, ax_c)
-    cb_c = fig.colorbar(c_c, ax=ax_c, cax=cax_c)
-    cb_c = fp.format_cbar(cb_c, 'Count')
-    fp.save_fig(fig_c, plot_dir, f'counts{suffix}')
 
     cax_cb = fp.add_cax(fig_cb, ax_cb)
     cb_cb = fig.colorbar(c_cb, ax=ax_cb, cax=cax_cb)
@@ -1100,10 +1108,10 @@ y = xr.DataArray(data['OBS'], dims=('nobs'))
 y.to_netcdf(join(output_dir, 'y.nc'))
 
 ya = xr.DataArray(data['MOD'], dims=('nobs'))
-ya.to_netcdf(join(output_dir, 'ya.nc'))
+ya.to_netcdf(join(output_dir, 'ya_nlc.nc'))
 
 if calculate_so:
     so = xr.DataArray(data['SO'], dims=('nobs'))
-    so.to_netcdf(join(output_dir, f'so{err_suffix}_{err_min}t.nc'))
+    so.to_netcdf(join(output_dir, f'so{err_suffix}_{err_min}t_nlc.nc'))
 
 print('=== CODE COMPLETE ====')
