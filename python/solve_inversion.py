@@ -152,6 +152,12 @@ if __name__ == '__main__':
         # (this formulation only works with constant errors I think)
         return np.array(1 + shat @ kt_so_ydiff)
 
+    def calculate_xhat_fr(shat, evecs, sa, kt_so_ydiff):
+        sa_evecs = evecs*(sa**0.5)
+        shat_kpi = shat + (sa_evecs @ sa_evecs.T)
+        xhat_fr = shat_kpi @ kt_so_ydiff
+        return xhat_fr
+
     def calculate_a(evecs, evals_h, sa):
         evals_q = evals_h/(1 + evals_h)
         a = sa**0.5*(evecs*evals_q) @ evecs.T*(1/(sa**0.5))
@@ -166,8 +172,9 @@ if __name__ == '__main__':
     def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
         shat = calculate_shat(evecs, evals_h, sa)
         xhat = calculate_xhat(shat, kt_so_ydiff)
+        xhat_fr = calculate_xhat_fr(shat, evecs, sa, kt_so_ydiff)
         a = calculate_a(evecs, evals_h, sa)
-        return xhat, shat, a
+        return xhat, xhat_fr, shat, a
 
     ## -------------------------------------------------------------------- ##
     ## Open files
@@ -264,7 +271,7 @@ if __name__ == '__main__':
             p_i = rf_i*copy.deepcopy(pre_xhat)
 
             # Calculate the posterior
-            xhat, _, a = solve_inversion(evecs, evals_h_i, sa, p_i)
+            xhat, _, _, a = solve_inversion(evecs, evals_h_i, sa, p_i)
             dofs = np.diagonal(a)
 
             # # Calculate the posterior observations
@@ -321,13 +328,15 @@ if __name__ == '__main__':
     # (we can leave off Sa when it's constant)
     # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
     # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-    xhat, shat, a = solve_inversion(evecs, evals_h, sa, pre_xhat)
+    xhat, xhat_fr, shat, a = solve_inversion(evecs, evals_h, sa, pre_xhat)
     dofs = np.diagonal(a)
 
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
     np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
+    np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suffix}.npy', 
+            xhat_fr)
     np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
 
     # # Calculate the posterior observations
