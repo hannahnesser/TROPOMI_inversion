@@ -290,22 +290,26 @@ def format_map(ax, lats, lons,
     # gl.ylabel_style = {'fontsize' : fontsize}
     return ax
 
-def format_cbar(cbar, cbar_title='', horizontal=False):
+def format_cbar(cbar, cbar_title='', horizontal=False, **cbar_kwargs):
     # cbar.set_label(cbar_title, fontsize=BASEFONT*config.SCALE,
     #                labelpad=CBAR_config.LABEL_PAD)
             # x0
     if horizontal:
-        x = 0.5
+        x = cbar_kwargs.pop('x', 0.5)
         y = -4
         rotation = 'horizontal'
+        va = 'top'
+        ha = 'center'
     else:
-        x = 6
+        x = cbar_kwargs.pop('x', 5)
         y = 0.5
         rotation = 'vertical'
+        va = 'center'
+        ha = 'left'
 
     cbar.ax.tick_params(axis='both', which='both',
                         labelsize=config.TICK_FONTSIZE*config.SCALE)
-    cbar.ax.text(x, y, cbar_title, ha='center', va='center', rotation=rotation,
+    cbar.ax.text(x, y, cbar_title, ha=ha, va=va, rotation=rotation,
                  fontsize=config.LABEL_FONTSIZE*config.SCALE,
                  transform=cbar.ax.transAxes)
 
