@@ -152,9 +152,8 @@ if __name__ == '__main__':
         # (this formulation only works with constant errors I think)
         return np.array(1 + shat @ kt_so_ydiff)
 
-    def calculate_xhat_fr(shat, evecs, sa, kt_so_ydiff):
-        sa_evecs = evecs*(sa**0.5)
-        shat_kpi = shat + (sa_evecs @ sa_evecs.T)
+    def calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff):
+        shat_kpi = sa - a*sa
         xhat_fr = shat_kpi @ kt_so_ydiff
         return xhat_fr
 
@@ -171,9 +170,9 @@ if __name__ == '__main__':
 
     def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
         shat = calculate_shat(evecs, evals_h, sa)
-        xhat = calculate_xhat(shat, kt_so_ydiff)
-        xhat_fr = calculate_xhat_fr(shat, evecs, sa, kt_so_ydiff)
         a = calculate_a(evecs, evals_h, sa)
+        xhat = calculate_xhat(shat, kt_so_ydiff)
+        xhat_fr = calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff)
         return xhat, xhat_fr, shat, a
 
     ## -------------------------------------------------------------------- ##
