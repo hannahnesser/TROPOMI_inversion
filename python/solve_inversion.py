@@ -153,7 +153,7 @@ if __name__ == '__main__':
         return np.array(1 + shat @ kt_so_ydiff)
 
     def calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff):
-        shat_kpi = sa - a*sa
+        shat_kpi = np.diag(sa.reshape(-1,)) - a*sa
         xhat_fr = shat_kpi @ kt_so_ydiff
         return xhat_fr
 
