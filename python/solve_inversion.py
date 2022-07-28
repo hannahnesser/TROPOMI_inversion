@@ -23,12 +23,15 @@ if __name__ == '__main__':
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
         # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
         # niter = '2'
-        # ya_file = f'{data_dir}/ya.nc'
-        # c_file = f'{data_dir}/c.nc'
-        # so_file = f'{data_dir}/so_rg2rt_10t.nc'
+        # xa_abs_file = f'{data_dir}/xa_abs_wetlands404_edf_bc0.nc'
+        # ya_file = f'{data_dir}/ya_nlc.nc'
+        # c_file = f'{data_dir}/c_wetlands404_edf_nlc_bc0.nc'
+        # so_file = f'{data_dir}/so_rg2rt_10t_nlc.nc'
         # sa_file = f'{data_dir}/sa.nc'
         # sa_scale = 1
         # rf = 1
+        # suffix = '_rg2rt_10t_wetlands404_edf_nlc_bc0'
+        # pct_of_info = 80
         niter = sys.argv[1]
         data_dir = sys.argv[2]
         output_dir = sys.argv[3]
@@ -153,7 +156,7 @@ if __name__ == '__main__':
         return np.array(1 + shat @ kt_so_ydiff)
 
     def calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff):
-        shat_kpi = np.diag(sa.reshape(-1,)) - a*sa
+        shat_kpi = (np.identity(len(sa)) - a)*sa.reshape((1, -1))
         xhat_fr = shat_kpi @ kt_so_ydiff
         return xhat_fr
 
