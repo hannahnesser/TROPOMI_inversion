@@ -157,8 +157,7 @@ if __name__ == '__main__':
 
     def calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff):
         shat_kpi = (np.identity(len(sa)) - a)*sa.reshape((1, -1))
-        xhat_fr = shat_kpi @ kt_so_ydiff
-        return xhat_fr
+        return np.array(1 + shat_kpi @ kt_so_ydiff)
 
     def calculate_a(evecs, evals_h, sa):
         evals_q = evals_h/(1 + evals_h)
@@ -228,14 +227,6 @@ if __name__ == '__main__':
     evecs = np.load(f'{data_dir}/iteration{niter}/operators/evecs{niter}{suffix}.npy')
     evals_h = np.load(f'{data_dir}/iteration{niter}/operators/evals_h{niter}{suffix}.npy')
 
-    # If sa_scale is defined, scale everything
-    if sa_scale is not None:
-        evals_h *= sa_scale**2
-        if optimize_bc:
-            sa[:-4] = sa[:-4]*sa_scale**2
-        else:
-            sa *= sa_scale**2
-
     # Subset the eigenvectors and eigenvalues
     print(f'Using {pct_of_info} percent of information content.')
     evals_q_orig = np.load(f'{data_dir}/iteration0/operators/evals_q0.npy')
@@ -253,58 +244,66 @@ if __name__ == '__main__':
         # To calculate the cost function for the observational term,
         # we need to load the true observations and the constant term
         ## Load the observations
-        y = gc.read_file(f'{data_dir}/y.nc')
+        # y = gc.read_file(f'{data_dir}/y.nc')
 
         # Iterate through different regularization factors and prior
         # errors. Then save out the prior and observational cost function
-        rfs = [1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 2]
-        # DOFS_threshold = [0.01, 0.05, 0.1]
-        DOFS_threshold = 0.05
-        # sas = [0.1, 0.25, 0.5, 0.75, 1, 2]
-        # sas = [1.5, 2, 3]
-        ja = np.zeros((len(rfs)))#, len(DOFS_threshold)))
-        jo = np.zeros((len(rfs)))#, len(DOFS_threshold)))
-        n = np.zeros((len(rfs)))#, len(DOFS_threshold)))
+        rfs = [0.01, 0.05, 0.1, 0.5, 1]
+        sas = [0.5, 0.75, 1.0, 1.25, 1.5]
+        dds = [0.05, 0.1, 0.15, 0.2]
+        ja = np.zeros((len(rfs), len(sas), len(dds)))
+        n = np.zeros((len(rfs), len(sas), len(dds)))
+        negs = np.zeros((len(rfs), len(sas), len(dds)))
+        avg = np.zeros((len(rfs), len(sas), len(dds)))
         for i, rf_i in enumerate(rfs):
-            print(f'Solving the invesion for RF = {rf_i} and Sa = {sa[0]}')
+            for j, sa_i in enumerate(sas):
+                print(f'Solving the invesion for RF = {rf_i} and Sa = {sa_i}')
 
-            # Scale the relevant terms by RF and Sa
-            evals_h_i = rf_i*copy.deepcopy(evals_h)
-            p_i = rf_i*copy.deepcopy(pre_xhat)
+                # Scale the relevant terms by RF and Sa
+                evals_h_ij = rf_i*sa_i**2*copy.deepcopy(evals_h)
+                p_ij = rf_i*copy.deepcopy(pre_xhat)
 
-            # Calculate the posterior
-            xhat, _, _, a = solve_inversion(evecs, evals_h_i, sa, p_i)
-            dofs = np.diagonal(a)
+                if optimize_bc:
+                    sa_ij[:-4] = sa_ij[:-4]*sa_i**2
+                else:
+                    sa_ij *= sa_i**2
 
-            # # Calculate the posterior observations
-            yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
-            yhat += c.values
-            # There's sort of an interesting question here of how
-            # to calculate yhat, given that we subset xhat. This will
-            # be pertinent when we do our posterior model comparaison
+                # Calculate the posterior
+                _, xh_fr, _, a = solve_inversion(evecs, evals_h_ij, sa_ij, p_ij)
+                dofs = np.diagonal(a)
 
-            # Save out
-            suff = suffix + f'_rf{rf_i}' + f'_sax{sa_scale}' + f'_poi{pct_of_info}'
-            np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
-            np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xhat)
-            np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suff}.npy', yhat)
+                # # Calculate the posterior observations
+                # yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
+                # yhat += c.values
+                # # There's sort of an interesting question here of how
+                # # to calculate yhat, given that we subset xhat. This will
+                # # be pertinent when we do our posterior model comparaison
 
-            # Subset the posterior
-            # for j, t_i in enumerate(DOFS_threshold):
-            xhat[dofs < DOFS_threshold] = 1 #t_i]
+                # Save out
+                suff = suffix + f'_rf{rf_i}' + f'_sax{sa_scale}' + f'_poi{pct_of_info}'
+                np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
+                np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xhat)
+                # np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suff}.npy', yhat)
 
-            # Calculate and save the cost function for the prior term
-            ja[i] = ((xhat - 1)**2/sa.reshape(-1,)).sum()
-            jo[i] = ((y.values - yhat)**2/(so.reshape(-1,)/rf_i)).sum()
-            n[i] = (dofs >= DOFS_threshold).sum()
+                # Subset the posterior
+                # for j, t_i in enumerate(DOFS_threshold):
+                for k, dofs_i in enumerate(dds):
+                    xh_fr[dofs < dofs_i] = 1
+                    nf = (dofs >= dofs_i).sum()
 
-            # # Calculate the functional state vector size
-            # n[i, j] = (dofs >= 0.01).sum()
+                    # Calculate and save the cost function for the prior term
+                    ja[i, j, k] = ((xh_fr - 1)**2/sa_i.reshape(-1,)).sum()/nf
+                    n[i, j, k] = nf
+                    negs[i, j, k] = (xh_fr < 0).sum()
+                    avg[i, j, k] = xh_fr[dofs >= dofs_i].mean()
 
         # Save the result
-        np.save(f'{data_dir}/iteration{niter}/ja{niter}.npy', ja)
-        np.save(f'{data_dir}/iteration{niter}/jo{niter}.npy', jo)
-        np.save(f'{data_dir}/iteration{niter}/n_functional{niter}.npy', n)
+        np.save(f'{data_dir}/iteration{niter}/ja{niter}{suffix}.npy', ja)
+        np.save(f'{data_dir}/iteration{niter}/n_func{niter}{suffix}.npy', n)
+        np.save(f'{data_dir}/iteration{niter}/negs{niter}{suffix}.npy', negs)
+        np.save(f'{data_dir}/iteration{niter}/avg{niter}{suffix}.npy', avg)
+
+        # np.save(f'{data_dir}/iteration{niter}/jo{niter}{suffix}.npy', jo)
 
     ## ---------------------------------------------------------------------##
     ## Solve the inversion
@@ -321,6 +320,14 @@ if __name__ == '__main__':
         evals_h *= rf
         pre_xhat *= rf
         so /= rf
+
+    # If sa_scale is defined, scale everything
+    if sa_scale is not None:
+        evals_h *= sa_scale**2
+        if optimize_bc:
+            sa[:-4] = sa[:-4]*sa_scale**2
+        else:
+            sa *= sa_scale**2
 
     # Recompute evals_q.
     # evals_q = evals_h/(1 + evals_h)
