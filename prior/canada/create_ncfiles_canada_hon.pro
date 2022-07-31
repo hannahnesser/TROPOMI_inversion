@@ -7,7 +7,7 @@ pro create_ncfiles_canada
 ;nfile = n_elements(filesector)
 
 ;--read header and Area
-filename = '/n/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/Area_Global.nc'
+filename = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/Area_Global.nc'
 Cdfid=NCDF_OPEN(filename)
 NCDF_VARGET, Cdfid ,'lat' ,lat
 NCDF_VARGET, Cdfid ,'lon' ,lon
@@ -112,7 +112,7 @@ for isec = 0, N_GCsector-1 do begin
 	;NC files
 	nsecfile=n_elements(filesec)
 	for ifile = 0,nsecfile-1 do begin
-		filename = '/n/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/can_emis_'+filesec[ifile]+'_2018.nc'
+		filename = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/can_emis_'+filesec[ifile]+'_2018.nc'
 		Cdfid=NCDF_OPEN(filename)
 		nvars=n_elements(varsec)
 		for ivar = 0 , nvars-1 do begin
@@ -193,7 +193,7 @@ if (donc) then begin
         for isec = 0, N_GCsector-1 do begin
         thissec = finalsector[isec]
 
-        filename='/n/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/processed/CAN_Tia2020_'+thissec+'_2018.nc'
+        filename='/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/emissions/canada/processed/CAN_Tia2020_'+thissec+'_2018.nc'
 
         ;open a netcdf file
         FileId  = NCDF_Create( FileName, /Clobber )

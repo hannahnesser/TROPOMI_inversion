@@ -2,11 +2,11 @@
 
 # User settings
 PRIOR_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
-TROPOMI_DIR="/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-CORRECT_CFL_DIR="/n/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/"
+TROPOMI_DIR="/n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
+CORRECT_CFL_DIR="/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/gc_outputs/"
 CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 OUTPUT_DIR_SHORTTERM="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir"
-OUTPUT_DIR_LONGTERM="/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data"
+OUTPUT_DIR_LONGTERM="/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data"
 JACOBIAN="False"
 
 # Check for unphysical stratospheric values
