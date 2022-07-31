@@ -5,7 +5,7 @@ import copy
 
 # Define directories
 code_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/python/'
-bc_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/'
+bc_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/'
 
 # Load custom packages
 import sys

@@ -59,11 +59,11 @@ SPINUP_START=20180401
 SPINUP_END=20180501
 
 # Path to initial restart file
-RESTART_FILE="/n/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.${START_DATE}_0000z.nc4"
+RESTART_FILE="/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/restarts/GEOSChem.Restart.${START_DATE}_0000z.nc4"
 
 # Path to boundary condition files (for nested grid simulations)
 # Must put backslash before $ in $YYYY$MM$DD to properly work in sed command
-BC_FILES="/n/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
+BC_FILES="/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/boundary_conditions/GEOSChem.BoundaryConditions.\$YYYY\$MM\$DD_0000z.nc4"
 
 # Jacobian settings
 nPerturbationsMin=1953
@@ -72,7 +72,7 @@ pPERT="1.0E-8"
 
 # Path and file format for eigenvectors 
 # (use evecnumevecnum to substitute for the number)
-EVEC_PATH="/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/eigenvectors1"
+EVEC_PATH="/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/eigenvectors1"
 EVEC_FILE="evec_pert_evecnumevecnum.nc"
 
 # Grid settings (Nested NA)
@@ -451,7 +451,7 @@ while [[ $x -le $nPerturbationsMax && $x -ge $nPerturbationsMin ]];do
         sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
 
         # Eigenvector file
-        OLD="/n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations/evec_perturbations_evecnumevecnum.nc"
+        OLD="/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations/evec_perturbations_evecnumevecnum.nc"
         NEW="${EVEC_PATH}/${EVEC_FILE//evecnumevecnum/${xstr}}"
         sed -i "s:$OLD:$NEW:g" HEMCO_Config.rc
 

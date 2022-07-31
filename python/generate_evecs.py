@@ -18,7 +18,7 @@ if __name__ == '__main__':
     if not local:
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results/'
-        # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/'
+        # output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/'
         niter = sys.argv[1]
         n_evecs = int(sys.argv[2])
         data_dir = sys.argv[3]

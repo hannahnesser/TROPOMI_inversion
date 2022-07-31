@@ -90,8 +90,8 @@ rel_err = 1
 emissions = {'wetlands' : 'Wetlands',
              'livestock' : 'Livestock',
              'coal' : 'Coal',
-             'oil' : 'Oil',
-             'gas' : 'Gas',
+             'ong' : ['Oil', 'Gas'],
+             # 'gas' : 'Gas',
              'landfills' : 'Landfills',
              'wastewater' : 'Wastewater',
              'other' : ['Termites', 'Seeps', 'BiomassBurn', 'Lakes', 'Rice', 'OtherAnth']}
@@ -215,7 +215,8 @@ e_table = {'Natural' : {'Wetlands' : ['Wetlands'],
                         'Geological seeps' : ['Seeps'],
                         'Other natural' : ['Lakes']},
            'Anthropogenic' : {'Livestock' : ['Livestock'],
-                              'Oil and natural gas' : ['Oil', 'Gas'],
+                              # 'Oil' : ['Oil'], 'Gas' : ['Gas'],
+                              'Oil and gas' : ['Oil', 'Gas'],
                               'Landfills' : ['Landfills'],
                               'Coal mining' : ['Coal'],
                               'Wastewater' : ['Wastewater'],
@@ -224,6 +225,24 @@ e_table = {'Natural' : {'Wetlands' : ['Wetlands'],
 
 summ = emis_correct[[var for var in emis_correct.keys() if var[:4] == 'Emis']]
 summ *= 1e-9*(60*60*24*365)*(1000*1000) # Tg/km2/yr
+
+# Correct for wetlands
+summ['EmisCH4_Wetlands'] /= 4.04
+
+# Correct for EDF
+permian_ong_edf = xr.open_dataset(f'{base_dir}/prior/permian/permian_EDF_2019.nc') # Originally kg/m2/s
+print(permian_ong_edf)
+summ['EmisCH4_Oil_EDF'] = permian_ong_edf['EmisCH4_Oil']*1e-9*(60*60*24*365)*(1000*1000)
+summ['EmisCH4_Gas_EDF'] = permian_ong_edf['EmisCH4_Gas']*1e-9*(60*60*24*365)*(1000*1000)
+condition = ((summ.lat <= permian_ong_edf.lat.max()) &
+             (summ.lat >= permian_ong_edf.lat.min()) &
+             (summ.lon <= permian_ong_edf.lon.max()) &
+             (summ.lon >= permian_ong_edf.lon.min()))
+summ['EmisCH4_Oil'] = summ['EmisCH4_Oil'].where(~condition, 
+                                                summ['EmisCH4_Oil_EDF'])
+summ['EmisCH4_Gas'] = summ['EmisCH4_Gas'].where(~condition, 
+                                                summ['EmisCH4_Gas_EDF'])
+
 
 # def print_list(list_to_print, n=8):
 #     return f'{}'
@@ -395,10 +414,18 @@ np.save(f'{data_dir}/permian_idx.npy', permian_idx)
 ## 2. Subset total prior emissions and oil and natural gas emissions over
 ## the Permian (Mg/km2/yr)
 xa_abs_permian = tot_emis['correct'][permian_idx]
-xa_abs_permian_ong_epa = (w_correct['oil'] + w_correct['gas'])[permian_idx]
+# xa_abs_permian_ong_epa = (w_correct['oil'] + w_correct['gas'])[permian_idx]
+xa_abs_permian_ong_epa = w_correct['ong'][permian_idx]
 
 ## 3. Get the EDF prior and subset over the Permian
 permian_ong_edf = xr.open_dataset(f'{base_dir}/prior/permian/permian_EDF_2019.nc') # Originally kg/m2/s
+    # Plot
+fig, ax = fp.get_figax(maps=True, 
+                       lats=permian_ong_edf.lat, lons=permian_ong_edf.lon)
+permian_ong_edf['EmisCH4_Gas'].plot(ax=ax, add_colorbar=False)
+ax.set_title('Temp')
+fp.save_fig(fig, plot_dir, 'temp')
+
 permian_o_edf = permian_ong_edf['EmisCH4_Oil']*1e-3*(60*60*24*365)*(1000*1000)
 permian_ng_edf = permian_ong_edf['EmisCH4_Gas']*1e-3*(60*60*24*365)*(1000*1000)
 xa_abs_permian_o_edf = ip.clusters_2d_to_1d(permian, permian_o_edf)
@@ -413,8 +440,9 @@ xa_abs_edf[permian_idx] = xa_abs_permian
 
 ## 4. Calculate a new sectoral attribution matrix
 w_edf = copy.deepcopy(w_correct)
-w_edf['oil'][permian_idx] = xa_abs_permian_o_edf
-w_edf['gas'][permian_idx] = xa_abs_permian_ng_edf
+# w_edf['oil'][permian_idx] = xa_abs_permian_o_edf
+# w_edf['gas'][permian_idx] = xa_abs_permian_ng_edf
+w_edf['ong'][permian_idx] = xa_abs_permian_o_edf + xa_abs_permian_ng_edf
 
 ## 5. Save out
 xa_abs_edf = xr.DataArray(xa_abs_edf, dims=('nstate'))
@@ -484,41 +512,60 @@ xa_abs_wetlands404_edf_bc0 -= (3.04/4.04)*w_correct['wetlands']
 xa_abs_wetlands404_edf_bc0[bc_idx] = 0
 xa_abs_wetlands404_edf_bc0.to_netcdf(join(data_dir, 'xa_abs_wetlands404_edf_bc0.nc'))
 
+# W for EDF and wetlands 4.04
+w_wetlands404_edf = copy.deepcopy(w_correct)
+w_wetlands404_edf['wetlands'] /= 4.04
+w_wetlands404_edf['ong'] = copy.deepcopy(w_edf['ong'])
+w_wetlands404_edf.to_csv(join(data_dir, 'w_wetlands404_edf.csv'), index=False)
+print(w_wetlands404_edf)
+
 ## -------------------------------------------------------------------------##
 ## Plot
 ## -------------------------------------------------------------------------##
 if plot_dir is not None:
-    emissions = ['Wetlands', 'Livestock',
-                ['Coal', 'Oil', 'Gas'],
-                ['Wastewater', 'Landfills'],
-                ['Termites', 'Seeps', 'BiomassBurn', 'Lakes'],
-                ['Rice', 'OtherAnth']]
-    titles = ['Wetlands', 'Livestock', 'Coal, Oil, and\nNatural Gas',
-              'Wastewater\nand Landfills', 'Other Biogenic\nSources',
-              'Other Anthropogenic\nSources']
+    plot_e = {'Total' : ['Total'],
+              'Oil' : ['Oil'], 'Gas' : ['Gas'], 'Coal' : ['Coal'],
+              'Livestock' : ['Livestock'], 'Landfills' : ['Landfills'],
+              'Wastewater' : ['Wastewater'], 'Wetlands' : ['Wetlands'],
+              'Open Fires' : ['BiomassBurn']}
+    # Rice, Termites, Seeps, Lakes, OtherAnth are missing
 
     # Set colormap
     colormap = fp.cmap_trans('viridis')
 
-    ncategory = len(emissions)
-    fig, ax = fp.get_figax(rows=2, cols=math.ceil(ncategory/2), maps=True,
-                           lats=emis_correct.lat, lons=emis_correct.lon)
-    plt.subplots_adjust(hspace=0.5)
-    cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
-    for i, axis in enumerate(ax.flatten()):
-        axis = fp.format_map(axis, lats=emis_correct.lat, lons=emis_correct.lon)
-        if type(emissions[i]) == str:
-            e = emis_correct['EmisCH4_%s' % emissions[i]].squeeze()
-        elif type(emissions[i]) == list:
-            e = sum(emis_correct['EmisCH4_%s' % em].squeeze()
-                    for em in emissions[i])
+    # Update emissions
+    e_c = copy.deepcopy(emis_correct)
 
+    # Correct for wetlands
+    e_c['EmisCH4_Wetlands'] = copy.deepcopy(summ['EmisCH4_Wetlands'])*1e6
+
+    # # Correct for EDF
+    # e_c['EmisCH4_Gas'] = copy.deepcopy(summ['EmisCH4_Gas'])*1e6
+    # e_c['EmisCH4_Oil'] = copy.deepcopy(summ['EmisCH4_Oil'])*1e6
+
+    # Update total
+    # print(e_c.keys())
+    e_c['EmisCH4_Total'] = sum(e_c[s] for s in e_c.keys() 
+                               if (s[:4] == 'Emis') 
+                               & (s.split('_')[-1] != 'Total'))
+
+    # Plot
+    fig, ax = fp.get_figax(rows=3, cols=3, maps=True,
+                           lats=e_c.lat, lons=e_c.lon)
+    for axis, (title, emis_list) in zip(ax.flatten(), plot_e.items()):
+        axis = fp.format_map(axis, lats=e_c.lat, lons=e_c.lon)
+        e = sum(e_c[f'EmisCH4_{em}'].squeeze() for em in emis_list)
         c = e.plot(ax=axis, cmap=colormap, vmin=0, vmax=5,
                    add_colorbar=False)
-        cb = fig.colorbar(c, cax=cax, ticks=np.arange(0, 6, 1))
-        cb = fp.format_cbar(cb, cbar_title=r'Emissions (Mg km$^2$ a$^{-1}$)')
-        axis = fp.add_title(axis, titles[i])
-
+        axis.text(0.025, 0.025, title, ha='left', va='bottom', 
+                  fontsize=config.LABEL_FONTSIZE*config.SCALE,
+                  transform=axis.transAxes)
+    plt.subplots_adjust(hspace=-0.35, wspace=0.05)
+    cax = fp.add_cax(fig, ax, horizontal=True, cbar_pad_inches=0.2)
+    cb = fig.colorbar(c, cax=cax, ticks=np.arange(0, 6, 1), 
+                      orientation='horizontal')
+    cb = fp.format_cbar(cb, cbar_title=r'Emissions (Mg km$^2$ a$^{-1}$)',
+                        horizontal=True)
     fp.save_fig(fig, plot_dir, 'prior_emissions_2019')
 
     # Create another plot comparing orig and correct
