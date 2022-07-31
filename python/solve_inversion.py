@@ -283,7 +283,7 @@ if __name__ == '__main__':
                 # Save out
                 suff = suffix + f'_rf{rf_i}' + f'_sax{sa_scale}' + f'_poi{pct_of_info}'
                 np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
-                np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xhat)
+                np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xh_fr)
                 # np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suff}.npy', yhat)
 
                 # Subset the posterior
