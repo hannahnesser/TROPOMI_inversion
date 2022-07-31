@@ -27,7 +27,7 @@
 ### BEGIN SECTION SETTINGS
 ###############################################################################
 
-ROOT:                        /n/seasasfs02/CH4_inversion/InputData/HEMCO
+ROOT:                        /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/HEMCO
 METDIR:                      {DATA_ROOT}/GEOS_{GRID_DIR}/{MET_DIR}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
@@ -786,25 +786,25 @@ Warnings:                    {WARNINGS}
 # --- Clusters for analytical inversion ---
 #==============================================================================
 # Cluster file used by J.D. Maasakkers et al. (2019)
-#* CH4_CLUSTERS /n/seasasfs02/CH4_inversion/InputData/ClusterFiles/JDMaasakkers_Clusters/Clusters_45_July.nc Clusters 2009/1/1/0 C xy 1 * - 1 1 
+#* CH4_CLUSTERS /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/ClusterFiles/JDMaasakkers_Clusters/Clusters_45_July.nc Clusters 2009/1/1/0 C xy 1 * - 1 1 
 
 # Cluster files used Y. Zhang et al. (2020)
-#* CH4_CLUSTERS         /n/seasasfs02/CH4_inversion/InputData/ClusterFiles/YZhang_Clusters/Clusters_nonwetlands.nc Clusters 2009/1/1/0 C xy 1 * - 1 1 
-#* CH4_WETLAND_CLUSTERS /n/seasasfs02/CH4_inversion/InputData/ClusterFiles/YZhang_Clusters/Clusters_wetlands.nc Clusters 2009/1/1/0 C xy 1 * - 1 1
+#* CH4_CLUSTERS         /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/ClusterFiles/YZhang_Clusters/Clusters_nonwetlands.nc Clusters 2009/1/1/0 C xy 1 * - 1 1 
+#* CH4_WETLAND_CLUSTERS /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/ClusterFiles/YZhang_Clusters/Clusters_wetlands.nc Clusters 2009/1/1/0 C xy 1 * - 1 1
 
 #==============================================================================
 # --- Eigenvector perturbations for analytical inversion ---
 #==============================================================================
 (((EVECS
-0 CH4_EVECS /n/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations/evec_perturbations_evecnumevecnum.nc evec_pert 2009/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_EVECS /n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/evec_perturbations/evec_perturbations_evecnumevecnum.nc evec_pert 2009/1/1/0 C xy kg/m2/s CH4 - 15 1
 )))EVECS
 
 #==============================================================================
 # --- Scale factors for posterior run ---
 #==============================================================================
-#* EMIS_SF    /n/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_Nonwetland.nc SF_Nonwetland 2000/1/1/0         C xy 1 * - 1 1
-#* WETLAND_SF /n/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_Wetland.nc    SF_Wetland    2010-2017/1-12/1/0 E xy 1 * - 1 1
-#* OH_SF      /n/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_OH.nc         SF_OH         2010-2017/1/1/0    E xy 1 * - 1 1
+#* EMIS_SF    /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_Nonwetland.nc SF_Nonwetland 2000/1/1/0         C xy 1 * - 1 1
+#* WETLAND_SF /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_Wetland.nc    SF_Wetland    2010-2017/1-12/1/0 E xy 1 * - 1 1
+#* OH_SF      /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_OH.nc         SF_OH         2010-2017/1/1/0    E xy 1 * - 1 1
 
 ### END SECTION BASE EMISSIONS ###
 

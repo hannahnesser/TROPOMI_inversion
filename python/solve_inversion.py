@@ -21,7 +21,7 @@ if __name__ == '__main__':
         # output dir is currently unused
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
-        # output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
+        # output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
         # niter = '2'
         # xa_abs_file = f'{data_dir}/xa_abs_wetlands404_edf_bc0.nc'
         # ya_file = f'{data_dir}/ya_nlc.nc'

@@ -33,9 +33,9 @@ Setting up code and run directories:
               in input.geos and HEMCO_Config.rc. The default is path is
 	      /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/gcdata/ExtData.
 	      The emissions data path is set in HEMCO_Config.rc and by default
-	      is set to /n/seasasfs02/CH4_Inversion/HEMCO.
+	      is set to /n/jacob_lab/Lab/seasasfs02/CH4_Inversion/HEMCO.
    RESTART_FILE: Path to the initial restart file. Sample restart files may be
-                 found in /n/seasasfs02/CH4_inversion/InputData/Restarts.
+                 found in /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Restarts.
    BC_FILES: Path to boundary condition files to be used for nested grid
              simulations. This will replace the file path in HEMCO_Config.rc.
 
@@ -165,7 +165,7 @@ Modify your local copy of GEOS-Chem source code and the run directories files
 within for any special options or new science that you want to include
 for your research. If your changes are mature and/or will be useful for the
 larger group, then they can be pulled into the standard repositories currently 
-stored in /n/seasasfs02/CH4_Inversion (contact Melissa for help).
+stored in /n/jacob_lab/Lab/seasasfs02/CH4_Inversion (contact Melissa for help).
 
    - To add new options in input.geos:
      1. Modify the input.geos files in the CH4 run directories.

@@ -29,7 +29,7 @@ else:
     base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/'
     code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
     data_dir = f'{base_dir}ProcessedDir'
-    output_dir = '/n/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
+    output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
 
 # Cannon preferences
 # code_dir = sys.argv[1]
@@ -51,7 +51,7 @@ import inversion_settings as settings
 
 # Compare to GOSAT?
 compare_gosat = True
-# gosat_dir = '/n/seasasfs02/CH4_inversion/InputData/Obs/ULGOSAT_v9/2019'
+# gosat_dir = '/n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Obs/ULGOSAT_v9/2019'
 # gosat = [f'{gosat_dir}/UoL-GHG-L2-CH4-GOSAT-OCPR-{settings.year}{mm:02d}{dd:02d}-fv9.0.nc'
 #          for mm in settings.months for dd in settings.days]
 gosat = None
