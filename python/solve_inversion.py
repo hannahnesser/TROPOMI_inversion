@@ -293,7 +293,7 @@ if __name__ == '__main__':
                     nf = (dofs >= dofs_i).sum()
 
                     # Calculate and save the cost function for the prior term
-                    ja[i, j, k] = ((xh_fr - 1)**2/sa_i.reshape(-1,)).sum()/nf
+                    ja[i, j, k] = ((xh_fr - 1)**2/sa_ij.reshape(-1,)).sum()/nf
                     n[i, j, k] = nf
                     negs[i, j, k] = (xh_fr < 0).sum()
                     avg[i, j, k] = xh_fr[dofs >= dofs_i].mean()
