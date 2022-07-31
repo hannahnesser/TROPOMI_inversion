@@ -5,7 +5,7 @@ PRIOR_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TR
 PERT_DIRS="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_NNNN"
 NPERT_DIRS=1952
 SHORT_TERM_DATA_DIR="/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results"
-LONG_TERM_DATA_DIR="/n/seasasfs02/hnesser/TROPOMI_inversion"
+LONG_TERM_DATA_DIR="/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion"
 CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 
 # Preferences
@@ -76,8 +76,7 @@ OPTIMIZE_BC="True"
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_bc0.nc"
 # SA_FILE="${SHORT_TERM_DATA_DIR}/sa_var_max.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_bc0.nc"
-RF="1"
-FILE_SUFFIX="_rg2rt_10t_sa_var_max_bc0"
+# FILE_SUFFIX="_rg2rt_10t_sa_var_max_bc0"
 # FILE_SUFFIX="_rg2rt_10t_bc0"
 # -------------------------------------------------------------#
 
@@ -100,8 +99,8 @@ FILE_SUFFIX="_rg2rt_wetlands50"
 # Wetland 4.04 scaling test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404.nc"
-# FILE_SUFFIX="_rg2rt_10t_wetlands404"
-FILE_SUFFIX="_rg2rt_10t_sa_var_max_wetlands404"
+FILE_SUFFIX="_rg2rt_10t_wetlands404"
+# FILE_SUFFIX="_rg2rt_10t_sa_var_max_wetlands404"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
@@ -132,6 +131,44 @@ FILE_SUFFIX="_rg2rt_10t_edf_bc0"
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404_edf.nc"
 C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404_edf.nc"
 FILE_SUFFIX="_rg2rt_10t_wetlands404_edf"
+# -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Combine wetlands 4.04 and EDF test and NLC
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404_edf.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_nlc.nc" # Regridded errors (2x2) with threshold
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_nlc.nc" # If niter = 0, this should be ya0
+C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404_edf_nlc.nc"
+FILE_SUFFIX="_rg2rt_10t_wetlands404_edf_nlc"
+# -------------------------------------------------------------#
+
+# # -------------------------------------------------------------#
+# # Combine wetlands 4.04 and NLC
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404.nc"
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_nlc.nc" # Regridded errors (2x2) with threshold
+# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_nlc.nc" # If niter = 0, this should be ya0
+# C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404_nlc.nc"
+# FILE_SUFFIX="_rg2rt_10t_wetlands404_nlc"
+# # -------------------------------------------------------------#
+
+# # -------------------------------------------------------------#
+# # Combine BC0 and wetlands 4.04 and NLC
+# OPTIMIZE_BC="True"
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404_bc0.nc"
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_nlc.nc" # Regridded errors (2x2) with threshold
+# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_nlc.nc" # If niter = 0, this should be ya0
+# C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404_nlc_bc0.nc"
+# FILE_SUFFIX="_rg2rt_10t_wetlands404_nlc_bc0"
+# # -------------------------------------------------------------#
+
+# -------------------------------------------------------------#
+# Combine BC0 and wetlands 4.04 and EDF test and NLC
+OPTIMIZE_BC="True"
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands404_edf_bc0.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_nlc.nc" # Regridded errors (2x2) with threshold
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_nlc.nc" # If niter = 0, this should be ya0
+C_FILE="${SHORT_TERM_DATA_DIR}/c_wetlands404_edf_nlc_bc0.nc"
+FILE_SUFFIX="_rg2rt_10t_wetlands404_edf_nlc_bc0"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
