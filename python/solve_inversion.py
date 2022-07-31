@@ -264,9 +264,10 @@ if __name__ == '__main__':
                 p_ij = rf_i*copy.deepcopy(pre_xhat)
 
                 if optimize_bc:
+                    sa_ij = copy.deepcopy(sa)
                     sa_ij[:-4] = sa_ij[:-4]*sa_i**2
                 else:
-                    sa_ij *= sa_i**2
+                    sa_ij = copy.deepcopy(sa)*sa_i**2
 
                 # Calculate the posterior
                 _, xh_fr, _, a = solve_inversion(evecs, evals_h_ij, sa_ij, p_ij)
