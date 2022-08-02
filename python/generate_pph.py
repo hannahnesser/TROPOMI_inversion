@@ -50,54 +50,12 @@ if __name__ == '__main__':
     import sys
     sys.path.append(code_dir)
     import gcpy as gc
+    import invpy as ip
     import inversion_settings as s
 
     # chunk
     print('-'*75)
     print(f'Calculating the prior pre-conditioned Hessian for chunk {chunk}')
-
-    ## ---------------------------------------------------------------------##
-    ## Load pertinent data that defines state and observational dimension
-    ## ---------------------------------------------------------------------##
-    # Ratio of standard prior to input prior
-    xa_abs_base = gc.read_file(f'{data_dir}/xa_abs.nc')
-    xa_abs = gc.read_file(xa_abs_file)
-    xa_ratio = xa_abs/xa_abs_base
-    xa_ratio[(xa_abs_base == 0) & (xa_abs == 0)] = 1 # Correct for the grid cell with 0 emisisons
-
-    # Prior error
-    sa = gc.read_file(sa_file)
-    sa *= sa_scale**2
-    if optimize_bc:
-        sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
-    nstate = sa.shape[0]
-
-    # Observational suffix
-    if niter == '0':
-        obs_suffix = '0'
-    else:
-        obs_suffix = ''
-
-    # Observational error
-    so = gc.read_file(so_file)
-    so /= rf
-
-    # Observations
-    y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc')
-    ya = gc.read_file(ya_file)
-    ydiff = y - ya
-
-    # Observation mask
-    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{obs_suffix}.csv', header=0)
-
-    # Get the indices for the chunk
-    i0 = (chunk - 1)*chunk_size
-    i1 = chunk*chunk_size
-
-    # Subset so
-    so_m = so[i0:i1]
-    ydiff_m = ydiff[i0:i1]
-    nobs = so_m.shape[0]
 
     ## -------------------------------------------------------------------- ##
     ## Set up a dask client and cacluate the optimal chunk size
@@ -125,6 +83,63 @@ if __name__ == '__main__':
     nstate_chunk = 1e3 # int(np.sqrt(max_chunk_size)/5)
     nobs_chunk = 5e4 # int(max_chunk_size/nstate_chunk/5)
     chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
+
+    ## ---------------------------------------------------------------------##
+    ## Load pertinent data that defines state and observational dimension
+    ## ---------------------------------------------------------------------##
+    # Ratio of base (incorrect) prior to input prior
+    xa_abs_base = gc.read_file(f'{data_dir}/xa_abs.nc')
+    xa_abs = gc.read_file(xa_abs_file)
+    xa_ratio = xa_abs/xa_abs_base
+    xa_ratio[(xa_abs_base == 0) & (xa_abs == 0)] = 1 # Correct for the grid cell with 0 emisisons
+
+    # Ratio of base (incorrect) prior to standard prior
+    xa_abs_std = gc.read_file(f'{data_dir}/xa_abs_correct.nc')
+    xa_ratio_std = xa_abs_std/xa_abs_base
+    xa_ratio_std[(xa_abs_base == 0) & (xa_abs_std == 0)] = 1
+
+    # Prior error
+    sa = gc.read_file(sa_file)
+    sa *= sa_scale**2
+    if optimize_bc:
+        sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
+    nstate = sa.shape[0]
+
+    # Observational suffix
+    if niter == '0':
+        obs_suffix = '0'
+    else:
+        obs_suffix = ''
+
+    # Observational error
+    so = gc.read_file(so_file)
+    so /= rf
+
+    # Observations
+    y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc')
+    ya = gc.read_file(ya_file)
+
+    # Update ya for new prior
+    if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+        xa_ratio_diff = xa_ratio - xa_ratio_std
+        Kxd = ip.calculate_Kx(f'{data_dir}/iteration{niter}/k', xa_ratio_diff)
+        ya += Kxd
+        print(f'Updated modeled observations yield maximum {ya.max()} and minimum {ya.min()}')
+
+    # Calculate ydiff
+    ydiff = y - ya
+
+    # Observation mask
+    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{obs_suffix}.csv', header=0)
+
+    # Get the indices for the chunk
+    i0 = (chunk - 1)*chunk_size
+    i1 = chunk*chunk_size
+
+    # Subset so
+    so_m = so[i0:i1]
+    ydiff_m = ydiff[i0:i1]
+    nobs = so_m.shape[0]
 
     ## ---------------------------------------------------------------------##
     ## Generate the prior pre-conditioned Hessian for that chunk
@@ -161,21 +176,21 @@ if __name__ == '__main__':
             so_i = so_m[i:(i + int(n))]
             ydiff_i = ydiff_m[i:(i + int(n))]
 
-            # Calculate the PPH for that subset
-            k_sasqrt_i = k_i*(sa**0.5)
-            pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
-            pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
-                                 name=f'pph{niter}{suffix}_c{chunk:02d}')
-            pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
+            # # Calculate the PPH for that subset
+            # k_sasqrt_i = k_i*(sa**0.5)
+            # pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
+            # pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
+            #                      name=f'pph{niter}{suffix}_c{chunk:02d}')
+            # pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
-            # Persist and save
-            print('Persisting the prior pre-conditioned Hessian.')
-            start_time = time.time()
-            pph_i = pph_i.persist()
-            progress(pph_i)
-            pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
-            active_time = (time.time() - start_time)/60
-            print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
+            # # Persist and save
+            # print('Persisting the prior pre-conditioned Hessian.')
+            # start_time = time.time()
+            # pph_i = pph_i.persist()
+            # progress(pph_i)
+            # pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
+            # active_time = (time.time() - start_time)/60
+            # print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
             # Then save out part of what we need for the posterior solution
             pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
@@ -201,36 +216,36 @@ if __name__ == '__main__':
         print('-'*75)
         client.restart()
 
-    # Get file lists
-    pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
-    pph_files.sort()
+    # # Get file lists
+    # pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
+    # pph_files.sort()
 
     pre_xhat_files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     pre_xhat_files.sort()
 
-    # Initialize
-    pph_m = xr.DataArray(np.zeros((nstate, nstate)),
-                         dims=['nstate_0', 'nstate_1'],
-                         name=f'pph{niter}{suffix}_c{chunk:02d}')
+    # # Initialize
+    # pph_m = xr.DataArray(np.zeros((nstate, nstate)),
+    #                      dims=['nstate_0', 'nstate_1'],
+    #                      name=f'pph{niter}{suffix}_c{chunk:02d}')
     pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
                               name=f'pre_xhat{niter}{suffix}_c{chunk:02d}')
     for i, files in enumerate(zip(pph_files, pre_xhat_files)):
         print(f'Loading count {i}.')
         pf, pxf = files
-        temp1 = xr.open_dataarray(pf)
+        # temp1 = xr.open_dataarray(pf)
         temp2 = xr.open_dataarray(pxf)
-        pph_m += temp1
+        # pph_m += temp1
         pre_xhat_m += temp2
 
     # Load into memory
-    pph_m = pph_m.compute()
+    # pph_m = pph_m.compute()
     pre_xhat_m = pre_xhat_m.compute()
 
-    # Save out
-    start_time = time.time()
-    pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}.nc')
-    active_time = (time.time() - start_time)/60
-    print(f'Prior-pre-conditioned Hessian for chunk {chunk} saved ({active_time} min).')
+    # # Save out
+    # start_time = time.time()
+    # pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}.nc')
+    # active_time = (time.time() - start_time)/60
+    # print(f'Prior-pre-conditioned Hessian for chunk {chunk} saved ({active_time} min).')
 
     start_time = time.time()
     pre_xhat_m.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}.nc')
@@ -238,7 +253,7 @@ if __name__ == '__main__':
     print(f'xhat preparation for chunk {chunk} completed ({active_time} min).')
 
     # Clean up
-    files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
+    # files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
     files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     for f in files:
        remove(f)
