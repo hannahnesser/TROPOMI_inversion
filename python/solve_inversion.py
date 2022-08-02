@@ -124,34 +124,6 @@ if __name__ == '__main__':
     if optimize_bc:
         sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
 
-    # Get the state vector dimension
-    nstate = sa.shape[0]
-
-    # # Observational error (apply RF later)
-    # so = gc.read_file(so_file)
-    # so = so.values.reshape(-1, 1)
-    # nobs = so.shape[0]
-
-    # # Observations
-    # y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc')
-    # ya = gc.read_file(ya_file)
-
-    # # Update ya for new prior
-    # # This part should be deleted eventually in preference of using
-    # # the correct ya from GEOS-Chem
-    # if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-    #     xa_abs = gc.read_file(xa_abs_file).reshape(-1,)
-    #     xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc').reshape(-1,)
-    #     xa_ratio = xa_abs/xa_abs_orig
-    #     Kxd = ip.calculate_Kx(f'{data_dir}/iteration{niter}/k', xa_ratio - 1)
-    #     ya += Kxd
-    #     print(f'Updated modeled observations yield maximum {ya.max()} and minimum {ya.min()}')
-    # else:
-    #     xa_ratio = np.ones(nstate)
-
-    # # Calculate ydiff
-    # ydiff = y - ya
-
     # Initial pre_xhat information
     pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}.nc').values
 
@@ -246,7 +218,6 @@ if __name__ == '__main__':
         suffix = suffix + f'_rf{rf}'
         evals_h *= rf
         pre_xhat *= rf
-        so /= rf
 
     if sa_scale is not None:
         suffix = suffix + f'_sax{sa_scale}'
@@ -258,10 +229,6 @@ if __name__ == '__main__':
 
     # Update suffix for pct of info
     suffix = suffix + f'_poi{pct_of_info}'
-
-    # Recompute evals_q.
-    # evals_q = evals_h/(1 + evals_h)
-    # evals_q_sub = evals_q[:rank]
 
     # Calculate the posterior and averaging kernel
     # (we can leave off Sa when it's constant)
