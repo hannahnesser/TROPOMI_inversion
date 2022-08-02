@@ -153,11 +153,11 @@ if __name__ == '__main__':
 
     def calculate_xhat(shat, kt_so_ydiff):
         # (this formulation only works with constant errors I think)
-        return np.array(1 + shat @ kt_so_ydiff)
+        return 1 + np.array(shat @ kt_so_ydiff)
 
     def calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff):
         shat_kpi = (np.identity(len(sa)) - a)*sa.reshape((1, -1))
-        return np.array(1 + shat_kpi @ kt_so_ydiff)
+        return 1 + np.array(shat_kpi @ kt_so_ydiff)
 
     def calculate_a(evecs, evals_h, sa):
         evals_q = evals_h/(1 + evals_h)
@@ -248,7 +248,7 @@ if __name__ == '__main__':
 
         # Iterate through different regularization factors and prior
         # errors. Then save out the prior and observational cost function
-        rfs = [0.01, 0.05, 0.1, 0.5, 1]
+        rfs = [0.01, 0.05, 0.1, 0.5, 1.0]
         sas = [0.5, 0.75, 1.0, 1.25, 1.5]
         dds = [0.05, 0.1, 0.15, 0.2]
         ja = np.zeros((len(rfs), len(sas), len(dds)))
@@ -309,26 +309,23 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Solve the inversion
     ## ---------------------------------------------------------------------##
-    # set the suffix
+    # set the suffix and scale
     if rf is not None:
         suffix = suffix + f'_rf{rf}'
-    if sa_scale is not None:
-        suffix = suffix + f'_sax{sa_scale}'
-    suffix = suffix + f'_poi{pct_of_info}'
-
-    # If RF is defined, scale
-    if rf is not None:
         evals_h *= rf
         pre_xhat *= rf
         so /= rf
 
-    # If sa_scale is defined, scale everything
     if sa_scale is not None:
+        suffix = suffix + f'_sax{sa_scale}'
         evals_h *= sa_scale**2
         if optimize_bc:
             sa[:-4] = sa[:-4]*sa_scale**2
         else:
             sa *= sa_scale**2
+
+    # Update suffix for pct of info
+    suffix = suffix + f'_poi{pct_of_info}'
 
     # Recompute evals_q.
     # evals_q = evals_h/(1 + evals_h)
