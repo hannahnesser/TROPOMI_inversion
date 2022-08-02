@@ -6,6 +6,7 @@ import numpy as np
 from numpy.linalg import inv
 import pandas as pd
 import xarray as xr
+import dask.array as da
 import pickle
 import math
 from scipy.stats import linregress
@@ -206,6 +207,41 @@ def get_one_statevec_layer(data, category=None, time=None,
 ## -------------------------------------------------------------------------##
 ## Standard inversion functions
 ## -------------------------------------------------------------------------##
+def calculate_Kx(k_dir, x_data, niter, chunks):
+    # List of K files
+    k_files = glob.glob(f'{k_dir}/k{niter}_c??.nc')
+    k_files.sort()
+
+    # if niter == 2, also load the boundary condition K
+    if optimize_bc:
+        k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
+                                 chunks=chunks)
+        x_data = np.append(x_data, np.ones((4,)))
+
+    # Start time
+    start_time = time.time()
+
+    # Iterate
+    print('[', end='')
+    kx = []
+    i0 = 0
+    for i, kf in enumerate(k_files):
+        print('-', end='')
+        k_n = xr.open_dataarray(kf, chunks=chunks)
+        # Append the BC K if it's the second iteration
+        if optimize_bc:
+            i1 = i0 + k_n.shape[0]
+            k_bc_n = k_bc[i0:i1, :]
+            k_n = xr.concat([k_n, k_bc_n], dim='nstate')
+            i0 = copy.deepcopy(i1)
+        k_n = da.tensordot(k_n, x_data, axes=(1, 0))
+        k_n = k_n.compute()
+        kx.append(k_n)
+    active_time = (time.time() - start_time)/60
+    print(f'] {active_time:02f} minutes')
+
+    return np.concatenate(kx)
+
 def calculate_c(k, ya, xa):
     '''
     Calculate c for the forward model, defined as ybase = Kxa + c.
@@ -242,57 +278,83 @@ def cost_func(ynew, y, so, xnew, xa, sa):
           % (cost, cost_emi, cost_obs))
     return cost
 
-def solve_inversion(k, y, ya, so, xa, sa, calculate_cost=True):
-    '''
-    Calculate the solution to an analytic Bayesian inversion for the
-    given Inversion object. The solution includes the posterior state
-    vector (xhat), the posterior error covariance matrix (shat), and
-    the averaging kernel (A). The function prints out progress statements
-    and information about the posterior solution, including the value
-    of the cost function at the prior and posterior, the number of
-    negative state vector elements in the posterior solution, and the
-    DOFS of the posterior solution.
-    '''
-    print('... Solving inversion ...')
+def calculate_xhat(shat, kt_so_ydiff):
+    # (this formulation only works with constant errors I think)
+    return 1 + np.array(shat @ kt_so_ydiff)
 
-    # Check if the errors are diagonal or not and, if so, modify
-    # calculations involving the error covariance matrices
-    sainv = inv_cov_matrix(sa)
-    kTsoinv = multiply_data_by_inv_cov(k.T, so)
+def calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff):
+    shat_kpi = (np.identity(len(sa)) - a)*sa.reshape((1, -1))
+    return 1 + np.array(shat_kpi @ kt_so_ydiff)
 
-    # Calculate the cost function at the prior.
-    if calculate_cost:
-        print('Calculating the cost function at the prior mean.')
-        cost_prior = cost_func(ya, y, so, xa, xa, sa)
+def calculate_a(evecs, evals_h, sa):
+    evals_q = evals_h/(1 + evals_h)
+    a = sa**0.5*(evecs*evals_q) @ evecs.T*(1/(sa**0.5))
+    return a
 
-    # Calculate the posterior error.
-    print('Calculating the posterior error.')
-    shat = np.array(inv(kTsoinv @ k + sainv))
+def calculate_shat(evecs, evals_h, sa):
+    # This formulation only works with diagonal errors
+    sa_evecs = evecs*(sa**0.5)
+    shat = (sa_evecs*(1/(1 + evals_h))) @ sa_evecs.T
+    return shat
 
-    # Calculate the posterior mean
-    print('Calculating the posterior mean.')
-    xhat = np.array(xa + (shat @ kTsoinv @ (y - ya)))
-    print('     Negative cells: %d' % xhat[xhat < 0].sum())
+def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
+    shat = calculate_shat(evecs, evals_h, sa)
+    a = calculate_a(evecs, evals_h, sa)
+    xhat = calculate_xhat(shat, kt_so_ydiff)
+    xhat_fr = calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff)
+    return xhat, xhat_fr, shat, a
 
-    # Calculate the averaging kernel.
-    print('Calculating the averaging kernel.')
-    a = np.array(identity(xa.shape[0]) - shat @ sainv)
-    dofs = np.diag(a)
-    print('     DOFS: %.2f' % np.trace(a))
+# def solve_inversion(k, y, ya, so, xa, sa, calculate_cost=True):
+#     '''
+#     Calculate the solution to an analytic Bayesian inversion for the
+#     given Inversion object. The solution includes the posterior state
+#     vector (xhat), the posterior error covariance matrix (shat), and
+#     the averaging kernel (A). The function prints out progress statements
+#     and information about the posterior solution, including the value
+#     of the cost function at the prior and posterior, the number of
+#     negative state vector elements in the posterior solution, and the
+#     DOFS of the posterior solution.
+#     '''
+#     print('... Solving inversion ...')
 
-    # Calculate the new set of modeled observations.
-    print('Calculating updated modeled observations.')
-    yhat = np.array(k @ xhat + c)
+#     # Check if the errors are diagonal or not and, if so, modify
+#     # calculations involving the error covariance matrices
+#     sainv = inv_cov_matrix(sa)
+#     kTsoinv = multiply_data_by_inv_cov(k.T, so)
 
-    # Calculate the cost function at the posterior. Also calculate the
-    # number of negative cells as an indicator of inversion success.
-    if calculate_cost:
-        print('Calculating the cost function at the posterior mean.')
-        cost_post = cost_func(yhat, y, so, xhat, xa, sa)
+#     # Calculate the cost function at the prior.
+#     if calculate_cost:
+#         print('Calculating the cost function at the prior mean.')
+#         cost_prior = cost_func(ya, y, so, xa, xa, sa)
 
-    print('... Complete ...\n')
+#     # Calculate the posterior error.
+#     print('Calculating the posterior error.')
+#     shat = np.array(inv(kTsoinv @ k + sainv))
 
-    return xhat, shat, a, yhat
+#     # Calculate the posterior mean
+#     print('Calculating the posterior mean.')
+#     xhat = np.array(xa + (shat @ kTsoinv @ (y - ya)))
+#     print('     Negative cells: %d' % xhat[xhat < 0].sum())
+
+#     # Calculate the averaging kernel.
+#     print('Calculating the averaging kernel.')
+#     a = np.array(identity(xa.shape[0]) - shat @ sainv)
+#     dofs = np.diag(a)
+#     print('     DOFS: %.2f' % np.trace(a))
+
+#     # Calculate the new set of modeled observations.
+#     print('Calculating updated modeled observations.')
+#     yhat = np.array(k @ xhat + c)
+
+#     # Calculate the cost function at the posterior. Also calculate the
+#     # number of negative cells as an indicator of inversion success.
+#     if calculate_cost:
+#         print('Calculating the cost function at the posterior mean.')
+#         cost_post = cost_func(yhat, y, so, xhat, xa, sa)
+
+#     print('... Complete ...\n')
+
+#     return xhat, shat, a, yhat
 
 ## -------------------------------------------------------------------------##
 ## Reduced rank inversion functions
