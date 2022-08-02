@@ -24,13 +24,13 @@ if __name__ == '__main__':
         # output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
         # niter = '2'
         # xa_abs_file = f'{data_dir}/xa_abs_wetlands404_edf_bc0.nc'
-        # ya_file = f'{data_dir}/ya_nlc.nc'
-        # c_file = f'{data_dir}/c_wetlands404_edf_nlc_bc0.nc'
-        # so_file = f'{data_dir}/so_rg2rt_10t_nlc.nc'
+        # ya_file = f'{data_dir}/ya.nc'
+        # c_file = f'{data_dir}/c_wetlands404_edf_bc0.nc'
+        # so_file = f'{data_dir}/so_rg2rt_10t.nc'
         # sa_file = f'{data_dir}/sa.nc'
         # sa_scale = 1
         # rf = 1
-        # suffix = '_rg2rt_10t_wetlands404_edf_nlc_bc0'
+        # suffix = '_rg2rt_10t_wetlands404_edf_bc0'
         # pct_of_info = 80
         niter = sys.argv[1]
         data_dir = sys.argv[2]
@@ -112,70 +112,6 @@ if __name__ == '__main__':
         nstate_chunk = 2e6 # orig: 1e3
         nobs_chunk = 5e2 # orig: 5e5
         chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
-
-    ## ---------------------------------------------------------------------##
-    ## Define functions
-    ## ---------------------------------------------------------------------##
-    def calculate_Kx(k_dir, x_data, niter=niter, chunks=chunks):
-        # List of K files
-        k_files = glob.glob(f'{k_dir}/k{niter}_c??.nc')
-        k_files.sort()
-
-        # if niter == 2, also load the boundary condition K
-        if optimize_bc:
-            k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
-                                     chunks=chunks)
-            x_data = np.append(x_data, np.ones((4,)))
-
-        # Start time
-        start_time = time.time()
-
-        # Iterate
-        print('[', end='')
-        kx = []
-        i0 = 0
-        for i, kf in enumerate(k_files):
-            print('-', end='')
-            k_n = xr.open_dataarray(kf, chunks=chunks)
-            # Append the BC K if it's the second iteration
-            if optimize_bc:
-                i1 = i0 + k_n.shape[0]
-                k_bc_n = k_bc[i0:i1, :]
-                k_n = xr.concat([k_n, k_bc_n], dim='nstate')
-                i0 = copy.deepcopy(i1)
-            k_n = da.tensordot(k_n, x_data, axes=(1, 0))
-            k_n = k_n.compute()
-            kx.append(k_n)
-        active_time = (time.time() - start_time)/60
-        print(f'] {active_time:02f} minutes')
-
-        return np.concatenate(kx)
-
-    def calculate_xhat(shat, kt_so_ydiff):
-        # (this formulation only works with constant errors I think)
-        return 1 + np.array(shat @ kt_so_ydiff)
-
-    def calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff):
-        shat_kpi = (np.identity(len(sa)) - a)*sa.reshape((1, -1))
-        return 1 + np.array(shat_kpi @ kt_so_ydiff)
-
-    def calculate_a(evecs, evals_h, sa):
-        evals_q = evals_h/(1 + evals_h)
-        a = sa**0.5*(evecs*evals_q) @ evecs.T*(1/(sa**0.5))
-        return a
-
-    def calculate_shat(evecs, evals_h, sa):
-        # This formulation only works with diagonal errors
-        sa_evecs = evecs*(sa**0.5)
-        shat = (sa_evecs*(1/(1 + evals_h))) @ sa_evecs.T
-        return shat
-
-    def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
-        shat = calculate_shat(evecs, evals_h, sa)
-        a = calculate_a(evecs, evals_h, sa)
-        xhat = calculate_xhat(shat, kt_so_ydiff)
-        xhat_fr = calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff)
-        return xhat, xhat_fr, shat, a
 
     ## -------------------------------------------------------------------- ##
     ## Open files
@@ -270,7 +206,7 @@ if __name__ == '__main__':
                     sa_ij = copy.deepcopy(sa)*sa_i**2
 
                 # Calculate the posterior
-                _, xh_fr, _, a = solve_inversion(evecs, evals_h_ij, sa_ij, p_ij)
+                _, xh_fr, _, a = ip.solve_inversion(evecs, evals_h_ij, sa_ij, p_ij)
                 dofs = np.diagonal(a)
 
                 # # Calculate the posterior observations
@@ -335,7 +271,7 @@ if __name__ == '__main__':
     # (we can leave off Sa when it's constant)
     # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
     # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
-    xhat, xhat_fr, shat, a = solve_inversion(evecs, evals_h, sa, pre_xhat)
+    xhat, xhat_fr, shat, a = ip.solve_inversion(evecs, evals_h, sa, pre_xhat)
     dofs = np.diagonal(a)
 
     # Save the result
