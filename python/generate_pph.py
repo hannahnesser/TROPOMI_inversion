@@ -112,8 +112,8 @@ if __name__ == '__main__':
     # This part should be deleted eventually in preference of using
     # the correct ya from GEOS-Chem
     if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-        xa_abs = gc.read_file(xa_abs_file).reshape(-1,)
-        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc').reshape(-1,)
+        xa_abs = gc.read_file(xa_abs_file)
+        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc')
         xa_ratio = xa_abs/xa_abs_orig
         Kxd = ip.calculate_Kx(f'{data_dir}/iteration{niter}/k', xa_ratio - 1)
         ya += Kxd
