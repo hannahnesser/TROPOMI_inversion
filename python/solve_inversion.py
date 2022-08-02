@@ -21,11 +21,9 @@ if __name__ == '__main__':
         # output dir is currently unused
         # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
         # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
-        # output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
         # niter = '2'
         # xa_abs_file = f'{data_dir}/xa_abs_wetlands404_edf_bc0.nc'
         # ya_file = f'{data_dir}/ya.nc'
-        # c_file = f'{data_dir}/c_wetlands404_edf_bc0.nc'
         # so_file = f'{data_dir}/so_rg2rt_10t.nc'
         # sa_file = f'{data_dir}/sa.nc'
         # sa_scale = 1
@@ -34,19 +32,17 @@ if __name__ == '__main__':
         # pct_of_info = 80
         niter = sys.argv[1]
         data_dir = sys.argv[2]
-        output_dir = sys.argv[3]
-        optimize_bc = sys.argv[4]
-        optimize_rf = sys.argv[5]
-        xa_abs_file = sys.argv[6]
-        sa_file = sys.argv[7]
-        sa_scale = float(sys.argv[8])
-        so_file = sys.argv[9]
-        rf = float(sys.argv[10])
-        ya_file = sys.argv[11]
-        c_file = sys.argv[12]
-        pct_of_info = float(sys.argv[13])
-        suffix = sys.argv[14]
-        code_dir = sys.argv[15]
+        optimize_bc = sys.argv[3]
+        optimize_rf = sys.argv[4]
+        xa_abs_file = sys.argv[5]
+        sa_file = sys.argv[6]
+        sa_scale = float(sys.argv[7])
+        so_file = sys.argv[8]
+        rf = float(sys.argv[9])
+        ya_file = sys.argv[10]
+        pct_of_info = float(sys.argv[11])
+        suffix = sys.argv[12]
+        code_dir = sys.argv[13]
 
     else:
         niter = 1
