@@ -208,7 +208,7 @@ def get_one_statevec_layer(data, category=None, time=None,
 ## -------------------------------------------------------------------------##
 ## Standard inversion functions
 ## -------------------------------------------------------------------------##
-def calculate_Kx(k_dir, x_data, niter, chunks):
+def calculate_Kx(k_dir, x_data, niter, chunks, optimize_bc):
     # List of K files
     k_files = glob.glob(f'{k_dir}/k{niter}_c??.nc')
     k_files.sort()
