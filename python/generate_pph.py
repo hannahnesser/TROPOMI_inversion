@@ -87,17 +87,6 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Load pertinent data that defines state and observational dimension
     ## ---------------------------------------------------------------------##
-    # Ratio of base (incorrect) prior to input prior
-    xa_abs_base = gc.read_file(f'{data_dir}/xa_abs.nc')
-    xa_abs = gc.read_file(xa_abs_file)
-    xa_ratio = xa_abs/xa_abs_base
-    xa_ratio[(xa_abs_base == 0) & (xa_abs == 0)] = 1 # Correct for the grid cell with 0 emisisons
-
-    # Ratio of base (incorrect) prior to standard prior
-    xa_abs_std = gc.read_file(f'{data_dir}/xa_abs_correct.nc')
-    xa_ratio_std = xa_abs_std/xa_abs_base
-    xa_ratio_std[(xa_abs_base == 0) & (xa_abs_std == 0)] = 1
-
     # Prior error
     sa = gc.read_file(sa_file)
     sa *= sa_scale**2
@@ -120,11 +109,17 @@ if __name__ == '__main__':
     ya = gc.read_file(ya_file)
 
     # Update ya for new prior
+    # This part should be deleted eventually in preference of using
+    # the correct ya from GEOS-Chem
     if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-        xa_ratio_diff = xa_ratio - xa_ratio_std
-        Kxd = ip.calculate_Kx(f'{data_dir}/iteration{niter}/k', xa_ratio_diff)
+        xa_abs = gc.read_file(xa_abs_file).reshape(-1,)
+        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc').reshape(-1,)
+        xa_ratio = xa_abs/xa_abs_orig
+        Kxd = ip.calculate_Kx(f'{data_dir}/iteration{niter}/k', xa_ratio - 1)
         ya += Kxd
         print(f'Updated modeled observations yield maximum {ya.max()} and minimum {ya.min()}')
+    else:
+        xa_ratio = np.ones(nstate)
 
     # Calculate ydiff
     ydiff = y - ya
@@ -176,21 +171,21 @@ if __name__ == '__main__':
             so_i = so_m[i:(i + int(n))]
             ydiff_i = ydiff_m[i:(i + int(n))]
 
-            # # Calculate the PPH for that subset
-            # k_sasqrt_i = k_i*(sa**0.5)
-            # pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
-            # pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
-            #                      name=f'pph{niter}{suffix}_c{chunk:02d}')
-            # pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
+            # Calculate the PPH for that subset
+            k_sasqrt_i = k_i*(sa**0.5)
+            pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
+            pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
+                                 name=f'pph{niter}{suffix}_c{chunk:02d}')
+            pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
-            # # Persist and save
-            # print('Persisting the prior pre-conditioned Hessian.')
-            # start_time = time.time()
-            # pph_i = pph_i.persist()
-            # progress(pph_i)
-            # pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
-            # active_time = (time.time() - start_time)/60
-            # print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
+            # Persist and save
+            print('Persisting the prior pre-conditioned Hessian.')
+            start_time = time.time()
+            pph_i = pph_i.persist()
+            progress(pph_i)
+            pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
+            active_time = (time.time() - start_time)/60
+            print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
             # Then save out part of what we need for the posterior solution
             pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
@@ -216,36 +211,36 @@ if __name__ == '__main__':
         print('-'*75)
         client.restart()
 
-    # # Get file lists
-    # pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
-    # pph_files.sort()
+    # Get file lists
+    pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
+    pph_files.sort()
 
     pre_xhat_files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     pre_xhat_files.sort()
 
-    # # Initialize
-    # pph_m = xr.DataArray(np.zeros((nstate, nstate)),
-    #                      dims=['nstate_0', 'nstate_1'],
-    #                      name=f'pph{niter}{suffix}_c{chunk:02d}')
+    # Initialize
+    pph_m = xr.DataArray(np.zeros((nstate, nstate)),
+                         dims=['nstate_0', 'nstate_1'],
+                         name=f'pph{niter}{suffix}_c{chunk:02d}')
     pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
                               name=f'pre_xhat{niter}{suffix}_c{chunk:02d}')
     for i, files in enumerate(zip(pph_files, pre_xhat_files)):
         print(f'Loading count {i}.')
         pf, pxf = files
-        # temp1 = xr.open_dataarray(pf)
+        temp1 = xr.open_dataarray(pf)
         temp2 = xr.open_dataarray(pxf)
-        # pph_m += temp1
+        pph_m += temp1
         pre_xhat_m += temp2
 
     # Load into memory
-    # pph_m = pph_m.compute()
+    pph_m = pph_m.compute()
     pre_xhat_m = pre_xhat_m.compute()
 
-    # # Save out
-    # start_time = time.time()
-    # pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}.nc')
-    # active_time = (time.time() - start_time)/60
-    # print(f'Prior-pre-conditioned Hessian for chunk {chunk} saved ({active_time} min).')
+    # Save out
+    start_time = time.time()
+    pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}.nc')
+    active_time = (time.time() - start_time)/60
+    print(f'Prior-pre-conditioned Hessian for chunk {chunk} saved ({active_time} min).')
 
     start_time = time.time()
     pre_xhat_m.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}.nc')
@@ -253,7 +248,7 @@ if __name__ == '__main__':
     print(f'xhat preparation for chunk {chunk} completed ({active_time} min).')
 
     # Clean up
-    # files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
+    files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
     files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     for f in files:
        remove(f)
