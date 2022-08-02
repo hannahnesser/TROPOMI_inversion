@@ -16,6 +16,7 @@ from os.path import join
 from os import listdir
 import glob
 import time
+import copy
 
 # Plotting
 import matplotlib.pyplot as plt
