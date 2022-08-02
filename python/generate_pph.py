@@ -115,7 +115,8 @@ if __name__ == '__main__':
         xa_abs = gc.read_file(xa_abs_file)
         xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc')
         xa_ratio = xa_abs/xa_abs_orig
-        Kxd = ip.calculate_Kx(f'{data_dir}/iteration{niter}/k', xa_ratio - 1)
+        Kxd = ip.calculate_Kx(f'{data_dir}/iteration{niter}/k', xa_ratio - 1,
+                              niter=niter, chunks=chunks)
         ya += Kxd
         print(f'Updated modeled observations yield maximum {ya.max()} and minimum {ya.min()}')
     else:
