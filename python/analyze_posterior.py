@@ -69,7 +69,7 @@ small_fig_kwargs = {'max_width' : 4,
                     'max_height' : 3.5}
 
 def heat_map(x, y, data, fig, ax, cmap, n_cmap, vmin, vmax):
-    scale = 0.6
+    scale = 0.8
     hm_cmap = plt.cm.get_cmap(cmap, n_cmap)
     c = ax.imshow(data, cmap=hm_cmap, vmin=vmin, vmax=vmax)
     for k in range(len(x)):
@@ -79,49 +79,26 @@ def heat_map(x, y, data, fig, ax, cmap, n_cmap, vmin, vmax):
                            fontsize=config.TICK_FONTSIZE*scale)
     ax.set_xticks(np.arange(len(x)))
     ax.set_xticklabels(x, fontsize=config.TICK_FONTSIZE*scale)
-    ax.set_xlabel('Regularization factor', fontsize=config.TICK_FONTSIZE*scale)
+    ax.set_xlabel('Prior error', fontsize=config.TICK_FONTSIZE*scale)
     ax.set_yticks(np.arange(len(y)))
     ax.set_yticklabels(y, fontsize=config.TICK_FONTSIZE*scale)
-    ax.set_ylabel('Prior error', fontsize=config.TICK_FONTSIZE*scale)
+    ax.set_ylabel('Regularization factor', fontsize=config.TICK_FONTSIZE*scale)
     cax = fp.add_cax(fig, ax, cbar_pad_inches=0.1)
     cb = fig.colorbar(c, cax=cax)
     cb.ax.tick_params(labelsize=config.TICK_FONTSIZE*scale)
     return fig, ax
 
-
 ## ------------------------------------------------------------------------ ##
-## Set user preferences and load data
+## Set user preferences
 ## ------------------------------------------------------------------------ ##
-DOFS_filter = 0.1
+# DOFS_filter
+DOFS_filter = 0.15
 
-# Load clusters
-clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
-
-# Load prior (Mg/km2/yr)
-xa_abs = xr.open_dataarray(f'{data_dir}xa_abs_wetlands404_edf_bc0.nc').values.reshape((-1, 1)) # Mg/km2/yr
-# xa_abs = xr.open_dataarray(f'{data_dir}xa_abs_correct.nc').values.reshape((-1, 1))
-xa_abs_base = xr.open_dataarray(f'{data_dir}xa_abs.nc').values.reshape((-1, 1))
-xa_ratio = xa_abs/xa_abs_base
-xa_ratio[(xa_abs_base == 0) & (xa_abs == 0)] = 1 # Correct for the grid cell with 0 emisisons
-soil = xr.open_dataarray(f'{data_dir}soil_abs.nc')
-
-# Scale by area
-area = xr.open_dataarray(f'{data_dir}area.nc').values.reshape((-1, 1))
-# xa_abs = xa_abs*area*1e-6 # Tg/yr
-# soil = soil*area*1e-6 # Tg/yr
-
-# # List emissions categories
-# emis = ['wetlands', 'livestock', 'coal', 'oil', 'gas', 'landfills',
-#         'wastewater', 'other']
-# emis_labels = ['Wetlands', 'Livestock', 'Coal', 'Oil', 'Gas', 'Landfills',
-#                'Wastewater', 'Other']
+# List emissions categories
 emis = {'Total' : 'total', 'Oil and gas' : 'ong', 'Coal' : 'coal',
         'Livestock' : 'livestock', 'Landfills' : 'landfills', 
         'Wastewater' : 'wastewater', 'Wetlands' : 'wetlands', 
         'Other' : 'other'}
-# emis_labels = ['Wetlands', 'Livestock', 'Coal', 'Oil and gas', 'Landfills',
-#                'Wastewater', 'Other']
-               # regions of interest
 interest = {'livestock' : [('North Carolina', [33.5, 37, -84.5, -75.5], [0, 20]),
                            ('Midwest', [38.5, 46, -100, -81], [0, 20])],
             'coal' : [('Illinois Basin', [36.25, 41.25, -91.5, -85], [0, 30]),
@@ -134,177 +111,174 @@ interest = {'livestock' : [('North Carolina', [33.5, 37, -84.5, -75.5], [0, 20])
                # 'wastewater' : None,
                # 'other' : None}
 
-# Select posterior and DOFS
-# Decide which posterior to run with
-# xfiles = glob.glob(f'{data_dir}posterior/xhat2_rg?rt_rf1.0_sax1.0_poi80.npy')
-# xfiles.sort()
-# fs = [f.split('/')[-1][6:-4] for f in xfiles]
-# print(fs)
-# xhat_fr2_bc_rg2rt_10t_wetlands404_edf_nlc_bc0_rf1.0_sax1.0_poi80.0.npy
-f = 'rg2rt_10t_wetlands404_edf_rf1.0_sax0.5_poi80.0'
-title_str = 'Scaled wetlands + EDF + NLC'
-# Load files
+# Define file names
+f = 'bc_rg2rt_10t_wetlands404_edf_bc0_rf0.01_sax0.5_poi80.0'
+# f2 = 'rg2rt_10t_rf1.0_sax1.0_poi80'
+xa_abs_file = 'xa_abs_wetlands404_edf.nc' # xa_abs_correct.nc
+w_file = 'w_wetlands404_edf.csv'
+optimize_BC = True
+# optimize_BC2 = False
+title_str = 'Scaled wetlands and EDF'
+
+## ------------------------------------------------------------------------ ##
+## Load files
+## ------------------------------------------------------------------------ ##
+# Load clusters
+clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
+
+# Load prior (Mg/km2/yr)
+xa_abs = xr.open_dataarray(f'{data_dir}{xa_abs_file}').values.reshape((-1, 1))
+xa_abs_base = xr.open_dataarray(f'{data_dir}xa_abs.nc').values.reshape((-1, 1))
+xa_ratio = xa_abs/xa_abs_base
+xa_ratio[(xa_abs_base == 0) & (xa_abs == 0)] = 1 # Correct for the grid cell with 0 emisisons
+soil = xr.open_dataarray(f'{data_dir}soil_abs.nc')
+area = xr.open_dataarray(f'{data_dir}area.nc').values.reshape((-1, 1))
+
+# Load weighting matrix
+w = pd.read_csv(f'{data_dir}{w_file}')
+
+# Load posterior and DOFS
 dofs = np.load(f'{data_dir}posterior/dofs2_{f}.npy').reshape((-1, 1))
-xhat = 1 + np.load(f'{data_dir}posterior/xhat_fr2_{f}.npy').reshape((-1, 1))
-w = pd.read_csv(f'{data_dir}w_wetlands404_edf.csv')
+xhat = np.load(f'{data_dir}posterior/xhat_fr2_{f}.npy').reshape((-1, 1))
 # dofs = np.nan_to_num(dofs, 0)
 
-# # BC alteration
-# xhat = xhat[:-4]
-# dofs = dofs[:-4]
+# BC alteration
+if optimize_BC:
+    xhat = xhat[:-4]
+    dofs = dofs[:-4]
 
-# # Filter on DOFS filter
+# Filter on DOFS filter
 xhat[dofs < DOFS_filter] = 1
 dofs[dofs < DOFS_filter] = 0
-print(f, xhat.max(), xhat.min(), dofs.sum(), len(xhat[xhat < 0]))
 
-# Get xhat abs
+# Calculate xhat abs
 xhat_abs = (xhat*xa_abs)
 
-# Adjust W units
-# w = w.T*area.values*1e-6 # Convert to Tg/yr
-# w_rel = w/w.sum(axis=0) # Normalize
-# w_rel[np.isnan(w_rel)] = 0 # Deal with nans
+# Calculate Ja
+ja = ((xhat - 1)**2).sum()
+nn = (dofs >= DOFS_filter).sum()
+print(ja*4/nn)
+print(nn)
 
-# # Get standard results
-# f2 = 'rg2rt_10t_rf1.0_sax1.0_poi80'
-# dofs2 = np.load(f'{data_dir}posterior/dofs2_{f2}.npy').reshape((-1, 1))
-# xhat2 = np.load(f'{data_dir}posterior/xhat2_{f2}.npy').reshape((-1, 1))
-# xhat2[dofs2 < DOFS_filter] = 1
-# dofs2[dofs2 < DOFS_filter] = 0
-# # xhat2 = xhat2[:-4]
-# # dofs2 = dofs2[:-4]
-# print(f2, xhat2.max(), xhat2.min(), dofs2.sum(), len(xhat2[xhat2 < 0]))
+# Print information
+print(f'{f}, maximum: {xhat.max():.2f}, minimum: {xhat.min():.2f} DOFS: {dofs.sum():.2f}, negative values: {len(xhat[xhat < 0])}')
 
-# # Get county outlines for high resolution results
+# Get county outlines for high resolution results
 reader = shpreader.Reader(f'{data_dir}counties/countyl010g.shp')
 counties = list(reader.geometries())
 COUNTIES = cfeature.ShapelyFeature(counties, ccrs.PlateCarree())
 
-# ## ------------------------------------------------------------------------ ##
-# ## Regularization factor
-# ## ------------------------------------------------------------------------ ##
-x_files = glob.glob(f'{data_dir}posterior/xhat_fr2_rg2rt_10t_wetlands404_edf_*poi80.0.npy')
-a_files = glob.glob(f'{data_dir}posterior/dofs2_rg2rt_10t_wetlands404_edf_*poi80.0.npy')
-x_files.sort()
-a_files.sort()
+# # Get standard results
+# dofs2 = np.load(f'{data_dir}posterior/dofs2_{f2}.npy').reshape((-1, 1))
+# xhat2 = np.load(f'{data_dir}posterior/xhat2_{f2}.npy').reshape((-1, 1))
+# xhat2[dofs2 < DOFS_filter] = 1
+# dofs2[dofs2 < DOFS_filter] = 0
+# if optimize_BC2:
+#     xhat2 = xhat2[:-4]
+#     dofs2 = dofs2[:-4]
+# print(f'{f} maximum: {xhat2.max():.2f}, minimum: {xhat2.min():.2f} DOFS: {dofs2.sum()}, negative values: {len(xhat2[xhat2 < 0])}')
 
-# # # xa_abs_base_rf = gc.read_file(f'{data_dir}xa_abs.nc')
-# # # xa_abs_rf = gc.read_file(f'{data_dir}xa_abs_correct.nc')
-# # # xa = xa_abs_rf/xa_abs_base_rf # Ratio of standard prior to input prior
-# # # xa[(xa_abs_base_rf == 0) & (xa_abs_rf == 0)] = 1 # Correct for the grid cell with 0 emisisons
-# # # xa = xa.values.reshape((-1,))
-# # # print(xa)
+## ------------------------------------------------------------------------ ##
+## Regularization factor
+## ------------------------------------------------------------------------ ##
+# Load regularization analysis
+f_short = f.split('_rf')[0]
+jas = np.load(f'{data_dir}ja2_{f_short}.npy')
+negs = np.load(f'{data_dir}negs2_{f_short}.npy')
+avgs = np.load(f'{data_dir}avg2_{f_short}.npy')
+nfs = np.load(f'{data_dir}n_func2_{f_short}.npy')
 
-# ja = pd.DataFrame(columns=['sa', 'ja'])
-sas = ['0.5']#['0.5', '0.6', '0.7', '0.8', '0.9', '1.0']
-rfs = ['0.01', '0.015','0.05', '0.1', '0.5', '1.0']
-# print('DOFS  |   rf |   sa |  poi |      n |      Ja/n |   neg |   avg diff | DOFS ')
-# print('-'*81)
-for DD in [0.05, 0.1, 0.15, 0.2]:
-    ja = np.zeros((len(sas), len(rfs)))
-    negs = np.zeros((len(sas), len(rfs)))
-    avgs = np.zeros((len(sas), len(rfs)))
-    nns = np.zeros((len(sas), len(rfs)))
-    for i, ss in enumerate(sas):
-        for j, rr in enumerate(rfs):
-            sfx = f'rg2rt_10t_wetlands404_edf_rf{rr}_sax{ss}_poi80.0'
-            xf = f'{data_dir}posterior/xhat_fr2_{sfx}.npy'
-            af = f'{data_dir}posterior/dofs2_{sfx}.npy'
+# Define rfs, sa values, and DOFS thresholds
+rfs = [0.01, 0.05, 0.1, 0.5, 1]
+sas = [0.5, 0.75, 1.0, 1.25, 1.5]
+dts = [0.05, 0.1, 0.15, 0.2]
 
-            # Get error value
-            ss = float(ss)
-            # pp = float(x_files[i].split('poi')[1].split('.')[0])
-            rr = float(rr)
+# for DD in [0.05, 0.1, 0.15, 0.2]:
+#     ja2 = np.zeros((len(sas), len(rfs)))
+#     negs2 = np.zeros((len(sas), len(rfs)))
+#     avgs2 = np.zeros((len(sas), len(rfs)))
+#     nns2 = np.zeros((len(sas), len(rfs)))
+#     for i, ss in enumerate(sas):
+#         for j, rr in enumerate(rfs):
+#             sfx = f'rg2rt_10t_wetlands404_edf_rf{rr}_sax{ss}_poi80.0'
+#             xf = f'{data_dir}posterior/xhat_fr2_{sfx}.npy'
+#             af = f'{data_dir}posterior/dofs2_{sfx}.npy'
 
-            # Load files
-            xx = 1 + np.load(xf)
-            aa = np.load(af)
+#             # Get error value
+#             ss = float(ss)
+#             # pp = float(x_files[i].split('poi')[1].split('.')[0])
+#             rr = float(rr)
 
-            # Calculate n func
-            nn = (aa >= DD).sum()
-            nns[i, j] = nn
+#             # Load files
+#             xx = np.load(xf)
+#             aa = np.load(af)
 
-            # Subset xx
-            xx[aa < DD] = 1
-            aa[aa < DD] = 0
+#             # Calculate n func
+#             nn = (aa >= DD).sum()
+#             nns2[i, j] = nn
 
-            # Calculate Ja(xhat)/n
-            diff = (xx - 1)**2
-            diff = (diff/ss**2).sum()
-            if DD == 0.1:
-                print(sfx, diff/nn, (xx < 0).sum())
-            ja[i, j] = diff/nn
+#             # Subset xx
+#             xx[aa < DD] = 1
+#             aa[aa < DD] = 0
 
-            # Get number of negative grid cells
-            negs[i, j] = (xx < 0).sum()
+#             # Calculate Ja2(xhat)/n
+#             diff = (xx - 1)**2
+#             diff = (diff/ss**2).sum()
+#             if DD == 0.1:
+#                 print(sfx, diff/nn, (xx < 0).sum())
+#             ja2[i, j] = diff/nn
 
-            # Get mean of corrected grid cells
-            avgs[i, j] = xx[aa >= DD].mean()
+#             # Get number of negative grid cells
+#             negs2[i, j] = (xx < 0).sum()
+
+#             # Get mean of corrected grid cells
+#             avgs2[i, j] = xx[aa >= DD].mean()
+
+
+# # print('DOFS  |   rf |   sa |  poi |      n |      Ja/n |   neg |   avg diff | DOFS ')
+# # print('-'*81)
+for i, dt in enumerate(dts):
     fig, ax = fp.get_figax(rows=2, cols=2, aspect=len(rfs)/len(sas))
-    plt.subplots_adjust(wspace=0.65, hspace=2)
+    plt.subplots_adjust(wspace=0.5, hspace=0.2)
 
     # Plot ja
+    ja = jas[:, :, i]
     ja = np.around(ja, 1)
-    fig, ax[0, 0] = heat_map(rfs, sas, ja, fig, ax[0, 0], 
-                             'viridis', 10, -0.5, 9.5)
-    fp.add_title(ax[0, 0], 'Ja/n', fontsize=config.SUBTITLE_FONTSIZE*0.6)
+    print(ja.shape)
+    print(ja)
+    fig, ax[0, 0] = heat_map(sas, rfs, ja, fig, ax[0, 0], 
+                             'viridis', 8, 0, 2)
+    fp.add_title(ax[0, 0], 'Ja/n', fontsize=config.SUBTITLE_FONTSIZE*0.8)
 
     # Plot negs
-    negs = negs.astype(int)
-    fig, ax[0, 1] = heat_map(rfs, sas, negs, fig, ax[0, 1], 
-                          'plasma', 100, -0.5, 1000)
+    neg = negs[:, :, i]
+    neg = neg.astype(int)
+    fig, ax[0, 1] = heat_map(sas, rfs, neg, fig, ax[0, 1], 
+                            'plasma', 10, -0.5, 100)
     fp.add_title(ax[0, 1], 'Negative values', 
-                 fontsize=config.SUBTITLE_FONTSIZE*0.6)
+                 fontsize=config.SUBTITLE_FONTSIZE*0.8)
 
     # Plot mean adjustment
-    avgs = np.around(avgs, 2)
-    fig, ax[1, 0] = heat_map(rfs, sas, avgs, fig, ax[1, 0], 
+    avg = avgs[:, :, i]
+    avg = np.around(avg, 2)
+    fig, ax[1, 0] = heat_map(sas, rfs, avg, fig, ax[1, 0], 
                           'inferno', 5, 0.75, 1.25)
     fp.add_title(ax[1, 0], r'Mean $\hat{x}$', 
-                 fontsize=config.SUBTITLE_FONTSIZE*0.6)
+                 fontsize=config.SUBTITLE_FONTSIZE*0.8)
 
     # Plot functional ns
-    nns = nns.astype(int)
-    fig, ax[1, 1] = heat_map(rfs, sas, nns, fig, ax[1, 1], 
+    nf = nfs[:, :, i]
+    nf = nf.astype(int)
+    fig, ax[1, 1] = heat_map(sas, rfs, nf, fig, ax[1, 1], 
                           'cividis', 100, -0.5, 6e3)
     fp.add_title(ax[1, 1], r'Functional n', 
-                 fontsize=config.SUBTITLE_FONTSIZE*0.6)
+                 fontsize=config.SUBTITLE_FONTSIZE*0.8)
 
     # Save
-    fp.save_fig(fig, plot_dir, f'fig_rfs_sas_2_{DD}')
+    fp.save_fig(fig, plot_dir, f'fig_rfs_sas_dt{dt}_{f_short}')
 
-            # Print
-            # print(f'{DD:5} |{rr:5} |{ss:5} |{pp:5} |{nn:7} |{diff:10.4f} |{neg:6d} | {avg:10.4f} | {aa.sum():10.1f}')
-
-
-
-# # # lims = [[0, 1], [0, 1]]
-# # # label = ['ja', 'jo']
-# # # letter = ['A', 'O']
-# # # for i, var in enumerate([ja, jo]):
-# # #     # # Plot
-# # #     fig, ax = fp.get_figax(aspect=len(ja)/len(jo))
-# # #     cax = fp.add_cax(fig, ax)
-
-# # #     # Plot
-# # #     # c = ax.contour(rfs, sas, ja.T)
-# # #     c = ax.imshow(var, vmin=lims[i][0], vmax=lims[i][1])
-
-# # #     # Labels
-# # #     ax.set_xticks(np.arange(0, len(sas)))
-# # #     ax.set_xticklabels(sas)
-# # #     ax.set_ylim(-0.5, len(rfs)-0.5)
-# # #     ax.set_yticks(np.arange(0, len(rfs)))
-# # #     ax.set_yticklabels(rfs)
-# # #     ax = fp.add_labels(ax, 'Prior errors', 'Regularization factor')
-
-# # #     # Colorbar
-# # #     cb = fig.colorbar(c, cax=cax)#, ticks=np.arange(0, 6, 1))
-# # #     cb = fp.format_cbar(cb, cbar_title=r'$J_{A}(\hat{x})$')
-
-# # #     fp.save_fig(fig, plot_dir, f'fig_rfs_sas_{label[i]}')
-
+#             # Print
+#             # print(f'{DD:5} |{rr:5} |{ss:5} |{pp:5} |{nn:7} |{diff:10.4f} |{neg:6d} | {avg:10.4f} | {aa.sum():10.1f}')
 
 
 ## ------------------------------------------------------------------------ ##
@@ -402,22 +376,6 @@ plt.close()
 # Reset cbar kwargs
 avker_kwargs['cbar_kwargs'] = {'title' : r'$\partial\hat{x}_i/\partial x_i$'}
 xhat_kwargs['cbar_kwargs'] = {'title' : r'Scale factor'}
-
-# Plot sensitivity results
-# title = f'{title2_str}\nposterior emission scale factors' # ({f}\%)'
-# fig, ax, c = ip.plot_state(xhat2, clusters, title=title,
-#                            **xhat_kwargs)
-# fp.save_fig(fig, plot_dir, f'fig_est2_xhat_{save2_str}_{f}')
-# plt.close()
-
-# title = f'{title2_str}\naveraging kernel sensitivities' # ({f}\%)'
-# fig, ax, c = ip.plot_state(dofs2, clusters, title=title,
-#                            **avker_kwargs)
-# ax.text(0.025, 0.05, 'DOFS = %d' % round(dofs2.sum()),
-#         fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#         transform=ax.transAxes)
-# fp.save_fig(fig, plot_dir, f'fig_est2_dofs_{save2_str}_{f}')
-# plt.close()
 
 # title = f'{title_str} - standard\nposterior emission scale factors'
 # fig, ax, c = ip.plot_state(xhat - xhat2, clusters, title=title,
@@ -659,7 +617,7 @@ print(country_emis['CONUS'])
 xs = np.arange(0, len(emis.keys()) - 1)
 fig, axis = fp.get_figax(aspect=2, cols=3)
 j = 0
-lims = [[0, 3], [0, 12], [0, 3]]
+lims = [[0, 3.5], [0, 12], [0, 3.5]]
 country_emis_sub = {key : country_emis[key]
                     for key in ['Canada', 'CONUS', 'Mexico']}
 for country, sect_emis in country_emis_sub.items():
