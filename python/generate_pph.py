@@ -15,11 +15,20 @@ if __name__ == '__main__':
     ## Set user preferences
     ## ---------------------------------------------------------------------##
     # Cannon
-    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
-    # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-    # niter = '2'
     # chunk = 1
     # chunk_size = 150000
+    # niter = '2'
+    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
+    # optimize_bc = False
+    # xa_abs_file = f'{data_dir}/xa_abs_w404.nc'
+    # sa_file = f'{data_dir}/sa.nc'
+    # sa_scale = 1
+    # so_file = f'{data_dir}/so_rg2rt_10t.nc'
+    # rf = 1
+    # ya_file = f'{data_dir}/ya.nc'
+    # suffix = '_rg2rt_10t_w404'
+    # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+
     print(sys.argv)
     chunk = int(sys.argv[1])
     chunk_size = int(sys.argv[2])
@@ -94,6 +103,11 @@ if __name__ == '__main__':
         sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
     nstate = sa.shape[0]
 
+    # Prior
+    if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+        xa_abs = gc.read_file(xa_abs_file)
+        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc')
+
     # Observational suffix
     if niter == '0':
         obs_suffix = '0'
@@ -105,25 +119,10 @@ if __name__ == '__main__':
     so /= rf
 
     # Observations
+    # # This part should be updated eventually to use
+    # # the correct ya from GEOS-Chem
     y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc')
     ya = gc.read_file(ya_file)
-
-    # Update ya for new prior
-    # This part should be deleted eventually in preference of using
-    # the correct ya from GEOS-Chem
-    if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-        xa_abs = gc.read_file(xa_abs_file)
-        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc')
-        xa_ratio = xa_abs/xa_abs_orig
-        Kxd = ip.calculate_Kx(f'{data_dir}/iteration{niter}/k', xa_ratio - 1,
-                              niter=niter, chunks=chunks, 
-                              optimize_bc=optimize_bc)
-        ya += Kxd
-        print(f'Updated modeled observations yield maximum {ya.max()} and minimum {ya.min()}')
-    else:
-        xa_ratio = np.ones(nstate)
-
-    # Calculate ydiff
     ydiff = y - ya
 
     # Observation mask
@@ -147,7 +146,9 @@ if __name__ == '__main__':
                            chunks=chunks)
 
         # Scale K by xa_ratio
-        k_m = k_m*xa_ratio
+        if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+            print('Scaling K by the new prior.')
+            k_m = k_m*(xa_abs/xa_abs_orig)
 
         if optimize_bc:
             # Add on boundary condition elements
@@ -190,6 +191,13 @@ if __name__ == '__main__':
             print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
             # Then save out part of what we need for the posterior solution
+            # Update ydiff for the new prior
+            if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+                ydiff_i = ydiff_i - (k_i*(1 - xa_abs_orig/xa_abs)).sum(axis=1)
+                ydiff_i = ydiff_i.persist()
+                progress(ydiff_i)
+                print(f'Updated modeled observations yield maximum {ydiff_i.values.max():.0f} and minimum {ydiff_i.values.min():.0f}')
+
             pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
             pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
                                       name=f'pre_xhat{niter}{suffix}_c{chunk:02d}')
