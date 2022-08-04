@@ -30,33 +30,26 @@ min_file_size=($(ls -lSh ProcessedDir | tail -n 1))
 min_file_size=${min_file_size[4]}
 [[ $min_file_size  == 208 ]] && check_pp_size=true || check_pp_size=false
 
-## Concatenate the post-processing checks
-[[ $check_pp_strat && $check_pp_nans && $check_pp_count && $check_pp_size ]] && check_pp=true || check_pp=false
-
 # If those criteria are met
-if [[ $check_gc && $check_pp ]]
+if [[ ! $check_pp_strat ]]
 then
-  echo "Cleaning up!"
-  rm HEMCO_restart.*
-  rm OutputDir/*
+  echo "Stratospheric data replacement failed."
+elif [[ ! $check_pp_nans ]]
+then
+  echo "NaN values are present in the TROPOMI operator output."
+elif [[ ! $check_pp_count ]]
+then
+  echo "There are an incorrect number of post-processed files."
+elif [[ ! $check_pp_size ]]
+then
+  echo "There are post-processed files with size 0."
 elif [[ ! $check_gc ]]
 then
   echo "GEOS-Chem check failed."
-elif [[ ! $check_pp ]]
-then
-  if [[ ! $check_pp_strat ]]
-  then
-    echo "Stratospheric data replacement failed."
-  elif [[ ! $check_pp_nans ]]
-  then
-    echo "NaN values are present in the TROPOMI operator output."
-  elif [[ ! $check_pp_count ]]
-  then
-    echo "There are an incorrect number of post-processed files."
-  elif [[ ! $check_pp_size ]]
-  then
-    echo "There are post-processed files with size 0."
-  fi
+else
+  echo "Cleaning up!"
+  rm HEMCO_restart.*
+  rm OutputDir/*
 fi
 
 exit 0
