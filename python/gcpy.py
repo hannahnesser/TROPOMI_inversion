@@ -169,7 +169,8 @@ def group_data(data, groupby, quantity='DIFF',
 def comparison_stats(xdata, ydata):
     m, b, r, p, err = linregress(xdata.flatten(), ydata.flatten())
     bias = (ydata - xdata).mean()
-    return m, b, r, bias
+    std = (ydata - xdata).std()
+    return m, b, r, bias, std
 
 ## -------------------------------------------------------------------------##
 ## Grid functions
