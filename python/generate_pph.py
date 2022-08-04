@@ -99,14 +99,17 @@ if __name__ == '__main__':
     # Prior error
     sa = gc.read_file(sa_file)
     sa *= sa_scale**2
-    if optimize_bc:
-        sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
-    nstate = sa.shape[0]
 
     # Prior
     if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
         xa_abs = gc.read_file(xa_abs_file)
         xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc')
+
+    # Update if boundary condition is optimized
+    if optimize_bc:
+        sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
+        xa_abs_bc = xr.DataArray(np.ones(4), dims=('nstate'))
+    nstate = sa.shape[0]
 
     # Observational suffix
     if niter == '0':
@@ -156,9 +159,12 @@ if __name__ == '__main__':
                                         chunks=chunks)
             k_bc = k_bc[i0:i1, :]
 
-            # Combine the two Jacobians and add on to sa
+            # Combine the two Jacobians and add on to sa and xa
             k_m = xr.concat([k_m, k_bc], dim='nstate')
             sa = xr.concat([sa, sa_bc], dim='nstate')
+            if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+                xa_abs = xr.concat([xa_abs, xa_abs_bc], dim='nstate')
+                xa_abs_orig = xr.concat([xa_abs_orig, xa_abs_bc], dim='nstate')
             nstate = sa.shape[0]
 
         # Initialize our loop
