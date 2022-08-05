@@ -1,57 +1,38 @@
 if __name__ == '__main__':
     import sys
-    import time
     import copy
-    import glob
-    from datetime import datetime
     import xarray as xr
     import dask.array as da
     import numpy as np
-    import pandas as pd
-    from scipy.linalg import eigh
-    import matplotlib.pyplot as plt
 
     ## ---------------------------------------------------------------------##
     ## Set user preferences
     ## ---------------------------------------------------------------------##
-    local = False
-
-    # Cannon
-    if not local:
-        # output dir is currently unused
-        # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-        # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
-        # niter = '2'
-        # xa_abs_file = f'{data_dir}/xa_abs_wetlands404_edf_bc0.nc'
-        # ya_file = f'{data_dir}/ya.nc'
-        # so_file = f'{data_dir}/so_rg2rt_10t.nc'
-        # sa_file = f'{data_dir}/sa.nc'
-        # sa_scale = 1
-        # rf = 1
-        # suffix = '_rg2rt_10t_wetlands404_edf_bc0'
-        # pct_of_info = 80
-        niter = sys.argv[1]
-        data_dir = sys.argv[2]
-        optimize_bc = sys.argv[3]
-        optimize_rf = sys.argv[4]
-        xa_abs_file = sys.argv[5]
-        sa_file = sys.argv[6]
-        sa_scale = float(sys.argv[7])
-        so_file = sys.argv[8]
-        rf = float(sys.argv[9])
-        ya_file = sys.argv[10]
-        pct_of_info = float(sys.argv[11])
-        suffix = sys.argv[12]
-        code_dir = sys.argv[13]
-
-    else:
-        niter = 1
-        base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-        code_dir = f'{base_dir}python/'
-        data_dir = f'{base_dir}inversion_data/'
-        optimize_rf = False
-        rf = None
-        sa_in = None
+    # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
+    # niter = '2'
+    # xa_abs_file = f'{data_dir}/xa_abs_wetlands404_edf_bc0.nc'
+    # ya_file = f'{data_dir}/ya.nc'
+    # so_file = f'{data_dir}/so_rg2rt_10t.nc'
+    # sa_file = f'{data_dir}/sa.nc'
+    # sa_scale = 1
+    # rf = 1
+    # suffix = '_bc_rg2rt_10t_wetlands404_edf_bc0'
+    # pct_of_info = 80
+    # optimize_bc = True
+    niter = sys.argv[1]
+    data_dir = sys.argv[2]
+    optimize_bc = sys.argv[3]
+    optimize_rf = sys.argv[4]
+    xa_abs_file = sys.argv[5]
+    sa_file = sys.argv[6]
+    sa_scale = float(sys.argv[7])
+    so_file = sys.argv[8]
+    rf = float(sys.argv[9])
+    ya_file = sys.argv[10]
+    pct_of_info = float(sys.argv[11])
+    suffix = sys.argv[12]
+    code_dir = sys.argv[13]
 
     if suffix == 'None':
         suffix = ''
@@ -70,44 +51,35 @@ if __name__ == '__main__':
     else:
         optimize_rf = False
 
-    # User preferences
-    # pct_of_info = [50, 70, 75, 80, 90, 99.9]
-    # pct_of_info = 80
-
     ## -------------------------------------------------------------------- ##
     ## Set up working environment
     ## -------------------------------------------------------------------- ##
     # Import custom packages
     sys.path.append(code_dir)
-    import inversion as inv
-    import inversion_settings as s
     import gcpy as gc
     import invpy as ip
-    import format_plots as fp
-    import config as c
 
-    if not local:
-        # Import dask things
-        from dask.distributed import Client, LocalCluster, progress
-        from dask.diagnostics import ProgressBar
-        import dask.config
-        dask.config.set({'distributed.comm.timeouts.connect' : 90,
-                         'distributed.comm.timeouts.tcp' : 150,
-                         'distributed.adaptive.wait-count' : 90,
-                         'temporary_directory' : f'{data_dir}/inv_dask_worker{suffix}'})
+    # Import dask things
+    from dask.distributed import Client, LocalCluster, progress
+    from dask.diagnostics import ProgressBar
+    import dask.config
+    dask.config.set({'distributed.comm.timeouts.connect' : 90,
+                     'distributed.comm.timeouts.tcp' : 150,
+                     'distributed.adaptive.wait-count' : 90,
+                     'temporary_directory' : f'{data_dir}/inv_dask_worker{suffix}'})
 
-        # Open cluster and client
-        n_workers = 2
-        threads_per_worker = 2
-        cluster = LocalCluster(n_workers=n_workers,
-                               threads_per_worker=threads_per_worker)
-        client = Client(cluster)
+    # Open cluster and client
+    n_workers = 2
+    threads_per_worker = 2
+    cluster = LocalCluster(n_workers=n_workers,
+                           threads_per_worker=threads_per_worker)
+    client = Client(cluster)
 
-        # We now calculate chunk size.
-        n_threads = n_workers*threads_per_worker
-        nstate_chunk = 2e6 # orig: 1e3
-        nobs_chunk = 5e2 # orig: 5e5
-        chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
+    # We now calculate chunk size.
+    n_threads = n_workers*threads_per_worker
+    nstate_chunk = 2e6 # orig: 1e3
+    nobs_chunk = 5e2 # orig: 5e5
+    chunks = {'nstate' : nstate_chunk, 'nobs' : nobs_chunk}
 
     ## -------------------------------------------------------------------- ##
     ## Open files
@@ -140,14 +112,8 @@ if __name__ == '__main__':
     ## Optimize the regularization factor via cost function analysis
     ## ---------------------------------------------------------------------##
     if optimize_rf:
-        # THIS MIGHT BE WRONG AFTER SWITCHING PASSAGE OF SA AND SO
-        # To calculate the cost function for the observational term,
-        # we need to load the true observations and the constant term
-        ## Load the observations
-        # y = gc.read_file(f'{data_dir}/y.nc')
-
         # Iterate through different regularization factors and prior
-        # errors. Then save out the prior and observational cost function
+        # errors. Then save out the prior and observational cost function.
         rfs = [0.01, 0.05, 0.1, 0.5, 1.0]
         sas = [0.5, 0.75, 1.0, 1.25, 1.5]
         dds = [0.05, 0.1, 0.15, 0.2]
@@ -162,15 +128,11 @@ if __name__ == '__main__':
                 # Scale the relevant terms by RF and Sa
                 evals_h_ij = rf_i*sa_i**2*copy.deepcopy(evals_h)
                 p_ij = rf_i*copy.deepcopy(pre_xhat)
-
-                if optimize_bc:
-                    sa_ij = copy.deepcopy(sa)
-                    sa_ij[:-4] = sa_ij[:-4]*sa_i**2
-                else:
-                    sa_ij = copy.deepcopy(sa)*sa_i**2
+                sa_ij = copy.deepcopy(sa)*sa_i**2
 
                 # Calculate the posterior
-                _, xh_fr, _, a = ip.solve_inversion(evecs, evals_h_ij, sa_ij, p_ij)
+                _, xh_fr, _, a = ip.solve_inversion(evecs, evals_h_ij, 
+                                                    sa_ij, p_ij)
                 dofs = np.diagonal(a)
 
                 # # Calculate the posterior observations
@@ -185,6 +147,11 @@ if __name__ == '__main__':
                 np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
                 np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suff}.npy', xh_fr)
                 # np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suff}.npy', yhat)
+
+                # Subset for boundary condition
+                if optimize_bc:
+                    xh_fr = xh_fr[:-4]
+                    dofs = dofs[:-4]
 
                 # Subset the posterior
                 # for j, t_i in enumerate(DOFS_threshold):
