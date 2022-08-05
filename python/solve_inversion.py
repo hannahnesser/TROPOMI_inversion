@@ -117,6 +117,7 @@ if __name__ == '__main__':
         rfs = [0.01, 0.05, 0.1, 0.5, 1.0]
         sas = [0.5, 0.75, 1.0, 1.25, 1.5]
         dds = [0.05, 0.1, 0.15, 0.2]
+        ja_fr = np.zeros((len(rfs), len(sas), len(dds)))
         ja = np.zeros((len(rfs), len(sas), len(dds)))
         n = np.zeros((len(rfs), len(sas), len(dds)))
         negs = np.zeros((len(rfs), len(sas), len(dds)))
@@ -131,7 +132,7 @@ if __name__ == '__main__':
                 sa_ij = copy.deepcopy(sa)*sa_i**2
 
                 # Calculate the posterior
-                _, xh_fr, _, a = ip.solve_inversion(evecs, evals_h_ij, 
+                xh, xh_fr, _, a = ip.solve_inversion(evecs, evals_h_ij, 
                                                     sa_ij, p_ij)
                 dofs = np.diagonal(a)
 
@@ -145,6 +146,7 @@ if __name__ == '__main__':
                 # Save out
                 suff = suffix + f'_rf{rf_i}' + f'_sax{sa_i}' + f'_poi{pct_of_info}'
                 np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
+                np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xh)
                 np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suff}.npy', xh_fr)
                 # np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suff}.npy', yhat)
 
@@ -160,13 +162,15 @@ if __name__ == '__main__':
                     nf = (dofs >= dofs_i).sum()
 
                     # Calculate and save the cost function for the prior term
-                    ja[i, j, k] = ((xh_fr - 1)**2/sa_ij.reshape(-1,)).sum()/nf
+                    ja_fr[i, j, k] = ((xh_fr - 1)**2/sa_ij.reshape(-1,)).sum()/nf
+                    ja[i, j, k] = ((xh - 1)**2/sa_ij.reshape(-1,)).sum()/nf
                     n[i, j, k] = nf
                     negs[i, j, k] = (xh_fr < 0).sum()
                     avg[i, j, k] = xh_fr[dofs >= dofs_i].mean()
 
         # Save the result
         np.save(f'{data_dir}/iteration{niter}/ja{niter}{suffix}.npy', ja)
+        np.save(f'{data_dir}/iteration{niter}/ja_fr{niter}{suffix}.npy', ja_fr)
         np.save(f'{data_dir}/iteration{niter}/n_func{niter}{suffix}.npy', n)
         np.save(f'{data_dir}/iteration{niter}/negs{niter}{suffix}.npy', negs)
         np.save(f'{data_dir}/iteration{niter}/avg{niter}{suffix}.npy', avg)
