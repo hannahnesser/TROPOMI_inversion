@@ -65,7 +65,6 @@ FILE_SUFFIX="_rg2rt_wetlands50"
 # Wetland 4.04 scaling test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404.nc"
 FILE_SUFFIX="_rg2rt_10t_w404"
-# FILE_SUFFIX="_rg2rt_10t_sa_var_max_w404"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
