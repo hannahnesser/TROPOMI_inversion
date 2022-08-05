@@ -182,10 +182,10 @@ remove_latitudinal_bias = False
 lat_bins = np.arange(10, 65, 5)
 
 # Which analyses do you wish to perform?
-analyze_biases = True
+analyze_biases = False
 
 # Calculate the error variances?
-calculate_so = True
+calculate_so = False
 err_min = 10
 
 ## ------------------------------------------------------------------------ ##
@@ -594,13 +594,14 @@ if compare_gosat:
     fig, ax = fp.get_figax(aspect=1)
     for i, s in enumerate(np.unique(diff_grid['SEASON'])):
         d = diff_grid[diff_grid['SEASON'] == s]
-        m, b, r, bias = gc.comparison_stats(d['GOSAT'].values,
-                                            d['TROPOMI'].values)
+        m, b, r, bias, std = gc.comparison_stats(d['GOSAT'].values,
+                                                 d['TROPOMI'].values)
         systematic_bias = d['DIFF'].std()
         print(s)
         # print(f'  y = {m}x + {b}')
         print(f'  R2            : {(r**2):.2f}')
         print(f'  bias          : {bias:.2f}')
+        print(f'  std           : {std:.2f}')
         print(f'  regional bias : {systematic_bias:.2f}')
         ax.scatter(d['GOSAT'], d['TROPOMI'], c=fp.color(i, lut=4), alpha=0.5,
                    s=5, label=s)
