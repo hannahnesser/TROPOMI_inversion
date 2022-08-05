@@ -148,11 +148,6 @@ if __name__ == '__main__':
         k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
                            chunks=chunks)
 
-        # Scale K by xa_ratio
-        if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-            print('Scaling K by the new prior.')
-            k_m = k_m*(xa_abs/xa_abs_orig)
-
         if optimize_bc:
             # Add on boundary condition elements
             k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
@@ -165,7 +160,21 @@ if __name__ == '__main__':
             if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
                 xa_abs = xr.concat([xa_abs, xa_abs_bc], dim='nstate')
                 xa_abs_orig = xr.concat([xa_abs_orig, xa_abs_bc], dim='nstate')
+
+            # Update nstate
             nstate = sa.shape[0]
+
+        if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+            # Calculate the ratio of the new to original prior
+            xa_ratio = xa_abs/xa_abs_orig
+            xa_ratio[(xa_abs_orig == 0) & (xa_abs == 0)] = 1
+            xa_ratio_inv = 1/xa_ratio
+            xa_ratio_inv[xa_abs == 0] = 1
+
+            # Scale K by xa_ratio
+            print('Scaling K by the new prior.')
+            k_m = k_m*xa_ratio
+
 
         # Initialize our loop
         i = int(0)
@@ -199,7 +208,7 @@ if __name__ == '__main__':
             # Then save out part of what we need for the posterior solution
             # Update ydiff for the new prior
             if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-                ydiff_i = ydiff_i - (k_i*(1 - xa_abs_orig/xa_abs)).sum(axis=1)
+                ydiff_i = ydiff_i - (k_i*(1 - xa_ratio_inv)).sum(axis=1)
                 ydiff_i = ydiff_i.persist()
                 progress(ydiff_i)
                 print(f'Updated modeled observations yield maximum {ydiff_i.values.max():.0f} and minimum {ydiff_i.values.min():.0f}')
