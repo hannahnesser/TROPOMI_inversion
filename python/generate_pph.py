@@ -14,19 +14,19 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Set user preferences
     ## ---------------------------------------------------------------------##
-    # Cannon
+    # # Cannon
     # chunk = 1
     # chunk_size = 150000
     # niter = '2'
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # optimize_bc = False
-    # xa_abs_file = f'{data_dir}/xa_abs_w404.nc'
+    # xa_abs_file = f'{data_dir}/xa_abs_w37.nc'
     # sa_file = f'{data_dir}/sa.nc'
     # sa_scale = 1
     # so_file = f'{data_dir}/so_rg2rt_10t.nc'
     # rf = 1
     # ya_file = f'{data_dir}/ya.nc'
-    # suffix = '_rg2rt_10t_w404'
+    # suffix = '_rg2rt_10t_w37'
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
     print(sys.argv)
@@ -97,13 +97,13 @@ if __name__ == '__main__':
     ## Load pertinent data that defines state and observational dimension
     ## ---------------------------------------------------------------------##
     # Prior error
-    sa = gc.read_file(sa_file)
+    sa = gc.read_file(sa_file, cache=True)
     sa *= sa_scale**2
 
     # Prior
     if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-        xa_abs = gc.read_file(xa_abs_file)
-        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc')
+        xa_abs = gc.read_file(xa_abs_file, cache=True)
+        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc', cache=True)
 
     # Update if boundary condition is optimized
     if optimize_bc:
@@ -124,8 +124,8 @@ if __name__ == '__main__':
     # Observations
     # # This part should be updated eventually to use
     # # the correct ya from GEOS-Chem
-    y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc')
-    ya = gc.read_file(ya_file)
+    y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc', cache=True)
+    ya = gc.read_file(ya_file, cache=True)
     ydiff = y - ya
 
     # Observation mask
@@ -174,7 +174,6 @@ if __name__ == '__main__':
             # Scale K by xa_ratio
             print('Scaling K by the new prior.')
             k_m = k_m*xa_ratio
-
 
         # Initialize our loop
         i = int(0)
