@@ -12,32 +12,20 @@ if __name__ == '__main__':
     ## ---------------------------------------------------------------------##
     ## Set user preferences
     ## ---------------------------------------------------------------------##
-    local = False
-
-    # Cannon
-    if not local:
-        # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
-        # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results/'
-        # output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/'
-        niter = sys.argv[1]
-        n_evecs = int(sys.argv[2])
-        data_dir = sys.argv[3]
-        output_dir = sys.argv[4]
-        optimize_bc = sys.argv[5]
-        calculate_evecs = sys.argv[6]
-        format_evecs = sys.argv[7]
-        sa_file = sys.argv[8]
-        sa_scale = float(sys.argv[9])
-        suffix = sys.argv[10]
-        code_dir = sys.argv[11]
-    else:
-        niter = 1
-        n_evecs = int(10)
-        base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-        code_dir = f'{base_dir}python/'
-        data_dir = f'{base_dir}inversion_data/'
-        calculate_evecs = False
-        format_evecs = False
+    # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
+    # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results/'
+    # output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/'
+    niter = sys.argv[1]
+    n_evecs = int(sys.argv[2])
+    data_dir = sys.argv[3]
+    output_dir = sys.argv[4]
+    optimize_bc = sys.argv[5]
+    calculate_evecs = sys.argv[6]
+    format_evecs = sys.argv[7]
+    sa_file = sys.argv[8]
+    sa_scale = float(sys.argv[9])
+    suffix = sys.argv[10]
+    code_dir = sys.argv[11]
 
     if suffix == 'None':
         suffix = ''
@@ -67,6 +55,8 @@ if __name__ == '__main__':
     snr = None
     rank = None
 
+    print(f'Solving inversion for {suffix}')
+
     ## -------------------------------------------------------------------- ##
     ## Set up working environment
     ## -------------------------------------------------------------------- ##
@@ -80,28 +70,27 @@ if __name__ == '__main__':
     import format_plots as fp
     import config as c
 
-    if not local:
-        # Import dask things
-        from dask.distributed import Client, LocalCluster, progress
-        from dask.diagnostics import ProgressBar
-        import dask.config
-        dask.config.set({'distributed.comm.timeouts.connect' : 90,
-                         'distributed.comm.timeouts.tcp' : 150,
-                         'distributed.adaptive.wait-count' : 90,
-                         'temporary_directory' : f'{data_dir}/evecs_dask_worker{suffix}'})
+    # Import dask things
+    from dask.distributed import Client, LocalCluster, progress
+    from dask.diagnostics import ProgressBar
+    import dask.config
+    dask.config.set({'distributed.comm.timeouts.connect' : 90,
+                     'distributed.comm.timeouts.tcp' : 150,
+                     'distributed.adaptive.wait-count' : 90,
+                     'temporary_directory' : f'{data_dir}/evecs_dask_worker{suffix}'})
 
-        # Open cluster and client
-        n_workers = 2
-        threads_per_worker = 2
-        cluster = LocalCluster(n_workers=n_workers,
-                               threads_per_worker=threads_per_worker)
-        client = Client(cluster)
+    # Open cluster and client
+    n_workers = 2
+    threads_per_worker = 2
+    cluster = LocalCluster(n_workers=n_workers,
+                           threads_per_worker=threads_per_worker)
+    client = Client(cluster)
 
-        # We now calculate chunk size.
-        n_threads = n_workers*threads_per_worker
-        nstate_chunk = 1e3
-        chunks = {'nstate_0' : nstate_chunk, 'nstate_1' : nstate_chunk}
-        print('State vector chunks : ', nstate_chunk)
+    # We now calculate chunk size.
+    n_threads = n_workers*threads_per_worker
+    nstate_chunk = 1e3
+    chunks = {'nstate_0' : nstate_chunk, 'nstate_1' : nstate_chunk}
+    print('State vector chunks : ', nstate_chunk)
 
     ## -------------------------------------------------------------------- ##
     ## Load global quantities
