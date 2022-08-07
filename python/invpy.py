@@ -564,11 +564,14 @@ def plot_state_format(data, default_value=0, cbar=True, **kw):
         horiz = cbar_kwargs.pop('horizontal', False)
         if horiz:
             orient = 'horizontal'
+            cbar_t_kwargs = {'y' : cbar_kwargs.pop('y', -4)}
         else:
             orient = 'vertical'
+            cbar_t_kwargs = {'x' : cbar_kwargs.pop('x', 5)}
+
         cax = fp.add_cax(fig, ax, horizontal=horiz)
         cb = fig.colorbar(c, ax=ax, cax=cax, orientation=orient, **cbar_kwargs)
-        cb = fp.format_cbar(cb, cbar_title, horizontal=horiz)
+        cb = fp.format_cbar(cb, cbar_title, horizontal=horiz, **cbar_t_kwargs)
         return fig, ax, cb
     else:
         return fig, ax, c
@@ -617,3 +620,41 @@ def plot_state_grid(data, rows, cols, clusters_plot,
         c = fp.format_cbar(c, cbar_title)
 
     return fig, ax, c
+
+def plot_posterior(xhat, dofs, clusters, **kwargs):
+    # Get figure
+    fig, ax = fp.get_figax(rows=1, cols=2, maps=True,
+                           lats=clusters.lat, lons=clusters.lon)
+
+    # Define kwargs
+    small_map_kwargs = {'draw_labels' : False}
+    xhat_cbar_kwargs = {'title' : r'Scale factor', 'horizontal' : True , 
+                        'y' : -3}
+    xhat_kwargs = {'cmap' : 'PuOr_r', 'vmin' : 0, 'vmax' : 2,
+                   'default_value' : 1, 'cbar_kwargs' : xhat_cbar_kwargs,
+                   'map_kwargs' : small_map_kwargs,
+                   'fig_kwargs' : {'figax' : [fig, ax[0]]}}
+    avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$',
+                         'horizontal' : True, 'y' : -3}
+    avker_kwargs = {'cmap' : fp.cmap_trans('plasma'), 'vmin' : 0, 'vmax' : 1,
+                    'cbar_kwargs' : avker_cbar_kwargs,
+                    'map_kwargs' : small_map_kwargs,
+                    'fig_kwargs' : {'figax' : [fig, ax[1]]}}
+
+
+    # Plot xhat
+    fig, ax[0], c = plot_state(xhat, clusters, 
+                                  title='Posterior emission\nscale factors',
+                                  **xhat_kwargs)
+
+    # Plot dofs
+    fig, ax[1], c = plot_state(dofs, clusters,
+                                  title='Averaging kernel\nsensitivities',
+                                  **avker_kwargs)
+    ax[1].text(0.025, 0.05, 'DOFS = %d' % round(dofs.sum()),
+               fontsize=config.LABEL_FONTSIZE*config.SCALE,
+               transform=ax[1].transAxes)
+
+    return fig, ax
+
+
