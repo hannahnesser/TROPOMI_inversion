@@ -295,8 +295,8 @@ def format_cbar(cbar, cbar_title='', horizontal=False, **cbar_kwargs):
     #                labelpad=CBAR_config.LABEL_PAD)
             # x0
     if horizontal:
-        x = cbar_kwargs.pop('x', 0.5)
-        y = -4
+        x = 0.5
+        y = cbar_kwargs.pop('y', -4)
         rotation = 'horizontal'
         va = 'top'
         ha = 'center'
