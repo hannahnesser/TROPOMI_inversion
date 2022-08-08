@@ -519,6 +519,16 @@ w_wetlands404_edf['ong'] = copy.deepcopy(w_edf['ong'])
 w_wetlands404_edf.to_csv(join(data_dir, 'w_wetlands404_edf.csv'), index=False)
 print(w_wetlands404_edf)
 
+# EDF and Wetlands 37
+xa_abs_wetlands37_edf = copy.deepcopy(xa_abs_edf)
+xa_abs_wetlands37_edf = xa_abs_wetlands37_edf - w_correct['wetlands'] + wetlands37
+xa_abs_wetlands37_edf.to_netcdf(join(data_dir, 'xa_abs_wetlands37_edf.nc'))
+
+# EDF and Wetlands 50
+xa_abs_wetlands50_edf = copy.deepcopy(xa_abs_edf)
+xa_abs_wetlands50_edf -= 0.5*w_correct['wetlands']
+xa_abs_wetlands50_edf.to_netcdf(join(data_dir, 'xa_abs_wetlands50_edf.nc'))
+
 ## -------------------------------------------------------------------------##
 ## Plot
 ## -------------------------------------------------------------------------##
