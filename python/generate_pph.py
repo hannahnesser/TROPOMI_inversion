@@ -216,7 +216,7 @@ if __name__ == '__main__':
             #     ydiff_i = ydiff_i - (k_i*(1 - xa_ratio_inv)).sum(axis=1)
             #     ydiff_i = ydiff_i.persist()
             #     progress(ydiff_i)
-            #     print(f'Updated modeled observations yield maximum {ydiff_i.values.max():.0f} and minimum {ydiff_i.values.min():.0f}')
+            #     print(f'Updated modeled observations yield maximum {ydiff_i.values.max():.0f} and minimum {ydiff_i.values.min():.0f}\n')
 
             pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
             pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
@@ -280,6 +280,7 @@ if __name__ == '__main__':
 
     # Clean up
     # files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
+    # files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     for f in files:
        remove(f)
