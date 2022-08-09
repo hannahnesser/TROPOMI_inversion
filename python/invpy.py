@@ -622,9 +622,13 @@ def plot_state_grid(data, rows, cols, clusters_plot,
     return fig, ax, c
 
 def plot_posterior(xhat, dofs, clusters, **kwargs):
+    # config.SCALE = 1
+
     # Get figure
     fig, ax = fp.get_figax(rows=1, cols=2, maps=True,
                            lats=clusters.lat, lons=clusters.lon)
+    plt.subplots_adjust(wspace=0.1)
+    config.SCALE = 1
 
     # Define kwargs
     small_map_kwargs = {'draw_labels' : False}
@@ -632,11 +636,13 @@ def plot_posterior(xhat, dofs, clusters, **kwargs):
                         'y' : -3}
     xhat_kwargs = {'cmap' : 'PuOr_r', 'vmin' : 0, 'vmax' : 2,
                    'default_value' : 1, 'cbar_kwargs' : xhat_cbar_kwargs,
+                   'title_kwargs' : {'fontsize' : config.TITLE_FONTSIZE},
                    'map_kwargs' : small_map_kwargs,
-                   'fig_kwargs' : {'figax' : [fig, ax[0]]}}
+                   'fig_kwargs' : {'figax' : [fig, ax[0]]},}
     avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$',
                          'horizontal' : True, 'y' : -3}
     avker_kwargs = {'cmap' : fp.cmap_trans('plasma'), 'vmin' : 0, 'vmax' : 1,
+                   'title_kwargs' : {'fontsize' : config.TITLE_FONTSIZE},
                     'cbar_kwargs' : avker_cbar_kwargs,
                     'map_kwargs' : small_map_kwargs,
                     'fig_kwargs' : {'figax' : [fig, ax[1]]}}
@@ -644,15 +650,15 @@ def plot_posterior(xhat, dofs, clusters, **kwargs):
 
     # Plot xhat
     fig, ax[0], c = plot_state(xhat, clusters, 
-                                  title='Posterior emission\nscale factors',
-                                  **xhat_kwargs)
+                               title='Posterior emission scale factors',
+                               **xhat_kwargs)
 
     # Plot dofs
     fig, ax[1], c = plot_state(dofs, clusters,
-                                  title='Averaging kernel\nsensitivities',
-                                  **avker_kwargs)
+                               title='Averaging kernel sensitivities',
+                              **avker_kwargs)
     ax[1].text(0.025, 0.05, 'DOFS = %d' % round(dofs.sum()),
-               fontsize=config.LABEL_FONTSIZE*config.SCALE,
+               fontsize=config.LABEL_FONTSIZE,
                transform=ax[1].transAxes)
 
     return fig, ax
