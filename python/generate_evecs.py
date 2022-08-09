@@ -7,7 +7,6 @@ if __name__ == '__main__':
     import numpy as np
     import pandas as pd
     from scipy.linalg import eigh
-    import matplotlib.pyplot as plt
 
     ## ---------------------------------------------------------------------##
     ## Set user preferences
@@ -61,13 +60,11 @@ if __name__ == '__main__':
     ## Set up working environment
     ## -------------------------------------------------------------------- ##
     # Import custom packages
-    import sys
     sys.path.append(code_dir)
     import inversion as inv
     import inversion_settings as s
     import gcpy as gc
     import invpy as ip
-    import format_plots as fp
     import config as c
 
     # Import dask things
