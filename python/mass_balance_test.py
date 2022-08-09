@@ -14,10 +14,9 @@ code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 prior_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/ProcessedDir'
 pert_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion_NA/jacobian_runs/TROPOMI_inversion_NA_0000_MB/ProcessedDir'
 data_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
-exclude_dates = ['20190307', '20190709', '20191108', '20191218', '20191219', 
-                 '20191220', '20191221', '20191222', '20191223', '20191224',
-                 '20191225', '20191226', '20191227', '20191228', '20191229',
-                 '20191230', '20191231']
+exclude_dates = ['20191218', '20191219', '20191220', '20191221', '20191222', 
+                 '20191223', '20191224', '20191225', '20191226', '20191227', 
+                 '20191228', '20191229', '20191230', '20191231']
 
 ## ---------------------------------------------------------------------##
 ## Custom imports
@@ -83,7 +82,7 @@ so = xr.open_dataarray(f'{data_dir}/so_rg2rt_10t_nlc.nc').values.reshape((-1, 1)
 ## Solve inversion
 ## ---------------------------------------------------------------------##
 def solve_inv(k, xa, sa, ydiff, so, rf):
-    k[k < 0] = 0
+    # k[k < 0] = 0
     shat = 1/(rf*(k.T/so.reshape(-1,) @ k + 1/sa))
     g = shat*rf*k.T/so.reshape(-1,)
     xhat = xa + g @ ydiff
