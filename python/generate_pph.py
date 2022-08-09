@@ -194,21 +194,21 @@ if __name__ == '__main__':
             so_i = so_m[i:(i + int(n))]
             ydiff_i = ydiff_m[i:(i + int(n))]
 
-            # # Calculate the PPH for that subset
-            # k_sasqrt_i = k_i*(sa**0.5)
-            # pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
-            # pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
-            #                      name=f'pph{niter}{suffix}_c{chunk:02d}')
-            # pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
+            # Calculate the PPH for that subset
+            k_sasqrt_i = k_i*(sa**0.5)
+            pph_i = da.tensordot(k_sasqrt_i.T/so_i, k_sasqrt_i, axes=(1, 0))
+            pph_i = xr.DataArray(pph_i, dims=['nstate_0', 'nstate_1'],
+                                 name=f'pph{niter}{suffix}_c{chunk:02d}')
+            pph_i = pph_i.chunk({'nstate_0' : nobs_chunk, 'nstate_1' : nstate})
 
-            # # Persist and save
-            # print('Persisting the prior pre-conditioned Hessian.')
-            # start_time = time.time()
-            # pph_i = pph_i.persist()
-            # progress(pph_i)
-            # pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
-            # active_time = (time.time() - start_time)/60
-            # print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
+            # Persist and save
+            print('Persisting the prior pre-conditioned Hessian.')
+            start_time = time.time()
+            pph_i = pph_i.persist()
+            progress(pph_i)
+            pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
+            active_time = (time.time() - start_time)/60
+            print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
 
             # # Then save out part of what we need for the posterior solution
             # # Update ydiff for the new prior
@@ -241,21 +241,20 @@ if __name__ == '__main__':
         print('-'*75)
         client.restart()
 
-    # # Get file lists
-    # pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
-    # pph_files.sort()
+    # Get file lists
+    pph_files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
+    pph_files.sort()
 
     pre_xhat_files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     pre_xhat_files.sort()
 
     # Initialize
-    # pph_m = xr.DataArray(np.zeros((nstate, nstate)),
-    #                      dims=['nstate_0', 'nstate_1'],
-    #                      name=f'pph{niter}{suffix}_c{chunk:02d}')
+    pph_m = xr.DataArray(np.zeros((nstate, nstate)),
+                         dims=['nstate_0', 'nstate_1'],
+                         name=f'pph{niter}{suffix}_c{chunk:02d}')
     pre_xhat_m = xr.DataArray(np.zeros((nstate,)), dims=['nstate'],
                               name=f'pre_xhat{niter}{suffix}_c{chunk:02d}')
-    # for i, files in enumerate(zip(pph_files, pre_xhat_files)):
-    for i, pxf in enumerate(pre_xhat_files):
+    for i, files in enumerate(zip(pph_files, pre_xhat_files)):
         print(f'Loading count {i}.')
         # pf, pxf = files
         # temp1 = xr.open_dataarray(pf)
