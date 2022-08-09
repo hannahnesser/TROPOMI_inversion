@@ -113,9 +113,10 @@ for i, seas in enumerate([[109, 119, 120], [110, 111, 112],
         c= wl_s_m.plot(ax=axis[i, j], add_colorbar=False, vmin=0, vmax=10)
         fp.add_title(axis[i, j], '')
 
-cax = fp.add_cax(fig, axis)
-cb = fig.colorbar(c, cax=cax)
-cb = fp.format_cbar(cb, cbar_title=r'Emissions$\\$(Mg km$^2$ a$^{-1}$)')
+cax = fp.add_cax(fig, axis, horizontal=True)
+cb = fig.colorbar(c, cax=cax, orientation='horizontal')
+cb = fp.format_cbar(cb, cbar_title=r'Emissions (Mg km$^2$ a$^{-1}$)', 
+                    horizontal=True, y=-2.5)
 
 fp.save_fig(fig, plot_dir, f'wetland_models')
 
@@ -225,25 +226,31 @@ fig, axis = fp.get_figax(rows=1, cols=3, maps=True,
                          lats=clusters.lat, lons=clusters.lon)
 for ax in axis.flatten():
     ax = fp.format_map(ax, clusters.lat, clusters.lon, **small_map_kwargs)
-cax = fp.add_cax(fig, axis)
+cax = fp.add_cax(fig, axis, horizontal=True)
 
 fig, axis[0], c = ip.plot_state(wl_gc_v*1e-3*(60*60*24*365)*(1000*1000),
-                                clusters, title='Standard\n(HEMCO)',
+                                clusters, title='Standard',
                                 fig_kwargs={'figax' : [fig, axis[0]]},
                                 cmap=viridis_trans, vmin=0, vmax=5,
                                 cbar=False, map_kwargs=small_map_kwargs)
-fig, axis[1], c = ip.plot_state(wl_wc_rg_v*1e-3*(60*60*24*365)*(1000*1000),
-                                clusters, title='Standard\n(xesmf)',
+# fig, axis[1], c = ip.plot_state(wl_wc_rg_v*1e-3*(60*60*24*365)*(1000*1000),
+#                                 clusters, title='Standard\n(xesmf)',
+#                                 fig_kwargs={'figax' : [fig, axis[1]]},
+#                                 cmap=viridis_trans, vmin=0, vmax=5,
+#                                 cbar=False, map_kwargs=small_map_kwargs)
+fig, axis[1], c = ip.plot_state(wl_gc_v*1e-3*(60*60*24*365)*(1000*1000)/4.04,
+                                clusters, title='75\% decrease',
                                 fig_kwargs={'figax' : [fig, axis[1]]},
                                 cmap=viridis_trans, vmin=0, vmax=5,
                                 cbar=False, map_kwargs=small_map_kwargs)
 fig, axis[2], c = ip.plot_state(wl_wc_s_rg_v*1e-3*(60*60*24*365)*(1000*1000),
-                                clusters, title='Sensitivity\n(xesmf)',
+                                clusters, title='Ensemble subset',
                                 fig_kwargs={'figax' : [fig, axis[2]]},
                                 cmap=viridis_trans, vmin=0, vmax=5,
                                 cbar=False, map_kwargs=small_map_kwargs)
-cb = fig.colorbar(c, cax=cax, ticks=np.arange(0,6, 1))
-cb = fp.format_cbar(cb, cbar_title=r'Emissions$\\$(Mg km$^2$ a$^{-1}$)')
+cb = fig.colorbar(c, cax=cax, ticks=np.arange(0,6, 1), orientation='horizontal')
+cb = fp.format_cbar(cb, cbar_title=r'Emissions (Mg km$^2$ a$^{-1}$)',
+                    horizontal=True, y=-2.5)
 
 fp.save_fig(fig, plot_dir, f'wetlands_rg')
 
