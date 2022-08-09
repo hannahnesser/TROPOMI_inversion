@@ -391,7 +391,7 @@ def plot_comparison_hexbin(xdata, ydata, cbar, stats, **kw):
 
     # Print information about R2 on the plot
     if stats:
-        _, _, r, bias = comparison_stats(xdata, ydata)
+        _, _, r, bias, _ = comparison_stats(xdata, ydata)
         ax = add_stats_text(ax, r, bias)
 
     if cbar:
@@ -424,7 +424,7 @@ def plot_comparison_scatter(xdata, ydata, stats, **kw):
 
     # Print information about R2 on the plot
     if stats:
-        _, _, r, bias = comparison_stats(xdata, ydata)
+        _, _, r, bias, _ = comparison_stats(xdata, ydata)
         ax = add_stats_text(ax, r, bias)
 
     return fig, ax, c
