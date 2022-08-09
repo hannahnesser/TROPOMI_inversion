@@ -126,10 +126,16 @@ if __name__ == '__main__':
     # # the correct ya from GEOS-Chem
     y = gc.read_file(f'{data_dir}/y{obs_suffix}.nc', cache=True)
     ya = gc.read_file(ya_file, cache=True)
-    ydiff = y - ya
 
     # Observation mask
-    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{obs_suffix}.csv', header=0)
+    obs_filter = pd.read_csv(f'{data_dir}/obs_filter{obs_suffix}.csv', header=0)['FILTER'].values
+
+    # Check that len(ya) == len(y)
+    if (len(ya) == obs_filter.shape[0]) & (len(ya) != len(y)):
+        ya = ya[obs_filter]
+
+    # Calculate difference
+    ydiff = y - ya
 
     # Get the indices for the chunk
     i0 = (chunk - 1)*chunk_size
