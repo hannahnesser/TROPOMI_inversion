@@ -281,7 +281,7 @@ if __name__ == '__main__':
     # Clean up
     # files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
     # files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
-    files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
+    files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     for f in files:
        remove(f)
 
