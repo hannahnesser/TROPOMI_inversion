@@ -256,7 +256,7 @@ if __name__ == '__main__':
                               name=f'pre_xhat{niter}{suffix}_c{chunk:02d}')
     for i, files in enumerate(zip(pph_files, pre_xhat_files)):
         print(f'Loading count {i}.')
-        # pf, pxf = files
+        pf, pxf = files
         temp1 = xr.open_dataarray(pf)
         temp2 = xr.open_dataarray(pxf)
         pph_m += temp1
