@@ -257,20 +257,20 @@ if __name__ == '__main__':
     for i, files in enumerate(zip(pph_files, pre_xhat_files)):
         print(f'Loading count {i}.')
         # pf, pxf = files
-        # temp1 = xr.open_dataarray(pf)
+        temp1 = xr.open_dataarray(pf)
         temp2 = xr.open_dataarray(pxf)
-        # pph_m += temp1
+        pph_m += temp1
         pre_xhat_m += temp2
 
     # Load into memory
-    # pph_m = pph_m.compute()
+    pph_m = pph_m.compute()
     pre_xhat_m = pre_xhat_m.compute()
 
-    # # Save out
-    # start_time = time.time()
-    # pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}.nc')
-    # active_time = (time.time() - start_time)/60
-    # print(f'Prior-pre-conditioned Hessian for chunk {chunk} saved ({active_time} min).')
+    # Save out
+    start_time = time.time()
+    pph_m.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}.nc')
+    active_time = (time.time() - start_time)/60
+    print(f'Prior-pre-conditioned Hessian for chunk {chunk} saved ({active_time} min).')
 
     start_time = time.time()
     pre_xhat_m.to_netcdf(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}.nc')
@@ -278,8 +278,8 @@ if __name__ == '__main__':
     print(f'xhat preparation for chunk {chunk} completed ({active_time} min).')
 
     # Clean up
-    # files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
-    # files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
+    files = glob.glob(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_*.nc')
+    files += glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     files = glob.glob(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}_c{chunk:02d}_*.nc')
     for f in files:
        remove(f)
