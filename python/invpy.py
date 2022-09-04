@@ -562,6 +562,7 @@ def plot_state_format(data, default_value=0, cbar=True, **kw):
     if cbar:
         cbar_title = cbar_kwargs.pop('title', '')
         horiz = cbar_kwargs.pop('horizontal', False)
+        cpi = cbar_kwargs.pop('cbar_pad_inches', 0.25)
         if horiz:
             orient = 'horizontal'
             cbar_t_kwargs = {'y' : cbar_kwargs.pop('y', -4)}
@@ -569,7 +570,7 @@ def plot_state_format(data, default_value=0, cbar=True, **kw):
             orient = 'vertical'
             cbar_t_kwargs = {'x' : cbar_kwargs.pop('x', 5)}
 
-        cax = fp.add_cax(fig, ax, horizontal=horiz)
+        cax = fp.add_cax(fig, ax, horizontal=horiz, cbar_pad_inches=cpi)
         cb = fig.colorbar(c, ax=ax, cax=cax, orientation=orient, **cbar_kwargs)
         cb = fp.format_cbar(cb, cbar_title, horizontal=horiz, **cbar_t_kwargs)
         return fig, ax, cb
@@ -628,6 +629,7 @@ def plot_posterior(xhat, dofs, clusters, **kwargs):
     fig, ax = fp.get_figax(rows=1, cols=2, maps=True,
                            lats=clusters.lat, lons=clusters.lon)
     plt.subplots_adjust(wspace=0.1)
+    old_scale = copy.deepcopy(config.SCALE)
     config.SCALE = 1
 
     # Define kwargs
@@ -660,6 +662,10 @@ def plot_posterior(xhat, dofs, clusters, **kwargs):
     ax[1].text(0.025, 0.05, 'DOFS = %d' % round(dofs.sum()),
                fontsize=config.LABEL_FONTSIZE,
                transform=ax[1].transAxes)
+
+
+    # Reset config SCALE
+    config.SCALE = old_scale
 
     return fig, ax
 
