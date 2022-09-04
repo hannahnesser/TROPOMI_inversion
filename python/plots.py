@@ -63,33 +63,34 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 ## ------------------------------------------------------------------------ ##
 ## Figure: Resolution context
 ## ------------------------------------------------------------------------ ##
-# # MA lat/lon lims
-# lat_min = 40
-# lat_max = 44
-# lon_min = -74
-# lon_max = -69
+# MA lat/lon lims
+lat_min = 40
+lat_max = 44
+lon_min = -74
+lon_max = -69
 
-# # Get longitude edges
-# lons_e = np.arange(lon_min, lon_max+0.3125, 0.3125)
-# # lons_e = lons_e[(lons_e > lon_min) & (lons_e < lon_max)]
+# Get longitude edges
+lons_e = np.arange(lon_min, lon_max+0.3125, 0.3125)
+print(lons_e)
+# lons_e = lons_e[(lons_e > lon_min) & (lons_e < lon_max)]
 
-# # Get latitude edges
-# lats_e = np.arange(lat_min, lat_max+0.25, 0.25)
-# # lats_e = lats_e[(lats_e > lat_min) & (lats_e < lat_max)]
-# print(lats_e)
+# Get latitude edges
+lats_e = np.arange(lat_min, lat_max+0.25, 0.25)
+# lats_e = lats_e[(lats_e > lat_min) & (lats_e < lat_max)]
+print(lats_e)
 
-# fig, ax = fp.get_figax(maps=True,
-#                        lats=[lat_min, lat_max], lons=[lon_min, lon_max])
-# ax = fp.format_map(ax, lats_e, lons_e, **small_map_kwargs)
+fig, ax = fp.get_figax(maps=True,
+                       lats=[lat_min, lat_max], lons=[lon_min, lon_max])
+ax = fp.format_map(ax, lats_e, lons_e, **small_map_kwargs)
 
-# for lat in lats_e:
-#     ax.axhline(lat, c=fp.color(4), lw=0.1)
+for lat in lats_e:
+    ax.axhline(lat, c=fp.color(4), lw=0.1)
 
-# for lon in lons_e:
-#     ax.axvline(lon, c=fp.color(4), lw=0.1)
+for lon in lons_e:
+    ax.axvline(lon, c=fp.color(4), lw=0.1)
 
-# # Save
-# fp.save_fig(fig, plot_dir, f'resolution')
+# Save
+fp.save_fig(fig, plot_dir, f'resolution')
 
 ## ------------------------------------------------------------------------ ##
 ## Figure: Jacobian column
