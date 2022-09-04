@@ -18,12 +18,12 @@ import glob as glob
 # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 # sat_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
 # GC_pressure_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
-# GC_ch4_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
+# GC_ch4_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_mb/OutputDir"
 # GC_ch4_halfstep_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_halfstep"
 # output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/ProcessedDir/"
-# jacobian = True
+# jacobian = False
 # reprocess = True
-# MONTHS = [12]
+# MONTHS = [1]
 # # MONTHS = [9, 10, 11, 12]
 # # jacobian = True
 
