@@ -31,8 +31,9 @@ if __name__ == '__main__':
     rf = float(sys.argv[9])
     ya_file = sys.argv[10]
     pct_of_info = float(sys.argv[11])
-    suffix = sys.argv[12]
-    code_dir = sys.argv[13]
+    evec_sf = float(sys.argv[12]) 
+    suffix = sys.argv[13]
+    code_dir = sys.argv[14]
 
     if suffix == 'None':
         suffix = ''
@@ -107,6 +108,10 @@ if __name__ == '__main__':
     # Subset the evals and evecs
     evals_h = evals_h[:rank]
     evecs = evecs[:, :rank]
+
+    # Scale by the eigenvector scaling
+    evals_h *= 1/evec_sf**2
+    pre_xhat *= 1/evec_sf
 
     ## ---------------------------------------------------------------------##
     ## Optimize the regularization factor via cost function analysis
