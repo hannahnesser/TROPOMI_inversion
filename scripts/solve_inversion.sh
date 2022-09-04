@@ -30,17 +30,20 @@ SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t.nc" # Regridded errors (2x2) with t
 SA_SCALE="1"
 RF="1"
 PCT_OF_INFO="80"
+EVEC_SCALE_FACTOR="1.0E-8"
 
 # Saving out ("None" if original)
 FILE_SUFFIX="_rg2rt_10t"
 
-## Sensitivity inversion options ##
+## Sensitivity inversion options #
 
-# -------------------------------------------------------------#
-# Variable errors
-SA_FILE="${SHORT_TERM_DATA_DIR}/sa_var_max.nc"
-FILE_SUFFIX="_rg2rt_10t_sa_var_max"
-# -------------------------------------------------------------#
+#
+
+# # -------------------------------------------------------------#
+# # Variable errors
+# SA_FILE="${SHORT_TERM_DATA_DIR}/sa_var_max.nc"
+# FILE_SUFFIX="_rg2rt_10t_sa_var_max"
+# # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
 # Boundary condition test (Running with both sa standard and sa_var_max)
@@ -51,55 +54,83 @@ XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_bc0.nc"
 # -------------------------------------------------------------#
 # Permian sensitivity test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf.nc"
-# FILE_SUFFIX="_rg2rt_10t_edf"
-FILE_SUFFIX="_rg2rt_10t_sa_var_max_edf"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_edf.nc"
+FILE_SUFFIX="_rg2rt_10t_edf"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
-# Wetland 50% test
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands50.nc"
-FILE_SUFFIX="_rg2rt_wetlands50"
+# Permian sensitivity test + NLC
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_edf_nlc.nc"
+FILE_SUFFIX="_rg2rt_10t_edf_nlc"
 # -------------------------------------------------------------#
+
+# # -------------------------------------------------------------#
+# # Wetland 50% test
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w50.nc"
+# FILE_SUFFIX="_rg2rt_10t_w50"
+# # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
 # Wetland 4.04 scaling test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404.nc"
 FILE_SUFFIX="_rg2rt_10t_w404"
 # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
-# Wetland remove ensemble members 3 (1923) and 7 (2913) test
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_wetlands37.nc"
-FILE_SUFFIX="_rg2rt_wetlands37"
+# Wetland 4.04 scaling test + NLC
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_nlc.nc"
+FILE_SUFFIX="_rg2rt_10t_w404_nlc"
 # -------------------------------------------------------------#
 
-# -------------------------------------------------------------#
-# Combine BC0 and wetland 4.04 scaling test
-OPTIMIZE_BC="True"
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_bc0.nc"
-FILE_SUFFIX="_rg2rt_10t_w404_bc0"
-# -------------------------------------------------------------#
+# # -------------------------------------------------------------#
+# # Wetland remove ensemble members 3 (1923) and 7 (2913) test
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37.nc"
+# FILE_SUFFIX="_rg2rt_10t_w37"
+# # -------------------------------------------------------------#
 
-# -------------------------------------------------------------#
-# Combine BC0 and EDF test
-OPTIMIZE_BC="True"
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf_bc0.nc"
-FILE_SUFFIX="_rg2rt_10t_edf_bc0"
-# -------------------------------------------------------------#
+# # -------------------------------------------------------------#
+# # Combine BC0 and wetland 4.04 scaling test
+# OPTIMIZE_BC="True"
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_bc0.nc"
+# FILE_SUFFIX="_rg2rt_10t_w404_bc0"
+# # -------------------------------------------------------------#
+
+# # -------------------------------------------------------------#
+# # Combine BC0 and EDF test
+# OPTIMIZE_BC="True"
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_edf_bc0.nc"
+# FILE_SUFFIX="_rg2rt_10t_edf_bc0"
+# # -------------------------------------------------------------#
 
 # -------------------------------------------------------------#
 # Combine wetlands 4.04 and EDF test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf.nc"
 FILE_SUFFIX="_rg2rt_10t_w404_edf"
 # -------------------------------------------------------------#
 
-# -------------------------------------------------------------#
-# Combine wetlands 4.04 and EDF test and NLC
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_nlc.nc" # Regridded errors (2x2) with threshold
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_nlc.nc" # If niter = 0, this should be ya0
-FILE_SUFFIX="_rg2rt_10t_w404_edf_nlc"
-# -------------------------------------------------------------#
+# # -------------------------------------------------------------#
+# # Combine wetlands 37 and EDF test
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf.nc"
+# FILE_SUFFIX="_rg2rt_10t_w37_edf"
+# # -------------------------------------------------------------#
+
+# # -------------------------------------------------------------#
+# # Combine wetlands 50 and EDF test
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w50_edf.nc"
+# FILE_SUFFIX="_rg2rt_10t_w50_edf"
+# # -------------------------------------------------------------#
+
+# # -------------------------------------------------------------#
+# # Combine wetlands 4.04 and EDF test and NLC
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_nlc.nc" # Regridded errors (2x2) with threshold
+# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_nlc.nc" # If niter = 0, this should be ya0
+# FILE_SUFFIX="_rg2rt_10t_w404_edf_nlc"
+# # -------------------------------------------------------------#
 
 # # -------------------------------------------------------------#
 # # Combine wetlands 4.04 and NLC
@@ -130,6 +161,7 @@ FILE_SUFFIX="_rg2rt_10t_w404_edf_nlc_bc0"
 # -------------------------------------------------------------#
 # Combine BC0, EDF, and wetland 4.04 scaling test
 OPTIMIZE_BC="True"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf.nc"
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf_bc0.nc"
 FILE_SUFFIX="_rg2rt_10t_w404_edf_bc0"
 # -------------------------------------------------------------#
@@ -160,5 +192,5 @@ jid3=$(sbatch --dependency=afterok:${jid2##* } generate_evecs.sh "2" ${NUM_EVECS
 # jid3=$(sbatch generate_evecs.sh "2" ${NUM_EVECS} ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${OPTIMIZE_BC} ${CALCULATE_EVECS} ${FORMAT_EVECS} ${SA_FILE} "1" ${FILE_SUFFIX} ${CODE_DIR})
 
 # Solve the inversion
-jid4=$(sbatch --dependency=afterok:${jid3##* } run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${OPTIMIZE_BC} ${OPTIMIZE_RF} ${XA_ABS_FILE} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${PCT_OF_INFO} ${FILE_SUFFIX} ${CODE_DIR})
-# jid4=$(sbatch run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${LONG_TERM_DATA_DIR} ${OPTIMIZE_BC} ${OPTIMIZE_RF} ${XA_ABS_FILE} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${PCT_OF_INFO} ${FILE_SUFFIX} ${CODE_DIR})
+jid4=$(sbatch --dependency=afterok:${jid3##* } run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${OPTIMIZE_BC} ${OPTIMIZE_RF} ${XA_ABS_FILE} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${PCT_OF_INFO} ${EVEC_SCALE_FACTOR} ${FILE_SUFFIX} ${CODE_DIR})
+# jid4=$(sbatch run_solve_inversion.sh "2" ${SHORT_TERM_DATA_DIR} ${OPTIMIZE_BC} ${OPTIMIZE_RF} ${XA_ABS_FILE} ${SA_FILE} ${SA_SCALE} ${SO_FILE} ${RF} ${YA_FILE} ${PCT_OF_INFO} ${EVEC_SCALE_FACTOR} ${FILE_SUFFIX} ${CODE_DIR})
