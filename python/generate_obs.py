@@ -178,14 +178,14 @@ albedo_bins = np.arange(0, 1.1, 0.05)
 filter_on_seasonal_latitude = True
 
 # Remove latitudinal bias
-remove_latitudinal_bias = False
+remove_latitudinal_bias = True
 lat_bins = np.arange(10, 65, 5)
 
 # Which analyses do you wish to perform?
-analyze_biases = False
+analyze_biases = True
 
 # Calculate the error variances?
-calculate_so = False
+calculate_so = True
 err_min = 10
 
 ## ------------------------------------------------------------------------ ##
@@ -1007,7 +1007,7 @@ if (plot_dir is not None) and calculate_so:
 
     cax = fp.add_cax(fig, ax[0, :], cbar_pad_inches=0.075)
     cb = fig.colorbar(c, ax=ax[0, :], cax=cax)
-    cb = fp.format_cbar(cb, 'XCH4\n(ppb)')
+    cb = fp.format_cbar(cb, 'XCH4 (ppb)')
 
     cax_c = fp.add_cax(fig, ax[1, :], cbar_pad_inches=0.075)
     cb_c = fig.colorbar(c_c, ax=ax[1, :], cax=cax_c, ticks=[50, 150, 250])
@@ -1109,10 +1109,10 @@ y = xr.DataArray(data['OBS'], dims=('nobs'))
 y.to_netcdf(join(output_dir, 'y.nc'))
 
 ya = xr.DataArray(data['MOD'], dims=('nobs'))
-ya.to_netcdf(join(output_dir, 'ya_nlc.nc'))
+ya.to_netcdf(join(output_dir, 'ya.nc'))
 
 if calculate_so:
     so = xr.DataArray(data['SO'], dims=('nobs'))
-    so.to_netcdf(join(output_dir, f'so{err_suffix}_{err_min}t_nlc.nc'))
+    so.to_netcdf(join(output_dir, f'so{err_suffix}_{err_min}t.nc'))
 
 print('=== CODE COMPLETE ====')
