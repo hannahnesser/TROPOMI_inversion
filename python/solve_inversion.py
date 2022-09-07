@@ -11,15 +11,16 @@ if __name__ == '__main__':
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # niter = '2'
-    # xa_abs_file = f'{data_dir}/xa_abs_wetlands404_edf_bc0.nc'
+    # xa_abs_file = f'{data_dir}/xa_abs_correct.nc'
     # ya_file = f'{data_dir}/ya.nc'
     # so_file = f'{data_dir}/so_rg2rt_10t.nc'
     # sa_file = f'{data_dir}/sa.nc'
     # sa_scale = 1
     # rf = 1
-    # suffix = '_bc_rg2rt_10t_wetlands404_edf_bc0'
+    # suffix = '_rg2rt_10t'
     # pct_of_info = 80
-    # optimize_bc = True
+    # optimize_bc = False
+
     niter = sys.argv[1]
     data_dir = sys.argv[2]
     optimize_bc = sys.argv[3]
@@ -119,8 +120,8 @@ if __name__ == '__main__':
     if optimize_rf:
         # Iterate through different regularization factors and prior
         # errors. Then save out the prior and observational cost function.
-        rfs = [0.01, 0.05, 0.1, 0.5, 1.0]
-        sas = [0.5, 1.0, 2.0, 3.0, 4.0]
+        rfs = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0]
+        sas = [0.5, 0.75, 1.0]
         dds = [0.05, 0.1, 0.15, 0.2]
         ja_fr = np.zeros((len(rfs), len(sas), len(dds)))
         ja = np.zeros((len(rfs), len(sas), len(dds)))
