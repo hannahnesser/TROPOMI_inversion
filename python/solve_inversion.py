@@ -120,7 +120,7 @@ if __name__ == '__main__':
     if optimize_rf:
         # Iterate through different regularization factors and prior
         # errors. Then save out the prior and observational cost function.
-        rfs = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0]
+        rfs = [0.01, 0.05, 0.1, 0.25, 0.5, 1.0]
         sas = [0.5, 0.75, 1.0]
         dds = [0.05, 0.1, 0.15, 0.2]
         ja_fr = np.zeros((len(rfs), len(sas), len(dds)))
