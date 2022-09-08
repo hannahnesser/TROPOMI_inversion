@@ -4,6 +4,7 @@
 #SBATCH -o %x_%j_%a.out
 #SBATCH -c 10
 #SBATCH -N 1
+#SBATCH --contiguous
 #SBATCH -p huce_cascade
 #SBATCH --mem 45000
 #SBATCH -t 0-02:00
