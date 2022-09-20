@@ -208,7 +208,7 @@ def get_one_statevec_layer(data, category=None, time=None,
     return data_out
 
 ## -------------------------------------------------------------------------##
-## Standard inversion functions
+## Reduced rank inversion functions
 ## -------------------------------------------------------------------------##
 def calculate_Kx(k_dir, x_data, niter, chunks, optimize_bc):
     # List of K files
@@ -285,7 +285,7 @@ def calculate_xhat(shat, kt_so_ydiff):
     # (this formulation only works with constant errors I think)
     return 1 + np.array(shat @ kt_so_ydiff)
 
-def calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff):
+def calculate_xhat_fr(a, sa, kt_so_ydiff):
     shat_kpi = (np.identity(len(sa)) - a)*sa.reshape((1, -1))
     return 1 + np.array(shat_kpi @ kt_so_ydiff)
 
@@ -304,64 +304,9 @@ def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
     shat = calculate_shat(evecs, evals_h, sa)
     a = calculate_a(evecs, evals_h, sa)
     xhat = calculate_xhat(shat, kt_so_ydiff)
-    xhat_fr = calculate_xhat_fr(shat, a, evecs, sa, kt_so_ydiff)
+    xhat_fr = calculate_xhat_fr(a, sa, kt_so_ydiff)
     return xhat, xhat_fr, shat, a
 
-# def solve_inversion(k, y, ya, so, xa, sa, calculate_cost=True):
-#     '''
-#     Calculate the solution to an analytic Bayesian inversion for the
-#     given Inversion object. The solution includes the posterior state
-#     vector (xhat), the posterior error covariance matrix (shat), and
-#     the averaging kernel (A). The function prints out progress statements
-#     and information about the posterior solution, including the value
-#     of the cost function at the prior and posterior, the number of
-#     negative state vector elements in the posterior solution, and the
-#     DOFS of the posterior solution.
-#     '''
-#     print('... Solving inversion ...')
-
-#     # Check if the errors are diagonal or not and, if so, modify
-#     # calculations involving the error covariance matrices
-#     sainv = inv_cov_matrix(sa)
-#     kTsoinv = multiply_data_by_inv_cov(k.T, so)
-
-#     # Calculate the cost function at the prior.
-#     if calculate_cost:
-#         print('Calculating the cost function at the prior mean.')
-#         cost_prior = cost_func(ya, y, so, xa, xa, sa)
-
-#     # Calculate the posterior error.
-#     print('Calculating the posterior error.')
-#     shat = np.array(inv(kTsoinv @ k + sainv))
-
-#     # Calculate the posterior mean
-#     print('Calculating the posterior mean.')
-#     xhat = np.array(xa + (shat @ kTsoinv @ (y - ya)))
-#     print('     Negative cells: %d' % xhat[xhat < 0].sum())
-
-#     # Calculate the averaging kernel.
-#     print('Calculating the averaging kernel.')
-#     a = np.array(identity(xa.shape[0]) - shat @ sainv)
-#     dofs = np.diag(a)
-#     print('     DOFS: %.2f' % np.trace(a))
-
-#     # Calculate the new set of modeled observations.
-#     print('Calculating updated modeled observations.')
-#     yhat = np.array(k @ xhat + c)
-
-#     # Calculate the cost function at the posterior. Also calculate the
-#     # number of negative cells as an indicator of inversion success.
-#     if calculate_cost:
-#         print('Calculating the cost function at the posterior mean.')
-#         cost_post = cost_func(yhat, y, so, xhat, xa, sa)
-
-#     print('... Complete ...\n')
-
-#     return xhat, shat, a, yhat
-
-## -------------------------------------------------------------------------##
-## Reduced rank inversion functions
-## -------------------------------------------------------------------------##
 def get_rank(evals_q=None, evals_h=None, pct_of_info=None, rank=None, snr=None):
     # Check whether evals_q or evals_h are provided:
     if sum(x is not None for x in [evals_q, evals_h]) == 0:
@@ -460,6 +405,73 @@ def pph(k, so, sa, big_mem=False):
 #     self.evals_q = evals/(1 + evals)
 #     self.evecs = evecs
 #     print('... Complete ...\n')
+
+# def solve_inversion(k, y, ya, so, xa, sa, calculate_cost=True):
+#     '''
+#     Calculate the solution to an analytic Bayesian inversion for the
+#     given Inversion object. The solution includes the posterior state
+#     vector (xhat), the posterior error covariance matrix (shat), and
+#     the averaging kernel (A). The function prints out progress statements
+#     and information about the posterior solution, including the value
+#     of the cost function at the prior and posterior, the number of
+#     negative state vector elements in the posterior solution, and the
+#     DOFS of the posterior solution.
+#     '''
+#     print('... Solving inversion ...')
+
+#     # Check if the errors are diagonal or not and, if so, modify
+#     # calculations involving the error covariance matrices
+#     sainv = inv_cov_matrix(sa)
+#     kTsoinv = multiply_data_by_inv_cov(k.T, so)
+
+#     # Calculate the cost function at the prior.
+#     if calculate_cost:
+#         print('Calculating the cost function at the prior mean.')
+#         cost_prior = cost_func(ya, y, so, xa, xa, sa)
+
+#     # Calculate the posterior error.
+#     print('Calculating the posterior error.')
+#     shat = np.array(inv(kTsoinv @ k + sainv))
+
+#     # Calculate the posterior mean
+#     print('Calculating the posterior mean.')
+#     xhat = np.array(xa + (shat @ kTsoinv @ (y - ya)))
+#     print('     Negative cells: %d' % xhat[xhat < 0].sum())
+
+#     # Calculate the averaging kernel.
+#     print('Calculating the averaging kernel.')
+#     a = np.array(identity(xa.shape[0]) - shat @ sainv)
+#     dofs = np.diag(a)
+#     print('     DOFS: %.2f' % np.trace(a))
+
+#     # Calculate the new set of modeled observations.
+#     print('Calculating updated modeled observations.')
+#     yhat = np.array(k @ xhat + c)
+
+#     # Calculate the cost function at the posterior. Also calculate the
+#     # number of negative cells as an indicator of inversion success.
+#     if calculate_cost:
+#         print('Calculating the cost function at the posterior mean.')
+#         cost_post = cost_func(yhat, y, so, xhat, xa, sa)
+
+#     print('... Complete ...\n')
+
+#     return xhat, shat, a, yhat
+
+## -------------------------------------------------------------------------##
+## Source attribution functions
+## -------------------------------------------------------------------------##
+def source_attribution(w, xhat, shat, a):
+    # xhat red = W xhat
+    xhat_red = w @ xhat
+
+    # Shat red = W Shat W^T
+    shat_red = w @ shat @ w.T
+
+    # A red = W A W* = W A W^T (W W^T)^-1
+    a_red = w @ a @ w.T @ inv((w @ w.T))
+
+    return xhat_red, shat_red, a_red
 
 ## -------------------------------------------------------------------------##
 ## Plotting functions : state vectors
@@ -633,10 +645,16 @@ def plot_posterior(xhat, dofs, clusters, **kwargs):
     config.SCALE = 1
 
     # Define kwargs
+    sf_cmap_1 = plt.cm.PuOr_r(np.linspace(0.2, 0.5, 256))
+    sf_cmap_2 = plt.cm.PuOr_r(np.linspace(0.5, 1, 256))
+    sf_cmap = np.vstack((sf_cmap_1, sf_cmap_2))
+    sf_cmap = colors.LinearSegmentedColormap.from_list('sf_cmap', sf_cmap)
+    div_norm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=1, vmax=3)
+
     small_map_kwargs = {'draw_labels' : False}
     xhat_cbar_kwargs = {'title' : r'Scale factor', 'horizontal' : True , 
                         'y' : -3}
-    xhat_kwargs = {'cmap' : 'PuOr_r', 'vmin' : 0, 'vmax' : 2,
+    xhat_kwargs = {'cmap' : sf_cmap, 'norm' : div_norm,
                    'default_value' : 1, 'cbar_kwargs' : xhat_cbar_kwargs,
                    'title_kwargs' : {'fontsize' : config.TITLE_FONTSIZE},
                    'map_kwargs' : small_map_kwargs,
