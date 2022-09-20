@@ -461,17 +461,22 @@ def pph(k, so, sa, big_mem=False):
 ## -------------------------------------------------------------------------##
 ## Source attribution functions
 ## -------------------------------------------------------------------------##
-def source_attribution(w, xhat, shat, a):
+def source_attribution(w, xhat, shat=None, a=None):
     # xhat red = W xhat
     xhat_red = w @ xhat
 
-    # Shat red = W Shat W^T
-    shat_red = w @ shat @ w.T
+    if shat is not None:
+        # Shat red = W Shat W^T
+        shat_red = w @ shat @ w.T
 
-    # A red = W A W* = W A W^T (W W^T)^-1
-    a_red = w @ a @ w.T @ inv((w @ w.T))
+    if a is not None:
+        # A red = W A W* = W A W^T (W W^T)^-1
+        a_red = w @ a @ w.T @ inv((w @ w.T))
 
-    return xhat_red, shat_red, a_red
+    if shat is None and a is None:
+        return xhat_red
+    else:
+        return xhat_red, shat_red, a_red
 
 ## -------------------------------------------------------------------------##
 ## Plotting functions : state vectors
