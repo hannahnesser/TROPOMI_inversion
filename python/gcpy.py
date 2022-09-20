@@ -288,8 +288,9 @@ def define_HEMCO_std_attributes(data, name=None):
     data.lon.attrs = {'long_name': 'longitude', 'units': 'degrees_east'}
     return data
 
-def define_HEMCO_var_attributes(data, var, long_name, units):
-    data[var].attrs = {'long_name' : long_name, 'units' : units}
+def define_HEMCO_var_attributes(data, var, long_name, units, **kwargs):
+    data[var].attrs = {'long_name' : long_name, 'units' : units,
+                       **kwargs}
     return data
 
 def save_HEMCO_netcdf(data, data_dir, file_name, dtype='float32', **kwargs):
