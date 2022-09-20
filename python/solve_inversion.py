@@ -1,9 +1,11 @@
 if __name__ == '__main__':
     import sys
+    import glob
     import copy
     import xarray as xr
     import dask.array as da
     import numpy as np
+    import pandas as pd
 
     ## ---------------------------------------------------------------------##
     ## Set user preferences
@@ -15,8 +17,10 @@ if __name__ == '__main__':
     # ya_file = f'{data_dir}/ya.nc'
     # so_file = f'{data_dir}/so_rg2rt_10t.nc'
     # sa_file = f'{data_dir}/sa.nc'
+    # w_file = f'{data_dir}/w_correct.csv'
     # sa_scale = 1
     # rf = 1
+    # evec_sf = 10
     # suffix = '_rg2rt_10t'
     # pct_of_info = 80
     # optimize_bc = False
@@ -31,10 +35,11 @@ if __name__ == '__main__':
     so_file = sys.argv[8]
     rf = float(sys.argv[9])
     ya_file = sys.argv[10]
-    pct_of_info = float(sys.argv[11])
-    evec_sf = float(sys.argv[12]) 
-    suffix = sys.argv[13]
-    code_dir = sys.argv[14]
+    w_file = sys.argv[11]
+    pct_of_info = float(sys.argv[12])
+    evec_sf = float(sys.argv[13]) 
+    suffix = sys.argv[14]
+    code_dir = sys.argv[15]
 
     if suffix == 'None':
         suffix = ''
@@ -113,6 +118,18 @@ if __name__ == '__main__':
     # Scale by the eigenvector scaling
     evals_h *= 1/evec_sf**2
     pre_xhat *= 1/evec_sf
+
+    # Get masks
+    mask_files = glob.glob(f'{data_dir}/*_mask.npy')
+    mask_files.sort()
+    masks = dict([(m.split('/')[-1].split('_')[0], np.load(m).reshape((-1, 1)))
+                  for m in mask_files])
+
+    # Get area vector
+    area = xr.open_dataarray(f'{data_dir}/area.nc').values.reshape((-1, 1))
+
+    # Get weighting matrix
+    w = pd.read_csv(w_file)
 
     ## ---------------------------------------------------------------------##
     ## Optimize the regularization factor via cost function analysis
@@ -210,6 +227,15 @@ if __name__ == '__main__':
     xhat, xhat_fr, shat, a = ip.solve_inversion(evecs, evals_h, sa, pre_xhat)
     dofs = np.diagonal(a)
 
+    # Complete sectoral analyses
+    # NB: our W is transposed already
+    for country, mask in masks.items():
+        w_c = copy.deepcopy(w)*mask # Apply mask to the attribution matrix
+        w_c *= area*1e-6 # Convert to Tg/yr
+        _, shat_red, a_red = source_attribution(w_c.T, xhat_fr, shat, a)
+        np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.npy', shat_red)
+        np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.npy', a_red)
+
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
     np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
@@ -218,12 +244,5 @@ if __name__ == '__main__':
             xhat_fr)
     np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
 
-    # # Calculate the posterior observations
-    # yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
-    # yhat += c.values
-
-    # Save the result
-    # np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suffix}.npy', yhat)
-
     print('CODE COMPLETE')
-    print(f'Saved xhat{niter}{suffix}.nc and more.')
+    print(f'Saved xhat{niter}{suffix}.npy and more.')
