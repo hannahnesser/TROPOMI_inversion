@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import cartopy.feature as cfeature
 import imageio
+from datetime import datetime
 pd.set_option('display.max_columns', 10)
 
 # Custom packages
@@ -76,6 +77,33 @@ print('-'*100)
 # Fix lat/lon bugaboo
 wl_wc = wl_wc.assign_coords({'lon' : wl_wc['longitude'], 'lat' : wl_wc['latitude']})
 
+# Save out the subset data
+wl_wc_s_save = copy.deepcopy(wl_wc)
+wl_wc_s_save = wl_wc_s_save['wetland_CH4_emissions']*1e-6/(24*60*60) # kg/m2/s
+wl_wc_s_save = wl_wc_s_save.drop_sel(model=[1923, 2913]) # Drop anomalous members
+wl_wc_s_save = wl_wc_s_save.mean(dim='model') # Average over models
+wl_wc_s_save = wl_wc_s_save.sel(time=slice(109, 120)) # Subset for 2019
+wl_wc_s_save['time'] = np.array([0, 744, 1416, 2160, 2880, 3624, 4344, 
+                              5088, 5832, 6552, 7296, 8016]) # Copied from the old wetcharts file
+wl_wc_s_save = wl_wc_s_save.transpose('time', 'lat', 'lon')
+wl_wc_s_save = wl_wc_s_save.fillna(0)
+long_name = 'Subsetted WetCHARTs emissions v1.3.1 HE (removed 1923 and 2913)'
+title_str = 'Subsetted WetCHARTs emissions v1.3.1 HE (removed 1923 and 2913)'
+wl_wc_s_save = gc.define_HEMCO_std_attributes(wl_wc_s_save, name='emi_ch4')
+wl_wc_s_save = gc.define_HEMCO_var_attributes(wl_wc_s_save, 'emi_ch4',
+                                              long_name=long_name, 
+                                              units='kg/m2/s',
+                                              cell_methods='model: mean')
+wl_wc_s_save.time.attrs['units'] = 'hours since 2019-01-01 00:00:00'
+wl_wc_s_save.attrs = {'Title' : title_str, 'Conventions' : 'COARDS',
+                      'History' : datetime.now().strftime('%Y-%m-%d %H:%M')}
+encoding = {'_FillValue' : None, 'dtype' : 'double'}
+var = {k : encoding for k in wl_wc_s_save.keys()}
+coord = {k : encoding for k in wl_wc_s_save.coords}
+var.update(coord)
+wl_wc_s_save.to_netcdf(join(data_dir, 'wetlands37.nc'), encoding=var)
+# gc.save_HEMCO_netcdf(wl_wc_s_save, f'{data_dir}', 'wetlands37.nc')
+
 # Subset and convert to GC units (kg/m2/s)
 wl_wc = wl_wc['wetland_CH4_emissions']*1e-6/(24*60*60)
 wl_wc = wl_wc.sel(lat=slice(s.lat_min, s.lat_max),
@@ -126,7 +154,10 @@ fp.save_fig(fig, plot_dir, f'wetland_models')
 wl_wc = wl_wc.mean(dim='model')
 wl_wc = (wl_wc*days[:, None, None]).sum(axis=0)/365
 
+# We do the same for wl_wc_s, but save out the model averaged product 
+# before averaging over time
 wl_wc_s = wl_wc_s.mean(dim='model')
+# wl_wc_s_save = copy.deepcopy(wl_wc_s)
 wl_wc_s = (wl_wc_s*days[:, None, None]).sum(axis=0)/365
 
 # Units are still kg/m2/s
@@ -216,7 +247,7 @@ wl_wc_s_rg_v = ip.clusters_2d_to_1d(clusters, wl_wc_s_rg)
 # print(f'Cluster emission rate range: ({wl_gc_v.min()}, {wl_gc_v.max()})')
 
 # And finally, save the sensiivty test out
-wl_wc_s_rg.to_netcdf(f'{data_dir}wetlands37.nc')
+wl_wc_s_rg.to_netcdf(f'{data_dir}wetlands37_rg.nc')
 
 ## ------------------------------------------------------------------------ ##
 ## Plot
