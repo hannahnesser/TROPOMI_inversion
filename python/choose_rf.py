@@ -106,18 +106,10 @@ for i, dt in enumerate(dts):
     fp.add_title(ax[1], '%% functional\nnegative values', 
                  fontsize=config.SUBTITLE_FONTSIZE*0.8)
 
-    # # Plot mean adjustment
-    # avg = avgs[:, :, i]
-    # avg = np.around(avg, 2)
-    # fig, ax[1, 0] = heat_map(sas, rfs, avg, fig, ax[1, 0], 
-    #                       'inferno', 5, 0.75, 1.25)
-    # fp.add_title(ax[1, 0], r'Mean $\hat{x}$', 
-    #              fontsize=config.SUBTITLE_FONTSIZE*0.8)
-
     # Plot functional ns
-    fig, ax[1, 1] = heat_map(sas, rfs, nf, fig, ax[1, 1], 
+    fig, ax[2] = heat_map(sas, rfs, nf, fig, ax[2], 
                           'cividis', 100, -0.5, 6e3)
-    fp.add_title(ax[1, 1], r'Functional n', 
+    fp.add_title(ax[2], r'Functional n', 
                  fontsize=config.SUBTITLE_FONTSIZE*0.8)
 
     # Save
