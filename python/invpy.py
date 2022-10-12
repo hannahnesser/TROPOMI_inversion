@@ -469,7 +469,7 @@ def source_attribution(w, xhat, shat=None, a=None, sa=None):
         # Convert error covariance matrices
         # S red = W S W^T
         shat_red = w @ shat @ w.T
-        sa_red = w @ sa @ w.T
+        sa_red = w @ (sa*w.T)
 
         # Calculate reduced averaging kernel
         a_red = np.identity(w.shape[0]) - shat_red @ inv(sa_red)
