@@ -123,7 +123,9 @@ if __name__ == '__main__':
     mask_files = glob.glob(f'{data_dir}/*_mask.npy')
     mask_files.sort()
     masks = dict([(m.split('/')[-1].split('_')[0], np.load(m).reshape((-1, 1)))
-                  for m in mask_files])
+                  for m in mask_files 
+                  if m.split('/')[-1].split('_')[0] != 'Other'])
+    print(masks.keys())
 
     # Get weighting matrix (Mg/yr)
     w = pd.read_csv(w_file)
@@ -227,6 +229,7 @@ if __name__ == '__main__':
     # Complete sectoral analyses
     # NB: our W is transposed already
     for country, mask in masks.items():
+        print(f'Analyzing {country}')
         w_c = copy.deepcopy(w)*mask # Apply mask to the attribution matrix
         _, shat_red, a_red = ip.source_attribution(w_c.T, xhat_fr, shat, a, sa)
         np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.npy', shat_red)
