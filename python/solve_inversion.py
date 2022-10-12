@@ -13,15 +13,15 @@ if __name__ == '__main__':
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # niter = '2'
-    # xa_abs_file = f'{data_dir}/xa_abs_correct.nc'
-    # ya_file = f'{data_dir}/ya.nc'
-    # so_file = f'{data_dir}/so_rg2rt_10t.nc'
+    # xa_abs_file = f'{data_dir}/xa_abs_w404.nc'
+    # ya_file = f'{data_dir}/ya_w404.nc'
+    # so_file = f'{data_dir}/so_rg2rt_10t_w404.nc'
     # sa_file = f'{data_dir}/sa.nc'
-    # w_file = f'{data_dir}/w_correct.csv'
+    # w_file = f'{data_dir}/w_w404.csv'
     # sa_scale = 1
     # rf = 1
     # evec_sf = 10
-    # suffix = '_rg2rt_10t'
+    # suffix = '_rg2rt_10t_w404'
     # pct_of_info = 80
     # optimize_bc = False
 
@@ -125,10 +125,7 @@ if __name__ == '__main__':
     masks = dict([(m.split('/')[-1].split('_')[0], np.load(m).reshape((-1, 1)))
                   for m in mask_files])
 
-    # Get area vector
-    area = xr.open_dataarray(f'{data_dir}/area.nc').values.reshape((-1, 1))
-
-    # Get weighting matrix
+    # Get weighting matrix (Mg/yr)
     w = pd.read_csv(w_file)
 
     ## ---------------------------------------------------------------------##
@@ -231,7 +228,6 @@ if __name__ == '__main__':
     # NB: our W is transposed already
     for country, mask in masks.items():
         w_c = copy.deepcopy(w)*mask # Apply mask to the attribution matrix
-        w_c *= area*1e-6 # Convert to Tg/yr
         _, shat_red, a_red = ip.source_attribution(w_c.T, xhat_fr, shat, a, sa)
         np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.npy', shat_red)
         np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.npy', a_red)
