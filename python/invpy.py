@@ -461,17 +461,18 @@ def pph(k, so, sa, big_mem=False):
 ## -------------------------------------------------------------------------##
 ## Source attribution functions
 ## -------------------------------------------------------------------------##
-def source_attribution(w, xhat, shat=None, a=None):
+def source_attribution(w, xhat, shat=None, a=None, sa=None):
     # xhat red = W xhat
     xhat_red = w @ xhat
 
-    if shat is not None:
-        # Shat red = W Shat W^T
+    if (shat is not None) and (a is not None) and (sa is not None):
+        # Convert error covariance matrices
+        # S red = W S W^T
         shat_red = w @ shat @ w.T
+        sa_red = w @ sa @ w.T
 
-    if a is not None:
-        # A red = W A W* = W A W^T (W W^T)^-1
-        a_red = w @ a @ w.T @ inv((w @ w.T))
+        # Calculate reduced averaging kernel
+        a_red = np.identity(w.shape[0]) - shat_red @ inv(sa_red)
 
     if shat is None and a is None:
         return xhat_red
