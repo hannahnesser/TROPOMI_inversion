@@ -79,6 +79,9 @@ w = pd.read_csv(f'{data_dir}{w_file}')
 w['total'] = w.sum(axis=1)
 w['net'] = xa_abs
 
+# Convert to Mg/yr since that's important for summing
+w *= area
+
 # Load posterior and DOFS
 dofs = np.load(f'{data_dir}posterior/dofs2_{f}.npy').reshape((-1, 1))
 xhat = np.load(f'{data_dir}posterior/xhat_fr2_{f}.npy').reshape((-1, 1))
@@ -110,82 +113,6 @@ xhat_abs = (xhat*xa_abs)
 reader = shpreader.Reader(f'{data_dir}counties/countyl010g.shp')
 counties = list(reader.geometries())
 COUNTIES = cfeature.ShapelyFeature(counties, ccrs.PlateCarree())
-
-# ------------------------------------------------------------------------ ##
-# Cities analysis
-# ------------------------------------------------------------------------ ##
-# cities = pd.read_csv(f'{data_dir}/uscities.csv')
-# ntot = 100
-# print(cities.columns)
-# print(cities[(cities['city'] == 'Bronx') | (cities['city'] == 'Manhattan')])
-
-# # Order by population and select the top 100
-# cities = cities.sort_values(by='population', ascending=False).iloc[:ntot, :]
-# cities = cities[['city', 'state_id', 'state_name', 'lat', 'lng',
-#                  'population', 'density']]
-# cities = cities.rename(columns={'lat' : 'lat_hr', 'lng' : 'lon_hr'})
-# cities = cities.reset_index(drop=True)
-
-# # Add in lat centers/lon centers
-# lats, lons = gc.create_gc_grid(*s.lats, s.lat_delta, *s.lons, s.lon_delta,
-#                                centers=False, return_xarray=False)
-# cities['lat'] = lats[gc.nearest_loc(cities['lat_hr'].values, lats)]
-# cities['lon'] = lons[gc.nearest_loc(cities['lon_hr'].values, lons)]
-# cities['area'] = cities['population']/cities['density']
-
-# # Append posterior
-# xa_f = ip.match_data_to_clusters(xa_abs, clusters).rename('xa_abs')
-# xa_f = xa_f.to_dataframe().reset_index()
-# xhat_f = ip.match_data_to_clusters(xhat, clusters).rename('xhat')
-# xhat_f = xhat_f.to_dataframe().reset_index()
-
-# # Join
-# cities = cities.merge(xa_f, on=['lat', 'lon'], how='left')
-# cities = cities.merge(xhat_f, on=['lat', 'lon'], how='left')
-
-# # Remove areas with 1 correction (no information content)
-# nopt = (cities['xhat'].values == 1).sum()
-# print(f'We fail to optimize emissions in {nopt:d}/{ntot:d} cities.')
-# cities = cities[cities['xhat'] != 1].reset_index()
-# # print(cities[cities['xhat'] == 0]['city'])
-# # cities = cities[cities['xhat'] != 0] # Remove Hawaiian cities
-# # city_mean = (cities['xhat'] - 1).mean()
-
-# # Find mean correction as a function of the number of cities
-# xs = np.arange(1, cities.shape[0] + 1)
-# city_mean = np.cumsum(cities['xhat'] - 1)/xs
-# cm_txt = (cities['xhat'] - 1).mean()
-# print(f'We find a mean correction of {cm_txt:.2f}')
-
-# # Plot
-# fig, ax = fp.get_figax(rows=1, cols=2, aspect=1.5)
-
-# # # Mean correction
-# # ax[0].plot(xs, city_mean, color=fp.color(1))
-# # ax[0] = fp.add_labels(ax[0], 'Number of cities\naveraged', 'Correction\nfactor',
-# #                       fontsize=config.TICK_FONTSIZE)
-
-# # Largest cities
-# ax[0] = fp.add_title(ax[0], 'Largest cities', fontsize=config.TITLE_FONTSIZE)
-# ax[0].bar(xs[:20], cities.loc[:19, 'xhat'] - 1, color=fp.color(4))
-# ax[0].set_xticks(xs[:20])
-# ax[0].set_xticklabels(cities['city'][:20], rotation=90, ha='center',
-#                       fontsize=config.TICK_FONTSIZE)
-
-# # Largest corrections
-# ax[1] = fp.add_title(ax[1], 'Largest corrections', fontsize=config.TITLE_FONTSIZE)
-# cities = cities.sort_values(by='xhat', ascending=False).reset_index()
-# ax[1].bar(xs[:20], cities.loc[:19, 'xhat'] - 1, color=fp.color(7))
-# ax[1].set_xticks(xs[:20])
-# ax[1].set_xticklabels(cities['city'][:20], rotation=90, ha='center',
-#                       fontsize=config.TICK_FONTSIZE)
-
-# for i in range(2):
-#     ax[i].tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
-
-# ax[0].set_xlabel('Correction factor')
-
-# fp.save_fig(fig, plot_dir, f'cities_{f}')
 
 ## ------------------------------------------------------------------------ ##
 ## Get overlap between metropolitan statistical areas and posterior
@@ -228,6 +155,8 @@ for j, shape in enumerate(city.shapeRecords()):
                       clusters.lon.values[clusters.lon > lon_lims[1]][0])
         c_clusters = clusters.sel(lat=slice(*c_lat_lims), 
                                   lon=slice(*c_lon_lims))
+        c_cluster_list = c_clusters.values.flatten()
+        c_cluster_list = c_cluster_list[c_cluster_list > 0]
 
         # Initialize tracking arrays
         c_emis_post = pd.DataFrame(0, index=[0], columns=w.columns)
@@ -235,53 +164,52 @@ for j, shape in enumerate(city.shapeRecords()):
         c_area = 0
 
         # Iterate through overlapping grid cells
-        for i, gc in enumerate(c_clusters.values.flatten()):
-            if gc != 0:
-                # Get center of grid box
-                gc_center = c_clusters.where(c_clusters == gc, drop=True)
-                gc_center = (gc_center.lon.values[0], gc_center.lat.values[0])
-                
-                # Get corners
-                gc_corners_lon = [gc_center[0] - s.lon_delta/2,
-                                  gc_center[0] + s.lon_delta/2,
-                                  gc_center[0] + s.lon_delta/2,
-                                  gc_center[0] - s.lon_delta/2]
-                gc_corners_lat = [gc_center[1] - s.lat_delta/2,
-                                  gc_center[1] - s.lat_delta/2,
-                                  gc_center[1] + s.lat_delta/2,
-                                  gc_center[1] + s.lat_delta/2]
+        for i, gc in enumerate(c_cluster_list):
+            # Get center of grid box
+            gc_center = c_clusters.where(c_clusters == gc, drop=True)
+            gc_center = (gc_center.lon.values[0], gc_center.lat.values[0])
+            
+            # Get corners
+            gc_corners_lon = [gc_center[0] - s.lon_delta/2,
+                              gc_center[0] + s.lon_delta/2,
+                              gc_center[0] + s.lon_delta/2,
+                              gc_center[0] - s.lon_delta/2]
+            gc_corners_lat = [gc_center[1] - s.lat_delta/2,
+                              gc_center[1] - s.lat_delta/2,
+                              gc_center[1] + s.lat_delta/2,
+                              gc_center[1] + s.lat_delta/2]
 
-                # Make polygon
-                gc_poly = Polygon(np.column_stack((gc_corners_lon, 
-                                                      gc_corners_lat)))
+            # Make polygon
+            gc_poly = Polygon(np.column_stack((gc_corners_lon, 
+                                                  gc_corners_lat)))
 
-                # Calculate overlap
-                if gc_poly.intersects(c_poly):
-                    # Get area of overlap area and GC cell
-                    overlap_area = c_poly.intersection(gc_poly).area
-                    gc_area = gc_poly.area
-                    c_fraction = overlap_area/gc_area
+            # Calculate overlap
+            if gc_poly.intersects(c_poly):
+                # Get area of overlap area and GC cell and calculate
+                # the fractional contribution of the overlap area
+                overlap_area = c_poly.intersection(gc_poly).area
+                gc_area = gc_poly.area
+                c_fraction = overlap_area/gc_area
 
-                    # Calculate the emissions adjustment in the grid cell
-                    # (All in Mg/km2)
-                    c_emis_post_i = (w*(xhat - 1)).iloc[int(gc) - 1, :]
-                    c_emis_prior_i = w.iloc[int(gc) - 1, :]
+                # Calculate the emissions adjustment in the grid cell
+                # (All in Mg/yr)
+                c_emis_post_i = copy.deepcopy(w*(xhat - 1)).iloc[int(gc) - 1, :]
+                c_emis_prior_i = copy.deepcopy(w).iloc[int(gc) - 1, :]
 
-                    # Calculate the area in the grid cell
-                    c_area_i = area[int(gc) - 1] # km2
+                # Calculate the area end emissions in the city within the 
+                # grid cell
+                c_area_i = copy.deepcopy(area)[int(gc) - 1] # km2
+                c_area_i *= c_fraction
+                c_emis_post_i *= c_fraction # Mg/yr
+                c_emis_prior_i *= c_fraction # Mg/yr
 
-                    # Weight by area
-                    c_area_i *= c_fraction
-                    c_emis_post_i *= c_area_i # Mg/yr
-                    c_emis_prior_i *= c_area_i # Mg/yr
+                # Add to base term
+                c_emis_post += c_emis_post_i # Mg/yr
+                c_emis_prior += c_emis_prior_i # Mg/yr
+                c_area += c_area_i # km2
 
-                    # Add to base term
-                    c_emis_post += c_emis_post_i # Mg/yr
-                    c_emis_prior += c_emis_prior_i # Mg/yr
-                    c_area += c_area_i # km2
-
-                    # Update w_city
-                    w_city.iloc[-1, int(gc) - 1] = c_fraction
+                # Update w_city
+                w_city.iloc[-1, int(gc) - 1] = copy.deepcopy(c_fraction)
 
         # Having iterated through all the GC grid cells, append the city
         # information to the dataframe
@@ -300,8 +228,15 @@ print('  xhat mean        ', 1 + xhat_mean_1)
 print('  xhat for cities  ', 1 + xhat_mean_2)
 
 # Try out using w_city
-print(w_city @ area)
-print(city_summ)
+# tmp = (w_city @ (w['total']*(xhat - 1).reshape(-1,)).values)
+# print(w_city.values[w_city.values > 0])
+# print((w['total'].values.reshape(-1,)*(xhat - 1).reshape(-1,))[w_city.values.reshape(-1,) > 0])
+# print(city_summ['total'])
+# print(tmp)
+
+# Save out w_city so we can pass it to the inversion function on the
+# cluster
+w_city.to_csv(f'{data_dir}cities/w_cities.csv', header=True, index=True)
 
 ## ------------------------------------------------------------------------ ##
 ## Get list of metropolitan statistical area population
