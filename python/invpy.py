@@ -473,11 +473,9 @@ def source_attribution(w, xhat, shat=None, a=None, sa=None):
 
         # Calculate reduced averaging kernel
         a_red = np.identity(w.shape[0]) - shat_red @ inv(sa_red)
-
-    if shat is None and a is None:
-        return xhat_red
-    else:
         return xhat_red, shat_red, a_red
+    else:
+        return xhat_red
 
 ## -------------------------------------------------------------------------##
 ## Plotting functions : state vectors
