@@ -1,5 +1,6 @@
 import xarray as xr
 import numpy as np
+from scipy.interpolate import NearestNDInterpolator
 import sys
 import copy
 
@@ -11,6 +12,7 @@ plot_dir = base_dir + 'plots/'
 
 sys.path.append(code_dir)
 import invpy as ip
+import format_plots as fp
 
 # Define function to open masks
 def open_mask(country, data_dir=data_dir):
@@ -75,9 +77,29 @@ total_mask_id[masks['Canada'] > masks['CONUS']] = 3 # Canada
 # Match that to clusters and set areas where the mask == 0 to nan so
 # that those values can be interpolated using neareswt neighbors
 total_mask_id = ip.match_data_to_clusters(total_mask_id, clusters)
-total_mask_id = total_mask_id.where(total_mask_id > 0)
-total_mask_id = total_mask_id.interpolate_na(dim='lat', method='nearest')
-total_mask_id = ip.clusters_2d_to_1d(clusters, total_mask_id)
+total_mask_id = total_mask_id.where(total_mask_id > 0).values
+total_mask_nans = np.where(~np.isnan(total_mask_id))
+interp = NearestNDInterpolator(np.transpose(total_mask_nans), 
+                                            total_mask_id[total_mask_nans])
+total_mask_id = interp(*np.indices(total_mask_id.shape))
+# print(np.where(total_mask_id == 0))
+# total_mask_id = total_mask_id.where(total_mask_id > 0)
+# print(total_mask_id)
+# tmp = ip.clusters_2d_to_1d(clusters, total_mask_id).min()
+# print(tmp)
+# i = 0
+# while tmp == -1:
+#     total_mask_id = total_mask_id.interpolate_na(dim='lat', method='nearest')
+#     total_mask_id = total_mask_id.where(total_mask_id > 0)
+#     print(np.unique(total_mask_id.values))
+#     tmp = np.min(ip.clusters_2d_to_1d(clusters, total_mask_id))
+#     i += 1
+#     print(i, tmp)
+
+total_mask_id = xr.DataArray(total_mask_id, 
+                             coords=[clusters.lat, clusters.lon],
+                             dims=['lat', 'lon'])
+total_mask_id = ip.clusters_2d_to_1d(clusters, xr.DataArray(total_mask_id))
 
 # Replace values from "other" that were falsely filled
 total_mask_id[masks['Other'] > 0] = 4 # Other
@@ -94,5 +116,9 @@ for i, country in enumerate(['Mexico', 'CONUS', 'Canada', 'Other']):
 # Recalculate the total mask
 total_mask = (masks['Canada'] + masks['CONUS'] + masks['Mexico'] +
               masks['Other'])
+print(total_mask.sum())
 
+fig, ax, c = ip.plot_state(total_mask_id, clusters, cmap='Greens',
+                           vmin=0, vmax=4)
+fp.save_fig(fig, plot_dir, 'masks')
 # Still need to confirm that these add to proper values!
