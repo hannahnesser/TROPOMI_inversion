@@ -147,7 +147,7 @@ if __name__ == '__main__':
         avg = np.zeros((len(rfs), len(sas), len(dds)))
         for i, rf_i in enumerate(rfs):
             for j, sa_i in enumerate(sas):
-                print(f'Solving the invesion for RF = {rf_i} and Sa = {sa_i}')
+                print(f'Solving the inversion for RF = {rf_i} and Sa = {sa_i}')
 
                 # Scale the relevant terms by RF and Sa
                 evals_h_ij = rf_i*sa_i**2*copy.deepcopy(evals_h)
