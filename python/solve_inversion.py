@@ -125,7 +125,6 @@ if __name__ == '__main__':
     masks = dict([(m.split('/')[-1].split('_')[0], np.load(m).reshape((-1, 1)))
                   for m in mask_files 
                   if m.split('/')[-1].split('_')[0] != 'Other'])
-    print(masks.keys())
 
     # Get weighting matrix (Mg/yr)
     w = pd.read_csv(w_file)
@@ -136,9 +135,9 @@ if __name__ == '__main__':
     if optimize_rf:
         # Iterate through different regularization factors and prior
         # errors. Then save out the prior and observational cost function.
-        rfs = [0.01, 0.05, 0.1, 0.25, 0.5, 1.0]
-        sas = [0.5, 0.75, 1.0, 1.25]
-        dds = [0.05, 0.1, 0.15, 0.2]
+        rfs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 1.0]
+        sas = [0.5, 0.75, 1.0]
+        dds = [0.05, 0.1]
         ja_fr = np.zeros((len(rfs), len(sas), len(dds)))
         ja = np.zeros((len(rfs), len(sas), len(dds)))
         n = np.zeros((len(rfs), len(sas), len(dds)))
@@ -158,19 +157,11 @@ if __name__ == '__main__':
                                                     sa_ij, p_ij)
                 dofs = np.diagonal(a)
 
-                # # Calculate the posterior observations
-                # yhat = calculate_Kx(f'{data_dir}/iteration{niter}/k', xhat)
-                # yhat += c.values
-                # # There's sort of an interesting question here of how
-                # # to calculate yhat, given that we subset xhat. This will
-                # # be pertinent when we do our posterior model comparaison
-
                 # Save out
                 suff = suffix + f'_rf{rf_i}' + f'_sax{sa_i}' + f'_poi{pct_of_info}'
                 np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suff}.npy', dofs)
                 np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xh)
                 np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suff}.npy', xh_fr)
-                # np.save(f'{data_dir}/iteration{niter}/y/y{niter}{suff}.npy', yhat)
 
                 # Subset for boundary condition
                 if optimize_bc:
@@ -220,9 +211,6 @@ if __name__ == '__main__':
     suffix = suffix + f'_poi{pct_of_info}'
 
     # Calculate the posterior and averaging kernel
-    # (we can leave off Sa when it's constant)
-    # xhat = (np.sqrt(sa)*evecs_sub/(1+evals_q_sub)) @ evecs_sub.T
-    # a = (evecs_sub*evals_q_sub) @ evecs_sub.T
     xhat, xhat_fr, shat, a = ip.solve_inversion(evecs, evals_h, sa, pre_xhat)
     dofs = np.diagonal(a)
 
