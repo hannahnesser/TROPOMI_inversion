@@ -12,7 +12,7 @@ CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 NUM_EVECS="1952"
 CALCULATE_EVECS="True"
 FORMAT_EVECS="False"
-OPTIMIZE_RF="False"
+OPTIMIZE_RF="True"
 OPTIMIZE_BC="False"
 CHUNK_SIZE=150000
 
@@ -42,12 +42,27 @@ FILE_SUFFIX="_rg2rt_10t"
 ## Sensitivity inversion options
 ## ------------------------------------------------------------------ ##
 
-## COMPLETED
+
 # ------------------------------------------------------------- #
-# Wetland 4.04 scaling test - Complete
+# Wetland 4.04 scaling test
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404.nc"
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w404.nc"
+W_FILE="${SHORT_TERM_DATA_DIR}/w_w404.csv"
+SA_SCALE="0.75"
+RF="0.25"
 FILE_SUFFIX="_rg2rt_10t_w404"
+# ------------------------------------------------------------- #
+
+# ------------------------------------------------------------- #
+# Wetland remove ensemble members 3 and 7
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37.nc"
+W_FILE="${SHORT_TERM_DATA_DIR}/w_w37.csv"
+SA_SCALE="0.75"
+RF="0.35"
+FILE_SUFFIX="_rg2rt_10t_w37"
 # ------------------------------------------------------------- #
 
 ## RUNNING
@@ -71,6 +86,7 @@ FILE_SUFFIX="_rg2rt_10t_nlc"
 # ------------------------------------------------------------- #
 
 ## TO DO
+
 # ------------------------------------------------------------- #
 # Boundary condition test with zeroed out Northern BC
 OPTIMIZE_BC="True"
@@ -106,11 +122,6 @@ YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_nlc.nc"
 FILE_SUFFIX="_rg2rt_10t_w404_nlc"
 # ------------------------------------------------------------- #
 
-# # ------------------------------------------------------------- #
-# # Wetland remove ensemble members 3 (1923) and 7 (2913) test
-# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37.nc"
-# FILE_SUFFIX="_rg2rt_10t_w37"
-# # ------------------------------------------------------------- #
 
 # # ------------------------------------------------------------- #
 # # Combine BC0 and wetland 4.04 scaling test
@@ -126,24 +137,6 @@ FILE_SUFFIX="_rg2rt_10t_w404_nlc"
 # FILE_SUFFIX="_rg2rt_10t_edf_bc0"
 # # ------------------------------------------------------------- #
 
-# ------------------------------------------------------------- #
-# Combine wetlands 4.04 and EDF test
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf.nc"
-FILE_SUFFIX="_rg2rt_10t_w404_edf"
-# ------------------------------------------------------------- #
-
-# # ------------------------------------------------------------- #
-# # Combine wetlands 37 and EDF test
-# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf.nc"
-# FILE_SUFFIX="_rg2rt_10t_w37_edf"
-# # ------------------------------------------------------------- #
-
-# # ------------------------------------------------------------- #
-# # Combine wetlands 50 and EDF test
-# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w50_edf.nc"
-# FILE_SUFFIX="_rg2rt_10t_w50_edf"
-# # ------------------------------------------------------------- #
 
 # # ------------------------------------------------------------- #
 # # Combine wetlands 4.04 and EDF test and NLC
@@ -186,13 +179,6 @@ YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf.nc"
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf_bc0.nc"
 FILE_SUFFIX="_rg2rt_10t_w404_edf_bc0"
 # ------------------------------------------------------------- #
-
-# # ------------------------------------------------------------- #
-# # Blended albedo threshold of 0.85
-# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg4rt.nc"
-# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_ba85.nc"
-# FILE_SUFFIX="_rg4rt_ba85"
-# # ------------------------------------------------------------- #
 
 # FILE_SUFFIX="_savar"
 # FILE_SUFFIX="_nlc"
