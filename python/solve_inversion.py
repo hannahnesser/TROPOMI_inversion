@@ -120,11 +120,14 @@ if __name__ == '__main__':
     pre_xhat *= 1/evec_sf
 
     # Get masks
-    mask_files = glob.glob(f'{data_dir}/*_mask.npy')
+    mask_files = glob.glob(f'{data_dir}/*_mask.???')
     mask_files.sort()
     masks = dict([(m.split('/')[-1].split('_')[0], np.load(m).reshape((-1, 1)))
                   for m in mask_files 
-                  if m.split('/')[-1].split('_')[0] != 'Other'])
+                  if m.split('/')[-1].split('_')[0] in ['CONUS', 'Canada', 'Mexico']])
+    sub_masks = dict([(m.split('/')[-1].split('_')[0], 
+                       pd.read_csv(m, index_col=0)) for m in mask_files 
+                      if m.split('/')[-1].split('_')[0] in ['cities', 'states']])
 
     # Get weighting matrix (Mg/yr)
     w = pd.read_csv(w_file)
@@ -222,6 +225,12 @@ if __name__ == '__main__':
         _, shat_red, a_red = ip.source_attribution(w_c.T, xhat_fr, shat, a, sa)
         np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.npy', shat_red)
         np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.npy', a_red)
+
+    for label, mask in sub_masks.items():
+        print(f'Analyzing {label}')
+        w_l = w.sum(axis=1).values*mask
+        w_l = w_l.T.reset_index(drop=True) # Bizarre bug fix
+        _, shat_red, a_red = ip.source_attribution(w_l.T, xhat_fr, shat, a)
 
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
