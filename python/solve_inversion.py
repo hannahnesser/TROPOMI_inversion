@@ -222,7 +222,7 @@ if __name__ == '__main__':
     for country, mask in masks.items():
         print(f'Analyzing {country}')
         w_c = copy.deepcopy(w)*mask # Apply mask to the attribution matrix
-        _, shat_red, a_red = ip.source_attribution(w_c.T, xhat_fr, shat, a, sa)
+        _, shat_red, a_red = ip.source_attribution(w_c.T, xhat_fr, shat, a)
         np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.npy', shat_red)
         np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.npy', a_red)
 
