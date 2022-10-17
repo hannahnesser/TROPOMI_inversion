@@ -231,6 +231,8 @@ if __name__ == '__main__':
         w_l = w.sum(axis=1).values*mask
         w_l = w_l.T.reset_index(drop=True) # Bizarre bug fix
         _, shat_red, a_red = ip.source_attribution(w_l.T, xhat_fr, shat, a)
+        np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{label.lower()}.npy', shat_red)
+        np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.npy', a_red)
 
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
