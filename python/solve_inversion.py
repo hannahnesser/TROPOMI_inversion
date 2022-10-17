@@ -223,16 +223,16 @@ if __name__ == '__main__':
         print(f'Analyzing {country}')
         w_c = copy.deepcopy(w)*mask # Apply mask to the attribution matrix
         _, shat_red, a_red = ip.source_attribution(w_c.T, xhat_fr, shat, a)
-        np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.npy', shat_red)
-        np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.npy', a_red)
+        shat_red.to_csv(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.npy', header=True, index=True)
+        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.npy', header=True, index=True)
 
     for label, mask in sub_masks.items():
         print(f'Analyzing {label}')
         w_l = w.sum(axis=1).values*mask
         w_l = w_l.T.reset_index(drop=True) # Bizarre bug fix
         _, shat_red, a_red = ip.source_attribution(w_l.T, xhat_fr, shat, a)
-        np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{label.lower()}.npy', shat_red)
-        np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.npy', a_red)
+        shat_red.to_csv(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{label.lower()}.npy', header=True, index=True)
+        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.npy', header=True, index=True)
 
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
