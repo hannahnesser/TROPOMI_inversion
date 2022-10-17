@@ -70,9 +70,9 @@ DOFS_filter = 0.05
 f = 'rg2rt_10t_w404'
 
 # Define rfs, sa values, and DOFS thresholds
-rfs = [0.01, 0.05, 0.1, 0.25, 0.5, 1.0]
-sas = [0.5, 0.75, 1.0, 1.25]
-dts = [0.05, 0.1, 0.15, 0.2]
+rfs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 1.0]
+sas = [0.5, 0.75, 1.0]
+dts = [0.05, 0.1]
 
 ## ------------------------------------------------------------------------ ##
 ## Load files
@@ -86,7 +86,7 @@ nfs = np.load(f'{data_dir}n_func2_{f}.npy')
 ## Regularization factor
 ## ------------------------------------------------------------------------ ##
 for i, dt in enumerate(dts):
-    fig, ax = fp.get_figax(rows=1, cols=3, aspect=3*len(sas)/len(rfs))
+    fig, ax = fp.get_figax(rows=1, cols=3, aspect=len(sas)/len(rfs)*2)
     plt.subplots_adjust(hspace=0.5)
 
     # Plot ja
