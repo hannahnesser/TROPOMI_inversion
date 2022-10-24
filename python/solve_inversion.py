@@ -13,15 +13,12 @@ if __name__ == '__main__':
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # niter = '2'
-    # xa_abs_file = f'{data_dir}/xa_abs_w404.nc'
-    # ya_file = f'{data_dir}/ya_w404.nc'
-    # so_file = f'{data_dir}/so_rg2rt_10t_w404.nc'
     # sa_file = f'{data_dir}/sa.nc'
-    # w_file = f'{data_dir}/w_w404.csv'
+    # w_file = f'{data_dir}/w_w404_edf.csv'
     # sa_scale = 1
     # rf = 1
     # evec_sf = 10
-    # suffix = '_rg2rt_10t_w404'
+    # suffix = '_rg2rt_10t_w404_edf'
     # pct_of_info = 80
     # optimize_bc = False
 
@@ -29,17 +26,14 @@ if __name__ == '__main__':
     data_dir = sys.argv[2]
     optimize_bc = sys.argv[3]
     optimize_rf = sys.argv[4]
-    xa_abs_file = sys.argv[5]
-    sa_file = sys.argv[6]
-    sa_scale = float(sys.argv[7])
-    so_file = sys.argv[8]
-    rf = float(sys.argv[9])
-    ya_file = sys.argv[10]
-    w_file = sys.argv[11]
-    pct_of_info = float(sys.argv[12])
-    evec_sf = float(sys.argv[13]) 
-    suffix = sys.argv[14]
-    code_dir = sys.argv[15]
+    sa_file = sys.argv[5]
+    sa_scale = float(sys.argv[6])
+    rf = float(sys.argv[7])
+    w_file = sys.argv[8]
+    pct_of_info = float(sys.argv[9])
+    evec_sf = float(sys.argv[10]) 
+    suffix = sys.argv[11]
+    code_dir = sys.argv[12]
 
     if suffix == 'None':
         suffix = ''
@@ -138,7 +132,7 @@ if __name__ == '__main__':
     if optimize_rf:
         # Iterate through different regularization factors and prior
         # errors. Then save out the prior and observational cost function.
-        rfs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 1.0]
+        rfs = [0.001, 0.005, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 1.0]
         sas = [0.5, 0.75, 1.0]
         dds = [0.05, 0.1]
         ja_fr = np.zeros((len(rfs), len(sas), len(dds)))
