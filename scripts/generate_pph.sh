@@ -7,7 +7,7 @@
 #SBATCH --contiguous
 #SBATCH -p huce_cascade
 #SBATCH --mem 45000
-#SBATCH -t 0-02:00
+#SBATCH -t 0-01:30
 #SBATCH --mail-type=END
 #SBATCH --mail-user=hnesser@g.harvard.edu
 
