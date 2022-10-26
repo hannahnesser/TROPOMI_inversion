@@ -160,10 +160,11 @@ if __name__ == '__main__':
                 np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xh)
                 np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suff}.npy', xh_fr)
 
-                # # Subset for boundary condition
-                # if optimize_bc:
-                #     xh_fr = xh_fr[:-4]
-                #     dofs = dofs[:-4]
+                # Subset for boundary condition
+                if optimize_bc:
+                    xh_fr = xh_fr[:-4]
+                    dofs = dofs[:-4]
+                    sa_ij = sa_ij[:-4]
 
                 # Subset the posterior
                 # for j, t_i in enumerate(DOFS_threshold):
