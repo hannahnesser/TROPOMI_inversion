@@ -1,7 +1,7 @@
 if __name__ == '__main__':
     import sys
     import glob
-    import copy
+    from copy import deepcopy as dc
     import xarray as xr
     import dask.array as da
     import numpy as np
@@ -145,9 +145,9 @@ if __name__ == '__main__':
                 print(f'Solving the inversion for RF = {rf_i} and Sa = {sa_i}')
 
                 # Scale the relevant terms by RF and Sa
-                evals_h_ij = rf_i*sa_i**2*copy.deepcopy(evals_h)
-                p_ij = rf_i*copy.deepcopy(pre_xhat)
-                sa_ij = copy.deepcopy(sa)*sa_i**2
+                evals_h_ij = rf_i*sa_i**2*dc(evals_h)
+                p_ij = rf_i*dc(pre_xhat)
+                sa_ij = dc(sa)*sa_i**2
 
                 # Calculate the posterior
                 xh, xh_fr, _, a = ip.solve_inversion(evecs, evals_h_ij, 
@@ -160,10 +160,10 @@ if __name__ == '__main__':
                 np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suff}.npy', xh)
                 np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suff}.npy', xh_fr)
 
-                # Subset for boundary condition
-                if optimize_bc:
-                    xh_fr = xh_fr[:-4]
-                    dofs = dofs[:-4]
+                # # Subset for boundary condition
+                # if optimize_bc:
+                #     xh_fr = xh_fr[:-4]
+                #     dofs = dofs[:-4]
 
                 # Subset the posterior
                 # for j, t_i in enumerate(DOFS_threshold):
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     # NB: our W is transposed already
     for country, mask in masks.items():
         print(f'Analyzing {country}')
-        w_c = copy.deepcopy(w)*mask # Apply mask to the attribution matrix
+        w_c = dc(w)*mask # Apply mask to the attribution matrix
         _, shat_red, a_red = ip.source_attribution(w_c.T, xhat_fr, shat, a)
         shat_red.to_csv(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
