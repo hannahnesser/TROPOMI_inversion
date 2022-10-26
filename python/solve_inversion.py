@@ -145,8 +145,8 @@ if __name__ == '__main__':
                 print(f'Solving the inversion for RF = {rf_i} and Sa = {sa_i}')
 
                 # Scale the relevant terms by RF and Sa
-                evals_h_ij = rf_i*sa_i**2*dc(evals_h)
-                p_ij = rf_i*dc(pre_xhat)
+                evals_h_ij = dc(evals_h)*rf_i*sa_i**2
+                p_ij = dc(pre_xhat)*rf_i
                 sa_ij = dc(sa)*sa_i**2
 
                 # Calculate the posterior
@@ -199,10 +199,7 @@ if __name__ == '__main__':
     if sa_scale is not None:
         suffix = suffix + f'_sax{sa_scale}'
         evals_h *= sa_scale**2
-        if optimize_bc:
-            sa[:-4] = sa[:-4]*sa_scale**2
-        else:
-            sa *= sa_scale**2
+        sa *= sa_scale**2
 
     # Update suffix for pct of info
     suffix = suffix + f'_poi{pct_of_info}'
@@ -211,12 +208,18 @@ if __name__ == '__main__':
     xhat, xhat_fr, shat, a = ip.solve_inversion(evecs, evals_h, sa, pre_xhat)
     dofs = np.diagonal(a)
 
+    if optimize_bc:
+        c = int(-4)
+    else:
+        c = int(len(xhat))
+
     # Complete sectoral analyses
     # NB: our W is transposed already
     for country, mask in masks.items():
         print(f'Analyzing {country}')
         w_c = dc(w)*mask # Apply mask to the attribution matrix
-        _, shat_red, a_red = ip.source_attribution(w_c.T, xhat_fr, shat, a)
+        _, shat_red, a_red = ip.source_attribution(
+                                 w_c.T, xhat_fr[:c], shat[:c, :c], a[:c, :c])
         shat_red.to_csv(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
 
@@ -224,7 +227,8 @@ if __name__ == '__main__':
         print(f'Analyzing {label}')
         w_l = w.sum(axis=1).values*mask
         w_l = w_l.T.reset_index(drop=True) # Bizarre bug fix
-        _, shat_red, a_red = ip.source_attribution(w_l.T, xhat_fr, shat, a)
+        _, shat_red, a_red = ip.source_attribution(
+                                 w_l.T, xhat_fr[:c], shat[:c, :c], a[:c, :c])
         shat_red.to_csv(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
 
