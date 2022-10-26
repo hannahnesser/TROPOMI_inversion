@@ -18,9 +18,9 @@ if __name__ == '__main__':
     # sa_scale = 1
     # rf = 1
     # evec_sf = 10
-    # suffix = '_rg2rt_10t_w404_edf'
+    # suffix = '_bc_rg2rt_10t_w404_edf'
     # pct_of_info = 80
-    # optimize_bc = False
+    # optimize_bc = True
 
     niter = sys.argv[1]
     data_dir = sys.argv[2]
@@ -162,6 +162,7 @@ if __name__ == '__main__':
 
                 # Subset for boundary condition
                 if optimize_bc:
+                    xh = xh[:-4]
                     xh_fr = xh_fr[:-4]
                     dofs = dofs[:-4]
                     sa_ij = sa_ij[:-4]
