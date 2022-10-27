@@ -160,6 +160,11 @@ if __name__ == '__main__':
                                         chunks=chunks)
             k_bc = k_bc[i0:i1, :]
 
+            # Multiply k_bc by the error that's in all Jacobian files
+            # (If recreating this in the future, comment this out and 
+            # calculate the Jacobian correctly to begin with)
+            k_bc *= 10
+
             # Combine the two Jacobians and add on to sa and xa
             k_m = xr.concat([k_m, k_bc], dim='nstate')
             sa = xr.concat([sa, sa_bc], dim='nstate')
