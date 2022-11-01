@@ -24,8 +24,8 @@ source activate ~/python/miniconda/envs/TROPOMI_inversion
 echo "Activated ${CONDA_PREFIX}"
 
 DATA_DIR=${2}
-SUFFIX=${13}
-OPT_BC=${4}
+SUFFIX=${12}
+OPT_BC=${3}
 if [[ ${OPT_BC} == "True" ]]; then
   SUFFIX="_bc${SUFFIX}"
 fi
