@@ -18,7 +18,7 @@
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 CHUNK="${SLURM_ARRAY_TASK_ID}"
-SUFFIX=${11}
+SUFFIX=${12}
 DATA_DIR=${3}
 OPT_BC=${4}
 if [[ ${OPT_BC} == "True" ]]; then
