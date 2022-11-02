@@ -462,6 +462,18 @@ def pph(k, so, sa, big_mem=False):
 ## Source attribution functions
 ## -------------------------------------------------------------------------##
 def source_attribution(w, xhat, shat=None, a=None):
+    # This takes a W matrix and returns xhat, shat, and a in the 
+    # original units they were provided to the function
+
+    # Check for singular matrix conditions
+    if np.any(w.sum(axis=1) == 0):
+        print('Dropping ', w.index[w.sum(axis=1) == 0].values)
+        w = w.drop(index=w.index[w.sum(axis=1) == 0].values)
+
+    # Normalize W
+    w_tot = w.sum(axis=1)
+    w = w/w_tot.values[:, None]
+
     # xhat red = W xhat
     xhat_red = w @ xhat
 
@@ -470,10 +482,14 @@ def source_attribution(w, xhat, shat=None, a=None):
         # S red = W S W^T
         shat_red = w @ shat @ w.T
 
+        # Calculate Pearson's correlation coefficient (cov(X,Y)/stdx*stdy)
+        stdev_red = np.sqrt(np.diagonal(shat_red)) 
+        r_red = shat_red/(stdev_red[:, None]*stdev_red[None, :])
+
         # Calculate reduced averaging kernel
         # a_red = np.identity(w.shape[0]) - shat_red @ inv(sa_red)
         a_red = w @ a @ w.T @ inv((w @ w.T))
-        return xhat_red, shat_red, a_red
+        return xhat_red, shat_red, r_red, a_red
     else:
         return xhat_red
 

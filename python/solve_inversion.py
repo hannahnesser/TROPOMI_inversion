@@ -15,12 +15,13 @@ if __name__ == '__main__':
     # niter = '2'
     # sa_file = f'{data_dir}/sa.nc'
     # w_file = f'{data_dir}/w_w404_edf.csv'
-    # sa_scale = 1
-    # rf = 1
+    # sa_scale = 0.75
+    # rf = 0.25
     # evec_sf = 10
-    # suffix = '_bc_rg2rt_10t_w404_edf'
+    # suffix = '_rg2rt_10t_w404_edf'
     # pct_of_info = 80
-    # optimize_bc = True
+    # dofs_threshold = 0.05
+    # optimize_bc = False
 
     niter = sys.argv[1]
     data_dir = sys.argv[2]
@@ -32,8 +33,9 @@ if __name__ == '__main__':
     w_file = sys.argv[8]
     pct_of_info = float(sys.argv[9])
     evec_sf = float(sys.argv[10]) 
-    suffix = sys.argv[11]
-    code_dir = sys.argv[12]
+    dofs_threshold = float(sys.argv[11])
+    suffix = sys.argv[12]
+    code_dir = sys.argv[13]
 
     if suffix == 'None':
         suffix = ''
@@ -116,15 +118,37 @@ if __name__ == '__main__':
     # Get masks
     mask_files = glob.glob(f'{data_dir}/*_mask.???')
     mask_files.sort()
-    masks = dict([(m.split('/')[-1].split('_')[0], np.load(m).reshape((-1, 1)))
+    masks = dict([(m.split('/')[-1].split('_')[0], np.load(m))
                   for m in mask_files 
                   if m.split('/')[-1].split('_')[0] in ['CONUS', 'Canada', 'Mexico']])
     sub_masks = dict([(m.split('/')[-1].split('_')[0], 
                        pd.read_csv(m, index_col=0)) for m in mask_files 
                       if m.split('/')[-1].split('_')[0] in ['cities', 'states']])
 
-    # Get weighting matrix (Mg/yr)
+    # Get weighting matrices (Mg/yr)
     w = pd.read_csv(w_file)
+    # w_cities_files = glob.glob(f'{data_dir}/w_cities*.csv')
+    # w_cities_files.sort()
+    # w_cities = dict([(f.split('.')[0].split('_')[-1], 
+    #                   pd.read_csv(f, index_col=0, header=0))
+    #                  for f in w_cities_files])
+
+    # define short name for major cities
+    cities = {'NYC' : 'New York-Newark-Jersey City, NY-NJ-PA',
+              'LA'  : 'Los Angeles-Long Beach-Anaheim, CA',
+              'CHI' : 'Chicago-Naperville-Elgin, IL-IN-WI',
+              'DFW' : 'Dallas-Fort Worth-Arlington, TX',
+              'HOU' : 'Houston-The Woodlands-Sugar Land, TX',
+              'DC'  : 'Washington-Arlington-Alexandria, DC-VA-MD-WV',
+              'MIA' : 'Miami-Fort Lauderdale-Pompano Beach, FL',
+              'PHI' : 'Philadelphia-Camden-Wilmington, PA-NJ-DE-MD',
+              'ATL' : 'Atlanta-Sandy Springs-Alpharetta, GA',
+              'PHX' : 'Phoenix-Mesa-Chandler, AZ',
+              'BOS' : 'Boston-Cambridge-Newton, MA-NH',
+              'SFO' : 'San Francisco-Oakland-Berkeley, CA',
+              'RIV' : 'Riverside-San Bernardino-Ontario, CA',
+              'DET' : 'Detroit-Warren-Dearborn, MI',
+              'SEA' : 'Seattle-Tacoma-Bellevue, WA'}
 
     ## ---------------------------------------------------------------------##
     ## Optimize the regularization factor via cost function analysis
@@ -210,30 +234,6 @@ if __name__ == '__main__':
     xhat, xhat_fr, shat, a = ip.solve_inversion(evecs, evals_h, sa, pre_xhat)
     dofs = np.diagonal(a)
 
-    if optimize_bc:
-        c = int(-4)
-    else:
-        c = int(len(xhat))
-
-    # Complete sectoral analyses
-    # NB: our W is transposed already
-    for country, mask in masks.items():
-        print(f'Analyzing {country}')
-        w_c = dc(w)*mask # Apply mask to the attribution matrix
-        _, shat_red, a_red = ip.source_attribution(
-                                 w_c.T, xhat_fr[:c], shat[:c, :c], a[:c, :c])
-        shat_red.to_csv(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
-        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
-
-    for label, mask in sub_masks.items():
-        print(f'Analyzing {label}')
-        w_l = w.sum(axis=1).values*mask
-        w_l = w_l.T.reset_index(drop=True) # Bizarre bug fix
-        _, shat_red, a_red = ip.source_attribution(
-                                 w_l.T, xhat_fr[:c], shat[:c, :c], a[:c, :c])
-        shat_red.to_csv(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
-        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
-
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
     np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
@@ -241,6 +241,45 @@ if __name__ == '__main__':
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suffix}.npy', 
             xhat_fr)
     np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
+
+    # Subset for BC
+    if optimize_bc:
+        xhat = xhat[:-4]
+        xhat_fr = xhat_fr[:-4]
+        shat = shat[:-4, :-4]
+        a = a[:-4, :-4]
+
+    # # Correct for dofs threshold
+    ## This makes things worse
+    # dofs_mask = (dofs >= dofs_threshold)
+    # xhat = xhat[dofs_mask]
+    # xhat_fr = xhat_fr[dofs_mask]
+    # shat = shat[dofs_mask, :][:, dofs_mask]
+    # a = a[dofs_mask, :][:, dofs_mask]
+
+    # Complete sectoral analyses
+    for country, mask in masks.items():
+        print(f'Analyzing {country}')
+        w_c = dc(w).mul(mask, axis=0).reset_index(drop=True).T
+        _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
+        r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
+        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
+
+    for label, mask in sub_masks.items():
+        print(f'Analyzing {label}')
+        w_l = w.sum(axis=1).values*mask
+        w_l = w_l.T.reset_index(drop=True).T
+        _, _, r_red, a_red = ip.source_attribution(w_l, xhat_fr, shat, a)
+        r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
+        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
+
+    for key, city in cities.items():
+        print(f'Analyzing {city}')
+        w_c = w[['livestock', 'coal', 'ong', 'landfills', 
+                 'wastewater', 'other_anth']].T*sub_masks['cities'].loc[city].values
+        _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
+        r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_cities_{key}.csv', header=True, index=True)
+        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_cities_{key}.csv', header=True, index=True)
 
     print('CODE COMPLETE')
     print(f'Saved xhat{niter}{suffix}.npy and more.')
