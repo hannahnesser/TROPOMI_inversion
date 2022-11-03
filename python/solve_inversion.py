@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     # If niter == 2, add in BC
     if optimize_bc:
-        sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
+        sa = np.concatenate([sa, 10**2*np.ones((4, 1))])
 
     # Initial pre_xhat information
     pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}.nc').values

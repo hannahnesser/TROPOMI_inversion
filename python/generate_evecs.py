@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
     # If niter == 2, add in BC
     if optimize_bc:
-        sa = np.concatenate([sa, 0.01**2*np.ones((4, 1))])
+        sa = np.concatenate([sa, 10**2*np.ones((4, 1))])
 
     # Get the state vector dimension
     nstate = sa.shape[0]
