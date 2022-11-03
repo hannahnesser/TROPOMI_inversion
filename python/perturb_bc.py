@@ -49,25 +49,33 @@ for bc in bcs:
     # Northern boundary
     bcf_n = copy.deepcopy(bcf)
     bcf_n['SpeciesBC_CH4'].loc[{'lat' : slice(*nbc),
-                                'lon' : slice(wbc[0], ebc[1])}] *= 1.5
+                                'lon' : slice(wbc[0], ebc[1])}] += 10*1e-9
+    # bcf_n['SpeciesBC_CH4'].loc[{'lat' : slice(*nbc),
+    #                             'lon' : slice(wbc[0], ebc[1])}] *= 1.5
     bcf_n.to_netcdf(f'{bc_dir}boundary_conditions_N/{fname}')
 
     # Eastern boundary
     bcf_e = copy.deepcopy(bcf)
     bcf_e['SpeciesBC_CH4'].loc[{'lat' : slice(sbc[1], nbc[0]),
-                                'lon' : slice(*ebc)}] *= 1.5
+                                'lon' : slice(*ebc)}] += 10*1e-9
+    # bcf_e['SpeciesBC_CH4'].loc[{'lat' : slice(sbc[1], nbc[0]),
+    #                             'lon' : slice(*ebc)}] *= 1.5
     bcf_e.to_netcdf(f'{bc_dir}boundary_conditions_E/{fname}')
 
     # Southern boundary
     bcf_s = copy.deepcopy(bcf)
     bcf_s['SpeciesBC_CH4'].loc[{'lat' : slice(*sbc),
-                                'lon' : slice(wbc[0], ebc[1])}] *= 1.5
+                                'lon' : slice(wbc[0], ebc[1])}] += 10*1e-9
+    # bcf_s['SpeciesBC_CH4'].loc[{'lat' : slice(*sbc),
+    #                             'lon' : slice(wbc[0], ebc[1])}] *= 1.5
     bcf_s.to_netcdf(f'{bc_dir}boundary_conditions_S/{fname}')
 
     # Western boundary
     bcf_w = copy.deepcopy(bcf)
     bcf_w['SpeciesBC_CH4'].loc[{'lat' : slice(sbc[1], nbc[0]),
-                                'lon' : slice(*wbc)}] *= 1.5
+                                'lon' : slice(*wbc)}] += 10*1e-9
+    # bcf_w['SpeciesBC_CH4'].loc[{'lat' : slice(sbc[1], nbc[0]),
+    #                             'lon' : slice(*wbc)}] *= 1.5
     bcf_w.to_netcdf(f'{bc_dir}boundary_conditions_W/{fname}')
 
 

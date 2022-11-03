@@ -107,8 +107,8 @@ if __name__ == '__main__':
 
     # Update if boundary condition is optimized
     if optimize_bc:
-        sa_bc = xr.DataArray(0.01**2*np.ones(4), dims=('nstate'))
-        xa_abs_bc = xr.DataArray(np.ones(4), dims=('nstate'))
+        sa_bc = xr.DataArray(10**2*np.ones(4), dims=('nstate'))
+        # xa_abs_bc = xr.DataArray(np.ones(4), dims=('nstate'))
     nstate = sa.shape[0]
 
     # Observational suffix
@@ -168,9 +168,9 @@ if __name__ == '__main__':
             # Combine the two Jacobians and add on to sa and xa
             k_m = xr.concat([k_m, k_bc], dim='nstate')
             sa = xr.concat([sa, sa_bc], dim='nstate')
-            if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-                xa_abs = xr.concat([xa_abs, xa_abs_bc], dim='nstate')
-                xa_abs_orig = xr.concat([xa_abs_orig, xa_abs_bc], dim='nstate')
+            # if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+            #     xa_abs = xr.concat([xa_abs, xa_abs_bc], dim='nstate')
+            #     xa_abs_orig = xr.concat([xa_abs_orig, xa_abs_bc], dim='nstate')
 
             # Update nstate
             nstate = sa.shape[0]
@@ -181,6 +181,11 @@ if __name__ == '__main__':
             xa_ratio[(xa_abs_orig == 0) & (xa_abs == 0)] = 1
             xa_ratio_inv = 1/xa_ratio
             xa_ratio_inv[xa_abs == 0] = 1
+            if optimize_bc:
+                xa_ratio = xr.concat(
+                               [xa_ratio, 
+                                xr.DataArray(np.ones(4), dims=('nstate'))],
+                               dim='nstate')
 
             # Scale K by xa_ratio
             print('Scaling K by the new prior.')
