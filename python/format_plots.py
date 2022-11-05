@@ -285,6 +285,15 @@ def format_map(ax, lats, lons,
                    edgecolor='0.3 ', linewidth=0.2)
     ax.coastlines(resolution='50m', color='0.2', linewidth=0.5)
 
+    # States
+    shapeFilename = '../inversion_data/states/ne_50m_admin_1_states_provinces/ne_50m_admin_1_states_provinces.shp'
+    reader = cartopy.io.shapereader.Reader(shapeFilename)
+    states = reader.records()
+    states = [s.geometry() for s in states 
+              if s.attributes['admin'] == 'Mexico']
+    ax.add_geometries(states, ccrs.PlateCarree(), edgecolor='0.3', 
+                      linewidth=0.2, zorder=10)
+
     # gl = ax.gridlines(**gridline_kwargs)
     # gl.xlabel_style = {'fontsize' : fontsize}
     # gl.ylabel_style = {'fontsize' : fontsize}
