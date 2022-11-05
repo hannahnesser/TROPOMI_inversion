@@ -294,15 +294,17 @@ def calculate_a(evecs, evals_h, sa):
     a = sa**0.5*(evecs*evals_q) @ evecs.T*(1/(sa**0.5))
     return a
 
-def calculate_shat(evecs, evals_h, sa):
+def calculate_shat(a, sa):
     # This formulation only works with diagonal errors
-    sa_evecs = evecs*(sa**0.5)
-    shat = (sa_evecs*(1/(1 + evals_h))) @ sa_evecs.T
+    # We actually want to use Shat_K_pie
+    # sa_evecs = evecs*(sa**0.5)
+    # shat = (sa_evecs*(1/(1 + evals_h))) @ sa_evecs.T
+    shat = (np.identity(a.shape[0]) - a)*sa
     return shat
 
 def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
-    shat = calculate_shat(evecs, evals_h, sa)
     a = calculate_a(evecs, evals_h, sa)
+    shat = calculate_shat(a, sa)
     xhat = calculate_xhat(shat, kt_so_ydiff)
     xhat_fr = calculate_xhat_fr(a, sa, kt_so_ydiff)
     return xhat, xhat_fr, shat, a
