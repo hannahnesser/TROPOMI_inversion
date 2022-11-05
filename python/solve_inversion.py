@@ -18,7 +18,7 @@ if __name__ == '__main__':
     # sa_scale = 0.75
     # rf = 0.25
     # evec_sf = 10
-    # suffix = '_rg2rt_10t_w404_edf'
+    # suffix = '_rg2rt_10t_w404_edf_bc0_nlc'
     # pct_of_info = 80
     # dofs_threshold = 0.05
     # optimize_bc = False
@@ -122,7 +122,7 @@ if __name__ == '__main__':
                   for m in mask_files 
                   if m.split('/')[-1].split('_')[0] in ['CONUS', 'Canada', 'Mexico']])
     sub_masks = dict([(m.split('/')[-1].split('_')[0], 
-                       pd.read_csv(m, index_col=0)) for m in mask_files 
+                       pd.read_csv(m)) for m in mask_files 
                       if m.split('/')[-1].split('_')[0] in ['cities', 'states']])
 
     # Get weighting matrices (Mg/yr)
@@ -249,34 +249,39 @@ if __name__ == '__main__':
         shat = shat[:-4, :-4]
         a = a[:-4, :-4]
 
-    # # Correct for dofs threshold
-    ## This makes things worse
-    # dofs_mask = (dofs >= dofs_threshold)
-    # xhat = xhat[dofs_mask]
-    # xhat_fr = xhat_fr[dofs_mask]
-    # shat = shat[dofs_mask, :][:, dofs_mask]
-    # a = a[dofs_mask, :][:, dofs_mask]
+    # Correct for dofs threshold
+    dofs_mask = (dofs < dofs_threshold)
+    xhat[dofs_mask] = 1
+    xhat_fr[dofs_mask] = 1
+    shat[dofs_mask, :] = 0
+    shat[:, dofs_mask] = 0
+    shat[dofs_mask, dofs_mask] = sa_scale**2
+    a[dofs_mask, :] = 0
+    a[:, dofs_mask] = 0
 
     # Complete sectoral analyses
     for country, mask in masks.items():
         print(f'Analyzing {country}')
         w_c = dc(w).mul(mask, axis=0).reset_index(drop=True).T
+        # w_c = w_c[pd.Series(dofs_mask)].reset_index(drop=True).T
         _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
         r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
 
     for label, mask in sub_masks.items():
         print(f'Analyzing {label}')
-        w_l = w.sum(axis=1).values*mask
-        w_l = w_l.T.reset_index(drop=True).T
+        w_l = w[['livestock', 'coal', 'ong', 'landfills', 'wastewater', 
+                 'other_anth']].sum(axis=1).values
+        w_l = (mask*w_l[:, None]).reset_index(drop=True).T
+        # w_l = w_l[pd.Series(dofs_mask)].reset_index(drop=True).T
         _, _, r_red, a_red = ip.source_attribution(w_l, xhat_fr, shat, a)
         r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
 
     for key, city in cities.items():
         print(f'Analyzing {city}')
-        w_c = w[['livestock', 'coal', 'ong', 'landfills', 
-                 'wastewater', 'other_anth']].T*sub_masks['cities'].loc[city].values
+        w_c = w[['livestock', 'coal', 'ong', 'landfills', 'wastewater', 
+                 'other_anth']].T*sub_masks['cities'][city].values
         _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
         r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_cities_{key}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_cities_{key}.csv', header=True, index=True)
