@@ -67,10 +67,11 @@ def heat_map(x, y, data, fig, ax, cmap, n_cmap, vmin, vmax):
 DOFS_filter = 0.05
 
 # Define file names
-f = 'rg2rt_10t_w404'
+f = 'rg2rt_10t_w37_edf_bc0_nlc'
 
 # Define rfs, sa values, and DOFS thresholds
-rfs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 1.0]
+# rfs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 1.0]
+rfs = [0.001, 0.005, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 1.0]
 sas = [0.5, 0.75, 1.0]
 dts = [0.05, 0.1]
 
@@ -100,7 +101,7 @@ for i, dt in enumerate(dts):
     neg = neg.astype(int)
     nf = nfs[:, :, i]
     nf = nf.astype(int)
-    neg_frac = np.around(neg/nf*100, 0)
+    neg_frac = np.around(neg/nf*100, 1)
     fig, ax[1] = heat_map(sas, rfs, neg_frac, fig, ax[1], 
                           'plasma', 20, -0.5, 100)
     fp.add_title(ax[1], '%% functional\nnegative values', 
