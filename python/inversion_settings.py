@@ -19,7 +19,10 @@ lon_delta = 0.3125
 buffers = [3, 3, 3, 3] # N S E W
 
 # Adjust for buffer cells (edges)
-lats, lons = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
-                                   lon_min, lon_max, lon_delta, buffers)
-lat_min, lat_max = lats
-lon_min, lon_max = lons
+lat_min = lat_min + lat_delta*buffers[1] - lat_delta/2
+lat_max = lat_max - lat_delta*buffers[0] + lat_delta/2
+lon_min = lon_min + lon_delta*buffers[3] - lon_delta/2
+lon_max = lon_max - lon_delta*buffers[2] + lon_delta/2
+
+lats = [lat_min, lat_max]
+lons = [lon_min, lon_max]
