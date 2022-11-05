@@ -12,6 +12,9 @@ from scipy.stats import linregress
 import h5py
 import dask.array as da
 
+import shapefile
+from shapely.geometry import Polygon, MultiPolygon
+
 from os.path import join
 from os import listdir
 import os
@@ -31,6 +34,7 @@ import sys
 sys.path.append('.')
 import format_plots as fp
 import config
+import inversion_settings as s
 
 # Other font details
 rcParams['font.family'] = 'sans-serif'
@@ -234,6 +238,63 @@ def nearest_loc(data, compare_data):
     indices = np.abs(compare_data.reshape(-1, 1) -
                      data.reshape(1, -1)).argmin(axis=0)
     return indices
+
+def grid_shape_overlap(clusters, shape):
+    # Initialize mask
+    mask = np.zeros(int(clusters.values.max()))
+
+    # Get edges of the shape
+    x = [i[0] for i in shape.shape.points[:]]
+    y = [i[1] for i in shape.shape.points[:]]
+
+    # Make a polygon
+    c_poly = Polygon(np.column_stack((x, y)))
+    if not c_poly.is_valid:
+        print(f'Buffering {shape.record[3]}')
+        c_poly = c_poly.buffer(0)
+
+    # Get maximum latitude and longitude limits
+    lat_lims = (np.min(y), np.max(y))
+    lon_lims = (np.min(x), np.max(x))
+
+    # Convert that to the GC grid (admittedly using grid cell centers 
+    # instead of edges, but that should be consesrvative)
+    c_lat_lims = (clusters.lat.values[clusters.lat < lat_lims[0]][-1],
+                  clusters.lat.values[clusters.lat > lat_lims[1]][0])
+    c_lon_lims = (clusters.lon.values[clusters.lon < lon_lims[0]][-1],
+                  clusters.lon.values[clusters.lon > lon_lims[1]][0])
+    c_clusters = clusters.sel(lat=slice(*c_lat_lims), 
+                              lon=slice(*c_lon_lims))
+    c_cluster_list = c_clusters.values.flatten()
+    c_cluster_list = c_cluster_list[c_cluster_list > 0]
+
+    # Iterate through overlapping grid cells
+    for i, gc in enumerate(c_cluster_list):
+        # Get center of grid box
+        gc_center = c_clusters.where(c_clusters == gc, drop=True)
+        gc_center = (gc_center.lon.values[0], gc_center.lat.values[0])
+        
+        # Get corners
+        gc_corners_lon = [gc_center[0] - s.lon_delta/2,
+                          gc_center[0] + s.lon_delta/2,
+                          gc_center[0] + s.lon_delta/2,
+                          gc_center[0] - s.lon_delta/2]
+        gc_corners_lat = [gc_center[1] - s.lat_delta/2,
+                          gc_center[1] - s.lat_delta/2,
+                          gc_center[1] + s.lat_delta/2,
+                          gc_center[1] + s.lat_delta/2]
+
+        # Make polygon
+        gc_poly = Polygon(np.column_stack((gc_corners_lon, gc_corners_lat)))
+
+        if gc_poly.intersects(c_poly):
+            # Get area of overlap area and GC cell and calculate
+            # the fractional contribution of the overlap area
+            overlap_area = c_poly.intersection(gc_poly).area
+            gc_area = gc_poly.area
+            mask[int(gc) - 1] = overlap_area/gc_area
+
+    return mask
 
 ## -------------------------------------------------------------------------##
 ## GEOS-Chem correction functions
