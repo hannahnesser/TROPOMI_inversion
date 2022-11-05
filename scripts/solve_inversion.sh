@@ -12,7 +12,7 @@ CODE_DIR="/n/home04/hnesser/TROPOMI_inversion/python"
 NUM_EVECS="1952"
 CALCULATE_EVECS="True"
 FORMAT_EVECS="False"
-OPTIMIZE_RF="False"
+OPTIMIZE_RF="True"
 OPTIMIZE_BC="False"
 CHUNK_SIZE=150000
 
@@ -43,65 +43,31 @@ FILE_SUFFIX="_rg2rt_10t"
 ## Sensitivity inversion options
 ## ------------------------------------------------------------------ ##
 # ------------------------------------------------------------- #
-# Wetland 4.04 scaling test and EDF - P running (1), E and I queued
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
+# Wetland 4.04 scaling test and EDF and BC0 - X
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf_bc0.nc"
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf.nc"
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w404_edf.nc"
 W_FILE="${SHORT_TERM_DATA_DIR}/w_w404_edf.csv"
-SA_SCALE="0.75"
-RF="0.25"
-FILE_SUFFIX="_rg2rt_10t_w404_edf"
+OPTIMIZE_BC="False"
+# SA_SCALE="0.75"
+# RF="0.25"
+FILE_SUFFIX="_rg2rt_10t_w404_edf_bc0"
 # ------------------------------------------------------------- #
 
 # ------------------------------------------------------------- #
-# Wetland 4.04 scaling test and EDF and NLC - P running (1, 10), E and I queued
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
+# Wetland 4.04 scaling test and EDF and BC0 and NLC - X
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf_bc0.nc"
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf_nlc.nc"
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w404_edf_nlc.nc"
 W_FILE="${SHORT_TERM_DATA_DIR}/w_w404_edf.csv"
+OPTIMIZE_BC="False"
 # SA_SCALE="0.75"
 # RF="0.25"
-FILE_SUFFIX="_rg2rt_10t_w404_edf_nlc"
+FILE_SUFFIX="_rg2rt_10t_w404_edf_bc0_nlc"
 # ------------------------------------------------------------- #
 
 # ------------------------------------------------------------- #
-# Wetland remove ensemble members 3 and 7 and EDF - P running (5, 9), E and I queued
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf.nc"
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf.nc"
-W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
-SA_SCALE="0.75"
-RF="0.4"
-FILE_SUFFIX="_rg2rt_10t_w37_edf"
-# ------------------------------------------------------------- #
-
-# ------------------------------------------------------------- #
-# Wetland remove ensemble members 3 and 7 and EDF and NLC - P running (1, 3, 9, 13), E and I queued
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf.nc"
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf_nlc.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf_nlc.nc"
-W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
-# SA_SCALE="0.75"
-# RF="0.25"
-FILE_SUFFIX="_rg2rt_10t_w37_edf_nlc"
-# ------------------------------------------------------------- #
-
-
-# TO DO
-# ------------------------------------------------------------- #
-# Wetland 4.04 scaling test and EDF and BC - inversion rerunning
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w404_edf.nc"
-W_FILE="${SHORT_TERM_DATA_DIR}/w_w404_edf.csv"
-OPTIMIZE_BC="True"
-# SA_SCALE="0.75"
-# RF="0.25"
-FILE_SUFFIX="_rg2rt_10t_w404_edf"
-# ------------------------------------------------------------- #
-
-# ------------------------------------------------------------- #
-# Wetland 4.04 scaling test and EDF and BC0 and BC - inversion rerunning
+# Wetland 4.04 scaling test and EDF and BC0 and BC - X
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf_bc0.nc"
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf.nc"
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w404_edf.nc"
@@ -112,23 +78,110 @@ OPTIMIZE_BC="True"
 FILE_SUFFIX="_rg2rt_10t_w404_edf_bc0"
 # ------------------------------------------------------------- #
 
-## TO RUN ##
+# ------------------------------------------------------------- #
+# Wetland 4.04 scaling test and EDF and BC0 and NLC and BC - X
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf_bc0.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf_nlc.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w404_edf_nlc.nc"
+W_FILE="${SHORT_TERM_DATA_DIR}/w_w404_edf.csv"
+OPTIMIZE_BC="True"
+# SA_SCALE="0.75"
+# RF="0.25"
+FILE_SUFFIX="_rg2rt_10t_w404_edf_bc0_nlc"
+# ------------------------------------------------------------- #
+
+# ------------------------------------------------------------- #
+# Wetland remove ensemble members 3 and 7 and EDF and BC0 - X
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf_bc0.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf.nc"
+W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+OPTIMIZE_BC="False"
+# SA_SCALE="0.75"
+# RF="0.4"
+FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0"
+# ------------------------------------------------------------- #
+
+# ------------------------------------------------------------- #
+# Wetland remove ensemble members 3 and 7 and EDF and BC0 and NLC - X
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf_bc0.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf_nlc.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf_nlc.nc"
+W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+OPTIMIZE_BC="False"
+# SA_SCALE="0.75"
+# RF="0.25"
+FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0_nlc"
+# ------------------------------------------------------------- #
+
+# ------------------------------------------------------------- #
+# Wetland remove ensemble members 3 and 7 and EDF and BC0 and BC - X
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf_bc0.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf.nc"
+W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+OPTIMIZE_BC="True"
+# SA_SCALE="0.75"
+# RF="0.4"
+FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0"
+# ------------------------------------------------------------- #
+
+# ------------------------------------------------------------- #
+# Wetland remove ensemble members 3 and 7 and EDF and BC0 and NLC and BC - X
+XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf_bc0.nc"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf_nlc.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf_nlc.nc"
+W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+OPTIMIZE_BC="True"
+# SA_SCALE="0.75"
+# RF="0.25"
+FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0_nlc"
+# ------------------------------------------------------------- #
 
 ## DONE ##
-
-## TO DO
-
-# ------------------------------------------------------------- #
-# Boundary condition test - Running
-OPTIMIZE_BC="True"
-# ------------------------------------------------------------- #
-
 # # ------------------------------------------------------------- #
-# # Variable errors
-# SA_FILE="${SHORT_TERM_DATA_DIR}/sa_var_max.nc"
-# FILE_SUFFIX="_rg2rt_10t_sa_var_max"
+# # Wetland 4.04 scaling test and EDF - Done
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
+# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf.nc"
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w404_edf.nc"
+# W_FILE="${SHORT_TERM_DATA_DIR}/w_w404_edf.csv"
+# SA_SCALE="0.75"
+# RF="0.25"
+# FILE_SUFFIX="_rg2rt_10t_w404_edf"
 # # ------------------------------------------------------------- #
 
+# # ------------------------------------------------------------- #
+# # Wetland 4.04 scaling test and EDF and NLC - Done
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w404_edf.nc"
+# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w404_edf_nlc.nc"
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w404_edf_nlc.nc"
+# W_FILE="${SHORT_TERM_DATA_DIR}/w_w404_edf.csv"
+# # SA_SCALE="0.75"
+# # RF="0.25"
+# FILE_SUFFIX="_rg2rt_10t_w404_edf_nlc"
+# # ------------------------------------------------------------- #
+
+# # ------------------------------------------------------------- #
+# # Wetland remove ensemble members 3 and 7 and EDF - Done
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf.nc"
+# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf.nc"
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf.nc"
+# W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+# SA_SCALE="0.75"
+# RF="0.4"
+# FILE_SUFFIX="_rg2rt_10t_w37_edf"
+# # ------------------------------------------------------------- #
+
+# # ------------------------------------------------------------- #
+# # Wetland remove ensemble members 3 and 7 and EDF and NLC - Done
+# XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf.nc"
+# YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf_nlc.nc"
+# SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf_nlc.nc"
+# W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+# # SA_SCALE="0.75"
+# # RF="0.25"
+# FILE_SUFFIX="_rg2rt_10t_w37_edf_nlc"
+# # ------------------------------------------------------------- #
 
 
 # Build the Jacobian
