@@ -6,6 +6,7 @@ from copy import deepcopy as dc
 import sys
 import xarray as xr
 import numpy as np
+from numpy.polynomial import polynomial as p
 import pandas as pd
 import glob
 code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
@@ -16,14 +17,15 @@ import inversion_settings as s
 ## ---------------------------------------------------------------------##
 ## Directories
 ## ---------------------------------------------------------------------##
-data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_w404/ProcessedDir'
+data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_w37_edf/ProcessedDir'
 output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
 inv_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
 y_file = 'y.nc'
 latitudinal_correction = True
 err_min = 10
-suffix = 'w404'
+suffix = 'w37_edf'
 err_suffix = f'rg2rt_{err_min}t_{suffix}'
+print(suffix)
 
 # REMEMBER TO CREATE SYMBOLIC LINKS
 
@@ -47,22 +49,39 @@ data = data[obs_filter]
 # Information for error calculation
 data_long = gc.load_obj(f'{output_dir}/2019_corrected.pkl')
 
+# Replace the dataframe with ya values
+data_long['MOD'] = dc(data)
+data_long['DIFF'] = data_long['MOD'] - data_long['OBS']
+
 ## ---------------------------------------------------------------------##
 ## Apply the latitudinal correction
 ## ---------------------------------------------------------------------##
 if latitudinal_correction:
-    delta = -7.75 + 0.44*data_long['LAT']
-    data = data - delta
+    # Correct the latitudinal bias
+    coef = p.polyfit(data_long['LAT'], data_long['DIFF'], deg=1)
+    bias_correction = p.polyval(data_long['LAT'], coef)
+
+    # Print information
+    print(f'Data has latitudinal bias removed.')
+    print(f'    y = {coef[0]:.2f} + {coef[1]:.2f}x')
+    print('-'*70)
+
+    # delta = -7.75 + 0.44*data_long['LAT']
+else:
+    bias_correction = data_long['DIFF'].mean() 
+    print(f'Data has mean bias removed.')
+    print(f'    Mean bias of {bias_correction:.2f} ppb removed.')
+
+data_long['MOD'] -= bias_correction
+data_long['DIFF'] -= bias_correction
+mean_diff = data_long['DIFF'].mean()
+print(f'Mean model - observation difference : {mean_diff:.2f}')
 
 ## ---------------------------------------------------------------------##
 ## Solve for observing system errors
 ## ---------------------------------------------------------------------##
 # Averaging groups
 groupby = ['LAT_CENTER_L', 'LON_CENTER_L', 'SEASON']
-
-# Replace the dataframe with ya values
-data_long['MOD'] = dc(data)
-data_long['DIFF'] = data_long['MOD'] - data_long['OBS']
 
 # Delete superfluous columns
 data_long = data_long.drop(columns=['PREC_SQ', 'AVG_DIFF', 'AVG_PREC', 
@@ -134,8 +153,8 @@ print(f'We find a mean error of {err_mean:.2f} ppb with a standard deviation of 
 ## ---------------------------------------------------------------------##
 ## Print
 ## ---------------------------------------------------------------------##
-print('Model maximum       : %.2f' % (data.max()))
-print('Model minimum       : %.2f' % (data.min()))
+print('Model maximum       : %.2f' % (data_long['MOD'].max()))
+print('Model minimum       : %.2f' % (data_long['MOD'].min()))
 
 ## ---------------------------------------------------------------------##
 ## Save out
