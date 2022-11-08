@@ -248,6 +248,7 @@ if __name__ == '__main__':
         xhat_fr = xhat_fr[:-4]
         shat = shat[:-4, :-4]
         a = a[:-4, :-4]
+        dofs = dofs[:-4]
 
     # Correct for dofs threshold
     dofs_mask = (dofs < dofs_threshold)
