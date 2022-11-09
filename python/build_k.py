@@ -191,7 +191,7 @@ if __name__ == '__main__':
             kbc = np.concatenate((kbc, diff), axis=1)
 
         # Convert to xarray and persist
-        kbc = xr.DataArray(kbc, dims=['nobs', 'nstate'])/0.5
+        kbc = xr.DataArray(kbc, dims=['nobs', 'nstate'])/10 # Divide by 10 ppb
         kbc = kbc.persist()
 
         # Save out
