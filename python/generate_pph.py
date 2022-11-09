@@ -20,12 +20,12 @@ if __name__ == '__main__':
     # niter = '2'
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # optimize_bc = False
-    # xa_abs_file = f'{data_dir}/xa_abs_w37.nc'
+    # xa_abs_file = f'{data_dir}/xa_abs_w404_edf.nc'
     # sa_file = f'{data_dir}/sa.nc'
     # sa_scale = 1
-    # so_file = f'{data_dir}/so_rg2rt_10t.nc'
+    # so_file = f'{data_dir}/so_rg2rt_10t_w404_edf.nc'
     # rf = 1
-    # ya_file = f'{data_dir}/ya.nc'
+    # ya_file = f'{data_dir}/ya_w404_edf.nc'
     # suffix = '_rg2rt_10t_w37'
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
@@ -154,6 +154,17 @@ if __name__ == '__main__':
         k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
                            chunks=chunks)
 
+        if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+            # Calculate the ratio of the new to original prior
+            xa_ratio = xa_abs/xa_abs_orig
+            xa_ratio[(xa_abs_orig == 0) & (xa_abs == 0)] = 1
+            xa_ratio_inv = 1/xa_ratio
+            xa_ratio_inv[xa_abs == 0] = 1
+
+            # Scale K by xa_ratio
+            print('Scaling K by the new prior.')
+            k_m = k_m*xa_ratio
+
         if optimize_bc:
             # Add on boundary condition elements
             k_bc = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_bc.nc',
@@ -168,28 +179,9 @@ if __name__ == '__main__':
             # Combine the two Jacobians and add on to sa and xa
             k_m = xr.concat([k_m, k_bc], dim='nstate')
             sa = xr.concat([sa, sa_bc], dim='nstate')
-            # if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-            #     xa_abs = xr.concat([xa_abs, xa_abs_bc], dim='nstate')
-            #     xa_abs_orig = xr.concat([xa_abs_orig, xa_abs_bc], dim='nstate')
 
             # Update nstate
             nstate = sa.shape[0]
-
-        if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-            # Calculate the ratio of the new to original prior
-            xa_ratio = xa_abs/xa_abs_orig
-            xa_ratio[(xa_abs_orig == 0) & (xa_abs == 0)] = 1
-            xa_ratio_inv = 1/xa_ratio
-            xa_ratio_inv[xa_abs == 0] = 1
-            if optimize_bc:
-                xa_ratio = xr.concat(
-                               [xa_ratio, 
-                                xr.DataArray(np.ones(4), dims=('nstate'))],
-                               dim='nstate')
-
-            # Scale K by xa_ratio
-            print('Scaling K by the new prior.')
-            k_m = k_m*xa_ratio
 
         # Initialize our loop
         i = int(0)
@@ -219,14 +211,6 @@ if __name__ == '__main__':
             pph_i.to_netcdf(f'{data_dir}/iteration{niter}/pph/pph{niter}{suffix}_c{chunk:02d}_{count:d}.nc')
             active_time = (time.time() - start_time)/60
             print(f'Prior-pre-conditioned Hessian {count} saved ({active_time} min).')
-
-            # # Then save out part of what we need for the posterior solution
-            # # Update ydiff for the new prior
-            # if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
-            #     ydiff_i = ydiff_i - (k_i*(1 - xa_ratio_inv)).sum(axis=1)
-            #     ydiff_i = ydiff_i.persist()
-            #     progress(ydiff_i)
-            #     print(f'Updated modeled observations yield maximum {ydiff_i.values.max():.0f} and minimum {ydiff_i.values.min():.0f}\n')
 
             pre_xhat_i = da.tensordot(k_i.T/so_i, ydiff_i, axes=(1, 0))
             pre_xhat_i = xr.DataArray(pre_xhat_i, dims=['nstate'],
