@@ -281,33 +281,27 @@ def cost_func(ynew, y, so, xnew, xa, sa):
           % (cost, cost_emi, cost_obs))
     return cost
 
-def calculate_xhat(shat, kt_so_ydiff):
+def calculate_xhat(xa, shat, kt_so_ydiff):
     # (this formulation only works with constant errors I think)
-    return 1 + np.array(shat @ kt_so_ydiff)
+    return xa.reshape(-1,) + np.array(shat @ kt_so_ydiff)
 
-def calculate_xhat_fr(a, sa, kt_so_ydiff):
-    shat_kpi = (np.identity(len(sa)) - a)*sa.reshape((1, -1))
-    return 1 + np.array(shat_kpi @ kt_so_ydiff)
+def calculate_xhat_fr(xa, shat_kpi, kt_so_ydiff):
+    return xa.reshape(-1,) + np.array(shat_kpi @ kt_so_ydiff)
 
 def calculate_a(evecs, evals_h, sa):
     evals_q = evals_h/(1 + evals_h)
     a = sa**0.5*(evecs*evals_q) @ evecs.T*(1/(sa**0.5))
     return a
 
-def calculate_shat(a, sa):
-    # This formulation only works with diagonal errors
-    # We actually want to use Shat_K_pie
-    # sa_evecs = evecs*(sa**0.5)
-    # shat = (sa_evecs*(1/(1 + evals_h))) @ sa_evecs.T
-    shat = (np.identity(a.shape[0]) - a)*sa
-    return shat
+def calculate_shat_kpi(a, sa):
+    return (np.identity(a.shape[0]) - a)*sa.reshape((1, -1))
 
-def solve_inversion(evecs, evals_h, sa, kt_so_ydiff):
-    a = calculate_a(evecs, evals_h, sa)
-    shat = calculate_shat(a, sa)
-    xhat = calculate_xhat(shat, kt_so_ydiff)
-    xhat_fr = calculate_xhat_fr(a, sa, kt_so_ydiff)
-    return xhat, xhat_fr, shat, a
+def solve_inversion(xa, evecs, evals_h, sa, kt_so_ydiff):
+    a = calculate_a(evecs, evals_h, sa) # nothing changed
+    shat_kpi = calculate_shat_kpi(a, sa) # the same
+    # xhat = calculate_xhat(xa, shat, kt_so_ydiff)
+    xhat_fr = calculate_xhat_fr(xa, shat_kpi, kt_so_ydiff)
+    return xhat_fr, shat_kpi, a
 
 def get_rank(evals_q=None, evals_h=None, pct_of_info=None, rank=None, snr=None):
     # Check whether evals_q or evals_h are provided:
