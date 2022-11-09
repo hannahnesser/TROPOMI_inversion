@@ -18,10 +18,10 @@ if __name__ == '__main__':
     # sa_scale = 0.75
     # rf = 0.25
     # evec_sf = 10
-    # suffix = '_rg2rt_10t_w404_edf_bc0_nlc'
+    # suffix = '_bc_rg2rt_10t_w404_edf_bc0'
     # pct_of_info = 80
     # dofs_threshold = 0.05
-    # optimize_bc = False
+    # optimize_bc = True
 
     niter = sys.argv[1]
     data_dir = sys.argv[2]
@@ -87,13 +87,16 @@ if __name__ == '__main__':
     ## -------------------------------------------------------------------- ##
     ## Open files
     ## -------------------------------------------------------------------- ##
+    # Prior
+    xa = gc.read_file(f'{data_dir}/xa.nc').values.reshape(-1, 1)
+
     # Prior error
-    sa = gc.read_file(sa_file)
-    sa = sa.values.reshape(-1, 1)
+    sa = gc.read_file(sa_file).values.reshape(-1, 1)
 
     # If niter == 2, add in BC
     if optimize_bc:
         sa = np.concatenate([sa, 10**2*np.ones((4, 1))])
+        xa = np.concatenate([xa, np.zeros((4, 1))])
 
     # Initial pre_xhat information
     pre_xhat = xr.open_dataarray(f'{data_dir}/iteration{niter}/xhat/pre_xhat{niter}{suffix}.nc').values
@@ -231,16 +234,16 @@ if __name__ == '__main__':
     suffix = suffix + f'_poi{pct_of_info}'
 
     # Calculate the posterior and averaging kernel
-    xhat, xhat_fr, shat, a = ip.solve_inversion(evecs, evals_h, sa, pre_xhat)
+    xhat_fr, shat, a = ip.solve_inversion(xa, evecs, evals_h, sa, pre_xhat)
     dofs = np.diagonal(a)
 
     # Save the result
     # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
     np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
-    np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
+    # np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suffix}.npy', 
             xhat_fr)
-    np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
+    # np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
 
     # Subset for BC
     if optimize_bc:
@@ -264,7 +267,6 @@ if __name__ == '__main__':
     for country, mask in masks.items():
         print(f'Analyzing {country}')
         w_c = dc(w).mul(mask, axis=0).reset_index(drop=True).T
-        # w_c = w_c[pd.Series(dofs_mask)].reset_index(drop=True).T
         _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
         r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
@@ -274,7 +276,6 @@ if __name__ == '__main__':
         w_l = w[['livestock', 'coal', 'ong', 'landfills', 'wastewater', 
                  'other_anth']].sum(axis=1).values
         w_l = (mask*w_l[:, None]).reset_index(drop=True).T
-        # w_l = w_l[pd.Series(dofs_mask)].reset_index(drop=True).T
         _, _, r_red, a_red = ip.source_attribution(w_l, xhat_fr, shat, a)
         r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
