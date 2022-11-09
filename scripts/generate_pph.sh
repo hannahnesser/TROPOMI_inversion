@@ -18,13 +18,12 @@
 ## Set user preferences
 ## -------------------------------------------------------------------------##
 CHUNK="${SLURM_ARRAY_TASK_ID}"
-SUFFIX=${12}
+SUFFIX=${11}
 DATA_DIR=${3}
 OPT_BC=${4}
 if [[ ${OPT_BC} == "True" ]]; then
   SUFFIX="_bc${SUFFIX}"
 fi
-echo $SUFFIX
 
 ## -------------------------------------------------------------------------##
 ## Load and prepare the environment
@@ -49,5 +48,4 @@ python -u ${python_dir}/python/generate_pph.py ${CHUNK} ${@}
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
-echo ${DATA_DIR}/pph_dask_worker${SUFFIX}_${CHUNK}/
 rm -rf ${DATA_DIR}/pph_dask_worker${SUFFIX}_${CHUNK}/
