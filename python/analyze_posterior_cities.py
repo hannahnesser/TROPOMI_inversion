@@ -57,7 +57,7 @@ optimize_BC = False
 
 # Define emission categories
 emis = {'Landfills' : 'landfills', 'Wastewater' : 'wastewater',
-        'Oil and\nnatural gas' : 'ong', 
+        'Oil and natural gas' : 'ong', 
         'Coal' : 'coal', 'Livestock' : 'livestock', 'Other' : 'other_anth'}
 
 city_names = {'NYC' : 'New York-Newark-Jersey City, NY-NJ-PA',
@@ -90,10 +90,9 @@ area = xr.open_dataarray(f'{data_dir}area.nc').values.reshape((-1, 1))
 dofs = np.load(f'{data_dir}ensemble/dofs2_{f}.npy').reshape((-1, 1))
 xhat = np.load(f'{data_dir}ensemble/xhat_fr2_{f}.npy').reshape((-1, 1))
 
-# Load reduced DOFS
-a_r = pd.read_csv(f'{data_dir}cities/a2_{f}_cities.csv', header=0,
-                  index_col=0)
-dofs_r = pd.DataFrame({'name' : a_r.index, 'dofs' : np.diag(a_r)})
+# Filter on DOFS filter
+xhat[dofs < DOFS_filter] = 1
+dofs[dofs < DOFS_filter] = 0
 
 # BC alteration
 if optimize_BC:
@@ -106,12 +105,13 @@ if optimize_BC:
     xhat = xhat[:-4]
     dofs = dofs[:-4]
 
-# # Filter on DOFS filter
-# xhat[dofs < DOFS_filter] = 1
-# dofs[dofs < DOFS_filter] = 0
-
 # Calculate xhat abs
 xhat_abs = (xhat*xa_abs)
+
+# Load reduced DOFS
+a_r = pd.read_csv(f'{data_dir}cities/a2_{f}_cities.csv', header=0,
+                  index_col=0)
+dofs_r = pd.DataFrame({'name' : a_r.index, 'dofs' : np.diag(a_r)})
 
 # Load weighting matrix in units Gg/yr
 w = pd.read_csv(f'{data_dir}{w_file}') # Mg/yr
@@ -291,7 +291,7 @@ ys = np.arange(1, nc + 1)
 
 fig, ax = fp.get_figax(cols=3, aspect=1, sharey=True) 
                        # max_height=config.BASE_HEIGHT*config.SCALE)
-plt.subplots_adjust(wspace=0.2)
+plt.subplots_adjust(wspace=0.1)
 
 # Get labels
 labels = city_summ.index.values
@@ -300,15 +300,16 @@ labels = ['%s (%s)' % (l.split('-')[0], l.split(', ')[-1]) for l in labels]
 # Plot stacked bar
 ax[0] = fp.add_title(ax[0], 'Urban emissions\nin largest CONUS cities', 
                      fontsize=config.TITLE_FONTSIZE)
-cc = [1, 8, 3, 10, 5, 12, 7]
+# cc = [0, 6, 10, 3, 8, 12, 0] # old
+cc = [3, 8, 6, 10, 0, 12, 0]
 left_prior = np.zeros(nc)
 left_post = np.zeros(nc)
 for i, (l, e) in enumerate(emis.items()):
     ax[0].barh(ys - 0.175, city_summ[f'prior_{e}'], left=left_prior, height=0.3,
-               color=fp.color(cc[i], lut=2*len(cc)), label=l)
+               color=fp.color(cc[i], lut=2*len(cc)), label=f'{l}')
     left_prior += city_summ[f'prior_{e}']
 ax[0].barh(ys + 0.175, city_summ[f'post_total'], height=0.3,
-           color=fp.color(1), alpha=0.6)
+           color=fp.color(0), alpha=0.5, label='Posterior total')
 
 # Add labels
 ax[0].set_yticks(ys)
@@ -326,6 +327,16 @@ ax[0].axvline(0, ls=':', lw=0.5, color='grey')
 # ax[0].axvline(delta_mean, ls='--', lw=1, color='grey',
 #               label='Mean emissions correction')
 ax[0].set_xlim(0, 600)
+for i in range(2):
+    ax[0].axvline((i + 1)*200, color='0.75', lw=0.5, zorder=-10)
+
+# Add labels
+ax[0].text(city_summ['prior_total'][0] + 10, ys[0] + 0.05, 'Prior', ha='left',
+           va='bottom', fontsize=config.TICK_FONTSIZE)
+ax[0].text(city_summ['post_total'][0] + 10, ys[0], 'Posterior',
+           ha='left', va='top', 
+           fontsize=config.TICK_FONTSIZE)
+
 
 # Plot emissions per capita
 ax[1] = fp.add_title(ax[1], 
@@ -339,7 +350,7 @@ for i, (l, e) in enumerate(emis.items()):
               color=fp.color(cc[i], lut=2*len(cc)), label=l)
     left_prior += city_summ[f'prior_{e}']/city_summ['pop']*1e6
 ax[1].barh(ys + 0.175, city_summ[f'post_total']/city_summ['pop']*1e6, 
-           height=0.3, color=fp.color(1), alpha=0.6)
+           height=0.3, color=fp.color(0), alpha=0.5)
 
 ax[1].set_yticks(ys)
 ax[1].set_ylim(0, nc + 1)
@@ -351,13 +362,16 @@ ax[1] = fp.add_labels(ax[1],
                       labelsize=config.TICK_FONTSIZE, labelpad=10)
 
 ax[1].tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
-ax[1].axvline(0, ls=':', lw=0.5, color='grey')
+ax[1].axvline(0, ls=':', lw=0.5, color='0.5')
 ax[1].set_xlim(0, 75)
+for i in range(3):
+    ax[1].axvline((i + 1)*20, color='0.75', lw=0.5, zorder=-10)
+
 
 # Plot DOFS
 ax[2] = fp.add_title(ax[2], 'Information content', 
                      fontsize=config.TITLE_FONTSIZE)
-ax[2].barh(ys, city_summ['dofs'], color='grey', height=0.6,
+ax[2].barh(ys, city_summ['dofs'], color='0.5', height=0.6,
            label='Averaging kernel sensitivities')
 ax[2].set_yticks(ys)
 ax[2].set_ylim(0, nc + 1)
@@ -366,13 +380,20 @@ ax[2].invert_yaxis()
 ax[2] = fp.add_labels(ax[2], 'Averaging kernel\nsensitivities', '',
                       fontsize=config.TICK_FONTSIZE, 
                       labelsize=config.TICK_FONTSIZE, labelpad=10)
+for i in range(4):
+    ax[2].axvline((i + 1)*0.2, color='0.75', lw=0.5, zorder=-10)
+
+# Horizontal grid lines
+for i in range(2):
+    for k in range(3):
+        ax[k].axhline((i + 1)*5 + 0.5, color='0.75', lw=0.5, zorder=-10)
 
 # Legend for summary plot
 # m_handles, m_labels = ax0.get_legend_handles_labels()
 handles, labels = ax[0].get_legend_handles_labels()
 # handles.extend(m_handles)
 # labels.extend(m_labels)
-ax[0] = fp.add_legend(ax[1], handles=handles, labels=labels, ncol=3,
+ax[0] = fp.add_legend(ax[1], handles=handles, labels=labels, ncol=7,
                       fontsize=config.TICK_FONTSIZE, loc='upper center', 
                       bbox_to_anchor=(0.5, -0.3))
 
