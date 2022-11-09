@@ -33,7 +33,6 @@ state = shapefile.Reader(f'{data_dir}states/2019_tl_us_state/tl_2019_us_state.sh
 w_state = pd.DataFrame(columns=[s.record[6] for s in state.shapeRecords()
                                 if s.record[5] not in ['AK', 'HI', 'MP', 'GU',
                                                        'AS', 'PR', 'VI', 'DC']])
-print(w_state)
 
 # Iterate through each city
 for j, shape in enumerate(state.shapeRecords()):
