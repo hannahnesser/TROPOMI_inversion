@@ -7,7 +7,7 @@
 #SBATCH --contiguous
 #SBATCH -p huce_cascade
 #SBATCH --mem 45000
-#SBATCH -t 0-01:30
+#SBATCH -t 0-01:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=hnesser@g.harvard.edu
 
@@ -24,6 +24,7 @@ OPT_BC=${4}
 if [[ ${OPT_BC} == "True" ]]; then
   SUFFIX="_bc${SUFFIX}"
 fi
+echo $SUFFIX
 
 ## -------------------------------------------------------------------------##
 ## Load and prepare the environment
@@ -48,4 +49,5 @@ python -u ${python_dir}/python/generate_pph.py ${CHUNK} ${@}
 ## -------------------------------------------------------------------------##
 ## Clean up
 ## -------------------------------------------------------------------------##
+echo ${DATA_DIR}/pph_dask_worker${SUFFIX}_${CHUNK}/
 rm -rf ${DATA_DIR}/pph_dask_worker${SUFFIX}_${CHUNK}/
