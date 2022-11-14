@@ -242,7 +242,6 @@ if __name__ == '__main__':
 
     # Subset for BC
     if optimize_bc:
-        xhat = xhat[:-4]
         xhat_fr = xhat_fr[:-4]
         shat = shat[:-4, :-4]
         a = a[:-4, :-4]
@@ -250,7 +249,6 @@ if __name__ == '__main__':
 
     # Correct for dofs threshold
     dofs_mask = (dofs < dofs_threshold)
-    xhat[dofs_mask] = 1
     xhat_fr[dofs_mask] = 1
     shat[dofs_mask, :] = 0
     shat[:, dofs_mask] = 0
