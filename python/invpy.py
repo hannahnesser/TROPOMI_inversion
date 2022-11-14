@@ -289,8 +289,8 @@ def calculate_xhat_fr(xa, shat_kpi, kt_so_ydiff):
     return xa.reshape(-1,) + np.array(shat_kpi @ kt_so_ydiff)
 
 def calculate_a(evecs, evals_h, sa):
-    evals_q = evals_h/(1 + evals_h)
-    a = sa**0.5*(evecs*evals_q) @ evecs.T*(1/(sa**0.5))
+    evals_q = (evals_h/(1 + evals_h)).reshape((1, -1))
+    a = (sa.reshape((-1, 1))**0.5*evecs*evals_q) @ (evecs.T/sa.reshape((1, -1))**0.5)
     return a
 
 def calculate_shat_kpi(a, sa):
@@ -303,7 +303,8 @@ def solve_inversion(xa, evecs, evals_h, sa, kt_so_ydiff):
     xhat_fr = calculate_xhat_fr(xa, shat_kpi, kt_so_ydiff)
     return xhat_fr, shat_kpi, a
 
-def get_rank(evals_q=None, evals_h=None, pct_of_info=None, rank=None, snr=None):
+def get_rank(evals_q=None, evals_h=None, 
+             pct_of_info=None, rank=None, snr=None):
     # Check whether evals_q or evals_h are provided:
     if sum(x is not None for x in [evals_q, evals_h]) == 0:
         raise AttributeError('Must provide one of evals_q or evals_h.')
