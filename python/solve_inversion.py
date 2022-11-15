@@ -238,7 +238,7 @@ if __name__ == '__main__':
     # np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suffix}.npy', 
             xhat_fr)
-    np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', 
+    np.save(f'{data_dir}/iteration{niter}/shat/shat_kpi{niter}{suffix}.npy', 
             np.diagonal(shat))
 
     # Subset for BC
