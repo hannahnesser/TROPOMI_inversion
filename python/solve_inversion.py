@@ -14,11 +14,11 @@ if __name__ == '__main__':
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # niter = '2'
     # sa_file = f'{data_dir}/sa.nc'
-    # w_file = f'{data_dir}/w_w404_edf.csv'
+    # w_file = f'{data_dir}/w_w37_edf.csv'
     # sa_scale = 0.75
     # rf = 0.25
     # evec_sf = 10
-    # suffix = '_bc_rg2rt_10t_w404_edf_bc0'
+    # suffix = '_bc_rg2rt_10t_w37_edf_bc0_nlc'
     # pct_of_info = 80
     # dofs_threshold = 0.05
     # optimize_bc = True
@@ -238,7 +238,8 @@ if __name__ == '__main__':
     # np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suffix}.npy', 
             xhat_fr)
-    # np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', shat)
+    np.save(f'{data_dir}/iteration{niter}/shat/shat{niter}{suffix}.npy', 
+            np.diagonal(shat))
 
     # Subset for BC
     if optimize_bc:
