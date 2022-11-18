@@ -79,49 +79,48 @@ city_names = {'NYC' : 'New York-Newark-Jersey City, NY-NJ-PA',
 ## ------------------------------------------------------------------------ ##
 ## Load files
 ## ------------------------------------------------------------------------ ##
+# Load the cities mask
+w_city = pd.read_csv(f'{data_dir}cities/cities_mask.csv', header=0).T
+
 # Load clusters
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc').squeeze()
 
-# Load prior (Mg/km2/yr)
-xa_abs = xr.open_dataarray(f'{data_dir}{xa_abs_file}').values.reshape((-1, 1))
+# Load area (km2)
 area = xr.open_dataarray(f'{data_dir}area.nc').values.reshape((-1, 1))
 
-# Load posterior and DOFS
-dofs = np.load(f'{data_dir}ensemble/dofs2_{f}.npy').reshape((-1, 1))
-xhat = np.load(f'{data_dir}ensemble/xhat_fr2_{f}.npy').reshape((-1, 1))
+# Load ensemble members (relative posterior and DOFS), all of which are
+# previously filtered on DOFS and have the BC elements removed as needed
+dofs = pd.read_csv(f'{data_dir}ensemble/dofs.csv', index_col=0)
+xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
+ensemble = xhat.columns
 
-# Filter on DOFS filter
-xhat[dofs < DOFS_filter] = 1
-dofs[dofs < DOFS_filter] = 0
-
-# BC alteration
-if optimize_BC:
-    print('-'*30)
-    print('Boundary condition optimization')
-    print(' N E S W')
-    print('xhat : ', xhat[-4:])
-    print('dofs : ', dofs[-4:])
-    print('-'*30)
-    xhat = xhat[:-4]
-    dofs = dofs[:-4]
-
-# Calculate xhat abs
-xhat_abs = (xhat*xa_abs)
+# ID two priors
+w37_cols = [s for s in ensemble if 'w37' in s]
+w404_cols = [s for s in ensemble if 'w404' in s]
 
 # Load reduced DOFS
-a_r = pd.read_csv(f'{data_dir}cities/a2_{f}_cities.csv', header=0,
-                  index_col=0)
-dofs_r = pd.DataFrame({'name' : a_r.index, 'dofs' : np.diag(a_r)})
+a_files = glob.glob(f'{data_dir}ensemble/a2_*_cities.csv')
+a_files.sort()
+dofs_c = pd.DataFrame(index=w_city.index, columns=xhat.columns)
+for f in a_files:
+    short_f = f.split('/')[-1][3:-19]
+    a_r = pd.read_csv(f, header=0, index_col=0)
+    dofs_c[short_f] = np.diag(a_r)
+dofs_c = ip.get_ensemble_stats(dofs_c).add_prefix('dofs_')
 
-# Load weighting matrix in units Gg/yr
-w = pd.read_csv(f'{data_dir}{w_file}') # Mg/yr
-w = w[list(emis.values())]
-w['total'] = w.sum(axis=1)
-w['net'] = xa_abs*area
-w = w.T*1e-3 # Mg/yr --> Gg/yr
+# Load weighting matrices in units Gg/yr 
+w_w404 = pd.read_csv(f'{data_dir}w_w404_edf.csv')
+w_w37 = pd.read_csv(f'{data_dir}w_w37_edf.csv')
+w = {'w404_edf' : w_w404, 'w37_edf' : w_w37}
+for wkey, ww in w.items():
+    ww = dc(ww[list(emis.values())])
+    ww['total'] = ww.sum(axis=1)
+    # w[wkey]['net'] = xa_abs_dict[wkey]*area
+    w[wkey] = ww.T*1e-3
 
-# Load the cities mask
-w_city = pd.read_csv(f'{data_dir}cities/cities_mask.csv', header=0).T
+# Get the posterior xhat_abs (we can use 'w404_edf' because we
+# aren't including wetlands in the total)
+xhat_abs = (w['w404_edf'].loc['total'].values[:, None]*xhat)
 
 ## ------------------------------------------------------------------------ ##
 ## Get list of metropolitan statistical area population
@@ -138,46 +137,64 @@ pop['name'] = pop['name'].str[:-11]
 ## ------------------------------------------------------------------------ ##
 # Calculate the area, prior emissions, posterior emissions, and xhat
 # for each column, then concatenate it into one dataframe
-city_area = (w_city @ area.reshape(-1,)).rename('area')
-city_prior = (w_city @ w.T).add_prefix('prior_')
-city_post = (w_city @ (w.T*xhat)).add_prefix('post_')
-city_summ = pd.concat([pd.DataFrame(city_area), city_prior, city_post], axis=1)
+## Area
+area_c = (w_city @ area.reshape(-1,)).rename('area')
+
+## Prior (Because we don't include wetlands, we can just use w404)
+## (which is to say that is the same for all ensemble members)
+prior_c = (w_city @ w['w404_edf'].T).add_prefix('prior_')
+
+## Posterior (We want a matrix that is ncities x 15)
+post_c = (w_city @ xhat_abs)
+
+## Posterior ratios
+xhat_c = post_c/prior_c['prior_total'].values[:, None]
+
+## Get statistics
+xhat_c = ip.get_ensemble_stats(xhat_c).add_prefix('xhat_')
+post_c = ip.get_ensemble_stats(post_c).add_prefix('post_')
+
+## Aggregate
+summ_c = pd.concat([pd.DataFrame(area_c), prior_c, post_c, xhat_c], axis=1)
 
 # Calculate xhat and difference
-city_summ['xhat'] = (city_summ['post_net']/city_summ['prior_net'])
-city_summ['diff'] = city_summ['post_total'] - city_summ['prior_total']
+summ_c['xhat'] = (summ_c['post_mean']/summ_c['prior_total'])
+summ_c['diff'] = summ_c['post_mean'] - summ_c['prior_total']
 
-# Merge DOFS into city_summ
-city_summ['dofs'] = dofs_r.set_index('name').loc[city_summ.index]
-for i in [0.05, 0.1, 0.15, 0.2, 0.25]:
-    city_summ_dofs = city_summ[city_summ['dofs'] >= i]
-    # city_summ_dofs = city_summ_dofs[city_summ_dofs['prior_net'] > 0]
-    xhat_mean_2b = city_summ_dofs['post_net'].sum()/city_summ_dofs['prior_net'].sum()
+# Merge DOFS into summ_c
+summ_c = pd.concat([summ_c, dofs_c.loc[summ_c.index]], axis=1)
+
+# Check whether the using a DOFS threshold matters
+for i in [0, 0.05, 0.1, 0.15, 0.2, 0.25]:
+    summ_c_dofs = summ_c[summ_c['dofs_mean'] > i]
+    xhat_mean_2b = summ_c_dofs['post_mean'].sum()/summ_c_dofs['prior_total'].sum()
+    print(summ_c_dofs['xhat'].mean())
+    print(summ_c['post_mean'].sum()/summ_c['prior_total'].sum())
     print(f'  xhat for cities (DOFS >= {i:.2f}) ', xhat_mean_2b)
 
 # Subset based on DOFS
 print('-'*70)
 print('Non-optimized cities')
-print(city_summ[city_summ['dofs'] < DOFS_filter].index.values)
-nc_old = city_summ.shape[0]
-city_summ = city_summ[city_summ['dofs'] >= DOFS_filter]
+print(summ_c[summ_c['dofs'] < DOFS_filter].index.values)
+nc_old = summ_c.shape[0]
+summ_c = summ_c[summ_c['dofs'] >= DOFS_filter]
 
 # Calculate means
-xhat_mean_1 = city_summ['xhat'].mean()
-xhat_mean_2 = city_summ['post_net'].sum()/city_summ['prior_net'].sum()
-delta_mean = (city_summ['post_total'] - city_summ['prior_total']).mean()
+xhat_mean_1 = summ_c['xhat'].mean()
+xhat_mean_2 = summ_c['post_net'].sum()/summ_c['prior_net'].sum()
+delta_mean = (summ_c['post_total'] - summ_c['prior_total']).mean()
 
 # Calculate the fraction of emissions from urban areas in CONUS
 conus_mask = np.load(f'{data_dir}CONUS_mask.npy')
-city_emis_frac_prior = city_summ['prior_total'].sum()/(w.loc['total']*conus_mask).sum()
-city_emis_frac_post = city_summ['post_total'].sum()/((w.loc['total']*xhat.reshape(-1,))*conus_mask).sum()
-area_frac = city_summ['area'].sum()/(conus_mask.reshape((-1, 1))*area).sum()
-print(city_summ['area'].sum())
+city_emis_frac_prior = summ_c['prior_total'].sum()/(w.loc['total']*conus_mask).sum()
+city_emis_frac_post = summ_c['post_total'].sum()/((w.loc['total']*xhat.reshape(-1,))*conus_mask).sum()
+area_frac = summ_c['area'].sum()/(conus_mask.reshape((-1, 1))*area).sum()
+print(summ_c['area'].sum())
 print((conus_mask.reshape((-1, 1))*area).sum())
 print((conus_mask.reshape((-1, 1))*area).shape)
 
 print('-'*70)
-print(f'Analyzed {city_summ.shape[0]}/{nc_old} cities:')
+print(f'Analyzed {summ_c.shape[0]}/{nc_old} cities:')
 print(f'These cities are responsible for {(100*city_emis_frac_prior):.2f}% of prior anthropogenic emissions and {(100*city_emis_frac_post):.2f}% of posterior anthropogenic emissions in CONUS.')
 print(f'These cities take up {(100*area_frac):.2f}% of surface area.')
 print('  xhat mean                      ', xhat_mean_1)
@@ -185,28 +202,28 @@ print('  xhat for cities                ', xhat_mean_2)
 print('  mean delta emissions (Gg/yr)   ', delta_mean)
 
 # Merge in population
-city_summ['pop'] = pop.set_index('name').loc[city_summ.index]['2019']
+summ_c['pop'] = pop.set_index('name').loc[summ_c.index]['2019']
 
 # Per capita methane emissions (Gg/person)
-city_summ['post_total_pc'] = city_summ['post_total']/city_summ['pop']
+summ_c['post_total_pc'] = summ_c['post_total']/summ_c['pop']
 
 # Sort by per capita methane emissions and print out
-city_summ = city_summ.sort_values(by='post_total_pc', ascending=False)
+summ_c = summ_c.sort_values(by='post_total_pc', ascending=False)
 print('-'*70)
 print('Largest per capita methane emissions')
-print(city_summ.index.values[:10])
+print(summ_c.index.values[:10])
 print('These cities ')
 
 # Sort by per km2 methane emissions
-city_summ = city_summ.sort_values(by='post_total', ascending=False)
+summ_c = summ_c.sort_values(by='post_total', ascending=False)
 print('-'*70)
 print('Largest per km methane emissions')
-print(city_summ.index.values[:10])
+print(summ_c.index.values[:10])
 print('-'*70)
 
 # Sort by population
-city_summ = city_summ.sort_values(by='pop', ascending=False)
-# city_summ = city_summ.iloc[:nc, :]
+summ_c = summ_c.sort_values(by='pop', ascending=False)
+# summ_c = summ_c.iloc[:nc, :]
 
 ## ------------------------------------------------------------------------ ##
 ## Plot maps
@@ -215,12 +232,12 @@ city = shapefile.Reader(f'{data_dir}cities/2019_tl_us_cbsa/tl_2019_us_cbsa.shp')
 
 fig, ax = fp.get_figax(maps=True, lats=clusters.lat, lons=clusters.lon)
 for shape in city.shapeRecords():
-    if shape.record[3] in city_summ.index.values:
+    if shape.record[3] in summ_c.index.values:
         # Get edges of city
         x = [i[0] for i in shape.shape.points[:]]
         y = [i[1] for i in shape.shape.points[:]]
         c_poly = Polygon(np.column_stack((x, y)))
-        color = sf_cmap(div_norm(city_summ.loc[shape.record[3]]['xhat']))
+        color = sf_cmap(div_norm(summ_c.loc[shape.record[3]]['xhat']))
         ax.fill(x, y, facecolor=color, edgecolor='black')
 ax = fp.format_map(ax, lats=clusters.lat, lons=clusters.lon)
 cmap = plt.cm.ScalarMappable(cmap=sf_cmap, norm=div_norm)
@@ -234,18 +251,18 @@ fp.save_fig(fig, plot_dir, f'cities_map')
 ## ------------------------------------------------------------------------ ##
 # With respect to cities
 fig, ax = fp.get_figax(cols=3, aspect=1.5, sharey=True)
-ax[0].scatter(city_summ['pop'], city_summ['diff'], s=1, 
+ax[0].scatter(summ_c['pop'], summ_c['diff'], s=1, 
               color=fp.color(3))
 ax[0] = fp.add_labels(ax[0], 'Population', 
                       'Posterior - prior\nemissions 'r'(Gg a$^{-1}$)',
                       fontsize=config.TICK_FONTSIZE, 
                       labelsize=config.TICK_FONTSIZE)
-ax[1].scatter(city_summ['area'], city_summ['diff'], s=1, 
+ax[1].scatter(summ_c['area'], summ_c['diff'], s=1, 
               color=fp.color(5))
 ax[1] = fp.add_labels(ax[1], r'Area (km$^2$)', '',
                       fontsize=config.TICK_FONTSIZE, 
                       labelsize=config.TICK_FONTSIZE)
-ax[2].scatter(city_summ['pop']/city_summ['area'], city_summ['diff'], s=1, 
+ax[2].scatter(summ_c['pop']/summ_c['area'], summ_c['diff'], s=1, 
               color=fp.color(7))
 ax[2] = fp.add_labels(ax[2], 'Population density\n'r'(km$^{-2}$)', '',
                       fontsize=config.TICK_FONTSIZE, 
@@ -258,9 +275,9 @@ w_tot[w_tot > 1] = 1
 
 pop_g = xr.open_dataset(f'{data_dir}cities/census2010_population_c.nc')
 
-# ## ------------------------------------------------------------------------ ##
-# ## Plot sectoral error correlation 
-# ## ------------------------------------------------------------------------ ##
+## ------------------------------------------------------------------------ ##
+## Plot sectoral error correlation 
+## ------------------------------------------------------------------------ ##
 # rfiles = glob.glob(f'{data_dir}cities/r2_{f}_cities_*.csv')
 # rfiles.sort()
 # for ff in rfiles:
@@ -286,7 +303,7 @@ pop_g = xr.open_dataset(f'{data_dir}cities/census2010_population_c.nc')
 ## ------------------------------------------------------------------------ ##
 ## Plot results
 ## ------------------------------------------------------------------------ ##
-city_summ = city_summ.iloc[:nc, :]
+summ_c = summ_c.iloc[:nc, :]
 ys = np.arange(1, nc + 1)
 
 fig, ax = fp.get_figax(cols=3, aspect=1, sharey=True) 
@@ -294,21 +311,21 @@ fig, ax = fp.get_figax(cols=3, aspect=1, sharey=True)
 plt.subplots_adjust(wspace=0.1)
 
 # Get labels
-labels = city_summ.index.values
+labels = summ_c.index.values
 labels = ['%s (%s)' % (l.split('-')[0], l.split(', ')[-1]) for l in labels]
 
 # Plot stacked bar
 ax[0] = fp.add_title(ax[0], 'Urban emissions\nin largest CONUS cities', 
                      fontsize=config.TITLE_FONTSIZE)
 # cc = [0, 6, 10, 3, 8, 12, 0] # old
-cc = [3, 8, 6, 10, 0, 12, 0]
+cc = [2, 8, 6, 10, 0, 12, 0]
 left_prior = np.zeros(nc)
 left_post = np.zeros(nc)
 for i, (l, e) in enumerate(emis.items()):
-    ax[0].barh(ys - 0.175, city_summ[f'prior_{e}'], left=left_prior, height=0.3,
+    ax[0].barh(ys - 0.175, summ_c[f'prior_{e}'], left=left_prior, height=0.3,
                color=fp.color(cc[i], lut=2*len(cc)), label=f'{l}')
-    left_prior += city_summ[f'prior_{e}']
-ax[0].barh(ys + 0.175, city_summ[f'post_total'], height=0.3,
+    left_prior += summ_c[f'prior_{e}']
+ax[0].barh(ys + 0.175, summ_c[f'post_total'], height=0.3,
            color=fp.color(0), alpha=0.5, label='Posterior total')
 
 # Add labels
@@ -331,9 +348,9 @@ for i in range(2):
     ax[0].axvline((i + 1)*200, color='0.75', lw=0.5, zorder=-10)
 
 # Add labels
-ax[0].text(city_summ['prior_total'][0] + 10, ys[0] + 0.05, 'Prior', ha='left',
+ax[0].text(summ_c['prior_total'][0] + 10, ys[0] + 0.05, 'Prior', ha='left',
            va='bottom', fontsize=config.TICK_FONTSIZE)
-ax[0].text(city_summ['post_total'][0] + 10, ys[0], 'Posterior',
+ax[0].text(summ_c['post_total'][0] + 10, ys[0] + 0.075, 'Posterior',
            ha='left', va='top', 
            fontsize=config.TICK_FONTSIZE)
 
@@ -345,11 +362,11 @@ ax[1] = fp.add_title(ax[1],
 left_prior = np.zeros(nc)
 left_post = np.zeros(nc)
 for i, (l, e) in enumerate(emis.items()):
-    ax[1].barh(ys - 0.175, city_summ[f'prior_{e}']/city_summ['pop']*1e6, 
+    ax[1].barh(ys - 0.175, summ_c[f'prior_{e}']/summ_c['pop']*1e6, 
               left=left_prior, height=0.3, 
               color=fp.color(cc[i], lut=2*len(cc)), label=l)
-    left_prior += city_summ[f'prior_{e}']/city_summ['pop']*1e6
-ax[1].barh(ys + 0.175, city_summ[f'post_total']/city_summ['pop']*1e6, 
+    left_prior += summ_c[f'prior_{e}']/summ_c['pop']*1e6
+ax[1].barh(ys + 0.175, summ_c[f'post_total']/summ_c['pop']*1e6, 
            height=0.3, color=fp.color(0), alpha=0.5)
 
 ax[1].set_yticks(ys)
@@ -371,7 +388,7 @@ for i in range(3):
 # Plot DOFS
 ax[2] = fp.add_title(ax[2], 'Information content', 
                      fontsize=config.TITLE_FONTSIZE)
-ax[2].barh(ys, city_summ['dofs'], color='0.5', height=0.6,
+ax[2].barh(ys, summ_c['dofs'], color='0.5', height=0.6,
            label='Averaging kernel sensitivities')
 ax[2].set_yticks(ys)
 ax[2].set_ylim(0, nc + 1)
