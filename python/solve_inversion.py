@@ -126,7 +126,7 @@ if __name__ == '__main__':
                   if m.split('/')[-1].split('_')[0] in ['CONUS', 'Canada', 'Mexico']])
     sub_masks = dict([(m.split('/')[-1].split('_')[0], 
                        pd.read_csv(m)) for m in mask_files 
-                      if m.split('/')[-1].split('_')[0] in ['urban_areas', 'states']])
+                      if m.split('/')[-1].split('_')[0] in ['urban', 'states']])
 
     # Get weighting matrices (Mg/yr)
     w = pd.read_csv(w_file)
@@ -137,21 +137,21 @@ if __name__ == '__main__':
     #                  for f in w_cities_files])
 
     # define short name for major cities
-    cities = {'NYC' : 'New York-Newark-Jersey City, NY-NJ-PA',
-              'LA'  : 'Los Angeles-Long Beach-Anaheim, CA',
-              'CHI' : 'Chicago-Naperville-Elgin, IL-IN-WI',
-              'DFW' : 'Dallas-Fort Worth-Arlington, TX',
-              'HOU' : 'Houston-The Woodlands-Sugar Land, TX',
-              'DC'  : 'Washington-Arlington-Alexandria, DC-VA-MD-WV',
-              'MIA' : 'Miami-Fort Lauderdale-Pompano Beach, FL',
-              'PHI' : 'Philadelphia-Camden-Wilmington, PA-NJ-DE-MD',
-              'ATL' : 'Atlanta-Sandy Springs-Alpharetta, GA',
-              'PHX' : 'Phoenix-Mesa-Chandler, AZ',
-              'BOS' : 'Boston-Cambridge-Newton, MA-NH',
-              'SFO' : 'San Francisco-Oakland-Berkeley, CA',
-              'RIV' : 'Riverside-San Bernardino-Ontario, CA',
-              'DET' : 'Detroit-Warren-Dearborn, MI',
-              'SEA' : 'Seattle-Tacoma-Bellevue, WA'}
+    cities = {'NYC' : 'New York--Newark, NY--NJ--CT',
+              'LA'  : 'Los Angeles--Long Beach--Anaheim, CA',
+              'CHI' : 'Chicago, IL--IN',
+              'DFW' : 'Dallas--Fort Worth--Arlington, TX',
+              'HOU' : 'Houston, TX',
+              'DC'  : 'Washington, DC--VA--MD',
+              'MIA' : 'Miami, FL',
+              'PHI' : 'Philadelphia, PA--NJ--DE--MD',
+              'ATL' : 'Atlanta, GA',
+              'PHX' : 'Phoenix--Mesa, AZ',
+              'BOS' : 'Boston, MA--NH--RI',
+              'SFO' : 'San Francisco--Oakland, CA',
+              'SDO' : 'San Diego, CA',
+              'DET' : 'Detroit, MI',
+              'SEA' : 'Seattle, WA'}
 
     ## ---------------------------------------------------------------------##
     ## Optimize the regularization factor via cost function analysis
@@ -277,7 +277,7 @@ if __name__ == '__main__':
     for key, city in cities.items():
         print(f'Analyzing {city}')
         w_c = w[['livestock', 'coal', 'ong', 'landfills', 'wastewater', 
-                 'other_anth']].T*sub_masks['cities'][city].values
+                 'other_anth']].T*sub_masks['urban'][city].values
         _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
         r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_urban_areas_{key}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_urban_areas_{key}.csv', header=True, index=True)
