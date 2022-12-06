@@ -126,7 +126,7 @@ if __name__ == '__main__':
                   if m.split('/')[-1].split('_')[0] in ['CONUS', 'Canada', 'Mexico']])
     sub_masks = dict([(m.split('/')[-1].split('_')[0], 
                        pd.read_csv(m)) for m in mask_files 
-                      if m.split('/')[-1].split('_')[0] in ['cities', 'states']])
+                      if m.split('/')[-1].split('_')[0] in ['urban_areas', 'states']])
 
     # Get weighting matrices (Mg/yr)
     w = pd.read_csv(w_file)
@@ -257,22 +257,22 @@ if __name__ == '__main__':
     a[dofs_mask, :] = 0
     a[:, dofs_mask] = 0
 
-    # Complete sectoral analyses
-    for country, mask in masks.items():
-        print(f'Analyzing {country}')
-        w_c = dc(w).mul(mask, axis=0).reset_index(drop=True).T
-        _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
-        r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
-        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
+    # # Complete sectoral analyses
+    # for country, mask in masks.items():
+    #     print(f'Analyzing {country}')
+    #     w_c = dc(w).mul(mask, axis=0).reset_index(drop=True).T
+    #     _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
+    #     r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
+    #     a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
 
-    for label, mask in sub_masks.items():
-        print(f'Analyzing {label}')
-        w_l = w[['livestock', 'coal', 'ong', 'landfills', 'wastewater', 
-                 'other_anth']].sum(axis=1).values
-        w_l = (mask*w_l[:, None]).reset_index(drop=True).T
-        _, _, r_red, a_red = ip.source_attribution(w_l, xhat_fr, shat, a)
-        r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
-        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
+    # for label, mask in sub_masks.items():
+    #     print(f'Analyzing {label}')
+    #     w_l = w[['livestock', 'coal', 'ong', 'landfills', 'wastewater', 
+    #              'other_anth']].sum(axis=1).values
+    #     w_l = (mask*w_l[:, None]).reset_index(drop=True).T
+    #     _, _, r_red, a_red = ip.source_attribution(w_l, xhat_fr, shat, a)
+    #     r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
+    #     a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
 
     for key, city in cities.items():
         print(f'Analyzing {city}')
