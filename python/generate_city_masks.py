@@ -26,20 +26,24 @@ data_dir = base_dir + 'inversion_data/'
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc').squeeze()
 nstate = int(clusters.values.max())
 
+# Open populations
+pop = pd.read_csv(f'{data_dir}cities/urban_areas_pop.csv', header=0)
+
 # Open the 2019 city boundaries
-city = shapefile.Reader(f'{data_dir}cities/2019_tl_us_cbsa/tl_2019_us_cbsa.shp')
+city = shapefile.Reader(f'{data_dir}cities/2019_tl_urban_areas/tl_2019_us_uac10_buffered.shp')
 
 # Create a numpy array for the information content analysis
 w_city = pd.DataFrame(
-             columns=[s.record[3] for s in city.shapeRecords()
-                      if (s.record[5] == 'M1') and 
-                      (s.record[3].split(', ')[-1] not in ['AK', 'HI', 'PR'])])
+             columns=[s.record[2] for s in city.shapeRecords()
+                      if (s.record[3][-4:] == 'Area') and 
+                      (s.record[2] in pop['Name'].values) and
+                      (s.record[2].split(', ')[-1] not in ['AK', 'HI', 'PR'])])
 
 # Iterate through each city
 for j, shape in enumerate(city.shapeRecords()):
-    if shape.record[3] in w_city.columns:
+    if shape.record[2] in w_city.columns:
         # Add a column to w_city
-        w_city[shape.record[3]] = gc.grid_shape_overlap(clusters, shape)
+        w_city[shape.record[2]] = gc.grid_shape_overlap(clusters, shape)
 
 # Save out w_city
-w_city.to_csv(f'{data_dir}cities/cities_mask.csv', header=True, index=False)
+w_city.to_csv(f'{data_dir}cities/urban_areas_mask.csv', header=True, index=False)
