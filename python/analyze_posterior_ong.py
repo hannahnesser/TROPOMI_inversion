@@ -1,22 +1,15 @@
-from os.path import join
-from os import listdir
 import sys
 import glob
-import copy
-import math
+from copy import deepcopy as dc
 import xarray as xr
-import xesmf as xe
 import numpy as np
 import pandas as pd
-from scipy.stats import probplot as qq
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from matplotlib.patches import Patch as patch
-import cartopy.feature as cfeature
-import cartopy.io.shapereader as shpreader
-import cartopy.crs as ccrs
-import imageio
-pd.set_option('display.max_columns', 10)
+from matplotlib import gridspec
+import shapefile
+from shapely.geometry import Polygon, MultiPolygon
+pd.set_option('display.max_columns', 20)
 
 # Custom packages
 sys.path.append('.')
@@ -30,6 +23,16 @@ import invpy as ip
 import format_plots as fp
 import inversion_settings as s
 
+# Colormaps
+plasma_trans = fp.cmap_trans('plasma')
+yor_trans = fp.cmap_trans('YlOrRd', nalpha=100)
+
+sf_cmap_1 = plt.cm.PuOr_r(np.linspace(0.2, 0.5, 256))
+sf_cmap_2 = plt.cm.PuOr_r(np.linspace(0.5, 1, 256))
+sf_cmap = np.vstack((sf_cmap_1, sf_cmap_2))
+sf_cmap = colors.LinearSegmentedColormap.from_list('sf_cmap', sf_cmap)
+div_norm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=1, vmax=3)
+
 ## ------------------------------------------------------------------------ ##
 ## Directories
 ## ------------------------------------------------------------------------ ##
@@ -39,115 +42,287 @@ data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
 
 ## ------------------------------------------------------------------------ ##
-## Set plotting preferences
-## ------------------------------------------------------------------------ ##
-# Colormaps
-plasma_trans = fp.cmap_trans('plasma')
-plasma_trans_r = fp.cmap_trans('plasma_r')
-rdbu_trans = fp.cmap_trans_center('RdBu_r', nalpha=70)
-r_trans = fp.cmap_trans('Reds', nalpha=100)
-yor_trans = fp.cmap_trans('YlOrRd', nalpha=100)
-viridis_trans_r = fp.cmap_trans('viridis_r')
-viridis_trans = fp.cmap_trans('viridis')
-magma_trans = fp.cmap_trans('magma')
-# print(viridis_trans)
-
-# sf_cmap_1 = plt.cm.Reds(np.linspace(0, 0.5, 256))
-# sf_cmap_2 = plt.cm.Blues(np.linspace(0.5, 1, 256))
-# sf_cmap = np.vstack((sf_cmap_1, sf_cmap_2))
-# sf_cmap = colors.LinearSegmentedColormap.from_list('sf_cmap', sf_cmap)
-# div_norm = colors.TwoSlopeNorm(vmin=0, vcenter=1, vmax=6)
-
-sf_cmap_1 = plt.cm.PuOr_r(np.linspace(0.2, 0.5, 256))
-sf_cmap_2 = plt.cm.PuOr_r(np.linspace(0.5, 1, 256))
-sf_cmap = np.vstack((sf_cmap_1, sf_cmap_2))
-sf_cmap = colors.LinearSegmentedColormap.from_list('sf_cmap', sf_cmap)
-div_norm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=1, vmax=3)
-
-diff_cmap_1 = plt.cm.bwr(np.linspace(0, 0.5, 256))
-diff_cmap_2 = plt.cm.bwr(np.linspace(0.5, 1, 256))
-diff_cmap = np.vstack((diff_cmap_1, diff_cmap_2))
-diff_cmap = colors.LinearSegmentedColormap.from_list('diff_cmap', diff_cmap)
-diff_div_norm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=0, vmax=1)
-
-# Small (i.e. non-default) figure settings
-small_map_kwargs = {'draw_labels' : False}
-small_fig_kwargs = {'max_width' : 4,
-                    'max_height' : 3.5}
-
-## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# DOFS_filter
-DOFS_filter = 0.05
+label_map = {'permian' :'Permian', 
+             'delaware' : 'Delaware', 
+             'haynesville' : 'Haynesville',
+             'barnett' : 'Barnett',
+             'anadarko' : 'Anadarko',
+             'northeast' : 'Marcellus',
+             'eagle_ford' : 'Eagle Ford', 
+             'san_juan' : 'San Juan', 
+             'california' : 'California',
+             'bakken' : 'Bakken',
+             'wyoming' : 'Wyoming',
+             'dj' : 'DJ',
+             'alberta_west' : 'Alberta West',
+             'fayetteville' : 'Fayetteville',
+             'sw_pa' : 'Southwest Pennsylvania',
+             'west_arkoma' : 'West Arkoma',
+             'ne_pa': 'Northeast Pennsylvania',
+             'alberta_east' : 'Alberta East',
+             'uinta': 'Uinta'}
 
-# Define file names
-f = 'rg2rt_10t_w404_rf0.25_sax0.75_poi80.0'
-xa_abs_file = 'xa_abs_w404.nc'
-w_file = 'w_w404.csv'
-optimize_BC = False
+shen = {'permian' : (2903, 0.14), 'delaware' : (790, 0.19),
+        'haynesville' : (656, 0.16), 'barnett' : (478, 0.13), 
+        'anadarko' : (610, 0.22), 'northeast' : (613, 0.28),
+        'eagle_ford' : (508, 0.18), 'san_juan' : (236, 0.22), 
+        'california' : (244, 0.3), 'bakken' : (123, 0.26), 
+        'wyoming' : (124, 0.29), 'dj' : (52, 0.45), 
+        'alberta_west' : (68, 0.24), 'fayetteville' : (36, 0.48), 
+        'sw_pa' : (44, 0.29), 'west_arkoma' : (51, 0.31), 'ne_pa' : (28, 0.34),
+        'alberta_east' : (32, 0.51), 'uinta' : (96, 0.21)}
 
 ## ------------------------------------------------------------------------ ##
 ## Load files
 ## ------------------------------------------------------------------------ ##
-# Load clusters
-clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
+# Load the ONG mask
+w_ong = pd.read_csv(f'{data_dir}ong/ong_mask.csv', header=0).T
 
-# Load prior (Mg/km2/yr)
-xa_abs = xr.open_dataarray(f'{data_dir}{xa_abs_file}').values.reshape((-1, 1))
-xa_abs_base = xr.open_dataarray(f'{data_dir}xa_abs.nc').values.reshape((-1, 1))
-xa_ratio = xa_abs/xa_abs_base
-xa_ratio[(xa_abs_base == 0) & (xa_abs == 0)] = 1 # Correct for the grid cell with 0 emisisons
+# Load clusters
+clusters = xr.open_dataarray(f'{data_dir}clusters.nc').squeeze()
+
+# Load area (km2)
 area = xr.open_dataarray(f'{data_dir}area.nc').values.reshape((-1, 1))
 
-# Load weighting matrix
-w = pd.read_csv(f'{data_dir}{w_file}')
-w_rel = w.div(w.sum(axis=1), axis=0)
-w_rel = w_rel.fillna(0)
+# Load ensemble members (relative posterior and DOFS), all of which are
+# previously filtered on DOFS and have the BC elements removed as needed
+dofs = pd.read_csv(f'{data_dir}ensemble/dofs.csv', index_col=0)
+xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
+ensemble = xhat.columns
 
-# Create a mask using Lu Shen's definition of "oil and natural gas" grid
-# cells from his 2022 ACP paper
-w_mask = copy.deepcopy(w)
-w_mask = w_mask.where(w*area/1e3 > 0.5, 0)
-w_mask = w_mask.where(w*area/1e3 <= 0.5, 1)
+# Load weighting matrices in units Tg/yr (we don't consider wetlands
+# here, so it doesn't matter which W we use)
+w = pd.read_csv(f'{data_dir}w_w404_edf.csv')
+w = dc(w['ong']).T*1e-6
 
-# ?
-w['total'] = w.sum(axis=1)
+# Get the posterior xhat_abs (this is n x nensemble) (only ONG)
+xhat_abs = w.values[:, None]*xhat
 
-# Load posterior and DOFS
-dofs = np.load(f'{data_dir}posterior/dofs2_{f}.npy').reshape((-1, 1))
-xhat = np.load(f'{data_dir}posterior/xhat_fr2_{f}.npy').reshape((-1, 1))
-# dofs = np.nan_to_num(dofs, 0)
+## ------------------------------------------------------------------------ ##
+## Calculate state sectoral prior and posterior
+## ------------------------------------------------------------------------ ##
+# Calculate the area, prior emissions, posterior emissions, and xhat
+# for each column, then concatenate it into one dataframe
+## Area
+area = pd.DataFrame((w_ong @ area.reshape(-1,)).rename('area'))
 
-# BC alteration
-if optimize_BC:
-    print('-'*30)
-    print('Boundary condition optimization')
-    print(' N E S W')
-    print('xhat : ', xhat[-4:])
-    print('dofs : ', dofs[-4:])
-    print('-'*30)
-    xhat = xhat[:-4]
-    dofs = dofs[:-4]
+## Prior (the same for all ensemble members) 
+## (w_ong = 19 x 23691, w.T = 23691 x sectors)
+prior = pd.DataFrame((w_ong @ w.T).rename('prior'))
 
-# Print information
-print('-'*30)
-print(f'We optimize {(dofs >= DOFS_filter).sum():d} grid cells, including {xa_abs[dofs >= DOFS_filter].sum():.2E}/{xa_abs.sum():.2E} = {(xa_abs[dofs >= DOFS_filter].sum()/xa_abs.sum()*100):.2f}% of prior emissions. This\nproduces {dofs[dofs >= DOFS_filter].sum():.2f} ({dofs.sum():.2f}) DOFS with an xhat range of {xhat.min():.2f} to {xhat.max():.2f}. There are {len(xhat[xhat < 0]):d} negative values.')
-print('-'*30)
+## Posterior (19 x n, n x ensemble)
+post = (w_ong @ xhat_abs)
 
-# Filter on DOFS filter
-xhat[dofs < DOFS_filter] = 1
-dofs[dofs < DOFS_filter] = 0
+## Posterior ratios
+xhat_ong = post/prior.values
 
-# Calculate xhat abs
-xhat_abs = (xhat*xa_abs)
+## Get statistics
+xhat_stats = ip.get_ensemble_stats(xhat_ong).add_prefix('xhat_')
+post_stats = ip.get_ensemble_stats(post).add_prefix('post_')
 
-# print(f'{f}, maximum: {xhat.max():.2f}, minimum: {xhat.min():.2f} DOFS: {dofs.sum():.2f} ({dofs[dofs >= DOFS_filter].sum():.2f}), negative values: {len(xhat[xhat < 0])}')
+## Aggregate
+summ = pd.concat([area, prior, post_stats, xhat_stats], axis=1)
 
-# Get county outlines for high resolution results
-reader = shpreader.Reader(f'{data_dir}counties/countyl010g.shp')
-counties = list(reader.geometries())
-COUNTIES = cfeature.ShapelyFeature(counties, ccrs.PlateCarree())
+# Sort by posterior anthropogenic emissions
+summ = summ.sort_values(by='post_mean', ascending=False)
 
-# Get basins
+# Save out csv
+summ.to_csv(f'{data_dir}/ong/summ_ong.csv', header=True, index=True)
+
+# Get number of basins 
+nb = w_ong.shape[0]
+
+## ------------------------------------------------------------------------ ##
+## Plot results : absolute emissions
+## ------------------------------------------------------------------------ ##
+# Define x range
+ys = np.arange(1, nb + 1)
+
+# Begin plotting!
+fig, ax = fp.get_figax(aspect=0.6, sharex=True,
+                       max_height=config.BASE_HEIGHT*config.SCALE)
+
+# Get labels
+labels = [label_map[l] for l in summ.index.values]
+
+# Reorder Shen and extract mean and error
+shen_data = np.array([shen[l][0] for l in summ.index.values])
+shen_err = np.array([shen[l][0]*shen[l][1] for l in summ.index.values])
+print(shen_data)
+print(shen_err)
+
+# Adjust min/max definitions for error bars
+summ['post_max'] = summ['post_max'] - summ['post_mean']
+summ['post_min'] = summ['post_mean'] - summ['post_min']
+
+# Plot bar
+ax.barh(ys - 0.175, summ['prior'], height=0.3, color=fp.color(3), 
+        label='Prior')
+ax.barh(ys + 0.175, summ['post_mean'], 
+        xerr=np.array(summ[['post_min', 'post_max']]).T*22/12,
+        error_kw={'ecolor' : '0.6', 'lw' : 0.5, 'capsize' : 1, 
+                  'capthick' : 0.5},
+        height=0.3, color=fp.color(3), alpha=0.3, label='Posterior')
+
+# Add Shen data
+print(ys)
+ax.errorbar(shen_data*1e-3, ys + 0.175, xerr=shen_err*1e-3, fmt='o', 
+            markersize=4, markerfacecolor='white', markeredgecolor='black', 
+            ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
+            label='Shen et al. (2022)')
+
+# Add labels
+ax.set_yticks(ys)
+ax.set_ylim(0, nb + 1)
+ax.invert_yaxis()
+ax.set_yticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE)
+
+ax.set_xlim(0, 4)
+
+ax.tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
+# plt.setp(ax.get_xticklabels(), visible=False)
+
+# Final aesthetics
+ax = fp.add_labels(ax, r'Emissions (Tg a$^{-1}$)', '',
+                      fontsize=config.TICK_FONTSIZE, 
+                      labelsize=config.TICK_FONTSIZE, labelpad=10)
+
+for i in range(5):
+    ax.axvline(i + 1, color='0.75', lw=0.5, zorder=-10)
+
+# Final aesthetics
+for k in range(nb - 1):
+    if i % 5 == 0:
+        ls = '-'
+    else:
+        ls = ':'
+    ax.axhline((k + 1) + 0.5, color='0.75', alpha=1, lw=0.5, ls=ls,
+                zorder=-10)
+
+fp.save_fig(fig, plot_dir, f'ong_ensemble')
+
+# ------------------------------------------------------------------------ ##
+# Permian comparison
+# ------------------------------------------------------------------------ ##
+# Combine the Permian clusters with the NA clusters
+permian = xr.open_dataset(f'{data_dir}clusters_permian.nc')['Clusters']
+c = clusters.squeeze(drop=True).to_dataset()
+c['Permian'] = permian
+
+# Get the Permian basin indices (discard the buffer cells)
+cell_idx, cell_cnt  = np.unique(c['Permian'], return_counts=True)
+cell_idx = cell_idx[cell_cnt == 1]
+cell_idx = cell_idx[~np.isnan(cell_idx)]
+permian = permian.where(permian.isin(cell_idx), 0)
+
+# # Subset over the Permian
+# c = c.where(c['Permian'].isin(cell_idx))['Clusters']
+# c = c.sel(lat=permian.lat, lon=permian.lon)
+
+# # Flatten and create boolean
+# permian_idx = (ip.clusters_2d_to_1d(permian, c) - 1).astype(int)
+permian_idx = np.load(f'{data_dir}permian_idx.npy')
+# print(c)
+# c[c > 0] = 1
+
+nstate_permian = len(permian_idx)
+
+# Subset the posterior and convert to Tg/yr
+xhat_permian = ip.get_ensemble_stats(xhat.values[permian_idx, :])
+xa_abs_permian = w.values[permian_idx]
+xhat_abs_permian = ip.get_ensemble_stats(xhat_abs.values[permian_idx, :])
+dofs_permian = ip.get_ensemble_stats(dofs.values[permian_idx, :])
+area_permian = xr.open_dataarray(f'{data_dir}area.nc').values.reshape((-1, 1))
+area_permian = area_permian[permian_idx, :]
+
+# Calculate total emissions
+tot_prior_permian = xa_abs_permian.sum()
+tot_post_permian = xhat_abs_permian['mean'].sum()
+print(f'Total prior emissions            : {tot_prior_permian}')
+print(f'Total posterior emissions        : {tot_post_permian}')
+print(f'Difference                       : {(tot_post_permian - tot_prior_permian)}')
+
+# Adjust back to kg/km2/hr
+xa_abs_permian = xa_abs_permian/area_permian/1e-9/(365*24)
+xhat_abs_permian = xhat_abs_permian/area_permian/1e-9/(365*24)
+# print(xa_abs_permian)
+# print(xhat_permian)
+
+fig, axis = fp.get_figax(rows=2, cols=2, maps=True,
+                         lats=permian.lat, lons=permian.lon,
+                         max_width=config.BASE_WIDTH*2.5,
+                         max_height=config.BASE_HEIGHT*2.5)
+plt.subplots_adjust(hspace=-0.05, wspace=0.75)
+
+# Plot prior
+fig_kwargs = {'figax' : [fig, axis[0, 0]]}
+xhat_kwargs = {'cmap' : yor_trans, 'vmin' : 0, 'vmax' : 13,
+               'default_value' : 0,
+               'fig_kwargs' : fig_kwargs}
+title = f'Prior emissions' # ({f}\%)'
+fig, axis[0, 0], c = ip.plot_state(xa_abs_permian, permian, title=title, 
+                                   cbar=False, **xhat_kwargs)
+axis[0, 0].text(0.05, 0.05, f'{tot_prior_permian:.1f} Tg/yr',
+                fontsize=config.LABEL_FONTSIZE*config.SCALE*1,
+                transform=axis[0, 0].transAxes)
+
+
+# Plot posterior emissions
+fig_kwargs = {'figax' : [fig, axis[0, 1]]}
+xhat_cbar_kwargs = {'title' : r'Emissions\\(kg km$^{-2}$ h$^{-1}$)', 'x' : 4,
+                    'cbar_pad_inches' : 0.1}
+xhat_kwargs['fig_kwargs'] = fig_kwargs
+xhat_kwargs['cbar_kwargs'] = xhat_cbar_kwargs
+title = f'Posterior emissions' # ({f}\%)'
+fig, axis[0, 0], c = ip.plot_state(xhat_abs_permian['mean'], 
+                                   permian, title=title, 
+                                   **xhat_kwargs)
+axis[0, 1].text(0.05, 0.05, f'{tot_post_permian:.1f} Tg/yr',
+                fontsize=config.LABEL_FONTSIZE*config.SCALE*1,
+                transform=axis[0, 1].transAxes)
+
+# # Plot posterior scaling factors
+# sf_cmap_1 = plt.cm.Oranges(np.linspace(0, 1, 256))
+# sf_cmap_2 = plt.cm.Purples(np.linspace(0.5, 0, 256))
+# sf_cmap = np.vstack((sf_cmap_2, sf_cmap_1))
+# sf_cmap = colors.LinearSegmentedColormap.from_list('sf_cmap', sf_cmap)
+# div_norm = colors.TwoSlopeNorm(vmin=0, vcenter=1, vmax=3)
+
+xhat_cbar_kwargs = {'title' : r'Scale factor', 'x' : 4, 
+                    'ticks' : np.arange(0, 3.1, 0.5), 
+                    'cbar_pad_inches' : 0.1}
+fig_kwargs = {'figax' : [fig, axis[1, 0]]}
+xhat_kwargs = {'cmap' : sf_cmap, 'norm' : div_norm,
+               'default_value' : 1,
+               'cbar_kwargs' : xhat_cbar_kwargs,
+               'fig_kwargs' : fig_kwargs}
+title = f'Posterior\nscale factors' # ({f}\%)'
+fig, axis[1, 0], c = ip.plot_state(xhat_permian['mean'], permian, title=title,
+                                   **xhat_kwargs)
+# axis[1, 0].text(0.05, 0.05,
+#                 f'({(xhat_permian.min()):.1f}, {(xhat_permian.max()):.1f})',
+#                 fontsize=config.LABEL_FONTSIZE*config.SCALE*1,
+#                 transform=axis[1, 0].transAxes)
+
+# Plot DOFS
+fig_kwargs = {'figax' : [fig, axis[1, 1]]}
+avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$', 'x' : 4,
+                     'cbar_pad_inches' : 0.1}
+avker_kwargs = {'cmap' : plasma_trans, 'vmin' : 0, 'vmax' : 1,
+                'cbar_kwargs' : avker_cbar_kwargs,
+                'fig_kwargs' : fig_kwargs}
+title = f'Averaging kernel\nsensitivities' # ({f}\%)'
+fig, axis[1, 1], c = ip.plot_state(dofs_permian['mean'], permian, title=title,
+                                 **avker_kwargs)
+dofs = dofs_permian['mean'].sum()
+axis[1, 1].text(0.05, 0.05,
+                f'DOFS = {dofs:.1f}',
+                fontsize=config.LABEL_FONTSIZE*config.SCALE*1,
+                transform=axis[1, 1].transAxes)
+
+
+fp.save_fig(fig, plot_dir, f'permian_ensemble')
+plt.close()
 
