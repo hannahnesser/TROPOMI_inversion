@@ -38,7 +38,10 @@ w_state = pd.DataFrame(columns=[s.record[6] for s in state.shapeRecords()
 for j, shape in enumerate(state.shapeRecords()):
     if shape.record[6] in w_state.columns:
         # Add a row to w_state
-        w_state[shape.record[6]] = gc.grid_shape_overlap(clusters, shape)
+        x = [i[0] for i in shape.shape.points[:]]
+        y = [i[1] for i in shape.shape.points[:]]
+        w_state[shape.record[6]] = gc.grid_shape_overlap(clusters, x, y, 
+                                                         shape.record[6])
 
 # Save out w_city
 w_state.to_csv(f'{data_dir}states/states_mask.csv', header=True, index=False)
