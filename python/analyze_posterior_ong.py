@@ -58,13 +58,14 @@ label_map = {'permian' :'Permian',
              'dj' : 'DJ',
              'alberta_west' : 'Alberta West',
              'fayetteville' : 'Fayetteville',
-             'sw_pa' : 'Southwest Pennsylvania',
+             'sw_pa' : 'SW Pennsylvania',
              'west_arkoma' : 'West Arkoma',
-             'ne_pa': 'Northeast Pennsylvania',
+             'ne_pa': 'NE Pennsylvania',
              'alberta_east' : 'Alberta East',
              'uinta': 'Uinta'}
 
-shen = {'permian' : (2903, 0.14), 'delaware' : (790, 0.19),
+# Units all in GG/yr, errors are rrelative
+shen2022 = {'permian' : (2903, 0.14), 'delaware' : (790, 0.19),
         'haynesville' : (656, 0.16), 'barnett' : (478, 0.13), 
         'anadarko' : (610, 0.22), 'northeast' : (613, 0.28),
         'eagle_ford' : (508, 0.18), 'san_juan' : (236, 0.22), 
@@ -138,59 +139,66 @@ nb = w_ong.shape[0]
 ## Plot results : absolute emissions
 ## ------------------------------------------------------------------------ ##
 # Define x range
-ys = np.arange(1, nb + 1)
+xs = np.arange(1, nb + 1)
 
 # Begin plotting!
-fig, ax = fp.get_figax(aspect=0.6, sharex=True,
+fig, ax = fp.get_figax(aspect=1.67, sharex=True,
                        max_height=config.BASE_HEIGHT*config.SCALE)
 
 # Get labels
 labels = [label_map[l] for l in summ.index.values]
 
 # Reorder Shen and extract mean and error
-shen_data = np.array([shen[l][0] for l in summ.index.values])
-shen_err = np.array([shen[l][0]*shen[l][1] for l in summ.index.values])
-print(shen_data)
-print(shen_err)
+shen2022_data = np.array([shen2022[l][0] for l in summ.index.values])
+shen2022_err = np.array([shen2022[l][0]*shen2022[l][1] 
+                         for l in summ.index.values])
+
+print((summ['post_mean'] - shen2022_data*1e-3))
+print(shen2022_data)
+print(shen2022_err)
 
 # Adjust min/max definitions for error bars
 summ['post_max'] = summ['post_max'] - summ['post_mean']
 summ['post_min'] = summ['post_mean'] - summ['post_min']
 
 # Plot bar
-ax.barh(ys - 0.175, summ['prior'], height=0.3, color=fp.color(3), 
-        label='Prior')
-ax.barh(ys + 0.175, summ['post_mean'], 
-        xerr=np.array(summ[['post_min', 'post_max']]).T*22/12,
-        error_kw={'ecolor' : '0.6', 'lw' : 0.5, 'capsize' : 1, 
-                  'capthick' : 0.5},
-        height=0.3, color=fp.color(3), alpha=0.3, label='Posterior')
+ax.bar(xs - 0.175, summ['prior'], width=0.3, color=fp.color(3), 
+       label='Prior')
+ax.bar(xs + 0.175, summ['post_mean'], 
+       yerr=np.array(summ[['post_min', 'post_max']]).T,
+       error_kw={'ecolor' : '0.6', 'lw' : 0.5, 'capsize' : 1, 
+                 'capthick' : 0.5},
+       width=0.3, color=fp.color(3), alpha=0.3, label='Posterior')
 
 # Add Shen data
-print(ys)
-ax.errorbar(shen_data*1e-3, ys + 0.175, xerr=shen_err*1e-3, fmt='o', 
+ax.errorbar(xs + 0.175, shen2022_data*1e-3, yerr=shen2022_err*1e-3, fmt='o', 
             markersize=4, markerfacecolor='white', markeredgecolor='black', 
             ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
             label='Shen et al. (2022)')
 
-# Add labels
-ax.set_yticks(ys)
-ax.set_ylim(0, nb + 1)
-ax.invert_yaxis()
-ax.set_yticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE)
+# Add Shen threshold
+ax.fill_between([0, nb + 1], [0, 0], [0.5, 0.5], 
+                color='0.3', alpha=0.2, label='Quantification threshold')
 
-ax.set_xlim(0, 4)
+# Add labels
+ax.set_xticks(xs)
+ax.set_xlim(0, nb + 1)
+# ax.invert_yaxis()
+ax.set_xticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE,
+                   rotation=90)
+
+ax.set_ylim(0, 4)
 
 ax.tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
 # plt.setp(ax.get_xticklabels(), visible=False)
 
 # Final aesthetics
-ax = fp.add_labels(ax, r'Emissions (Tg a$^{-1}$)', '',
+ax = fp.add_labels(ax, '', r'Emissions (Tg a$^{-1}$)',
                       fontsize=config.TICK_FONTSIZE, 
                       labelsize=config.TICK_FONTSIZE, labelpad=10)
 
 for i in range(5):
-    ax.axvline(i + 1, color='0.75', lw=0.5, zorder=-10)
+    ax.axhline(i + 1, color='0.75', lw=0.5, zorder=-10)
 
 # Final aesthetics
 for k in range(nb - 1):
@@ -198,8 +206,12 @@ for k in range(nb - 1):
         ls = '-'
     else:
         ls = ':'
-    ax.axhline((k + 1) + 0.5, color='0.75', alpha=1, lw=0.5, ls=ls,
+    ax.axvline((k + 1) + 0.5, color='0.75', alpha=1, lw=0.5, ls=ls,
                 zorder=-10)
+
+# Legend for summary plot
+ax = fp.add_legend(ax, ncol=1, fontsize=config.TICK_FONTSIZE, 
+                   loc='upper right')
 
 fp.save_fig(fig, plot_dir, f'ong_ensemble')
 

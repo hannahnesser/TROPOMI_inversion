@@ -48,15 +48,15 @@ plot_dir = base_dir + 'plots/'
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # DOFS_filter
-DOFS_filter = 0.05
+DOFS_filter = 0.2
 
 # Number of cities
-nc = 10
+nc = 15
 
 # Define emission categories
 emis = {'Landfills' : 'landfills', 'Wastewater' : 'wastewater',
         'Oil and natural gas' : 'ong', 
-        'Coal' : 'coal', 'Livestock' : 'livestock',
+        # 'Coal' : 'coal', 'Livestock' : 'livestock',
         'Other anthropogenic' : 'other_anth'}
 
 # define short name for major cities
@@ -96,6 +96,7 @@ city_studies = {
     'Cui et al. (2015)' : {'Los Angeles' : [406, 81, 81]}, # mean of 6 flights flown over 2010 https://agupubs.onlinelibrary.wiley.com/doi/pdf/10.1002/2014JD023002
     'Wunch et al. (2016)' : {'Los Angeles' : [413, 86, 86]}, # 2007 - 2016 average, relatively steady methane emissions https://acp.copernicus.org/articles/16/14091/2016/acp-16-14091-2016.pdf
     'Cusworth et al. (2020)' : {'Los Angeles' : [274, 72, 72]}, # Multi-tiered inversion with CLARS-FTS and TROPOMI aand AVIRIS-NG for Jan 2017- Sept 2018 https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1029/2020GL087869
+    'Yadav et al. (2023)' : {'Los Angeles' : [251, 10, 10]},
     'Jeong et al. (2016)' : {'Los Angeles' : [380, 79, 110],
                              'San Francisco' : [245, 86, 95]}, # values are medians June 2013 - May 2014 https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1002/2016JD025404
     'Jeong et al. (2017)' : {'San Francisco' : [226, 60, 63]}, # Median for Sept - Dec 2015, much of underestimation from landfills https://agupubs.onlinelibrary.wiley.com/doi/pdf/10.1002/2016GL071794
@@ -103,17 +104,17 @@ city_studies = {
     'Pitt et al. (2022)' : {'New York' : [313, 96, 96]}, # Nine research flights during non-growing season of 2018 - 2020 https://online.ucpress.edu/elementa/article/10/1/00082/119571
     'Fairley and Fischer (2015)' : {'San Francisco' : [240, 60, 60]}, # 2009 - 2012 https://www.sciencedirect.com/science/article/pii/S1352231015000886
     # 'Karion et al. (2015)' : {'Dallas' : [660, 110, 110]}, # DFW mass baalance from 8 different flight days in March and October 2013 https://pubs.acs.org/doi/full/10.1021/acs.est.5b00217
-    r'Plant et al. (2019) (CO$_2$)' : {'Washington' : [125, 42, 51],
-                                       'Philadelphia' : [143, 39, 43],
-                                       'New York' : [433, 105, 126],
-                                       'Boston' : [77, 16, 19]}, # Aircraft campaign measurement of CH4/CO and CH4/CO2 ratios
-    r'Plant et al. (2019) (CO)' : {'Washington' : [360, 175, 316],
-                                   'Philadelphia' : [425, 164, 272],
-                                   'New York' : [1116, 454, 857],
-                                   'Boston' : [266, 122, 132]}, # Aircraft campaign measurement of CH4/CO and CH4/CO2 ratios https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2019GL082635
-    'Plant et al. (2022)' : {'Atlanta' : [221, 136, 259],
+    r'Plant et al. (2019) (CO$_2$)' : {'Washington' : [125, 41.3, 51.1],
+                                       'Philadelphia' : [143, 39.1, 42.9],
+                                       'New York' : [433, 105, 125],
+                                       'Boston' : [76.6, 15.8, 19.2]}, # Aircraft campaign measurement of CH4/CO and CH4/CO2 ratios
+    r'Plant et al. (2019) (CO)' : {'Washington' : [139, 93.0, 110],
+                                   'Philadelphia' : [176, 98.7, 110.4],
+                                   'New York' : [453, 245, 299],
+                                   'Boston' : [115, 67.5, 76.0]}, # Aircraft campaign measurement of CH4/CO and CH4/CO2 ratios https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2019GL082635
+    'Plant et al. (2022)' : {'Atlanta' : [221, 137, 259],
                              'Boston' : [161, 101, 189],
-                             'Washington' : [139, 88, 170],
+                             'Washington' : [139, 88.3, 170],
                              'Philadelphia' : [180, 110, 205],
                              'New York' : [574, 353, 662]} # with TROPOMI https://www.sciencedirect.com/science/article/pii/S0034425721004764
                }
@@ -123,6 +124,13 @@ city_studies = {
 ## ------------------------------------------------------------------------ ##
 # Load the cities mask
 w_city = pd.read_csv(f'{data_dir}cities/urban_areas_mask.csv', header=0).T
+
+# Try changing the definition of W
+w_city = w_city/w_city.sum(axis=0)
+w_city = w_city.fillna(0)
+# tmp = w_city.loc['New York--Newark, NY--NJ--CT'][(w_city.loc['New York--Newark, NY--NJ--CT'] > 0) & (w_city.loc['New York--Newark, NY--NJ--CT'] < 1)].index.values
+# tmp = w_city[tmp].sum(axis=1)
+# print(tmp[tmp > 0])
 
 # Load clusters
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc').squeeze()
@@ -157,6 +165,17 @@ w = dc(w[list(emis.values())])
 w['total'] = w.sum(axis=1)
 w = w.T*1e-3
 
+# Also get the W matrix for the hackish 2022 EPA GHGI
+w2019 = dc(w)
+conus_mask = np.load(f'{data_dir}CONUS_mask.npy').reshape((-1,))
+w2019 = w2019*conus_mask
+epa2019 = {'landfills' : [113.6], 'wastewater' : [18.1],
+           'ong' : [172.2 + 7.0 + 40.4 - 11.4], # mnus post meter
+           'other_anth' : [15.1 + 8.8 + 2.5 + 0.4 + 0.3 + 0.2]}
+epa2019 = pd.DataFrame(data=epa2019, index=['mean']).T/25*1e3
+epa2019.loc['total'] = epa2019.sum(axis=0)
+w2019 = w2019*epa2019.values/w2019.sum(axis=1).values.reshape(-1, 1)
+
 # Get the posterior xhat_abs (this is n x 15)
 xhat_abs = (w.loc['total'].values[:, None]*xhat)
 
@@ -173,6 +192,7 @@ pop = pop.sort_values(by='2010', ascending=False, ignore_index=True)
 pop = pop.reset_index(drop=True)
 # pop['name'] = pop['name'].str[:-11]
 pop = pop.set_index('name')
+pop_conus = 306675006
 
 ## ------------------------------------------------------------------------ ##
 ## Get gridded population
@@ -258,6 +278,7 @@ area_c = (w_city @ area.reshape(-1,)).rename('area')
 
 ## Prior (the same for all ensemble members)
 prior_c = (w_city @ w.T).add_prefix('prior_')
+prior2019_c = (w_city @ w2019.T).add_prefix('prior2019_')
 
 ## Posterior (We want a matrix that is ncities x 15)
 post_c = (w_city @ xhat_abs)
@@ -274,7 +295,7 @@ post_stats_c = ip.get_ensemble_stats(post_c).add_prefix('post_')
 diff_stats_c = ip.get_ensemble_stats(diff_c).add_prefix('diff_')
 
 ## Aggregate
-summ_c = pd.concat([pd.DataFrame(area_c), prior_c, 
+summ_c = pd.concat([pd.DataFrame(area_c), prior_c, prior2019_c,
                     post_stats_c, xhat_stats_c, diff_stats_c], axis=1)
 
 # Merge DOFS into summ_c
@@ -284,12 +305,12 @@ summ_c = pd.concat([summ_c, dofs_stats_c.loc[summ_c.index]], axis=1)
 # inversions
 print('-'*75)
 print('Non-optimized cities')
-print(summ_c[summ_c['dofs_mean'] == 0].index.values)
+print(summ_c[summ_c['dofs_mean'] < DOFS_filter].index.values)
 nc_old = summ_c.shape[0]
-xhat_c = xhat_c[summ_c['dofs_mean'] > 0]
-dofs_c = dofs_c.loc[summ_c.index][summ_c['dofs_mean'] > 0]
-post_c = post_c[summ_c['dofs_mean'] > 0]
-summ_c = summ_c[summ_c['dofs_mean'] > 0]
+xhat_c = xhat_c[summ_c['dofs_mean'] >= DOFS_filter]
+dofs_c = dofs_c.loc[summ_c.index][summ_c['dofs_mean'] > DOFS_filter]
+post_c = post_c[summ_c['dofs_mean'] >= DOFS_filter]
+summ_c = summ_c[summ_c['dofs_mean'] >= DOFS_filter]
 
 # Print top-line statistics
 ## Calculate means in a way that treats each ensemble member first
@@ -308,6 +329,7 @@ print('-'*75)
 print(f'Analyzed {summ_c.shape[0]}/{nc_old} cities:')
 print(f'These cities are responsible for {(100*city_emis_frac_prior):.2f}% of prior anthropogenic emissions\nand {(100*city_emis_frac_post.mean()):.2f} ({(100*city_emis_frac_post.min()):.2f} - {100*city_emis_frac_post.max():.2f})% of posterior anthropogenic emissions in CONUS.\nThese cities take up {(100*area_frac):.2f}% of surface area.')
 print(f'We find a net adjustment of {diff_c.sum(axis=0).mean():.2f} ({diff_c.sum(axis=0).min():.2f}, {diff_c.sum(axis=0).max():.2f}) Gg/yr.')
+print(f'We find net emissions of {post_c.sum(axis=0).mean()*1e-3:.2f} ({post_c.sum(axis=0).min()*1e-3:.2f}, {post_c.sum(axis=0).max()*1e-3:.2f}) Tg/yr.')
 print(f'  xhat mean                      {xhat_mean.mean():.2f} ({xhat_mean.min():.2f}, {xhat_mean.max():.2f})')
 print(f'  xhat std                       {xhat_std.mean():.2f}')
 print(f'  dofs mean                      {dofs_mean.mean():.2f} ({dofs_mean.min():.2f}, {dofs_mean.max():.2f})')
@@ -352,6 +374,9 @@ print(summ_c.index.values[:nc])
 city_emis_frac_prior = summ_c['prior_total'][:nc].sum()/summ_c['prior_total'].sum()
 city_emis_frac_post = post_c.loc[summ_c.index[:nc]].sum()/post_c.loc[summ_c.index].sum()
 print(f'The largest {nc} cities by methane emissions are responsible for {(100*city_emis_frac_prior):.2f}% of urban\nprior emissions and {(100*city_emis_frac_post.mean()):.2f} ({(100*city_emis_frac_post.min()):.2f} - {(100*city_emis_frac_post.max()):.2f})% of urban posterior emissions.')
+print(summ_c['xhat_mean'][:nc])
+top10_mean = summ_c['xhat_mean'][:nc].mean(axis=0) - 1
+print(f'We find a mean adjustment of {100*top10_mean:.2f}% in the top {nc} cities.')
 print('-'*75)
 
 # Save out csv
@@ -363,25 +388,29 @@ summ_c.to_csv(f'{data_dir}/cities/summ_cities.csv', header=True, index=True)
 fig, ax = fp.get_figax(cols=2, rows=1, aspect=1.5, sharey=True,
                        max_height=config.BASE_HEIGHT*config.SCALE)
 plt.subplots_adjust(wspace=0.1)
-counts0, bins0 = np.histogram(summ_c['xhat_mean'], bins=30)
+counts0, bins0 = np.histogram(summ_c['xhat_mean'], bins=20)
 ax[0].hist(bins0[:-1], bins0, weights=counts0, color=fp.color(2))
+ax[0].axvline(1, color='0.6', ls='-', lw=0.75)
 ax[0].axvline(summ_c['xhat_mean'].mean(), color='0.6', ls='--', lw=0.75)
 ax[0] = fp.add_labels(ax[0], 'Urban scale factor', 'Count', 
                       fontsize=config.TICK_FONTSIZE,
                       labelsize=config.TICK_FONTSIZE)
 mu = summ_c['xhat_mean'].mean()
-ax[0].text(summ_c['xhat_mean'].mean()*1.1, counts0.max(), f'Mean : {mu:.2f}',
-           fontsize=config.TICK_FONTSIZE)
 
 # DOFS
-counts, bins = np.histogram(summ_c['dofs_mean'], bins=30)
+counts, bins = np.histogram(summ_c['dofs_mean'], bins=20)
 ax[1].hist(bins[:-1], bins, weights=counts, color=fp.color(5))
 ax[1].axvline(summ_c['dofs_mean'].mean(), color='0.6', ls='--', lw=0.75)
 ax[1] = fp.add_labels(ax[1], 'Sensitivity', '', 
                       fontsize=config.TICK_FONTSIZE,
                       labelsize=config.TICK_FONTSIZE)
 mu = summ_c['dofs_mean'].mean()
-ax[1].text(summ_c['dofs_mean'].mean()*1.1, counts0.max(), f'Mean : {mu:.2f}',
+
+# Text
+_, ymax = ax[0].get_ylim()
+ax[0].text(summ_c['xhat_mean'].mean()*1.1, ymax*0.9, f'Mean : {mu:.2f}',
+           fontsize=config.TICK_FONTSIZE)
+ax[1].text(summ_c['dofs_mean'].mean()*1.1, ymax*0.9, f'Mean : {mu:.2f}',
            fontsize=config.TICK_FONTSIZE)
 fp.save_fig(fig, plot_dir, f'cities_distribution')
 
@@ -421,8 +450,10 @@ for i, q in enumerate(['diff', 'xhat']):
     corr_c[f'{q}_max'] = corr_c[f'{q}_max'] - corr_c[f'{q}_mean']
     corr_c[f'{q}_min'] = corr_c[f'{q}_mean'] - corr_c[f'{q}_min']
 
-    fig, ax = fp.get_figax(cols=2, rows=2, aspect=1.5, sharey=True)
-    plt.subplots_adjust(hspace=0.4, wspace=0.1)
+    fig, ax = fp.get_figax(cols=2, rows=2, aspect=1.5, sharey=True,
+                           max_width=config.BASE_WIDTH*0.95)
+    plt.subplots_adjust(hspace=0.6, wspace=0.1)
+    lb = '\n'
 
     ## Population
     # ax[0, 0].errorbar(corr_c['pop_2000'], corr_c['diff_mean'], ms=1,
@@ -437,7 +468,7 @@ for i, q in enumerate(['diff', 'xhat']):
                              fontsize=config.TICK_FONTSIZE, 
                              labelsize=config.TICK_FONTSIZE, labelpad=10)
     ax[0, 0].text(0.05, 0.95, 
-                  f'y = {m:.2f}x + {b:.2f} (R'r'$^2$'f' = {r**2:.2f})',
+                  f'y = {m:.2f}x + {b:.2f}{lb}(R'r'$^2$'f' = {r**2:.2f})',
                   fontsize=config.TICK_FONTSIZE, va='top', ha='left',
                   transform=ax[0, 0].transAxes)
 
@@ -451,7 +482,7 @@ for i, q in enumerate(['diff', 'xhat']):
                              fontsize=config.TICK_FONTSIZE, 
                              labelsize=config.TICK_FONTSIZE, labelpad=10)
     ax[0, 1].text(0.05, 0.95, 
-                  f'y = {m:.2f}x + {b:.2f} (R'r'$^2$'f' = {r**2:.2f})',
+                  f'y = {m:.2f}x + {b:.2f}{lb}(R'r'$^2$'f' = {r**2:.2f})',
                   fontsize=config.TICK_FONTSIZE, va='top', ha='left',
                   transform=ax[0, 1].transAxes)
 
@@ -463,14 +494,13 @@ for i, q in enumerate(['diff', 'xhat']):
                       corr_c[f'{q}_mean'], ms=1, color=fp.color(6), fmt='o',
                       yerr=np.array(corr_c[[f'{q}_min', f'{q}_max']]).T,
                       elinewidth=0.5)
-    ax[1, 0] = fp.add_labels(ax[1, 0], r'Relative population change 2000-2010',
+    ax[1, 0] = fp.add_labels(ax[1, 0], f'Relative population change{lb}2000-2010',
                              ylabel[i], fontsize=config.TICK_FONTSIZE, 
                              labelsize=config.TICK_FONTSIZE, labelpad=10)
     ax[1, 0].text(0.05, 0.95, 
-                  f'y = {m:.2f}x + {b:.2f} (R'r'$^2$'f' = {r**2:.2f})',
+                  f'y = {m:.2f}x + {b:.2f}{lb}(R'r'$^2$'f' = {r**2:.2f})',
                   fontsize=config.TICK_FONTSIZE, va='top', ha='left',
                   transform=ax[1, 0].transAxes)
-
 
     ## Density
     # ax[1, 1].errorbar(corr_c['pop_2000']/corr_c['area'], corr_c[f'{q}_mean'], ms=1,
@@ -486,7 +516,7 @@ for i, q in enumerate(['diff', 'xhat']):
                              '', fontsize=config.TICK_FONTSIZE, 
                              labelsize=config.TICK_FONTSIZE, labelpad=10)
     ax[1, 1].text(0.05, 0.95, 
-                  f'y = {m:.2f}x + {b:.2f} (R'r'$^2$'f' = {r**2:.2f})',
+                  f'y = {m:.2f}x + {b:.2f}{lb}(R'r'$^2$'f' = {r**2:.2f})',
                   fontsize=config.TICK_FONTSIZE, va='top', ha='left',
                   transform=ax[1, 1].transAxes)
 
@@ -538,7 +568,8 @@ for i, (q, data) in enumerate(data_g.items()):
     data['min'] = data['mean'] - data['min']
 
     # Plot
-    fig, ax = fp.get_figax(cols=2, aspect=1.5, sharey=True)
+    fig, ax = fp.get_figax(cols=2, aspect=1.5, sharey=True,
+                            max_width=config.BASE_WIDTH*0.95)
     plt.subplots_adjust(wspace=0.1)
 
     ## Population
@@ -549,7 +580,7 @@ for i, (q, data) in enumerate(data_g.items()):
                           fontsize=config.TICK_FONTSIZE, 
                           labelsize=config.TICK_FONTSIZE, labelpad=10)
     ax[0].text(0.05, 0.95, 
-               f'y = {m:.2f}x + {b:.2f} (R'r'$^2$'f' = {r**2:.2f})',
+               f'y = {m:.2f}x + {b:.2f}{lb}'r'(R$^2$'f' = {r**2:.2f})',
                fontsize=config.TICK_FONTSIZE, va='top', ha='left',
                transform=ax[0].transAxes)
 
@@ -563,7 +594,7 @@ for i, (q, data) in enumerate(data_g.items()):
                              fontsize=config.TICK_FONTSIZE, 
                              labelsize=config.TICK_FONTSIZE, labelpad=10)
     ax[1].text(0.05, 0.95, 
-               f'y = {m:.2f}x + {b:.2f} (R'r'$^2$'f' = {r**2:.2f})',
+               f'y = {m:.2f}x + {b:.2f}{lb}(R'r'$^2$'f' = {r**2:.2f})',
                fontsize=config.TICK_FONTSIZE, va='top', ha='left',
                transform=ax[1].transAxes)
 
@@ -575,21 +606,21 @@ for i, (q, data) in enumerate(data_g.items()):
 
     fp.save_fig(fig, plot_dir, f'cities_correlations_grid_{q}')
 
-## ------------------------------------------------------------------------ ##
-## Plot sectoral error correlation 
-## ------------------------------------------------------------------------ ##
-# rfiles = glob.glob(f'{data_dir}cities/r2_{f}_cities_*.csv')
+# ## ------------------------------------------------------------------------ ##
+# ## Plot sectoral error correlation 
+# ## ------------------------------------------------------------------------ ##
+# rfiles = glob.glob(f'{data_dir}cities/r2_urban_areas_*.csv')
 # rfiles.sort()
 # for ff in rfiles:
 #     short_name = ff.split('_')[-1].split('.')[0]
-#     short_name = '%s (%s)' % (city_names[short_name].split('-')[0], 
-#                               city_names[short_name].split(', ')[-1])
+#     short_name = '%s (%s)' % (cities[short_name].split('-')[0], 
+#                               cities[short_name].split(', ')[-1])
 #     r = pd.read_csv(ff, index_col=0, header=0)
 #     labels = [list(emis.keys())[list(emis.values()).index(l)] for l in r.columns]
 #     fig, ax = fp.get_figax()
 #     c = ax.matshow(r, vmin=-1, vmax=1, cmap='RdBu_r')
 #     ax.set_xticks(np.arange(0, len(labels)))
-#     ax.set_xticklabels(labels, ha='center')
+#     ax.set_xticklabels(labels, ha='center', rotation=90)
 #     ax.xaxis.set_ticks_position('bottom')
 #     ax.set_yticks(np.arange(0, len(labels)))
 #     ax.set_yticklabels(labels, ha='right')
@@ -604,7 +635,9 @@ for i, (q, data) in enumerate(data_g.items()):
 ## Plot results
 ## ------------------------------------------------------------------------ ##
 # Subset summary
+summ_c = summ_c.drop('Odessa, TX')
 summ_c = summ_c.iloc[:nc, :]
+# print(summ_c)
 
 # Adjust min/max definitions for error bars
 summ_c['post_max'] = summ_c['post_max'] - summ_c['post_mean']
@@ -615,21 +648,24 @@ summ_c['dofs_min'] = summ_c['dofs_mean'] - summ_c['dofs_min']
 # Define ys
 ys = np.arange(1, nc + 1)
 
-# And begin the plot!
-fig, ax = fp.get_figax(cols=3, aspect=1.1, sharey=True) 
-                       # max_height=config.BASE_HEIGHT*config.SCALE)
-plt.subplots_adjust(wspace=0.1)
+# # And begin the plot!
+# fig, ax = fp.get_figax(cols=3, aspect=1.1, sharey=True) 
+#                        # max_height=config.BASE_HEIGHT*config.SCALE)
+# plt.subplots_adjust(wspace=0.1)
 
-# figsize = fp.get_figsize(aspect=1.1*3)
-# fig = plt.figure(figsize=figsize)
-# gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 1], wspace=0.1)
-# gs2 = gridspec.GridSpecFromSubplotSpec(1, 2, width_ratios=[0.75, 0.25],
-#                                        subplot_spec=gs[0], hspace=0.1)
-# ax0 = plt.subplot(gs2[0])
-# ax1 = plt.subplot(gs2[1], sharey=ax0)
-# ax2 = plt.subplot(gs[1], sharey=ax0)
-# ax3 = plt.subplot(gs[2], sharey=ax0)
-# ax = [ax0, ax1, ax2, ax3]
+# 29 : 0.25
+# 10 : 
+# xlim1 = [0, 600]
+# xlim2 = []
+
+figsize = fp.get_figsize(aspect=1.1*10/nc*3, max_width=config.BASE_WIDTH*config.SCALE*0.9)
+fig = plt.figure(figsize=figsize)
+gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 0.5], wspace=0.1)
+# gs2 = gridspec.GridSpecFromSubplotSpec(1, 2, width_ratios)
+ax0 = plt.subplot(gs[0])
+ax1 = plt.subplot(gs[1], sharey=ax0)
+ax2 = plt.subplot(gs[2], sharey=ax0)
+ax = [ax0, ax1, ax2]
 
 # Get labels
 labels = summ_c.index.values
@@ -639,11 +675,11 @@ city_names = np.array(['%s' % (l.split(',')[0].split('--')[0])
                        for l in summ_c.index.values])
 
 # Plot stacked bar
-ax[0] = fp.add_title(ax[0], 'Largest urban methane\nemissions in CONUS', 
+ax[0] = fp.add_title(ax[0], 'Largest CONUS urban emissions', 
                      fontsize=config.TITLE_FONTSIZE)
 
 # Formatters
-cc = [fp.color(i, lut=2*7) for i in [2, 8, 6, 10, 0, 12, 0]]
+cc = [fp.color(i, lut=2*7) for i in [2, 8, 6, 12, 0]] # 10, 0
 # formats = ['o', 'v', 's', '^', 'P', '*', 'X', '<', 'p', 'd']
 # sizes   = [3, 3, 3, 3, 5, 5, 5, 3, 5, 3]
 formats = ['o', 's', '^']
@@ -653,9 +689,22 @@ sizes = [4, 4, 4]
 # Prior
 left_prior = np.zeros(nc)
 for i, (l, e) in enumerate(emis.items()):
-    ax[0].barh(ys - 0.175, summ_c[f'prior_{e}'], left=left_prior, 
-               height=0.3, color=cc[i], label=f'{l}')
+    ax[0].barh(ys - 0.2625, summ_c[f'prior_{e}'], left=left_prior, 
+               height=0.125, color=cc[i], label=f'{l}')
     left_prior += summ_c[f'prior_{e}']
+
+# Prior #2
+left_prior = np.zeros(nc)
+for i, (l, e) in enumerate(emis.items()):
+    ax[0].barh(ys - 0.0875, summ_c[f'prior2019_{e}'], left=left_prior, 
+               height=0.125, color=cc[i])
+    left_prior += summ_c[f'prior2019_{e}']
+    if e == 'ong':
+        ax[0].barh(ys - 0.0875, (summ_c['pop_2010']/pop_conus)*(11.4/25*1e3),
+                   left=left_prior, height=0.125, color=cc[i], alpha=0.6,
+                   label='Post meter natural gas')
+        left_prior += summ_c[f'pop_2010']/pop_conus*(11.4/25*1e3)
+# ax[0].barh(ys, )
 
 # Posterior
 ax[0].barh(ys + 0.175, summ_c['post_mean'],
@@ -695,13 +744,14 @@ for i, (ci_name, ci) in enumerate(city_inventories.items()):
         label = 'City inventory'
     else:
         label = None
-    y = np.argwhere(ci_name == city_names)[0][0]
-    ax[0].scatter(ci, y + 1, marker='o', s=10, facecolor='white', 
-                  edgecolor='black', zorder=10, label=label)
+    if ci_name in city_names:
+        y = np.argwhere(ci_name == city_names)[0][0]
+        ax[0].scatter(ci, y + 1, marker='o', s=10, facecolor='white', 
+                      edgecolor='black', zorder=10, label=label)
 
 # Add labels
 ax[0].set_yticks(ys)
-ax[0].set_ylim(0, nc + 1)
+ax[0].set_ylim(0.5, nc + 0.5)
 ax[0].invert_yaxis()
 ax[0].tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
 
@@ -712,6 +762,8 @@ ax[0].tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
 ax[0].set_xlim(0, 600)
 
 # Final aesthetics
+for j in range(1, 3):
+    plt.setp(ax[j].get_yticklabels(), visible=False)
 ax[0].set_yticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE)
 ax[0] = fp.add_labels(ax[0], r'Emissions (Gg a$^{-1}$)', '',
                       fontsize=config.TICK_FONTSIZE, 
@@ -737,28 +789,28 @@ ax[1].barh(ys + 0.175, summ_c[f'post_mean']/summ_c['pop_2010']*1e6,
            height=0.3, color=fp.color(3), alpha=0.3, zorder=10)
 
 ax[1].set_yticks(ys)
-ax[1].set_ylim(0, nc + 1)
+ax[1].set_ylim(0.5, nc + 0.5)
 ax[1].invert_yaxis()
 ax[1] = fp.add_labels(ax[1], 
-                      r'Emissions per capita''\n(kg person'r'$^{-1}$ a$^{-1}$'')', 
+                      r'Emissions per capita (kg person$^{-1}$ a$^{-1}$)', 
                       '',
                       fontsize=config.TICK_FONTSIZE, 
                       labelsize=config.TICK_FONTSIZE, labelpad=10)
 
 ax[1].tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
 ax[1].axvline(0, ls=':', lw=0.5, color='0.5')
-ax[1].set_xlim(0, 60)
-for i in range(6):
-    ax[1].axvline((i + 1)*10, color='0.75', lw=0.5, zorder=-10)
+ax[1].set_xlim(0, 200)
+for i in range(3):
+    ax[1].axvline((i + 1)*50, color='0.75', lw=0.5, zorder=-10)
 
 # Add labels
 ax[1].text((summ_c['prior_total']/summ_c['pop_2010']*1e6)[0] + 1, 
            ys[0] + 0.05, 'Prior', ha='left',
-           va='bottom', fontsize=config.TICK_FONTSIZE)
+           va='bottom', fontsize=config.TICK_FONTSIZE - 2)
 ax[1].text(((summ_c['post_mean'] + summ_c['post_max'])/summ_c['pop_2010']*1e6)[0] + 1, 
            ys[0] + 0.075, 'Posterior',
            ha='left', va='top', 
-           fontsize=config.TICK_FONTSIZE)
+           fontsize=config.TICK_FONTSIZE - 2)
 
 # Plot DOFS
 ax[-1] = fp.add_title(ax[-1], 'Information content', 
@@ -774,23 +826,24 @@ ax[-1].errorbar(summ_c['dofs_mean'], ys, #fmt='none',
                markeredgecolor='black', 
                ecolor='0.6', elinewidth=0.5, capsize=1, capthick=0.5)
 ax[-1].set_yticks(ys)
-ax[-1].set_ylim(0, nc + 1)
+ax[-1].set_ylim(0.5, nc + 0.5)
 ax[-1].set_xlim(0, 1)
 ax[-1].invert_yaxis()
-ax[-1] = fp.add_labels(ax[-1], 'Averaging kernel\nsensitivities', '',
+ax[-1] = fp.add_labels(ax[-1], 'Sensitivities', '',
                       fontsize=config.TICK_FONTSIZE, 
                       labelsize=config.TICK_FONTSIZE, labelpad=10)
 for i in range(4):
-    ax[-1].axvline((i + 1)*0.2, color='0.75', lw=0.5, zorder=-10)
+    ax[-1].axvline((i + 1)*0.25, color='0.75', lw=0.5, zorder=-10)
+ax[-1].set_xticks(np.arange(0, 3)/2)
 
 # Horizontal grid lines
-for i in range(nc - 1):
+for i in range(nc + 1):
     for k in range(3):
         if i % 5 == 0:
             ls = '-'
         else:
             ls = ':'
-        ax[k].axhline((i + 1) + 0.5, color='0.75', lw=0.5, ls=ls, zorder=-10)
+        ax[k].axhline(i + 0.5, color='0.75', lw=0.5, ls=ls, zorder=-10)
 
 
 # Legend for summary plot
@@ -811,8 +864,8 @@ labels = [labels[i] for i in reorder]
 # labels = [labels[idx] for idx in reorder]
 
 # Add legend
-ax[1] = fp.add_legend(ax[1], handles=handles, labels=labels, ncol=3,
+ax[1] = fp.add_legend(ax[1], handles=handles, labels=labels, ncol=4,
                       fontsize=config.TICK_FONTSIZE, loc='upper center', 
-                      bbox_to_anchor=(0.5, -0.3))
+                      bbox_to_anchor=(0.25, -0.25))
 
 fp.save_fig(fig, plot_dir, f'cities_ensemble')

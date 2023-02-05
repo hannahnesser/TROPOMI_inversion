@@ -1,6 +1,7 @@
 import sys
 import glob
 from copy import deepcopy as dc
+import math
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -45,7 +46,7 @@ plot_dir = base_dir + 'plots/'
 DOFS_filter = 0.05
 
 # Number of states
-ns = 48
+# ns = 48
 
 # Define emission categories
 emis = {'Livestock' : 'livestock', 
@@ -187,15 +188,37 @@ summ_s = pd.concat([summ_s, dofs_s.loc[summ_s.index]], axis=1)
 # Merge in population
 summ_s['pop'] = pop.loc[summ_s.index]['2019']
 
+# Add in EPA state estimates and scale the total to match
+summ_s['epa'] = epa_s.loc[summ_s.index]['total']/25*1e3 # to Gg/yr
+# summ_s['epa'] *= summ_s['post_mean'].sum()/summ_s['epa'].sum()
+
 # Per capita methane emissions (Gg/person)
 summ_s['post_mean_pc'] = summ_s['post_mean']/summ_s['pop']
 
 # Sort by posterior anthropogenic emissions
 summ_s = summ_s.sort_values(by='post_mean', ascending=False)
-epa_s = epa_s.loc[summ_s.index]
+
+# Compare the EPA inventory to our posterior
+print((summ_s['post_mean'] - summ_s['epa']).mean())
+for n in [10, 25, 50]:
+    epa = summ_s['epa'][:n]
+    gepa = summ_s['prior_total'][:n]
+    post = summ_s['post_mean'][:n]
+    pct_change = (post - epa)/epa
+    pct_change_g = (post - gepa)/gepa
+    print(f'{n} states: {100*pct_change.mean():.2f} {100*pct_change_g.mean():.2f}')
+
+print((post - epa).sort_values(ascending=False))
 
 # Save out csv
 summ_s.to_csv(f'{data_dir}/states/summ_states.csv', header=True, index=True)
+
+# Subset for largest emissions
+# summ_s = summ_s[summ_s['post_mean'] > 100]
+rel_cumsum = np.cumsum(summ_s['post_mean'])/summ_s['post_mean'].sum()
+summ_s = summ_s.loc[rel_cumsum <= 0.9]
+ns = summ_s.shape[0]
+print(f'Plotting results for {ns} states.') 
 
 ## ------------------------------------------------------------------------ ##
 ## Plot maps
@@ -218,6 +241,13 @@ summ_s.to_csv(f'{data_dir}/states/summ_states.csv', header=True, index=True)
 # cb = fp.format_cbar(cb, 'Scale factor')
 # fp.save_fig(fig, plot_dir, f'states_map')
 
+# ## ------------------------------------------------------------------------ ##
+# ## Plot results : histogram
+# ## ------------------------------------------------------------------------ ##
+# fig, ax = fp.get_figax(aspect=1.5)
+# ax.hist(summ_s['post_mean'], bins=40, color=fp.color(3))
+# fp.save_fig(fig, plot_dir, 'states_histogram')
+
 ## ------------------------------------------------------------------------ ##
 ## Plot results : absolute emissions
 ## ------------------------------------------------------------------------ ##
@@ -227,17 +257,25 @@ xs = np.arange(1, ns + 1)
 # Begin plotting!
 # fig, ax = fp.get_figax(rows=4, aspect=4, sharex=True,
 #                        max_height=config.BASE_HEIGHT*config.SCALE)
-figsize = fp.get_figsize(aspect=1, 
-                         max_height=config.BASE_HEIGHT*config.SCALE)
+figsize = fp.get_figsize(aspect=1.8, 
+                         max_height=config.BASE_HEIGHT*config.SCALE,
+                         max_width=config.BASE_WIDTH*config.SCALE*1)
 fig = plt.figure(figsize=figsize)
-gs = gridspec.GridSpec(3, 1, height_ratios=[1, 1, 1], hspace=0.1)
-gs2 = gridspec.GridSpecFromSubplotSpec(2, 1, height_ratios=[0.61, 0.39],
+
+ylim2 = [0, 2.25e3]
+ylim1 = [3.6e3, 6.55e3]
+# 6 total
+total_height = (ylim2[1] - ylim2[0]) + (ylim1[1] - ylim1[0])
+height_ratios = [(ylim1[1] - ylim1[0])/total_height, 
+                 (ylim2[1] - ylim2[0])/total_height]
+
+gs = gridspec.GridSpec(2, 1, height_ratios=[0.25, 1], hspace=0.1)
+gs2 = gridspec.GridSpecFromSubplotSpec(2, 1, height_ratios=height_ratios,
                                        subplot_spec=gs[1], hspace=0.1)
 ax0 = plt.subplot(gs[0])
 ax1 = plt.subplot(gs2[0], sharex=ax0)
 ax2 = plt.subplot(gs2[1], sharex=ax0)
-ax3 = plt.subplot(gs[2], sharex=ax0)
-ax = [ax0, ax1, ax2, ax3]
+ax = [ax0, ax1, ax2]
 # Top row: fraction of posterior emissions and prior emissions explained by
 # each state (sectorally?) (or fraction and cumulative)
 # Middle row: posterior and prior sectoral adjustments
@@ -246,34 +284,6 @@ ax = [ax0, ax1, ax2, ax3]
 # Get labels
 labels = summ_s.index.values
 
-# Plot cumulative contribution and relative contribution
-## Prior cumulative contribution
-prior_tot = summ_s['prior_total'].values.sum()
-prior_cum_sum = np.cumsum(summ_s['prior_total'])/prior_tot
-
-## Posterior cumulative contribution
-post_tot = post_s.loc[summ_s.index].sum(axis=0)
-post_cum_sum = np.cumsum(post_s.loc[summ_s.index], axis=0)/post_tot
-
-## Plot
-for i, ensemble_member in enumerate(post_cum_sum.columns):
-    if i == 0:
-        label = 'Ensemble members'
-    else:
-        label = None
-    ax[0].plot(xs, post_cum_sum[ensemble_member], c='0.5', alpha=0.5, lw=0.5,
-               label=label)
-ax[0].plot(xs, post_cum_sum.mean(axis=1), c='black', lw=1,
-           label='Ensemble mean')
-
-ax[0] = fp.add_labels(ax[0], '', 'Cumulative fraction of\nCONUS posterior emissions', 
-                      fontsize=config.TICK_FONTSIZE, 
-                      labelsize=config.TICK_FONTSIZE, labelpad=20)
-ax[0].set_ylim(0.15, 1.05)
-ax[0] = fp.add_legend(ax[0], ncol=1,
-                      fontsize=config.TICK_FONTSIZE, loc='lower right')
-
-
 # Adjust min/max definitions for error bars
 summ_s['post_max'] = summ_s['post_max'] - summ_s['post_mean']
 summ_s['post_min'] = summ_s['post_mean'] - summ_s['post_min']
@@ -281,6 +291,21 @@ summ_s['dofs_max'] = summ_s['dofs_max'] - summ_s['dofs_mean']
 summ_s['dofs_min'] = summ_s['dofs_mean'] - summ_s['dofs_min']
 summ_s['frac_max'] = summ_s['frac_max'] - summ_s['frac_mean']
 summ_s['frac_min'] = summ_s['frac_mean'] - summ_s['frac_min']
+
+# Add title
+ax[0] = fp.add_title(ax[0], 
+                     'State emissions', 
+                     fontsize=config.TITLE_FONTSIZE)
+
+# Plot DOFS
+ax[0].errorbar(xs, summ_s['dofs_mean'], #fmt='none',
+                yerr=np.array(summ_s[['dofs_min', 'dofs_max']]).T,
+                fmt='D', markersize=2.5, markerfacecolor='white', 
+                markeredgecolor='black', 
+                ecolor='0.6', elinewidth=0.5, capsize=1, capthick=0.5)
+ax[0].set_ylim(0, 1)
+ax[0].set_yticks([0, 0.5, 1])
+ax[0].set_ylabel('Sensitivity', fontsize=config.TICK_FONTSIZE, labelpad=20)
 
 # Plot stacked bar
 cc = [fp.color(i, lut=2*7) for i in [0, 6, 10, 2, 8, 12, 0]]
@@ -308,47 +333,25 @@ for s, si in state_inventories.items():
         label = 'State inventory'
     else:
         label = None
-    x = np.argwhere(s == summ_s.index)[0][0]
-    ax[2].scatter(x + 1, si*1e3, s=15, marker='^', color='white', 
+    try:
+        x = np.argwhere(s == summ_s.index)[0][0]
+    except:
+        continue
+    ax[2].scatter(x + 1, si*1e3, s=20, marker='^', color='white', 
                   edgecolor='black', zorder=10, label=label)
 
 for i in [1, 2]:
     if i == 2:
-        label = 'Scaled EPA state\ninventory'
+        label = 'EPA state inventory'
     else:
         label = None
     # Get scaling so that total agrees
-    scaling = summ_s['post_mean'].sum()/(epa_s['total']/25*1e3).sum()
-
-    ax[i].scatter(xs, scaling*epa_s['total']/25*1e3, s=20/3, marker='o', 
+    ax[i].scatter(xs, summ_s['epa'], s=10, marker='o', 
                   color='white', edgecolor='black', zorder=10, label=label)
 
-# Compare the EPA inventory to our posterior
-# n = 10
-# epa = scaling*epa_s['total'][:n]/25*1e3
-# post = summ_s['post_mean'][:n]
-# pct_change = (post - epa)/epa
-# print(pct_change*100)
-# print(f'{100*pct_change.mean():.2f}')
-
-# n = 25
-# epa = scaling*epa_s['total'][:n]/25*1e3
-# post = summ_s['post_mean'][:n]
-# pct_change = (post - epa)/epa
-# print(f'{100*pct_change.mean():.2f}')
-
-# n = 50
-# epa = scaling*epa_s['total'][:n]/25*1e3
-# post = summ_s['post_mean'][:n]
-# pct_change = (post - epa)/epa
-# print(f'{100*pct_change.mean():.2f}')
-
-# print((post - epa).sort_values(ascending=False))
-
-
 # Split the axis
-ax[2].set_ylim(0, 2.25e3)
-ax[1].set_ylim(3.5e3, 7e3)
+ax[2].set_ylim(*ylim2)
+ax[1].set_ylim(*ylim1)
 # ax[2].set_ylim(0, 2.75e3)
 # ax[1].set_ylim(4.25e3, 7e3)
 
@@ -372,40 +375,10 @@ ax[1] = fp.add_labels(ax[1], '', r'Emissions (Gg a$^{-1}$)',
                       fontsize=config.TICK_FONTSIZE, 
                       labelpad=20)
 
-# Plot DOFS
-# ax[-1].bar(xs, summ_s['dofs_mean'], color='0.3', width=0.5,
-#            label='Averaging kernel sensitivities')
-ax[-1].errorbar(xs, summ_s['dofs_mean'], #fmt='none',
-                yerr=np.array(summ_s[['dofs_min', 'dofs_max']]).T,
-                fmt='D', markersize=2.5, markerfacecolor='white', 
-                markeredgecolor='black', 
-                ecolor='0.6', elinewidth=0.5, capsize=1, capthick=0.5)
-
-# # Plot percent of optimization
-# ax[-1].errorbar(xs, summ_s['frac_mean'], 
-#                 yerr=np.array(summ_s[['frac_min', 'frac_max']]).T,
-#                 fmt='D', markersize=2.5, markerfacecolor='white', 
-#                 markeredgecolor='black', ecolor='black', elinewidth=0.5, 
-#                 capsize=1, capthick=0.5, 
-#                 label='Optimized prior emissions')
-
-# Labels
-ax[-1].set_ylim(0, 1.15)
-ax[-1].set_ylabel('State averaging\nkernel sensitivity',
-                  fontsize=config.TICK_FONTSIZE, 
-                  labelpad=20)
-# ax[-1] = fp.add_legend(ax[-1], ncol=2, fontsize=config.TICK_FONTSIZE, 
-#                        loc='upper right')
-
-
-# Add x_ticklabels
-ax[-1].set_xticklabels(labels, ha='center', fontsize=config.TICK_FONTSIZE,
-                      rotation=90)
-
 # Final aesthetics
-for j in range(4):
+for j in range(3):
     for k in range(ns - 1):
-        if i % 5 == 0:
+        if k % 5 == 0:
             ls = '-'
         else:
             ls = ':'
@@ -417,15 +390,23 @@ for j in range(4):
     ax[j].set_xticks(xs)
     ax[j].set_xlim(-0.5, ns+1+0.5)
     ax[j].tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
-    if j < 3:
+    if j < 2:
         plt.setp(ax[j].get_xticklabels(), visible=False)
 
-for j in [0, 3]:
-    for k in range(5):
-        ax[j].axhline((k + 1)*0.2, color='0.75', lw=0.5, zorder=-10)
+# Add x_ticklabels
+ax[-1].set_xticklabels(labels, ha='center', fontsize=config.TICK_FONTSIZE,
+                      rotation=90)
+
+# Add horizontal lines
+for k in range(4):
+    ax[0].axhline((k + 1)*0.25, color='0.75', lw=0.5, zorder=-10)
+ax[0].set_yticks(np.arange(0, 5)/4)
 for j in [1, 2]:
     for k in range(6):
         ax[j].axhline((k + 1)*1000, color='0.75', lw=0.5, zorder=-10)
+ax[0].set_yticks([0, 0.5, 1])
+ax[1].set_yticks(np.arange(math.ceil(ylim1[0]/1000)*1000, ylim1[1], 1000))
+ax[2].set_yticks(np.arange(math.ceil(ylim2[0]/1000)*1000, ylim2[1], 1000))
 ax[1].tick_params(axis='x', which='both', bottom=False)
 
 # Legend for summary plot
@@ -440,18 +421,17 @@ ax[1].set_zorder(10)
 # Set label coords
 y0 = (ax[0].get_position().y1 + ax[0].get_position().y0)/2
 ax[0].yaxis.set_label_coords(0.07, y0, transform=fig.transFigure)
-ax[1].yaxis.set_label_coords(0.07, 0.5, transform=fig.transFigure)
-y2 = (ax[-1].get_position().y1 + ax[-1].get_position().y0)/2
-ax[-1].yaxis.set_label_coords(0.07, y2, transform=fig.transFigure)
+y1 = (ax[1].get_position().y1 + ax[-1].get_position().y0)/2
+ax[1].yaxis.set_label_coords(0.07, y1, transform=fig.transFigure)
 
 # Add labels
 ax[1].text(0.625, summ_s['prior_total'][0], 'Prior', ha='right',
            #summ_s['prior_total'][1] + 100, 'Prior', ha='right', 
-           va='top', rotation=90, fontsize=config.TICK_FONTSIZE)
+           va='top', rotation=90, fontsize=config.TICK_FONTSIZE - 2)
 ax[1].text(1.5, summ_s['post_mean'][0], 'Posterior',
            #summ_s['post_total'][1] + 100, 'Posterior', 
            ha='left', va='top', rotation=90, 
-           fontsize=config.TICK_FONTSIZE)
+           fontsize=config.TICK_FONTSIZE - 2)
 
 fp.save_fig(fig, plot_dir, f'states_ensemble')
 
