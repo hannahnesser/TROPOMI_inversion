@@ -397,7 +397,7 @@ fp.save_fig(fig, plot_dir, f'resolution')
 # ------------------------------------------------------------------------ ##
 # Open prior and clusterr files
 # xa_abs = xr.open_dataarray(f'{data_dir}xa_abs_bc0.nc') # Mg/km2/yr --> kg/km2/hr
-xa_abs = xr.open_dataarray(f'{data_dir}xa_abs_correct.nc')#*1000/365/24
+xa_abs = xr.open_dataarray(f'{data_dir}xa_abs.nc')#*1000/365/24
 xa_abs_edf = xr.open_dataarray(f'{data_dir}xa_abs_edf.nc')#*1000/365/24
 permian_idx = np.load(f'{data_dir}permian_idx.npy')
 xa_abs_permian = xa_abs#[permian_idx]
