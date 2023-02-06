@@ -58,6 +58,7 @@ Warnings:                    {WARNINGS}
     --> GC_BCs                 :       true
 # ----- REGIONAL INVENTORIES ----------------
     --> GEPA                   :       true
+    --> EDF                    :       true
     --> Can                    :       true
     --> Mex                    :       true
     --> MIX                    :       false
@@ -184,6 +185,13 @@ Warnings:                    {WARNINGS}
 #0 GEPA_COAST_OTH_5     $ROOT/CH4/v2017-10/GEPA_Daily.nc        emissions_5_Forest_Fires                     2012/1/1/0    C xy molec/cm2/s CH4 1009    9 1
 0 GEPA_COAST_OTH_6D     $ROOT/CH4/v2017-10/GEPA/GEPA_Annual.nc  emissions_6D_Composting                      2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
 )))GEPA
+
+#==============================================================================
+# --- EDF Permian emissions (Zhang et al., Sci. Adv., 2020) ---
+#==============================================================================
+(((EDF
+0 EDF_OG                /n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/Methane_flux_Permian_EIME.nc  emisch4_og  2012/1/1/0 C xy molec/cm2/s CH4 1012 1/2 1000
+)))EDF
 
 #==============================================================================
 # --- Mexico emissions (Scarpelli et al., Environ. Res. Lett., 2020) ---
@@ -332,7 +340,7 @@ Warnings:                    {WARNINGS}
 # - Use either this inventory or the wetland extension -- not both!
 #==============================================================================
 (((JPL_WETCHARTS
-0 JPLW_CH4   $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/products/JPL_WetCharts_$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
+0 JPLW_CH4   $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/products/JPL_WetCharts_$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 404 10 1
 )))JPL_WETCHARTS
 
 #==============================================================================
@@ -818,10 +826,16 @@ Warnings:                    {WARNINGS}
 
 #==============================================================================
 # --- Soil absorption scale factors ---
-#
 # Multiply soil absorption by -1 to get a "negative" flux.
 #==============================================================================
 1 NEGATIVE       -1.0 - - - xy 1 1
+
+#==============================================================================
+# --- Wetland scale factors ---
+# Multiply wetlands by 1/4.04 to get a match FLUXNet observations
+# HON 2022/08/02
+#==============================================================================
+404 WETLANDS_SF  0.2475 - - - xy 1 1
 
 #==============================================================================
 # --- Seasonal scaling factors ----
@@ -874,6 +888,10 @@ Warnings:                    {WARNINGS}
 1008 CONUS_MASK      $ROOT/MASKS/v2018-09/CONUS_Mask.001x001.nc            MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
 1009 CONUS_MIRROR    $ROOT/MASKS/v2018-09/CONUS_Mask_Mirror.001x001.nc     MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))GEPA
+
+(((EDF
+1012 PERMIAN_BOX     -108/27/-98/36                                        -        2000/1/1/0 C xy 1 1 -108/27/-98/36
+)))EDF
 
 )))EMISSIONS
 
