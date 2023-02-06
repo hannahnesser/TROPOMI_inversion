@@ -24,6 +24,8 @@ import cartopy.crs as ccrs
 import cartopy
 import cartopy.feature as cf
 from cartopy.mpl.patch import geos_to_path
+import matplotlib.colors as mc
+import colorsys
 
 # sys.path.append('.')
 import config
@@ -40,9 +42,12 @@ rcParams['axes.titlepad'] = config.TITLE_PAD
 from matplotlib.font_manager import findfont, FontProperties
 font = findfont(FontProperties(family=['sans-serif']))
 
-def color(k, cmap='plasma', lut=10):
+def color(k, cmap='plasma', lut=10, lighten=False, light_amt=1.33):
     c = plt.cm.get_cmap(cmap, lut=lut)
-    return colors.to_hex(c(k))
+    c = colors.to_hex(c(k))
+    if lighten:
+        c = adjust_lightness(c, amount=light_amt)
+    return c
 
 def cmap_from_color(color_high, color_low=(1, 1, 1), N=100):
     rgb_map = [color_low, colors.to_rgb(color_high)]
@@ -78,7 +83,12 @@ def cmap_trans_center(cmap, ncolors=300, nalpha=20):
 
     return map_object
 
-def get_figsize(aspect, rows, cols, **fig_kwargs):
+def adjust_lightness(color, amount=1.5):
+    print(color)
+    c = colorsys.rgb_to_hls(*mc.to_rgb(color))
+    return colorsys.hls_to_rgb(c[0], max(0, min(1, amount*c[1])), c[2])
+
+def get_figsize(aspect, **fig_kwargs):
     # Set default kwarg values
     max_width = fig_kwargs.get('max_width', config.BASE_WIDTH*config.SCALE)
     max_height = fig_kwargs.get('max_height', config.BASE_HEIGHT*config.SCALE)
@@ -105,7 +115,7 @@ def make_axes(rows=1, cols=1, aspect=None,
               maps=False, lats=None, lons=None,
               **fig_kwargs):
     aspect = get_aspect(rows, cols, aspect, maps, lats, lons)
-    figsize = get_figsize(aspect, rows, cols, **fig_kwargs)
+    figsize = get_figsize(aspect, **fig_kwargs)
     kw = {}
     if maps:
         kw['subplot_kw'] = {'projection' : ccrs.PlateCarree()}
@@ -332,7 +342,6 @@ def plot_one_to_one(ax):
     return ax
 
 def save_fig(fig, loc, name, **kwargs):
-    fig.savefig(join(loc, name + '.png'),
-                bbox_inches='tight', dpi=500,
-                transparent=True, **kwargs)
+    fig.savefig(join(loc, name + '.png'), bbox_inches='tight',
+                dpi=500, transparent=True, **kwargs)
     print('Saved %s' % name + '.png')
