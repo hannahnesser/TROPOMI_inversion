@@ -322,51 +322,51 @@ cd ..
 
 fi # SetupTemplateRunDir
 
-##=======================================================================
-##  Set up posterior run directory
-##=======================================================================
-if  "$SetupPosteriorRun"; then
+# ##=======================================================================
+# ##  Set up posterior run directory
+# ##=======================================================================
+# if  "$SetupPosteriorRun"; then
 
-    ### Define the run directory name
-    posterior_name="${RUN_NAME}_Posterior"
+#     ### Define the run directory name
+#     posterior_name="${RUN_NAME}_Posterior"
 
-    ### Make the directory
-    runDir="posterior_run"
-    mkdir -p ${runDir}
+#     ### Make the directory
+#     runDir="posterior_run"
+#     mkdir -p ${runDir}
 
-    ### Copy and point to the necessary data
-    cp -r ${RUN_TEMPLATE}/*  ${runDir}
-    cd $runDir
+#     ### Copy and point to the necessary data
+#     cp -r ${RUN_TEMPLATE}/*  ${runDir}
+#     cd $runDir
 
-    ### Link to GEOS-Chem executable instead of having a copy in each run dir
-    rm -rf geos
-    ln -sTf ../${RUN_TEMPLATE}/geos .
+#     ### Link to GEOS-Chem executable instead of having a copy in each run dir
+#     rm -rf geos
+#     ln -sTf ../${RUN_TEMPLATE}/geos .
 
-    # Link to restart file
-    if "$DO_SPINUP"; then
-       ln -s ../../spinup_run/GEOSChem.Restart.${SPINUP_END}_0000z.nc4 GEOSChem.Restart.${START_DATE}_0000z.nc4
-    else
-       ln -sTf $RESTART_FILE GEOSChem.Restart.${START_DATE}_0000z.nc4
-    fi
+#     # Link to restart file
+#     if "$DO_SPINUP"; then
+#        ln -s ../../spinup_run/GEOSChem.Restart.${SPINUP_END}_0000z.nc4 GEOSChem.Restart.${START_DATE}_0000z.nc4
+#     else
+#        ln -sTf $RESTART_FILE GEOSChem.Restart.${START_DATE}_0000z.nc4
+#     fi
     
-    ### Update settings in input.geos
-    sed -i -e "s|Do analytical inversion?: T|Do analytical inversion?: F|g" \
-	       -e "s|pertpert|1.0|g" \
-           -e "s|clustnumclustnum|0|g" input.geos
+#     ### Update settings in input.geos
+#     sed -i -e "s|Do analytical inversion?: T|Do analytical inversion?: F|g" \
+# 	       -e "s|pertpert|1.0|g" \
+#            -e "s|clustnumclustnum|0|g" input.geos
 
-    ### Create run script from template
-    sed -e "s:namename:${spinup_name}:g" \
-	-e "s:##:#:g" GEOS-Chem_run.template > ${posterior_name}.run
-    chmod 755 ${posterior_name}.run
+#     ### Create run script from template
+#     sed -e "s:namename:${spinup_name}:g" \
+# 	-e "s:##:#:g" GEOS-Chem_run.template > ${posterior_name}.run
+#     chmod 755 ${posterior_name}.run
 
-    ### Print diagnostics
-    echo "CREATED: ${runDir}"
-    echo "\nNote: You will need to manually modify HEMCO_Config.rc to apply the appropriate scale factors."
+#     ### Print diagnostics
+#     echo "CREATED: ${runDir}"
+#     echo "\nNote: You will need to manually modify HEMCO_Config.rc to apply the appropriate scale factors."
     
-    ### Navigate back to top-level directory
-    cd ..
+#     ### Navigate back to top-level directory
+#     cd ..
     
-fi # SetupPosteriorRun
+# fi # SetupPosteriorRun
 
 ##=======================================================================
 ##  Set up Jacobian run directories
