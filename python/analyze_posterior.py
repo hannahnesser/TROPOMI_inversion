@@ -139,8 +139,6 @@ ensemble = [f.split('/')[-1][9:-12] for f in ensemble
             if f.split('10t_')[-1].split('_')[0] == 'w37']
 
 # ID two priors and boundary condition elements
-w37_cols = [s for s in ensemble if 'w37' in s]
-# w404_cols = [s for s in ensemble if 'w404' in s]
 bc_cols = [s for s in ensemble if s[:2] == 'bc']
 anth_cols = ['livestock', 'ong', 'coal', 'landfills', 
              'wastewater', 'other_anth']
@@ -155,31 +153,21 @@ optimize_BC = False
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 
 # Load prior (Mg/km2/yr)
-xa_w404 = xr.open_dataarray(f'{data_dir}xa_abs_w404_edf.nc').values
-xa_w37 = xr.open_dataarray(f'{data_dir}xa_abs_w37_edf.nc').values
-# xa_abs_dict = {'w404_edf' : xa_w404, 'w37_edf' : xa_w37}
 area = xr.open_dataarray(f'{data_dir}area.nc').values
-soil = xr.open_dataarray(f'{data_dir}soil_abs_correct.nc').values
+soil = xr.open_dataarray(f'{data_dir}prior/xa_soil_abs.nc').values
 nstate = area.shape[0]
 
 # Load weighting matrix (Mg/yr)
-w_w404 = pd.read_csv(f'{data_dir}w_w404_edf.csv')
-w_w37 = pd.read_csv(f'{data_dir}w_w37_edf.csv')
-w = {'w404_edf' : w_w404, 'w37_edf' : w_w37}
-w_mask = {}
-for wkey, ww in w.items():
-    w[wkey]['total'] = w[wkey].sum(axis=1)
-    w[wkey]['total_anth'] = w[wkey][anth_cols].sum(axis=1)
-    w[wkey]['total_bio'] = w[wkey][bio_cols].sum(axis=1)
-    # w[wkey]['net'] = xa_abs_dict[wkey]*area
-    # w[wkey]['other'] = w[wkey]['other_bio'] + w[wkey]['other_anth']
-    # w[wkey] = w[wkey].drop(columns=['other_bio'])#, 'other_anth'])
-    w[wkey] = w[wkey].T
+w = pd.read_csv(f'{data_dir}w_w37_edf.csv')
+w['total'] = w.sum(axis=1)
+w['total_anth'] = w[anth_cols].sum(axis=1)
+w['total_bio'] = w[bio_cols].sum(axis=1)
+w = w.T
 
-    # Sectoral masks
-    w_mask[wkey] = dc(w[wkey])
-    w_mask[wkey] = w_mask[wkey].where(w[wkey]/1e3 > 0.5, 0)
-    w_mask[wkey] = w_mask[wkey].where(w[wkey]/1e3 <= 0.5, 1)
+# Sectoral masks
+w_mask = dc(w)
+w_mask = w_mask.where(w/1e3 > 0.5, 0)
+w_mask = w_mask.where(w/1e3 <= 0.5, 1)
 
 # Create dataframes for the ensemble data
 dofs = pd.DataFrame(columns=ensemble)
@@ -197,7 +185,6 @@ shat_bc = pd.DataFrame(columns=bc_cols, index=['N', 'S', 'E', 'W'])
 # Iterate throuugh the ensemble to load the data
 for suff in ensemble:
     # Get string information about the ensemble member
-    short_suff = suff.split('rg2rt_10t_')[-1].split('_bc0')[0]
     sa_scale = float(suff.split('_sax')[-1].split('_')[0])
 
     # Load the files
@@ -227,11 +214,10 @@ for suff in ensemble:
 
     # Save out the resulting values to the dataframe
     dofs[suff] = dofs_s
-    xa_abs[suff] = w[short_suff].loc['total']
-    xa_abs_anth[suff] = w[short_suff].loc['total_anth']
-    xa_abs_bio[suff] = w[short_suff].loc['total_bio']
+    xa_abs[suff] = w.loc['total']
+    xa_abs_anth[suff] = w.loc['total_anth']
+    xa_abs_bio[suff] = w.loc['total_bio']
     xhat[suff] = xhat_s
-    # shat_abs[suff] = shat_s*(xa_abs_dict[short_suff]**2)
 
 # Calculate xhat_abs
 xhat_abs = xa_abs*xhat
@@ -278,7 +264,7 @@ print(f'Across the ensemble, we optimize {(xa_abs_opt_frac.mean()*100):.1f} ({(x
 print('')
 print(f'This produces a mean of of {dofs.sum(axis=0).mean():.1f} ({dofs.sum(axis=0).min():.1f}, {dofs.sum(axis=0).max():.1f}) DOFS.')
 print('')
-print(f'There are {negs.mean():.0f} ({negs.min():d}, {negs.max():d}) new negative values. If we consider those grid cells\nthat are included in the ensemble mean, there are {(xhat_abs_mean[xa_abs_mean >= 0] < 0).sum():d} new negative values.')#\nwith a median of {xhat_abs[xhat_abs < 0].median(axis=0).mean():.2f} ({xhat_abs[xhat_abs < 0].median(axis=0).min():.2f} - {xhat_abs[xhat_abs < 0].median(axis=0).max():.2f}) Mg/yr. (The prior has\nminimum negative values of {(xa_w404*area).min():.2f} and {(xa_w37*area).min():.2f}.) (The median positive\nposterior value is {xhat_abs[xhat_abs >= 0].median(axis=0).mean():.2f} ({xhat_abs[xhat_abs >= 0].median(axis=0).min():.2f} - {xhat_abs[xhat_abs >= 0].median(axis=0).max():.2f}) Mg/yr.)')
+print(f'There are {negs.mean():.0f} ({negs.min():d}, {negs.max():d}) new negative values. If we consider those grid cells\nthat are included in the ensemble mean, there are {(xhat_abs_mean[xa_abs_mean >= 0] < 0).sum():d} new negative values.')
 print('')
 # print(f'Total prior emissions (Tg/yr)    : {(xa_abs_mean*area*1e-6).sum():.2f}')
 print(f'Total posterior emissions               : {xhat_abs_tot.mean():.2f} ({xhat_abs_tot.min():.2f}, {xhat_abs_tot.max():.2f}) Tg/yr')
@@ -333,13 +319,13 @@ fp.save_fig(fig, plot_dir, 'negative_values_ensemble')
 ## Sectoral attribution bar chart
 ## ------------------------------------------------------------------------ ##
 # Convert the W matrices to Tg/yr
-w = {wkey : ww*1e-6 for wkey, ww in w.items()}
+w *= 1e-6
 
 # Open masks and create a total_mask array as well as a mask dictionary
-mex_mask = np.load(f'{data_dir}Mexico_mask.npy').reshape((-1,))
-can_mask = np.load(f'{data_dir}Canada_mask.npy').reshape((-1,))
-conus_mask = np.load(f'{data_dir}CONUS_mask.npy').reshape((-1,))
-other_mask = np.load(f'{data_dir}Other_mask.npy').reshape((-1,))
+mex_mask = np.load(f'{data_dir}countries/Mexico_mask.npy').reshape((-1,))
+can_mask = np.load(f'{data_dir}countries/Canada_mask.npy').reshape((-1,))
+conus_mask = np.load(f'{data_dir}countries/CONUS_mask.npy').reshape((-1,))
+other_mask = np.load(f'{data_dir}countries/Other_mask.npy').reshape((-1,))
 # total_mask = mex_mask + can_mask + conus_mask
 masks = {'Canada' : can_mask, 'CONUS' : conus_mask, 'Mexico' : mex_mask,
          'Other' : other_mask}
@@ -349,28 +335,20 @@ total = emis.pop('Total')
 summ_c = {}
 for country, mask in masks.items():
     # Posterior terms
-    post_c = ((dc(w['w37_edf'])*mask) @ xhat[w37_cols]).T
-    # post_w404_c = (dc(w['w404_edf'])*mask) @ xhat[w404_cols]
-    # post_c = pd.concat([post_w37_c, post_w404_c], axis=1).T
+    post_c = ((dc(w)*mask) @ xhat).T
     post_tot_anth = post_c[anth_cols].sum(axis=1) # Calculate total
     post_tot_bio = post_c[bio_cols].sum(axis=1)
     post_tot = post_tot_anth + post_tot_bio
     post_c = post_c[list(emis.values())].add_prefix('post_')
-    # if country == 'Mexico':
-    #     print(post_c['post_ong'])
 
     # Only optimized terms
     xhat_sub = dc(xhat)
     xhat_sub[dofs < DOFS_filter] = 0
-    post_sub_c = ((dc(w['w37_edf'])*mask) @ xhat_sub[w37_cols]).T
-    # post_sub_w404_c = (dc(w['w404_edf'])*mask) @ xhat_sub[w404_cols]
-    # post_sub_c = pd.concat([post_sub_w37_c, post_sub_w404_c], axis=1).T
+    post_sub_c = ((dc(w)*mask) @ xhat_sub).T
     post_sub_c = post_sub_c[list(emis.values())].add_prefix('post_sub_')
 
     # Prior terms
-    prior_c = (dc(w['w37_edf'])*mask) @ np.ones(xhat[w37_cols].shape)
-    # prior_w404_c = (dc(w['w404_edf'])*mask) @ np.ones(xhat[w404_cols].shape)
-    # prior_c = pd.concat([prior_w37_c, prior_w404_c], axis=1)
+    prior_c = (dc(w)*mask) @ np.ones(xhat.shape)
     prior_c = prior_c.T.reset_index(drop=True)
     prior_c = prior_c.rename({i : post_c.index[i] 
                               for i in range(prior_c.shape[0])})
@@ -380,9 +358,7 @@ for country, mask in masks.items():
     # Only optimized terms
     xa_sub = pd.DataFrame(data=np.ones(xa_abs.shape), columns=xhat.columns)
     xa_sub[dofs < DOFS_filter] = 0
-    prior_sub_c = ((dc(w['w37_edf'])*mask) @ xa_sub[w37_cols]).T
-    # prior_sub_w404_c = (dc(w['w404_edf'])*mask) @ xa_sub[w404_cols]
-    # prior_sub_c = pd.concat([prior_sub_w37_c, prior_sub_w404_c], axis=1).T
+    prior_sub_c = ((dc(w)*mask) @ xa_sub).T
     prior_sub_c = prior_sub_c[list(emis.values())].add_prefix('prior_sub_')
 
     # Get statistics
@@ -569,9 +545,8 @@ plt.close()
 
 # for axis, (title, emis_label) in zip(ax.flatten(), emis.items()):
 #     # Get sectoral values (Mg/km2/yr)
-#     post_w37_c = dc(w['w37_edf']).loc[emis_label].values[:, None]*(xhat[w37_cols] - 1)
-#     post_w404_c = dc(w['w404_edf']).loc[emis_label].values[:, None]*(xhat[w404_cols] - 1)
-#     post_c = pd.concat([post_w37_c, post_w404_c], axis=1).T
+#     post_c = dc(w).loc[emis_label].values[:, None]*(xhat - 1)
+#     post_c = post_c.T
 #     xhat_diff_sect_i = post_c.mean(axis=0).values/area*1e6 # convert from Tg/yr to Mg/km2/yr
 
 #     # if title != 'Total':
