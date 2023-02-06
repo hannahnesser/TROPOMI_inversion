@@ -257,13 +257,13 @@ if __name__ == '__main__':
     a[dofs_mask, :] = 0
     a[:, dofs_mask] = 0
 
-    # # Complete sectoral analyses
-    # for country, mask in masks.items():
-    #     print(f'Analyzing {country}')
-    #     w_c = dc(w).mul(mask, axis=0).reset_index(drop=True).T
-    #     _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
-    #     r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
-    #     a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
+    # Complete sectoral analyses
+    for country, mask in masks.items():
+        print(f'Analyzing {country}')
+        w_c = dc(w).mul(mask, axis=0).reset_index(drop=True).T
+        _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
+        r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
+        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{country.lower()}.csv', header=True, index=True)
 
     for label, mask in sub_masks.items():
         print(f'Analyzing {label}')
@@ -274,13 +274,13 @@ if __name__ == '__main__':
         r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
         a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_{label.lower()}.csv', header=True, index=True)
 
-    # for key, city in cities.items():
-    #     print(f'Analyzing {city}')
-    #     w_c = w[['livestock', 'coal', 'ong', 'landfills', 'wastewater', 
-    #              'other_anth']].T*sub_masks['urban'][city].values
-    #     _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
-    #     r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_urban_areas_{key}.csv', header=True, index=True)
-    #     a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_urban_areas_{key}.csv', header=True, index=True)
+    for key, city in cities.items():
+        print(f'Analyzing {city}')
+        w_c = w[['livestock', 'coal', 'ong', 'landfills', 'wastewater', 
+                 'other_anth']].T*sub_masks['urban'][city].values
+        _, _, r_red, a_red = ip.source_attribution(w_c, xhat_fr, shat, a)
+        r_red.to_csv(f'{data_dir}/iteration{niter}/shat/r{niter}{suffix}_urban_areas_{key}.csv', header=True, index=True)
+        a_red.to_csv(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}_urban_areas_{key}.csv', header=True, index=True)
 
     print('CODE COMPLETE')
     print(f'Saved xhat{niter}{suffix}.npy and more.')
