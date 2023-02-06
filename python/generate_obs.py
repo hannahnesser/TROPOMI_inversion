@@ -141,9 +141,9 @@ else:
 # Import Custom packages
 sys.path.append(code_dir)
 import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
+# config.SCALE = config.PRES_SCALE
+# config.BASE_WIDTH = config.PRES_WIDTH
+# config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
 import troppy as tp
 import format_plots as fp
@@ -151,7 +151,9 @@ import inversion_settings as settings
 
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
-prior_run = f'{settings.year}.pkl'
+prior_run = f'{settings.year}_full.pkl'
+suffix = '_w37_edf'
+mod_suffix = '_w37_edf'
 # prior_run = [f'{settings.year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
 #              for mm in settings.months
 #              for dd in settings.days]
@@ -178,7 +180,8 @@ albedo_bins = np.arange(0, 1.1, 0.05)
 filter_on_seasonal_latitude = True
 
 # Remove latitudinal bias
-remove_latitudinal_bias = True
+remove_latitudinal_bias = False
+remove_mean_bias = True
 lat_bins = np.arange(10, 65, 5)
 
 # Which analyses do you wish to perform?
@@ -208,9 +211,9 @@ err_suffix = '_rg2rt'
 ## ------------------------------------------------------------------------ ##
 ## Define functions
 ## ------------------------------------------------------------------------ ##
-def print_summary(data):
-    print('Model maximum       : %.2f' % (data['MOD'].max()))
-    print('Model minimum       : %.2f' % (data['MOD'].min()))
+def print_summary(data, mod_suffix=mod_suffix):
+    print('Model maximum       : %.2f' % (data[f'MOD{mod_suffix.upper()}'].max()))
+    print('Model minimum       : %.2f' % (data[f'MOD{mod_suffix.upper()}'].min()))
     print('TROPOMI maximum     : %.2f' % (data['OBS'].max()))
     print('TROPOMI minimum     : %.2f' % (data['OBS'].min()))
     print('Difference maximum  : %.2f' % (np.abs(data['DIFF']).max()))
@@ -306,15 +309,18 @@ else:
 print('-'*70)
 print('Original data (pre-filtering) is loaded.')
 print(f'm = {data.shape[0]}')
+
+# Update DIFF to apply to the mod_suffix
+data[f'DIFF'] = (data[f'MOD{mod_suffix.upper()}'] - 
+                                     data['OBS'])
+
+# Print again
 print_summary(data)
 
 ## ----------------------------------------- ##
 ## Make and apply observational mask
 ## ----------------------------------------- ##
 print('-'*70)
-
-# Define an empty suffix for file names
-suffix = ''
 
 # Create a vector for storing the observational filter
 obs_filter = np.ones(data.shape[0], dtype=bool)
@@ -367,7 +373,7 @@ if remove_latitudinal_bias:
     # Correct the latitudinal bias
     coef = p.polyfit(data['LAT'], data['DIFF'], deg=1)
     bias_correction = p.polyval(data['LAT'], coef)
-    data['MOD'] -= bias_correction
+    data[f'MOD{mod_suffix.upper()}'] -= bias_correction
     data['DIFF'] -= bias_correction
 
     # Print information
@@ -375,6 +381,13 @@ if remove_latitudinal_bias:
     print(f'    y = {coef[0]:.2f} + {coef[1]:.2f}x')
     print_summary(data)
     print('-'*70)
+elif remove_mean_bias:
+    bias_correction = data['DIFF'].mean()
+    data[f'MOD{mod_suffix.upper()}'] -= bias_correction
+    data['DIFF'] -= bias_correction
+    print(f'Data has mean bias removed.')
+    print(f'    Mean bias of {bias_correction:.2f} ppb removed.')
+
 
 ## ----------------------------------------- ##
 ## Save out resulting data and observational mask
@@ -476,7 +489,8 @@ if compare_gosat:
     trop_grid['SEASON'] = trop_grid['date'].dt.season
 
     # Create a dataframe
-    diff_grid = trop_grid.to_dataframe()[['GOSAT', 'TROPOMI', 'DIFF',
+    diff_grid = trop_grid.to_dataframe()[['GOSAT', 'TROPOMI', 
+                                          'DIFF',
                                           'MONTH', 'SEASON', 'BLENDED_ALBEDO']]
     diff_grid = diff_grid.dropna().reset_index()
 
@@ -615,7 +629,8 @@ if compare_gosat:
 if analyze_biases:
     ## Spatial bias
     s_b = data.groupby(['LAT_CENTER', 'LON_CENTER',
-                        'SEASON']).mean()[['DIFF', 'ALBEDO_SWIR', 'AOD']]
+                        'SEASON']).mean()[['DIFF', 
+                                           'ALBEDO_SWIR', 'AOD']]
     s_b = s_b.to_xarray().rename({'LAT_CENTER' : 'lats',
                                  'LON_CENTER' : 'lons',
                                  'SEASON' : 'season'})
@@ -661,7 +676,8 @@ if analyze_biases:
         ## ----------------------------------------- ##
         ## Scatter plot
         ## ----------------------------------------- ##
-        fig, ax, c = gc.plot_comparison(data['OBS'].values, data['MOD'].values,
+        fig, ax, c = gc.plot_comparison(data['OBS'].values, 
+                                        data[f'MOD{mod_suffix.upper()}'].values,
                                         lims=[1750, 1950], vmin=0, vmax=3e4,
                                         xlabel='Observation', ylabel='Model')
         ax.set_xticks(np.arange(1750, 2000, 100))
@@ -881,6 +897,11 @@ if calculate_so:
     data['STD'] *= data['OBS']
     data['VAR'] = data['STD']**2
 
+    # Where the variance is less than 100 ppb^2 (err = 10 pppb, set a threshoold
+    cond_t = data['VAR'] < err_min**2
+    print(f'We replace {cond_t.sum()} instances where the residual error is less than {err_min} ppb.')
+    data.loc[cond_t, 'VAR'] = err_min**2
+
     # Where the variance calculated by the residual error method is less
     # than the precision squared value calculated above, set the error equal
     # to precision squared
@@ -888,11 +909,6 @@ if calculate_so:
     print(f'We replace {cond.sum()} instances where the residual error is less than the instrumental error.')
     data.loc[:, 'SO'] = data['VAR']
     data.loc[cond, 'SO'] = data.loc[cond, 'PREC_SQ']
-
-    # Where the variance is less than 100 ppb^2 (err = 10 pppb, set a threshoold
-    cond_t = data['SO'] < err_min**2
-    print(f'We replace {cond_t.sum()} instances where the residual error is less than {err_min} ppb.')
-    data.loc[cond_t, 'SO'] = err_min**2
 
     # and then update std
     data.loc[:, 'STD'] = data['SO']**0.5
@@ -908,8 +924,9 @@ if calculate_so:
 ## Plots
 ## ------------------------------------------------------------------------ ##
 if (plot_dir is not None) and calculate_so:
-    plot_data = copy.deepcopy(data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT',
-                                    'OBS', 'MOD', 'DIFF', 'PREC',
+    plot_data = copy.deepcopy(data[['iGC', 'jGC', 'MONTH', 'LON', 'LAT', 'OBS',
+                                    f'MOD{mod_suffix.upper()}', 
+                                    'DIFF', 'PREC',
                                     'ALBEDO_SWIR', 'BLENDED_ALBEDO', 'SO']])
 
     # Save nearest latitude and longitude centers
@@ -943,7 +960,8 @@ if (plot_dir is not None) and calculate_so:
 
     # Subtract the bias from the difference to calculate the residual error
     # This is equivalent to ZQ's eps quantity
-    plot_data['RES_ERR'] = plot_data['DIFF'] - plot_data['AVG_DIFF']
+    plot_data['RES_ERR'] = (plot_data['DIFF'] - 
+                            plot_data['AVG_DIFF'])
 
     # Next we calculate the average residual error
     avg_err = plot_data.groupby(groupby).mean()['RES_ERR'].reset_index()
@@ -961,7 +979,8 @@ if (plot_dir is not None) and calculate_so:
                                           'DIFF' : 'mean',
                                           'RES_ERR' : 'count'})
 
-    d_p = d_p.rename(columns={'OBS' : 'AVG_OBS', 'DIFF' : 'AVG_DIFF',
+    d_p = d_p.rename(columns={'OBS' : 'AVG_OBS', 
+                              'DIFF' : 'AVG_DIFF',
                               'RES_ERR' : 'COUNT'})
     # d_p = copy.deepcopy(plot_data)
     d_p['STD'] = d_p['VAR']**0.5#/d_p['AVG_OBS']
@@ -970,9 +989,9 @@ if (plot_dir is not None) and calculate_so:
 
     fig, ax = fp.get_figax(rows=2, cols=4, maps=True,
                            lats=d_p.lats, lons=d_p.lons,
-                           max_width=config.PRES_WIDTH*config.SCALE*1.5,
-                           max_height=config.PRES_HEIGHT*config.SCALE*1.5)
-    plt.subplots_adjust(hspace=-0.25, wspace=0.05)
+                           max_width=config.BASE_WIDTH,
+                           max_height=config.BASE_HEIGHT)
+    plt.subplots_adjust(hspace=-0.25, wspace=0.1) # wspace=0.05)
 
     # fig_c, ax_c = fp.get_figax(rows=1, cols=4, maps=True,
     #                            lats=d_p.lats, lons=d_p.lons,
@@ -1001,15 +1020,15 @@ if (plot_dir is not None) and calculate_so:
                                   vmin=-30, vmax=30, add_colorbar=False)
         for j, axis in enumerate([ax[0, i], ax_e[i], ax_cb[i]]):
             axis = fp.format_map(axis, d.lats, d.lons)
-            axis = fp.add_title(axis, s)
+            axis = fp.add_title(axis, s, fontsize=config.TITLE_FONTSIZE)
         ax[1, i] = fp.format_map(ax[1, i], d.lats, d.lons)
         ax[1, i] = fp.add_title(ax[1, i], '')
 
-    cax = fp.add_cax(fig, ax[0, :], cbar_pad_inches=0.075)
+    cax = fp.add_cax(fig, ax[0, :]) #cbar_pad_inches=0.075)
     cb = fig.colorbar(c, ax=ax[0, :], cax=cax)
     cb = fp.format_cbar(cb, 'XCH4 (ppb)')
 
-    cax_c = fp.add_cax(fig, ax[1, :], cbar_pad_inches=0.075)
+    cax_c = fp.add_cax(fig, ax[1, :]) #cbar_pad_inches=0.075)
     cb_c = fig.colorbar(c_c, ax=ax[1, :], cax=cax_c, ticks=[50, 150, 250])
     cb_c = fp.format_cbar(cb_c, 'Count')
     # fp.save_fig(fig_c, plot_dir, f'counts{suffix}')
@@ -1103,16 +1122,16 @@ if (plot_dir is not None) and calculate_so:
 ## ------------------------------------------------------------------------ ##
 ## Save out inversion quantities
 ## ------------------------------------------------------------------------ ##
-print(f'Saving data in {output_dir}')
+# print(f'Saving data in {output_dir}')
 
-y = xr.DataArray(data['OBS'], dims=('nobs'))
-y.to_netcdf(join(output_dir, 'y.nc'))
+# y = xr.DataArray(data['OBS'], dims=('nobs'))
+# y.to_netcdf(join(output_dir, 'y.nc'))
 
-ya = xr.DataArray(data['MOD'], dims=('nobs'))
-ya.to_netcdf(join(output_dir, 'ya.nc'))
+# ya = xr.DataArray(data['MOD'], dims=('nobs'))
+# ya.to_netcdf(join(output_dir, 'ya.nc'))
 
-if calculate_so:
-    so = xr.DataArray(data['SO'], dims=('nobs'))
-    so.to_netcdf(join(output_dir, f'so{err_suffix}_{err_min}t.nc'))
+# if calculate_so:
+#     so = xr.DataArray(data['SO'], dims=('nobs'))
+#     so.to_netcdf(join(output_dir, f'so{err_suffix}_{err_min}t.nc'))
 
-print('=== CODE COMPLETE ====')
+# print('=== CODE COMPLETE ====')
