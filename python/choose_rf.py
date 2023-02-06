@@ -78,10 +78,10 @@ dts = [0.05, 0.1]
 ## ------------------------------------------------------------------------ ##
 ## Load files
 ## ------------------------------------------------------------------------ ##
-jas = np.load(f'{data_dir}ja_fr2_{f}.npy')
-negs = np.load(f'{data_dir}negs2_{f}.npy')
-avgs = np.load(f'{data_dir}avg2_{f}.npy')
-nfs = np.load(f'{data_dir}n_func2_{f}.npy')
+jas = np.load(f'{data_dir}regularization_factor/ja_fr2_{f}.npy')
+negs = np.load(f'{data_dir}regularization_factor/negs2_{f}.npy')
+avgs = np.load(f'{data_dir}regularization_factor/avg2_{f}.npy')
+nfs = np.load(f'{data_dir}regularization_factor/n_func2_{f}.npy')
 
 ## ------------------------------------------------------------------------ ##
 ## Regularization factor
