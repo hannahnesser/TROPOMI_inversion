@@ -239,19 +239,29 @@ def nearest_loc(data, compare_data):
                      data.reshape(1, -1)).argmin(axis=0)
     return indices
 
-def grid_shape_overlap(clusters, shape):
+def grid_shape_overlap(clusters, x, y, name=None, plot_dir='../plots'):
     # Initialize mask
     mask = np.zeros(int(clusters.values.max()))
 
-    # Get edges of the shape
-    x = [i[0] for i in shape.shape.points[:]]
-    y = [i[1] for i in shape.shape.points[:]]
+    # # Get edges of the shape
+    # x = [i[0] for i in shape.shape.points[:]]
+    # y = [i[1] for i in shape.shape.points[:]]
 
     # Make a polygon
     c_poly = Polygon(np.column_stack((x, y)))
     if not c_poly.is_valid:
-        print(f'Buffering {shape.record[3]}')
+        print(f'Buffering {name}')
         c_poly = c_poly.buffer(0)
+        # fig, ax = fp.get_figax(cols=2, maps=True, 
+        #                        lats=clusters.lat, lons=clusters.lon)
+        # ax[0].plot(x, y)
+        # try:
+        #     ax[1].plot(*c_poly.exterior.xy)
+        # except:
+        #     for c_geom in c_poly.geoms:
+        #         ax[1].plot(*c_geom.exterior.xy)
+        # fp.save_fig(fig, plot_dir, f'buffer_{shape.record[0]}')
+        # plt.close()
 
     # Get maximum latitude and longitude limits
     lat_lims = (np.min(y), np.max(y))
