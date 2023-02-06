@@ -67,7 +67,7 @@ if __name__ == '__main__':
     print(f'Calculating the prior pre-conditioned Hessian for chunk {chunk}')
 
     ## -------------------------------------------------------------------- ##
-    ## Set up a dask client and cacluate the optimal chunk size
+    ## Set up a dask client
     ## -------------------------------------------------------------------- ##
     from dask.distributed import Client, LocalCluster, progress
     from dask.diagnostics import ProgressBar
@@ -101,9 +101,9 @@ if __name__ == '__main__':
     sa *= sa_scale**2
 
     # Prior
-    if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+    if (xa_abs_file.split('/')[-1] != 'xa_abs.nc'):
         xa_abs = gc.read_file(xa_abs_file, cache=True)
-        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs_correct.nc', cache=True)
+        xa_abs_orig = gc.read_file(f'{data_dir}/xa_abs.nc', cache=True)
 
     # Update if boundary condition is optimized
     if optimize_bc:
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         k_m = gc.read_file(f'{data_dir}/iteration{niter}/k/k{niter}_c{chunk:02d}.nc',
                            chunks=chunks)
 
-        if (xa_abs_file.split('/')[-1] != 'xa_abs_correct.nc'):
+        if (xa_abs_file.split('/')[-1] != 'xa_abs.nc'):
             # Calculate the ratio of the new to original prior
             xa_ratio = xa_abs/xa_abs_orig
             xa_ratio[(xa_abs_orig == 0) & (xa_abs == 0)] = 1
