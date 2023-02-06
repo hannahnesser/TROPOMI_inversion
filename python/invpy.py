@@ -491,6 +491,16 @@ def source_attribution(w, xhat, shat=None, a=None):
         return xhat_red
 
 ## -------------------------------------------------------------------------##
+## Ensemble functions
+## -------------------------------------------------------------------------##
+def get_ensemble_stats(data_frame):
+    # Takes a dataframe that is 
+    stats = pd.DataFrame({'mean' : data_frame.mean(axis=1),
+                          'min' : data_frame.min(axis=1),
+                          'max' : data_frame.max(axis=1)})
+    return stats
+
+## -------------------------------------------------------------------------##
 ## Plotting functions : state vectors
 ## -------------------------------------------------------------------------##
 def plot_state(data, clusters_plot, default_value=0, cbar=True,
