@@ -43,27 +43,25 @@ plot_dir = base_dir + 'plots/'
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
 # DOFS_filter
-DOFS_filter = 0.05
+# DOFS_filter = 0.05
 
-# Number of states
-# ns = 48
-
-# Define emission categories
-emis = {'Livestock' : 'livestock', 
-        'Oil and natural gas' : 'ong', 
-        'Coal' : 'coal', 
-        'Landfills' : 'landfills', 
-        'Wastewater' : 'wastewater', 
-        'Other anthropogenic' : 'other_anth'}
+# sectors = ['livestock', 'ong', 'coal', 'landfills', 'wastewater', 'other_anth']
+sectors = ['ong', 'livestock', 'landfills', 'coal', 'wastewater', 'other_anth']
+sectors = sectors[::-1]
 
 ## ------------------------------------------------------------------------ ##
 ## Load files
 ## ------------------------------------------------------------------------ ##
 # Load the states mask
 w_state = pd.read_csv(f'{data_dir}states/states_mask.csv', header=0).T
+conus_mask = np.load(f'{data_dir}countries/CONUS_mask.npy').reshape((-1,))
 
 # Load clusters
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc').squeeze()
+
+# Plot difference between conus mask and states mask
+fig, ax, c = ip.plot_state(w_state.sum() - conus_mask, clusters)
+fp.save_fig(fig, plot_dir, 'state_vs_conus_mask')
 
 # Load area (km2)
 area = xr.open_dataarray(f'{data_dir}area.nc').values.reshape((-1, 1))
@@ -86,8 +84,8 @@ dofs_s = ip.get_ensemble_stats(dofs_s).add_prefix('dofs_')
 
 # Load weighting matrices in units Gg/yr (we don't consider wetlands
 # here, so it doesn't matter which W we use)
-w = pd.read_csv(f'{data_dir}w_w404_edf.csv')
-w = dc(w[list(emis.values())])
+w = pd.read_csv(f'{data_dir}w_w37_edf.csv')
+w = dc(w[sectors])
 w['total'] = w.sum(axis=1)
 w = w.T*1e-3
 
@@ -101,8 +99,7 @@ for sect in w.index:
         xhat_abs_sect[f'post_{sect}'] = xx
 
 # Load EPA state estimates
-epa_s = pd.read_csv(f'{data_dir}states/states_epa.csv', 
-                        header=0, index_col=0)
+epa_s = pd.read_csv(f'{data_dir}states/states_epa.csv', header=0, index_col=0)
 
 # Individual state inventories in Tg/yr
 state_inventories = {
@@ -164,13 +161,13 @@ diff_s = post_s - prior_s['prior_total'].values[:, None]
 ## Posterior ratios
 xhat_s = post_s/prior_s['prior_total'].values[:, None]
 
-## Fraction of optimized emissions
-dofs_mask = np.ones(dofs.shape)
-denom = w_state @ (w.loc['total'].values[:, None]*dofs_mask)
-dofs_mask[dofs < DOFS_filter] = 0
-numer = w_state @ (w.loc['total'].values[:, None]*dofs_mask)
-frac_s = numer/denom
-frac_stats_s = ip.get_ensemble_stats(frac_s).add_prefix('frac_')
+# ## Fraction of optimized emissions
+# dofs_mask = np.ones(dofs.shape)
+# denom = w_state @ (w.loc['total'].values[:, None]*dofs_mask)
+# dofs_mask[dofs < DOFS_filter] = 0
+# numer = w_state @ (w.loc['total'].values[:, None]*dofs_mask)
+# frac_s = numer/denom
+# frac_stats_s = ip.get_ensemble_stats(frac_s).add_prefix('frac_')
 
 ## Get statistics
 xhat_stats_s = ip.get_ensemble_stats(xhat_s).add_prefix('xhat_')
@@ -179,8 +176,7 @@ diff_stats_s = ip.get_ensemble_stats(diff_s).add_prefix('diff_')
 
 ## Aggregate
 summ_s = pd.concat([pd.DataFrame(area_s), prior_s, post_sect_s,
-                    post_stats_s, xhat_stats_s, diff_stats_s,
-                    frac_stats_s], axis=1)
+                    post_stats_s, xhat_stats_s, diff_stats_s], axis=1)
 
 # Merge DOFS into summ_c
 summ_s = pd.concat([summ_s, dofs_s.loc[summ_s.index]], axis=1)
@@ -188,8 +184,10 @@ summ_s = pd.concat([summ_s, dofs_s.loc[summ_s.index]], axis=1)
 # Merge in population
 summ_s['pop'] = pop.loc[summ_s.index]['2019']
 
-# Add in EPA state estimates and scale the total to match
-summ_s['epa'] = epa_s.loc[summ_s.index]['total']/25*1e3 # to Gg/yr
+# Add in EPA state estimates
+epa_s = epa_s.add_prefix('epa_')/25*1e3
+summ_s = summ_s.join(epa_s)
+# summ_s['epa'] = epa_s.loc[summ_s.index][['total']]/25*1e3 # to Gg/yr
 # summ_s['epa'] *= summ_s['post_mean'].sum()/summ_s['epa'].sum()
 
 # Per capita methane emissions (Gg/person)
@@ -199,9 +197,9 @@ summ_s['post_mean_pc'] = summ_s['post_mean']/summ_s['pop']
 summ_s = summ_s.sort_values(by='post_mean', ascending=False)
 
 # Compare the EPA inventory to our posterior
-print((summ_s['post_mean'] - summ_s['epa']).mean())
+print((summ_s['post_mean'] - summ_s['epa_total']).mean())
 for n in [10, 25, 50]:
-    epa = summ_s['epa'][:n]
+    epa = summ_s['epa_total'][:n]
     gepa = summ_s['prior_total'][:n]
     post = summ_s['post_mean'][:n]
     pct_change = (post - epa)/epa
@@ -266,7 +264,7 @@ ylim2 = [0, 2.25e3]
 ylim1 = [3.6e3, 6.55e3]
 # 6 total
 total_height = (ylim2[1] - ylim2[0]) + (ylim1[1] - ylim1[0])
-height_ratios = [(ylim1[1] - ylim1[0])/total_height, 
+height_ratios = [(ylim1[1] - ylim1[0])/total_height/3, 
                  (ylim2[1] - ylim2[0])/total_height]
 
 gs = gridspec.GridSpec(2, 1, height_ratios=[0.25, 1], hspace=0.1)
@@ -289,8 +287,8 @@ summ_s['post_max'] = summ_s['post_max'] - summ_s['post_mean']
 summ_s['post_min'] = summ_s['post_mean'] - summ_s['post_min']
 summ_s['dofs_max'] = summ_s['dofs_max'] - summ_s['dofs_mean']
 summ_s['dofs_min'] = summ_s['dofs_mean'] - summ_s['dofs_min']
-summ_s['frac_max'] = summ_s['frac_max'] - summ_s['frac_mean']
-summ_s['frac_min'] = summ_s['frac_mean'] - summ_s['frac_min']
+# summ_s['frac_max'] = summ_s['frac_max'] - summ_s['frac_mean']
+# summ_s['frac_min'] = summ_s['frac_mean'] - summ_s['frac_min']
 
 # Add title
 ax[0] = fp.add_title(ax[0], 
@@ -300,31 +298,31 @@ ax[0] = fp.add_title(ax[0],
 # Plot DOFS
 ax[0].errorbar(xs, summ_s['dofs_mean'], #fmt='none',
                 yerr=np.array(summ_s[['dofs_min', 'dofs_max']]).T,
-                fmt='D', markersize=2.5, markerfacecolor='white', 
-                markeredgecolor='black', 
-                ecolor='0.6', elinewidth=0.5, capsize=1, capthick=0.5)
+                fmt='D', markersize=4, markerfacecolor='white', 
+                markeredgecolor='0.65', 
+                ecolor='0.65', elinewidth=0.75, capsize=2, capthick=0.75)
 ax[0].set_ylim(0, 1)
 ax[0].set_yticks([0, 0.5, 1])
 ax[0].set_ylabel('Sensitivity', fontsize=config.TICK_FONTSIZE, labelpad=20)
 
 # Plot stacked bar
-cc = [fp.color(i, lut=2*7) for i in [0, 6, 10, 2, 8, 12, 0]]
 bottom_prior = np.zeros(ns)
 bottom_post = np.zeros(ns)
-for i, (l, e) in enumerate(emis.items()):
+for i, e in enumerate(sectors):
+    l = list(s.sectors.keys())[list(s.sectors.values()).index(e)]
     for j in [1, 2]:
-        ax[j].bar(xs - 0.175, summ_s[f'prior_{e}'], 
-                  bottom=bottom_prior, width=0.3, color=cc[i], label=l)
-        ax[j].bar(xs + 0.175, summ_s[f'post_{e}'], 
-                  bottom=bottom_post, width=0.3, color=cc[i])
+        ax[j].bar(xs - 0.175, summ_s[f'epa_{e}'], bottom=bottom_prior, 
+                  width=0.3, color=s.sector_colors[e], label=l)
+        ax[j].bar(xs + 0.175, summ_s[f'post_{e}'], bottom=bottom_post, 
+                  width=0.3, color=s.sector_colors[e])
         if i == 0:
             ax[j].errorbar(xs + 0.175, summ_s['post_mean'],
                            yerr=np.array(summ_s[['post_min', 'post_max']]).T,
-                           ecolor='0.6', lw=0.5, capsize=1, capthick=0.5,
-                           fmt='none', zorder=10)
+                           ecolor='0.65', lw=0.75, capsize=2, 
+                           capthick=0.75, fmt='none', zorder=10)
 
 
-    bottom_prior += summ_s[f'prior_{e}']
+    bottom_prior += summ_s[f'epa_{e}']
     bottom_post += summ_s[f'post_{e}']
 
 # Add the state estimates
@@ -337,17 +335,17 @@ for s, si in state_inventories.items():
         x = np.argwhere(s == summ_s.index)[0][0]
     except:
         continue
-    ax[2].scatter(x + 1, si*1e3, s=20, marker='^', color='white', 
+    ax[2].scatter(x + 1, si*1e3, s=16, marker='o', color='white', 
                   edgecolor='black', zorder=10, label=label)
 
-for i in [1, 2]:
-    if i == 2:
-        label = 'EPA state inventory'
-    else:
-        label = None
-    # Get scaling so that total agrees
-    ax[i].scatter(xs, summ_s['epa'], s=10, marker='o', 
-                  color='white', edgecolor='black', zorder=10, label=label)
+# for i in [1, 2]:
+#     if i == 2:
+#         label = 'EPA state inventory'
+#     else:
+#         label = None
+#     # Get scaling so that total agrees
+#     ax[i].scatter(xs, summ_s['epa'], s=10, marker='o', 
+#                   color='white', edgecolor='black', zorder=10, label=label)
 
 # Split the axis
 ax[2].set_ylim(*ylim2)
@@ -364,14 +362,14 @@ d = 0.005  # how big to make the diagonal lines in axes coordinates
 # arguments to pass to plot, just so we don't keep repeating them
 kwargs = dict(transform=ax[1].transAxes, color='k', clip_on=False,
               lw=0.5)
-ax[1].plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
-ax[1].plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
+ax[1].plot((-d, +d), (-3*d, +3*d), **kwargs)        # top-left diagonal
+ax[1].plot((1 - d, 1 + d), (-3*d, +3*d), **kwargs)  # top-right diagonal
 kwargs.update(transform=ax[2].transAxes)  # switch to the bottom axes
 ax[2].plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
 ax[2].plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
 
 # # Final aesthetics
-ax[1] = fp.add_labels(ax[1], '', r'Emissions (Gg a$^{-1}$)', 
+ax[1] = fp.add_labels(ax[1], '', r'Methane emissions (Gg a$^{-1}$)', 
                       fontsize=config.TICK_FONTSIZE, 
                       labelpad=20)
 
@@ -388,7 +386,7 @@ for j in range(3):
         #     ax[j].plot(((k + 1) + 0.5, (k + 1) + 0.5), (2.25e3, 2.475e3),
         #                color='0.75', alpha=1, lw=0.5, clip_on=False)
     ax[j].set_xticks(xs)
-    ax[j].set_xlim(-0.5, ns+1+0.5)
+    ax[j].set_xlim(0, ns + 1)
     ax[j].tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
     if j < 2:
         plt.setp(ax[j].get_xticklabels(), visible=False)
@@ -425,7 +423,7 @@ y1 = (ax[1].get_position().y1 + ax[-1].get_position().y0)/2
 ax[1].yaxis.set_label_coords(0.07, y1, transform=fig.transFigure)
 
 # Add labels
-ax[1].text(0.625, summ_s['prior_total'][0], 'Prior', ha='right',
+ax[1].text(0.625, summ_s['epa_total'][0], 'EPA GHGI', ha='right',
            #summ_s['prior_total'][1] + 100, 'Prior', ha='right', 
            va='top', rotation=90, fontsize=config.TICK_FONTSIZE - 2)
 ax[1].text(1.5, summ_s['post_mean'][0], 'Posterior',
@@ -436,44 +434,55 @@ ax[1].text(1.5, summ_s['post_mean'][0], 'Posterior',
 fp.save_fig(fig, plot_dir, f'states_ensemble')
 
 ## ------------------------------------------------------------------------ ##
+## Get Permian-Texas overlap
+## ------------------------------------------------------------------------ ##
+permian_idx = np.load(f'{data_dir}permian_idx.npy')
+w_tx_nm = w_state.loc[['Texas','New Mexico']]
+w_tx_nm = w_tx_nm.iloc[:, permian_idx]
+xhat_abs_permian = xhat_abs.iloc[permian_idx, :]
+xhat_abs_permian = w_tx_nm @ xhat_abs_permian
+xhat_abs_permian = ip.get_ensemble_stats(xhat_abs_permian)
+print(xhat_abs_permian/summ_s[['post_mean', 'post_min', 'post_max']].loc[['Texas', 'New Mexico']].values)
+
+## ------------------------------------------------------------------------ ##
 ## Plot results : change in rankings
 ## ------------------------------------------------------------------------ ##
-summ_s = summ_s.sort_values(by='prior_total', ascending=False)
-prior_r = (summ_s['prior_total'].values).argsort()[::-1]
-post_r = (summ_s['post_mean'].values).argsort()[::-1]
+# summ_s = summ_s.sort_values(by='prior_total', ascending=False)
+# prior_r = (summ_s['prior_total'].values).argsort()[::-1]
+# post_r = (summ_s['post_mean'].values).argsort()[::-1]
 
-# print('-'*75)
-# print('Original ranking')
-# print([f'{i+1}. {j}' for i, j in enumerate(summ_s.index[prior_r])])
-# print('-'*75)
-# print('Updated ranking')
-# print([f'{i+1}. {j}' for i, j in enumerate(summ_s.index[post_r])])
+# # print('-'*75)
+# # print('Original ranking')
+# # print([f'{i+1}. {j}' for i, j in enumerate(summ_s.index[prior_r])])
+# # print('-'*75)
+# # print('Updated ranking')
+# # print([f'{i+1}. {j}' for i, j in enumerate(summ_s.index[post_r])])
 
-fig, ax = fp.get_figax(aspect=0.25)
-cmap_1 = plt.cm.RdBu_r(np.linspace(0, 0.5, 256))
-cmap_2 = plt.cm.RdBu_r(np.linspace(0.5, 1, 256))
-cmap = np.vstack((cmap_1, cmap_2))
-cmap = colors.LinearSegmentedColormap.from_list('cmap', cmap)
-div_norm = colors.TwoSlopeNorm(vmin=-28, vcenter=0, vmax=28)
+# fig, ax = fp.get_figax(aspect=0.25)
+# cmap_1 = plt.cm.RdBu_r(np.linspace(0, 0.5, 256))
+# cmap_2 = plt.cm.RdBu_r(np.linspace(0.5, 1, 256))
+# cmap = np.vstack((cmap_1, cmap_2))
+# cmap = colors.LinearSegmentedColormap.from_list('cmap', cmap)
+# div_norm = colors.TwoSlopeNorm(vmin=-28, vcenter=0, vmax=28)
 
-for i in range(ns):
-    color = cmap(div_norm(post_r[i] - prior_r[i]))
-    ax.plot([0, 1], [post_r[i], prior_r[i]], c=color, 
-            marker='o', markersize=5)
+# for i in range(ns):
+#     color = cmap(div_norm(post_r[i] - prior_r[i]))
+#     ax.plot([0, 1], [post_r[i], prior_r[i]], c=color, 
+#             marker='o', markersize=5)
 
-ax1 = ax.twinx()
-ax.set_xticks([])
-for axis in [ax, ax1]:
-    axis.set_yticks(prior_r)
-    axis.set_ylim(ns + 0.5, -0.5)
-    axis.spines['bottom'].set_visible(False)
-    axis.spines['top'].set_visible(False)
-    axis.spines['right'].set_visible(False)
-    axis.spines['left'].set_visible(False)
-ax.set_yticklabels([f'{i+1}. {j}' for i, j in enumerate(summ_s.index[prior_r])],
-                    fontsize=config.TICK_FONTSIZE)
-ax1.set_yticklabels([f'{i+1}. {j}' for i, j in enumerate(summ_s.index[post_r])],
-                   fontsize=config.TICK_FONTSIZE)
+# ax1 = ax.twinx()
+# ax.set_xticks([])
+# for axis in [ax, ax1]:
+#     axis.set_yticks(prior_r)
+#     axis.set_ylim(ns + 0.5, -0.5)
+#     axis.spines['bottom'].set_visible(False)
+#     axis.spines['top'].set_visible(False)
+#     axis.spines['right'].set_visible(False)
+#     axis.spines['left'].set_visible(False)
+# ax.set_yticklabels([f'{i+1}. {j}' for i, j in enumerate(summ_s.index[prior_r])],
+#                     fontsize=config.TICK_FONTSIZE)
+# ax1.set_yticklabels([f'{i+1}. {j}' for i, j in enumerate(summ_s.index[post_r])],
+#                    fontsize=config.TICK_FONTSIZE)
 
-ax.set_xlim(-0.05, 1.05)
-fp.save_fig(fig, plot_dir, f'states_ranking')
+# ax.set_xlim(-0.05, 1.05)
+# fp.save_fig(fig, plot_dir, f'states_ranking')

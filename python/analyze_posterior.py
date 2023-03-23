@@ -15,7 +15,7 @@ from matplotlib.patches import Patch as patch
 import cartopy.feature as cfeature
 import cartopy.io.shapereader as shpreader
 import cartopy.crs as ccrs
-import imageio
+from datetime import datetime
 pd.set_option('display.max_columns', 10)
 
 # Custom packages
@@ -78,59 +78,16 @@ xhat_kwargs = {'cmap' : sf_cmap, 'norm' : div_norm,
 # DOFS_filter
 DOFS_filter = 0.05
 
-# List emissions categories
-emis = {'Total' : 'total', 'Livestock' : 'livestock', 
-        'Oil and gas' : 'ong', 'Coal' : 'coal', 
-        'Landfills' : 'landfills', 'Wastewater' : 'wastewater', 
-        'Other anthropogenic' : 'other_anth',
-        'Wetlands' : 'wetlands',
-        'Other biogenic' : 'other_bio'}
+# Get sectors
+sectors = list(s.sectors.values())[1:]
 
-# Compare to other studies
-lu2022 = {'livestock' : [10.6, 9.2, 11.8], 
-          'ong' : [14.5, 12.1, 15.1], 
-          'coal' : [2.8, 2.4, 3.5], 
-          'landfills' : [7.2, 6.0, 7.6], 
-          'wastewater' : [0.63, 0.56, 0.74],
-          'wetlands' : [8.4, 6.4, 10.6], 
-          'other_anth' : [0.45, 0.44, 0.54]}
-lu2022 = pd.DataFrame(data=lu2022, index=['mean', 'min', 'max'])
-
-shen2022 = pd.DataFrame(data={'ong' : [12.6, 2.1, 2.1]}, 
-                        index=['mean', 'min', 'max'])
-
-# MMT CO2 eq
-epa2019 = {'livestock' : [176.1 + 58.7,
-                          176*0.1 + 58.7*0.18, 
-                          176*0.1 + 58.7*0.2],
-           'ong' : [172.2 + 7.0 + 40.4, 
-                    172.2*0.18 + 7.0*0.83 + 40.4*0.28,
-                    172.2*0.18 + 7.0*1.97 + 40.4*0.32],
-           'coal' : [47.4 + 5.9,
-                     47.4*0.09 + 5.9*0.22,
-                     47.4*0.17 + 5.9*0.2],
-           'landfills' : [113.6, 113.6*0.23, 113.6*0.22],
-           'wastewater' : [18.1, 18.1*0.35, 18.1*0.23],
-           'other_anth' : [15.1 + 8.8 + 2.5 + 0.4 + 0.3 + 0.2,
-                           15.1*0.75 + 8.8*0.34 + 2.5*0.08 + 0.4*0.18 + 0.3*0.57 + 0.2*0.54 + 2.3*0.58,
-                           15.1*0.75 + 8.8*1.25 + 2.5*0.24 + 0.4*0.18 + 0.3*0.46 + 0.2*0.54 + 2.3*0.58]}
-epa2019 = pd.DataFrame(data=epa2019, index=['mean', 'min', 'max'])/25
-# x Enteric fermentation 176.1
-# x Manure management 58.7
-# x Natural gas systems 172.2
-# x Abandoned wells 7.0
-# x Petroleum systems 40.4
-# x landfills 113.6
-# x coal mining 47.4
-# x Abandoned coal 5.9
-# x wastewater 18.1
-# x rice 15.1
-# x stationary combustion 8.8
-# x mobile combustion 2.5
-# x field burning 0.4
-# x petrochemical production 0.3 <- should this go in ong?
-# x anaroebic digestion 0.2
-# x composting 2.3
+# Compare to other studies and EPA
+other_studies = pd.read_csv(f'{data_dir}countries/other_studies.csv')
+epa = pd.read_csv(f'{data_dir}countries/epa_ghgi_2022.csv')
+epa = epa.groupby('sector').agg({'mean' : 'sum', 
+                                 'minus' : gc.add_quad, 'plus' : gc.add_quad})
+epa = epa.loc[sectors[:-2]].rename(columns={'minus' : 'min', 'plus' : 'max'}).T
+print(epa)
 
 # Get ensemble values
 ensemble = glob.glob(f'{data_dir}ensemble/xhat_fr2*')
@@ -143,6 +100,7 @@ bc_cols = [s for s in ensemble if s[:2] == 'bc']
 anth_cols = ['livestock', 'ong', 'coal', 'landfills', 
              'wastewater', 'other_anth']
 bio_cols = ['wetlands', 'other_bio']
+
 ## ------------------------------------------------------------------------ ##
 ## Load files
 ## ------------------------------------------------------------------------ ##
@@ -171,9 +129,6 @@ w_mask = w_mask.where(w/1e3 <= 0.5, 1)
 
 # Create dataframes for the ensemble data
 dofs = pd.DataFrame(columns=ensemble)
-xa_abs = pd.DataFrame(columns=ensemble) # Total emissions, no soil absorption
-xa_abs_anth = pd.DataFrame(columns=ensemble) # Anthropogenic emissions
-xa_abs_bio = pd.DataFrame(columns=ensemble) # Bipogenic emissions
 xhat = pd.DataFrame(columns=ensemble)
 shat_abs = pd.DataFrame(columns=ensemble)
 
@@ -214,29 +169,48 @@ for suff in ensemble:
 
     # Save out the resulting values to the dataframe
     dofs[suff] = dofs_s
-    xa_abs[suff] = w.loc['total']
-    xa_abs_anth[suff] = w.loc['total_anth']
-    xa_abs_bio[suff] = w.loc['total_bio']
     xhat[suff] = xhat_s
 
+# Get xa
+xa_abs = w.loc['total'].values
+xa_abs_anth = w.loc['total_anth'].values
+xa_abs_bio = w.loc['total_bio'].values
+
 # Calculate xhat_abs
-xhat_abs = xa_abs*xhat
-xhat_abs_anth = xa_abs_anth*xhat
-xhat_abs_bio = xa_abs_bio*xhat
+xhat_abs = xa_abs.reshape((-1, 1))*xhat
+xhat_abs_anth = xa_abs_anth.reshape((-1, 1))*xhat
+xhat_abs_bio = xa_abs_bio.reshape((-1, 1))*xhat
 
 # Calculate the statistics of the posterior solution
 dofs_mean = dofs.mean(axis=1)
-xa_abs_mean = xa_abs.mean(axis=1)
 xhat_abs_mean = xhat_abs.mean(axis=1)
-xhat_mean = xhat_abs_mean/xa_abs_mean
+xhat_mean = xhat.mean(axis=1) # Same as xhat_abs_mean/xa_abs
+
+# # And correct for the inevitable NaN
+# xhat_mean = xhat_mean.fillna(1)
 
 # Save out the results
 dofs.to_csv(f'{data_dir}ensemble/dofs.csv')
 xhat.to_csv(f'{data_dir}ensemble/xhat.csv')
+xhat_bc.to_csv(f'{data_dir}ensemble/xhat_bc.csv')
 
-# # Calculate the posterior error covariance from the ensemble
-# shat_e = (xhat_abs - xhat_abs_mean) @ (xhat_abs - xhat_abs_mean).T
-# print(shat_e.shape)
+# And as a netcdf
+long_name = 'Mean posterior scaling factors from an ensemble of 8 inversions'
+lats = [9.75, 60, 0.25]
+lons = [-130, -60, 0.3125]
+xhat_nc = gc.create_gc_grid(*lats, *lons) + 1
+xhat_nc = xhat_nc.rename({'lats' : 'lat', 'lons' : 'lon'})
+xhat_nc['lat'] = xhat_nc['lat'].astype('float32')
+xhat_nc['lon'] = xhat_nc['lon'].astype('float32')
+xhat_gridded = ip.match_data_to_clusters(xhat_mean, clusters, 1)
+xhat_nc.loc[{'lat' : clusters.lat, 'lon' : clusters.lon}] = xhat_gridded
+xhat_nc = gc.define_HEMCO_std_attributes(xhat_nc, name='posterior_sf')
+xhat_nc = gc.define_HEMCO_var_attributes(xhat_nc, 'posterior_sf',
+                                         long_name=long_name, units='1')
+xhat_nc.attrs = {'Title' : 'Posterior scaling factors',
+                 'Conventions' : 'COARDS',
+                 'History' : datetime.now().strftime('%Y-%m-%d %H:%M')}
+gc.save_HEMCO_netcdf(xhat_nc, f'{data_dir}/ensemble', 'xhat_gridded.nc')
 
 # Get BC statistics
 bc_stats = ip.get_ensemble_stats(xhat_bc)
@@ -251,8 +225,8 @@ if optimize_bc:
     print('-'*75)
 
 # Calculate statistics and print results
-xa_abs_opt_frac = xa_abs[dofs > DOFS_filter].sum(axis=0)/xa_abs.sum(axis=0)
-xa_abs_anth_opt_frac = xa_abs_anth[dofs > DOFS_filter].sum(axis=0)/xa_abs_anth.sum(axis=0)
+xa_abs_opt_frac = np.tile(xa_abs, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/xa_abs.sum()
+xa_abs_anth_opt_frac = np.tile(xa_abs_anth, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/xa_abs_anth.sum(axis=0)
 xhat_abs_tot = (xhat_abs*1e-6).sum(axis=0)
 xhat_abs_anth_tot = (xhat_abs_anth*1e-6).sum(axis=0)
 n_opt = (dofs > DOFS_filter).sum(axis=0)
@@ -264,9 +238,9 @@ print(f'Across the ensemble, we optimize {(xa_abs_opt_frac.mean()*100):.1f} ({(x
 print('')
 print(f'This produces a mean of of {dofs.sum(axis=0).mean():.1f} ({dofs.sum(axis=0).min():.1f}, {dofs.sum(axis=0).max():.1f}) DOFS.')
 print('')
-print(f'There are {negs.mean():.0f} ({negs.min():d}, {negs.max():d}) new negative values. If we consider those grid cells\nthat are included in the ensemble mean, there are {(xhat_abs_mean[xa_abs_mean >= 0] < 0).sum():d} new negative values.')
+print(f'There are {negs.mean():.0f} ({negs.min():d}, {negs.max():d}) new negative values. If we consider those grid cells\nthat are included in the ensemble mean, there are {(xhat_abs_mean[xa_abs >= 0] < 0).sum():d} new negative values.')
 print('')
-# print(f'Total prior emissions (Tg/yr)    : {(xa_abs_mean*area*1e-6).sum():.2f}')
+
 print(f'Total posterior emissions               : {xhat_abs_tot.mean():.2f} ({xhat_abs_tot.min():.2f}, {xhat_abs_tot.max():.2f}) Tg/yr')
 print(f'Total anthropogenic posterior emissions : {xhat_abs_anth_tot.mean():.2f} ({xhat_abs_anth_tot.min():.2f}, {xhat_abs_anth_tot.max():.2f}) Tg/yr')
 print('-'*75)
@@ -279,7 +253,7 @@ COUNTIES = cfeature.ShapelyFeature(counties, ccrs.PlateCarree())
 ## ------------------------------------------------------------------------ ##
 ## Plot posterior
 ## ------------------------------------------------------------------------ ##
-fig, ax = ip.plot_posterior(xhat.mean(axis=1), dofs.mean(axis=1), clusters)
+fig, ax = ip.plot_posterior(xhat_mean, dofs_mean, clusters)
 fp.save_fig(fig, plot_dir, f'posterior_ensemble')
 
 # # Plot averaging kernel sensitivities
@@ -302,18 +276,18 @@ fp.save_fig(fig, plot_dir, f'posterior_ensemble')
 ## ------------------------------------------------------------------------ ##
 ## Negative values histogram
 ## ------------------------------------------------------------------------ ##
-fig, ax = fp.get_figax(aspect=2)
-for i, member in enumerate(xhat_abs.columns):
-    # print((xhat_abs[member] < 0).sum())
-    ax.hist(xhat_abs[member]/area, bins=np.arange(-25, 55, 1), density=True,
-            color=fp.color(i*2, lut=30), alpha=0.5, histtype='step')
-ax.axvline(soil.mean(), color='black', ls='--', lw=0.5, 
-           label='Mean soil absorption')
-ax.set_xlim(-25, 50)
-ax = fp.add_labels(ax, r'Posterior emissions (Mg km$^{-2}$ a$^{-1}$)', 
-                  'Density')
-ax = fp.add_legend(ax)
-fp.save_fig(fig, plot_dir, 'negative_values_ensemble')
+# fig, ax = fp.get_figax(aspect=2)
+# for i, member in enumerate(xhat_abs.columns):
+#     # print((xhat_abs[member] < 0).sum())
+#     ax.hist(xhat_abs[member]/area, bins=np.arange(-25, 55, 1), density=True,
+#             color=fp.color(i*2, lut=30), alpha=0.5, histtype='step')
+# ax.axvline(soil.mean(), color='black', ls='--', lw=0.5, 
+#            label='Mean soil absorption')
+# ax.set_xlim(-25, 50)
+# ax = fp.add_labels(ax, r'Posterior emissions (Mg km$^{-2}$ a$^{-1}$)', 
+#                   'Density')
+# ax = fp.add_legend(ax)
+# fp.save_fig(fig, plot_dir, 'negative_values_ensemble')
 
 ## ------------------------------------------------------------------------ ##
 ## Sectoral attribution bar chart
@@ -331,7 +305,6 @@ masks = {'Canada' : can_mask, 'CONUS' : conus_mask, 'Mexico' : mex_mask,
          'Other' : other_mask}
 
 print('-'*75)
-total = emis.pop('Total')
 summ_c = {}
 for country, mask in masks.items():
     # Posterior terms
@@ -339,13 +312,13 @@ for country, mask in masks.items():
     post_tot_anth = post_c[anth_cols].sum(axis=1) # Calculate total
     post_tot_bio = post_c[bio_cols].sum(axis=1)
     post_tot = post_tot_anth + post_tot_bio
-    post_c = post_c[list(emis.values())].add_prefix('post_')
+    post_c = post_c[sectors].add_prefix('post_')
 
     # Only optimized terms
     xhat_sub = dc(xhat)
     xhat_sub[dofs < DOFS_filter] = 0
     post_sub_c = ((dc(w)*mask) @ xhat_sub).T
-    post_sub_c = post_sub_c[list(emis.values())].add_prefix('post_sub_')
+    post_sub_c = post_sub_c[sectors].add_prefix('post_sub_')
 
     # Prior terms
     prior_c = (dc(w)*mask) @ np.ones(xhat.shape)
@@ -353,13 +326,14 @@ for country, mask in masks.items():
     prior_c = prior_c.rename({i : post_c.index[i] 
                               for i in range(prior_c.shape[0])})
     prior_tot = prior_c[anth_cols].sum(axis=1) # Calculate total
-    prior_c = prior_c[list(emis.values())].add_prefix('prior_')
+    prior_c = prior_c[sectors].add_prefix('prior_')
 
     # Only optimized terms
-    xa_sub = pd.DataFrame(data=np.ones(xa_abs.shape), columns=xhat.columns)
+    xa_sub = pd.DataFrame(data=np.ones((nstate, len(xhat.columns))), 
+                          columns=xhat.columns)
     xa_sub[dofs < DOFS_filter] = 0
     prior_sub_c = ((dc(w)*mask) @ xa_sub).T
-    prior_sub_c = prior_sub_c[list(emis.values())].add_prefix('prior_sub_')
+    prior_sub_c = prior_sub_c[sectors].add_prefix('prior_sub_')
 
     # Get statistics
     post_c = ip.get_ensemble_stats(post_c.T)
@@ -388,21 +362,21 @@ for country, mask in masks.items():
         a_files = glob.glob(f'{data_dir}ensemble/a2_*_{country.lower()}.csv')
         a_files = [f for f in a_files if 'w37' in f]
         a_files.sort()
-        print(a_files)
-        dofs_r = pd.DataFrame(index=list(emis.values()), columns=xhat.columns)
+
+        dofs_r = pd.DataFrame(index=sectors, columns=xhat.columns)
         for f in a_files:
             short_f = f.split('/')[-1][3:-19]
             a_r = pd.read_csv(f, header=0, index_col=0)
             a_r = a_r.rename(columns={i : a_r.index[int(i)] 
                                       for i in a_r.columns})
-            a_r = a_r.loc[list(emis.values()), list(emis.values())]
+            a_r = a_r.loc[sectors, sectors]
             dofs_r[short_f] = np.diag(a_r)
         dofs_r = ip.get_ensemble_stats(dofs_r).add_prefix('dofs_')
 
     # Print information 
-    xa_abs_opt_frac = (xa_abs*mask.reshape((-1, 1)))[dofs > DOFS_filter].sum(axis=0)/(xa_abs*mask.reshape((-1, 1))).sum(axis=0)
-    xa_abs_anth_opt_frac = (xa_abs_anth*mask.reshape((-1, 1)))[dofs > DOFS_filter].sum(axis=0)/(xa_abs_anth*mask.reshape((-1, 1))).sum(axis=0)
-    xa_abs_bio_opt_frac = (xa_abs_bio*mask.reshape((-1, 1)))[dofs > DOFS_filter].sum(axis=0)/(xa_abs_bio*mask.reshape((-1, 1))).sum(axis=0)
+    xa_abs_opt_frac = np.tile(xa_abs*mask, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/(xa_abs*mask).sum()
+    xa_abs_anth_opt_frac = np.tile(xa_abs_anth*mask, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/(xa_abs_anth*mask).sum()
+    xa_abs_bio_opt_frac = np.tile(xa_abs_bio*mask, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/(xa_abs_bio*mask).sum()
     print(f'In {country}, we achieve {dofs_c.mean():.1f} ({dofs_c.min():.1f}, {dofs_c.max():.1f}) DOFS and optimize {(xa_abs_opt_frac.mean()*100):.1f} ({(xa_abs_opt_frac.min()*100):.1f} - {(xa_abs_opt_frac.max()*100):.1f})%\nof prior emissions and {(xa_abs_anth_opt_frac.mean()*100):.1f} ({(xa_abs_anth_opt_frac.min()*100):.1f} - {(xa_abs_anth_opt_frac.max()*100):.1f})% of prior anthropogenic emissions\nand {(xa_abs_bio_opt_frac.mean()*100):.1f} ({(xa_abs_bio_opt_frac.min()*100):.1f} - {(xa_abs_bio_opt_frac.max()*100):.1f})% of prior biogenic emissions. Anthropogenic emissions\nchange by on average {(post_tot_anth - prior_tot).mean():.2f} ({(post_tot_anth - prior_tot).min():.2f}, {(post_tot_anth - prior_tot).max():.2f}) Tg/yr from {prior_tot.mean():.2f} Tg/yr to\n{post_tot_anth.mean():.2f} ({post_tot_anth.min():.2f}, {post_tot_anth.max():.2f}) Tg/yr. Biogenic emissions are {post_tot_bio.mean():.2f} ({post_tot_bio.min():.2f}, {post_tot_bio.max():.2f}). Total\nemissions are {post_tot.mean():.2f} ({post_tot.min():.2f}, {post_tot.max():.2f}).') #{prior_c.sum(axis=1)}')
     if country == 'CONUS':
         print(dofs_r)
@@ -410,15 +384,14 @@ for country, mask in masks.items():
 
 # Plot histogram (at least take #1)
 other_c = summ_c.pop('Other')
-other_bio = emis.pop('Other biogenic')
 
 fig, ax = fp.get_figax(aspect=1.5, max_width=config.BASE_WIDTH/2)
-ys = np.arange(1, len(emis) + 1)
-cc = [fp.color(i, lut=2*len(emis)) for i in [0, 6, 10, 2, 8, 12, 4]]
-post_rows = [f'post_{e}' for e in emis.values()]
-post_sub_rows = [f'post_sub_{e}' for e in emis.values()]
-prior_rows = [f'prior_{e}' for e in emis.values()]
-prior_sub_rows = [f'prior_sub_{e}' for e in emis.values()]
+ys = np.arange(1, len(sectors))
+cc = [s.sector_colors[sect] for sect in sectors[:-1]]
+post_rows = [f'post_{e}' for e in sectors[:-1]]
+post_sub_rows = [f'post_sub_{e}' for e in sectors[:-1]]
+prior_rows = [f'prior_{e}' for e in sectors[:-1]]
+prior_sub_rows = [f'prior_sub_{e}' for e in sectors[:-1]]
 
 # Plot CONUS
 c = 'CONUS'
@@ -428,59 +401,62 @@ e = summ_c[c]
 ax = fp.add_title(ax, f'{c} sectoral emissions', 
                   fontsize=config.TITLE_FONTSIZE)
 
-# Plot the total bar (all emissions, unoptimized and optimized)
-ax.barh(ys - 0.175, e['mean'][prior_rows], height=0.3, color=cc, alpha=0.3)
-ax.barh(ys + 0.175, e['mean'][post_rows], height=0.3, color=cc, alpha=0.3)
-
-# Plot the optimized emissions
+# Plot the total emissions
 # Prior
-ax.barh(ys - 0.175, e['mean'][prior_sub_rows], 
-        left=e['mean'][prior_rows].values - e['mean'][prior_sub_rows].values,
-        height=0.3, color=cc)
+ax.barh(ys[:-1] - 0.185, epa.loc['mean'], 
+        height=0.3, color='white', edgecolor=cc[:-1])
+ax.barh(ys[-1] - 0.185, e['mean']['prior_wetlands'], 
+        height=0.3, color='white', edgecolor=cc[-1])
 
 # If the optimized emissions are negative, force it to 0 (this is
 # incorrect but will make the plot look correct)
-e['mean'][post_sub_rows] = e['mean'][post_sub_rows].clip(lower=0)
-ax.barh(ys + 0.175, e['mean'][post_sub_rows],
-        left=e['mean'][post_rows].values - e['mean'][post_sub_rows].values,
-        xerr=np.array(e[['min', 'max']].loc[post_rows]).T,
-        error_kw={'ecolor' : '0.6', 'lw' : 0.5, 'capsize' : 2, 
-                  'capthick' : 0.5},
-        height=0.3, color=cc)
+ax.barh(ys + 0.185, e['mean'][post_rows],
+        height=0.3, color='white', edgecolor=cc)
+for i, row in enumerate(post_rows):
+    ax.errorbar(e['mean'][row], ys[i] + 0.185, fmt='none',
+                xerr=np.array(e[['min', 'max']].loc[row])[:, None],
+                ecolor=cc[i], lw=0.75, capsize=2, capthick=0.75, zorder=20)
 
-# # Add prior wetlands error bar
-# ax.errorbar(e['mean']['prior_wetlands'], ys[-1] - 0.175, 
-#             xerr=np.array(e[['min', 'max']].loc['prior_wetlands'])[:,None],
-#             ecolor='0.6', lw=0.5, capsize=1, capthick=0.5)
+# Plot the optimized bar
+# Anthropogenic
+unopt = e['mean'][prior_rows[:-1]].values - e['mean'][prior_sub_rows[:-1]]
+ax.barh(ys[:-1] - 0.185, epa.loc['mean'].values - unopt, left=unopt,
+        height=0.3, color=cc[:-1], alpha=0.3)
+
+# Wetlands
+ax.barh(ys[-1] - 0.185, e['mean']['prior_sub_wetlands'], 
+        left=e['mean']['prior_wetlands'] - e['mean']['prior_sub_wetlands'],
+        height=0.3, color=cc[-1], alpha=0.3)
+
+ax.barh(ys + 0.185, e['mean'][post_sub_rows], 
+        left=e['mean'][post_rows].values - e['mean'][post_sub_rows],
+        height=0.3, color=cc, alpha=0.3)
 
 # Plot EPA 2019
-epa2019 = epa2019[list(emis.values())[:-1]]
-ax.errorbar(epa2019.loc['mean'], ys[:-1] - 0.175,
-            xerr=np.array(epa2019.loc[['min', 'max']]),
-            fmt='o', markersize=2, zorder=20,
-            markerfacecolor='0.6', markeredgecolor='white', 
-            ecolor='0.6', lw=0.5, capsize=1, capthick=0.5,
-            label='2019 EPA GHGI (2022)')
+for i, row in enumerate(sectors[:-2]):
+    ax.errorbar(epa.loc['mean'][row], ys[i] - 0.185, 
+                xerr=np.array(epa.loc[['min', 'max']][row])[:, None],
+                fmt='none', #markersize=3, zorder=20,
+                # markerfacecolor='white', markeredgecolor='black', 
+                ecolor=cc[i], lw=0.75, capsize=2, capthick=0.75, zorder=20)
 
 # Reorder Lu data
-lu2022 = lu2022[emis.values()]
-lu2022.loc['min'] = lu2022.loc['mean'] - lu2022.loc['min']
-lu2022.loc['max'] = lu2022.loc['max'] - lu2022.loc['mean']
-ax.errorbar(lu2022.loc['mean'], ys + 0.175, 
-            xerr=np.array(lu2022.loc[['min', 'max']]), fmt='s', 
-            markersize=2, markerfacecolor='0.6', markeredgecolor='white', 
-            ecolor='0.6', lw=0.5, capsize=1, capthick=0.5, 
-            label='Lu et al. (2022)')
+lu2022 = other_studies[other_studies['study'] == 'Lu et al. (2022)']
+lu2022 = lu2022.set_index('sector').loc[sectors[:-1]]
+ax.errorbar(lu2022['mean'], ys + 0.185, 
+            xerr=np.array(lu2022[['min', 'max']]).T, 
+            fmt='s', markerfacecolor='white', markeredgecolor='black', 
+            markersize=3.5, ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
+            label='Lu et al. (2022)', zorder=20)
 
 # Plot Shen data
-vs = np.array(list(emis.values()))
-y = np.argwhere('ong' == vs)[0][0] + 1
-ax.errorbar(shen2022['ong']['mean'], y + 0.175 + 0.05, 
-            xerr=np.array(shen2022['ong'][['min', 'max']])[:, None], fmt='^', 
-            markersize=2, markerfacecolor='0.6', markeredgecolor='white', 
-            ecolor='0.6', lw=0.5, capsize=1, capthick=0.5, 
-            label='Shen et al. (2022)')
-
+shen2022 = other_studies[other_studies['study'] == 'Shen et al. (2022)']
+y = np.argwhere('ong' == np.array(sectors[:-1]))[0][0] + 1
+ax.errorbar(shen2022['mean'], y + 0.185 + 0.05, 
+            xerr=np.array(shen2022[['min', 'max']]).T, fmt='o', 
+            markersize=3.5, markerfacecolor='white', markeredgecolor='black', 
+            ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
+            label='Shen et al. (2022)', zorder=21)
 
 ax.set_xlim(0, 15.2)
 ax.set_ylim(0.5, 7.5)
@@ -490,21 +466,23 @@ ax.set_yticks(ys)
 ax.set_yticklabels('', ha='right',
                         fontsize=config.TICK_FONTSIZE)
 ax.invert_yaxis()
-ax = fp.add_labels(ax, r'Emissions (Tg a$^{-1}$)', '',
+ax = fp.add_labels(ax, r'Methane emissions (Tg a$^{-1}$)', '',
                         fontsize=config.TICK_FONTSIZE,
                         labelsize=config.TICK_FONTSIZE,
                         labelpad=10)
 for j in range(6):
     ax.axhline((j + 1) + 0.5, color='0.75', lw=0.5, zorder=-10)
 
-ax.set_yticklabels(list(emis.keys()), ha='right',
+ax.set_yticklabels(list(s.sectors.keys())[1:-1], ha='right',
                         fontsize=config.TICK_FONTSIZE)
 
 # Add prior/posterior labels 
 left = summ_c['CONUS']['mean'] + summ_c['CONUS']['max']
-ax.text(0.1, ys[0] - 0.15, # summ_c['CONUS']['mean']['prior_livestock'] + 0.25
-       'Prior', ha='left', va='center', fontsize=config.TICK_FONTSIZE - 2)
-ax.text(0.1, ys[0] + 0.2, 'Posterior',  #left['post_livestock'] + 0.25
+ax.text(0.1, ys[0] - 0.155, # summ_c['CONUS']['mean']['prior_livestock'] + 0.25
+       'EPA GHGI', ha='left', va='center', fontsize=config.TICK_FONTSIZE - 2)
+ax.text(0.1, ys[-1] - 0.155, 
+       'WetCHARTs', ha='left', va='center', fontsize=config.TICK_FONTSIZE - 2)
+ax.text(0.1, ys[0] + 0.205, 'Posterior',  #left['post_livestock'] + 0.25
         ha='left', va='center', fontsize=config.TICK_FONTSIZE - 2)
 
 # Add grid lines
@@ -512,8 +490,8 @@ for j in range(2):
     ax.axvline(5*(j + 1), color='0.75', lw=0.5, zorder=-10)
 
 # Add legend
-custom_patches = [patch(color='0.5', alpha=0.3),
-                  patch(color='0.5', alpha=1)]
+custom_patches = [patch(facecolor='white', edgecolor='0.5', alpha=1),
+                  patch(facecolor='0.3', edgecolor='0.5', alpha=0.3)]
                   # patch(color=fp.color(0), alpha=0.3)]
 custom_labels = [r'Not optimized (A$_{ii}$ $<$'f' {DOFS_filter})',
                  r'Optimized (A$_{ii}$ $\ge$'f' {DOFS_filter})']
@@ -526,14 +504,13 @@ fp.add_legend(ax, handles=custom_patches, labels=custom_labels,
               fontsize=config.TICK_FONTSIZE)
 
 fp.save_fig(fig, plot_dir, f'sectors_bar_ensemble')
-
 plt.close()
 
 ## ------------------------------------------------------------------------ ##
 ## Sectoral attribution maps
 ## ------------------------------------------------------------------------ ##
 # ul = 10
-# ncategory = len(emis)
+# ncategory = len(s.sectors.values())
 # fig, ax = fp.get_figax(rows=2, cols=3, maps=True,
 #                        lats=clusters.lat, lons=clusters.lon)
 # plt.subplots_adjust(hspace=0.3)
@@ -543,7 +520,7 @@ plt.close()
 #                'cbar_kwargs' : d_xhat_cbar_kwargs,
 #                'map_kwargs' : small_map_kwargs}
 
-# for axis, (title, emis_label) in zip(ax.flatten(), emis.items()):
+# for axis, (title, emis_label) in zip(ax.flatten(), s.sectors.items()):
 #     # Get sectoral values (Mg/km2/yr)
 #     post_c = dc(w).loc[emis_label].values[:, None]*(xhat - 1)
 #     post_c = post_c.T
@@ -681,23 +658,23 @@ plt.close()
 # ------------------------------------------------------------------------ ##
 # Plot sectoral error correlation 
 # ------------------------------------------------------------------------ ##
-rfile = f'{data_dir}ensemble/r2_ensemble_conus.csv'
-r = pd.read_csv(rfile, index_col=0, header=0)
-print(r.round(2))
-r = r.loc[anth_cols, anth_cols]
-labels = [list(emis.keys())[list(emis.values()).index(l)] for l in anth_cols]
+# rfile = f'{data_dir}ensemble/r2_ensemble_conus.csv'
+# r = pd.read_csv(rfile, index_col=0, header=0)
+# print(r.round(2))
+# r = r.loc[anth_cols, anth_cols]
+# labels = [list(s.sectors.keys())[1:][list(s.sectors.values())[1:].index(l)] for l in anth_cols]
 
-fig, ax = fp.get_figax(max_width=config.BASE_WIDTH/3,
-                       max_height=config.BASE_HEIGHT/3)
-c = ax.matshow(r, vmin=-1, vmax=1, cmap='RdBu_r')
-ax.set_xticks(np.arange(0, len(labels)))
-ax.set_xticklabels(labels, ha='center', rotation=90)
-ax.xaxis.set_ticks_position('bottom')
-ax.set_yticks(np.arange(0, len(labels)))
-ax.set_yticklabels(labels, ha='right')
+# fig, ax = fp.get_figax(max_width=config.BASE_WIDTH/3,
+#                        max_height=config.BASE_HEIGHT/3)
+# c = ax.matshow(r, vmin=-1, vmax=1, cmap='RdBu_r')
+# ax.set_xticks(np.arange(0, len(labels)))
+# ax.set_xticklabels(labels, ha='center', rotation=90)
+# ax.xaxis.set_ticks_position('bottom')
+# ax.set_yticks(np.arange(0, len(labels)))
+# ax.set_yticklabels(labels, ha='right')
 
-cax = fp.add_cax(fig, ax)
-cb = fig.colorbar(c, cax=cax, ticks=[-1, -0.5, 0, 0.5, 1])
-cb = fp.format_cbar(cb, cbar_title='Pearson correlation coefficient')
-ax = fp.add_title(ax, 'CONUS')
-fp.save_fig(fig, plot_dir, 'r_ensemble_conus')
+# cax = fp.add_cax(fig, ax)
+# cb = fig.colorbar(c, cax=cax, ticks=[-1, -0.5, 0, 0.5, 1])
+# cb = fp.format_cbar(cb, cbar_title='Pearson correlation coefficient')
+# ax = fp.add_title(ax, 'CONUS')
+# fp.save_fig(fig, plot_dir, 'r_ensemble_conus')

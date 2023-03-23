@@ -38,7 +38,7 @@ div_norm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=1, vmax=3)
 ## ------------------------------------------------------------------------ ##
 base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python/'
-data_dir = base_dir +w 'inversion_data/'
+data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
 
 ## ------------------------------------------------------------------------ ##
@@ -67,16 +67,12 @@ dofs = pd.read_csv(f'{data_dir}ensemble/dofs.csv', index_col=0)
 xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
 ensemble = xhat.columns
 
-# ID two priors
-w37_cols = [s for s in ensemble if 'w37' in s]
-w404_cols = [s for s in ensemble if 'w404' in s]
-
-# Load weighting matrices in units Mg/yr (we don't consider wetlands
-# here, so it doesn't matter which W we use)
-w = pd.read_csv(f'{data_dir}w_w404_edf.csv')['coal'].T
+# Load weighting matrices in units Mg/yr
+w = pd.read_csv(f'{data_dir}w_w37_edf.csv')['coal'].T
 
 # Get the posterior xhat_abs (this is n x 15)
 xhat_diff_abs = (w.values[:, None]*(xhat - 1))
+xhat_abs = (w.values[:, None]*xhat)
 
 # Iterate through the regions
 for name, reg in interest.items():
@@ -87,5 +83,5 @@ for name, reg in interest.items():
     c_idx = (c.values[c.values > 0] - 1).astype(int)
 
     tt_prior = w.values[c_idx].sum()*1e-6
-    tt_post = xhat_diff_abs.values[c_idx, :].sum(axis=0)*1e-6
-    print(f'{name:<20s}:   {tt_prior:.2f}     {tt_post.mean():4.2f} ({tt_post.min():4.2f}, {tt_post.max():4.2f}) Tg/yr     {(tt_post.mean()/tt_prior*100):4.2f}')
+    tt_post = xhat_abs.values[c_idx, :].sum(axis=0)*1e-6
+    print(f'{name:<20s}:   {tt_prior:.2f}     {tt_post.mean():4.2f} ({tt_post.min():4.2f}, {tt_post.max():4.2f}) Tg/yr     {(tt_post.mean()/tt_prior - 1)*100:4.2f}')
