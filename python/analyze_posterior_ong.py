@@ -14,9 +14,9 @@ pd.set_option('display.max_columns', 20)
 # Custom packages
 sys.path.append('.')
 import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
+# config.SCALE = config.PRES_SCALE
+# config.BASE_WIDTH = config.PRES_WIDTH
+# config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
 import troppy as tp
 import invpy as ip
@@ -95,7 +95,7 @@ ensemble = xhat.columns
 
 # Load weighting matrices in units Tg/yr (we don't consider wetlands
 # here, so it doesn't matter which W we use)
-w = pd.read_csv(f'{data_dir}w_w404_edf.csv')
+w = pd.read_csv(f'{data_dir}w_w37_edf.csv')
 w = dc(w['ong']).T*1e-6
 
 # Get the posterior xhat_abs (this is n x nensemble) (only ONG)
@@ -142,8 +142,7 @@ nb = w_ong.shape[0]
 xs = np.arange(1, nb + 1)
 
 # Begin plotting!
-fig, ax = fp.get_figax(aspect=1.67, sharex=True,
-                       max_height=config.BASE_HEIGHT*config.SCALE)
+fig, ax = fp.get_figax(aspect=3, sharex=True)
 
 # Get labels
 labels = [label_map[l] for l in summ.index.values]
@@ -162,13 +161,13 @@ summ['post_max'] = summ['post_max'] - summ['post_mean']
 summ['post_min'] = summ['post_mean'] - summ['post_min']
 
 # Plot bar
-ax.bar(xs - 0.175, summ['prior'], width=0.3, color=fp.color(3), 
+ax.bar(xs - 0.175, summ['prior'], width=0.3, color=s.sector_colors['ong'], 
        label='Prior')
 ax.bar(xs + 0.175, summ['post_mean'], 
        yerr=np.array(summ[['post_min', 'post_max']]).T,
-       error_kw={'ecolor' : '0.6', 'lw' : 0.5, 'capsize' : 1, 
-                 'capthick' : 0.5},
-       width=0.3, color=fp.color(3), alpha=0.3, label='Posterior')
+       error_kw={'ecolor' : '0.65', 'lw' : 0.75, 'capsize' : 2, 
+                 'capthick' : 0.75},
+       width=0.3, color=s.sector_colors['ong'], alpha=0.15, label='Posterior')
 
 # Add Shen data
 ax.errorbar(xs + 0.175, shen2022_data*1e-3, yerr=shen2022_err*1e-3, fmt='o', 
@@ -178,7 +177,7 @@ ax.errorbar(xs + 0.175, shen2022_data*1e-3, yerr=shen2022_err*1e-3, fmt='o',
 
 # Add Shen threshold
 ax.fill_between([0, nb + 1], [0, 0], [0.5, 0.5], 
-                color='0.3', alpha=0.2, label='Quantification threshold')
+                color='0.3', alpha=0.1, label='Quantification threshold')
 
 # Add labels
 ax.set_xticks(xs)
@@ -187,7 +186,7 @@ ax.set_xlim(0, nb + 1)
 ax.set_xticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE,
                    rotation=90)
 
-ax.set_ylim(0, 4)
+ax.set_ylim(0, 3.5)
 
 ax.tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
 # plt.setp(ax.get_xticklabels(), visible=False)

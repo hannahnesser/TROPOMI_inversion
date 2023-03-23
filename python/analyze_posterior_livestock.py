@@ -8,22 +8,17 @@ import xarray as xr
 import xesmf as xe
 import numpy as np
 import pandas as pd
-from scipy.stats import probplot as qq
+from sklearn import linear_model
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-from matplotlib.patches import Patch as patch
-import cartopy.feature as cfeature
-import cartopy.io.shapereader as shpreader
-import cartopy.crs as ccrs
-import imageio
+
 pd.set_option('display.max_columns', 10)
 
 # Custom packages
 sys.path.append('.')
 import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
+# config.SCALE = config.PRES_SCALE
+# config.BASE_WIDTH = config.PRES_WIDTH
+# config.BASE_HEIGHT = config.PRES_HEIGHT
 import gcpy as gc
 import troppy as tp
 import invpy as ip
@@ -39,21 +34,8 @@ data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
 
 ## ------------------------------------------------------------------------ ##
-## Set plotting preferences
-## ------------------------------------------------------------------------ ##
-# Get county outlines for high resolution results
-reader = shpreader.Reader(f'{data_dir}counties/countyl010g.shp')
-counties = list(reader.geometries())
-COUNTIES = cfeature.ShapelyFeature(counties, ccrs.PlateCarree())
-
-viridis_trans = fp.cmap_trans('viridis')
-
-## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# DOFS_filter
-DOFS_filter = 0.05
-
 # Define basins of interest
 interest = {'Upper midwest' : [35, 55, -105, -80]}
 
@@ -100,107 +82,173 @@ dofs = pd.read_csv(f'{data_dir}ensemble/dofs.csv', index_col=0)
 xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
 ensemble = xhat.columns
 
-# Load weighting matrices in units Mg/yr
+# Load weighting matrices in units Tg/yr
 w = pd.read_csv(f'{data_dir}w_edf_hr.csv')[['enteric_fermentation', 
-                                            'manure_management']].T
+                                            'manure_management']].T*1e-6
 
 # Get the posterior xhat_abs (this is n x 15)
 xa_abs = w.sum(axis=1)
 print('-'*75)
-print('Prior')
-print(xa_abs)
+print('Prior (Tg/yr)')
+print(xa_abs.round(2))
 
 xhat_abs = w @ xhat
 xhat_abs = ip.get_ensemble_stats(xhat_abs)
 print('-'*75)
-print('Posterior')
-print(xhat_abs)
+print('Posterior (Tg/yr)')
+print(xhat_abs.round(2))
 
 print('-'*75)
-print('Posterior fractions')
-print(xhat_abs/xhat_abs.sum(axis=0))
+print('Posterior percentages (percent of all livestock)')
+print((xhat_abs/xhat_abs.sum(axis=0)).round(2)*100)
 
 
 xhat_sf = xhat_abs/xa_abs.values[:, None]
 print('-'*75)
 print('Posterior scaling factors')
-print(xhat_sf)
+print(xhat_sf.round(2))
 
 xhat_diff_abs = w @ (xhat - 1)
 xhat_diff_abs = ip.get_ensemble_stats(xhat_diff_abs)
 print('-'*75)
-print('Difference')
-print(xhat_diff_abs)
+print('Difference (Tg/yr)')
+print(xhat_diff_abs.round(2))
+print('-'*75)
+
+## ------------------------------------------------------------------------ ##
+## Plot enteric fermentation and manure management corrections
+## ------------------------------------------------------------------------ ##
+fig, ax = fp.get_figax(cols=2, maps=True, lats=clusters.lat, lons=clusters.lon)
+plt.subplots_adjust(wspace=0.1)
+for i, sect in enumerate(['enteric_fermentation', 'manure_management']):
+    xhat_diff_abs = w.loc[sect].values[:, None]*(xhat - 1)
+    xhat_diff_abs = xhat_diff_abs.mean(axis=1).values # Ensemble mean
+    xhat_diff_abs = xhat_diff_abs/area.reshape(-1,)*1e6 # Tg/yr -> Mg/km2/yr
+    
+    title = sect.replace('_', ' ').capitalize()
+    fig, ax[i], c = ip.plot_state(
+        xhat_diff_abs, clusters, title=title,
+        fig_kwargs={'figax' : [fig, ax[i]]}, default_value=0, 
+        vmin=-5, vmax=5, cmap='RdBu_r', cbar=False)
+
+cax = fp.add_cax(fig, ax, cbar_pad_inches=0.2)
+cb = fig.colorbar(c, cax=cax)
+cb = fp.format_cbar(cb, 
+                    cbar_title=r'$\Delta$ Methane emissions'f'\n'r'(Mg km$^{-2}$ a$^{-1}$)')
+fp.save_fig(fig, plot_dir, 'livestock_sector_xhat_diff')
+print('-'*75)
+
+## ------------------------------------------------------------------------ ##
+## Compare to past studies
+## ------------------------------------------------------------------------ ##
+w_std = pd.read_csv(f'{data_dir}w_w37_edf.csv')[['livestock']].T*1e-6
+
+# Iterate through the regions
+for name, reg in interest.items():
+    w_reg = gc.grid_shape_overlap(clusters,
+                                  x=[reg[2], reg[2], reg[3], reg[3]],
+                                  y=[reg[0], reg[1], reg[1], reg[0]],
+                                  name=name)
+    reg_prior = (w_std.values*w_reg).sum()
+    reg_post = (w_std*w_reg) @ xhat
+    reg_post = ip.get_ensemble_stats(reg_post)
+    print('Comparison to Yu et al. (2021)')
+    print(f'Prior emissions: {reg_prior:.2f}')
+    print(f'Posterior emissions:')
+    print(reg_post.round(2))
 print('-'*75)
 
 ## ------------------------------------------------------------------------ ##
 ## Load animal files
 ## ------------------------------------------------------------------------ ##
-# GEOS-Chem grid
-lon_e_gc = np.append(clusters.lon.values - s.lon_delta/2,
-                     clusters.lon[-1].values + s.lon_delta/2)
-lat_e_gc = np.append(clusters.lat.values - s.lat_delta/2,
-                     clusters.lat[-1].values + s.lat_delta/2)
-area_gc = Re**2*(np.sin(lat_e_gc[1:]/180*np.pi) - 
-                 np.sin(lat_e_gc[:-1]/180*np.pi))*s.lon_delta/180*np.pi
+# # GEOS-Chem grid
+# lon_e_gc = np.append(clusters.lon.values - s.lon_delta/2,
+#                      clusters.lon[-1].values + s.lon_delta/2)
+# lat_e_gc = np.append(clusters.lat.values - s.lat_delta/2,
+#                      clusters.lat[-1].values + s.lat_delta/2)
+# area_gc = Re**2*(np.sin(lat_e_gc[1:]/180*np.pi) - 
+#                  np.sin(lat_e_gc[:-1]/180*np.pi))*s.lon_delta/180*np.pi
 
+# # Get  livestock
+# delta_lon_ls = 0.01
+# delta_lat_ls = 0.01
+# ls_data_2012 = pd.DataFrame()
+# ls_data_2018 = pd.DataFrame()
+# for i, (file, animal) in enumerate(animal_files.items()):
+#     ls = xr.open_dataset(f'{data_dir}livestock/{file}')
+#     ls = ls['emi_ch4'] # Units are actually hogs
+#     ls = ls.sel(lat=slice(s.lat_min, s.lat_max), 
+#                     lon=slice(s.lon_min, s.lon_max))
+#     ls.attrs['units'] = 'count'
 
-# # Load GEPA and convert from molec/cm2/sec to Mg/km2/yr
-# gepa = xr.open_dataset(f'{data_dir}livestock/GEPA_Annual.nc')
-# gepa = gepa[['emissions_4A_Enteric_Fermentation',
-#              'emissions_4B_Manure_Management']]
-# gepa = gepa.sel(lat=slice(s.lat_min, s.lat_max),
-#                 lon=slice(s.lon_min, s.lon_max))
-# gepa *= (1/6.022e23)*(16.04e-6)*(1e4)*(60*60*24*365)
-# gepa_rg = xr.open_dataset(f'{data_dir}livestock/GEPA_regridded.nc')
-# gepa_rg *= (1/6.022e23)*(16.04e-6)*(1e4)*(60*60*24*365)
+#     ls_rg = xr.open_dataarray(f'{data_dir}livestock/{animal}.nc')
 
-# # Load the GEPA grid
-# lon_e_gepa = np.append(gepa.lon.values - 0.1/2, gepa.lon[-1].values + 0.1/2)
-# lon_e_gepa = np.round(lon_e_gepa, 3)
-# lat_e_gepa = np.append(gepa.lat.values - 0.1/2, gepa.lat[-1].values + 0.1/2)
-# lat_e_gepa = np.round(lat_e_gepa, 3)
-# area_gepa = Re**2*(np.sin(lat_e_gepa[1:]/180*np.pi) - 
-#                    np.sin(lat_e_gepa[:-1]/180*np.pi))*0.1/180*np.pi
+#     # Livestock grid
+#     if i == 0:
+#         lon_e_ls = np.round(np.append(ls.lon.values - delta_lon_ls/2,
+#                                       ls.lon[-1].values + delta_lon_ls/2), 3)
+#         lat_e_ls = np.round(np.append(ls.lat.values - delta_lat_ls/2,
+#                                       ls.lat[-1].values + delta_lat_ls/2), 3)
+#         area_ls = Re**2*(np.sin(lat_e_ls[1:]/180*np.pi) - 
+#                          np.sin(lat_e_ls[:-1]/180*np.pi))*delta_lon_ls/180*np.pi
 
-# # Compare counts
-# total = (gepa*area_gepa[:, None]).sum(['lat', 'lon'])*1e-6
-# total_rg = (gepa_rg*area_gc[:, None]).sum(['lat', 'lon'])*1e-6
-# print(f'Total GEPA 0.1x0.1     : ', total.values)
-# print(f'Total GEPA 0.25x0.3125 : ', total_rg.values)
+#     # Calculate totals
+#     total = (ls*area_ls[:, None, None]).sum(['lat', 'lon']) # Mg/m2/yr -> Mg/y
+#     total_rg = (ls_rg*area_gc[None, :, None]).sum(['lat', 'lon'])
 
-# Get  livestock
-delta_lon_ls = 0.01
-delta_lat_ls = 0.01
-ls_data = pd.DataFrame()
-for i, (file, animal) in enumerate(animal_files.items()):
-    ls = xr.open_dataset(f'{data_dir}livestock/{file}')
-    ls = ls['emi_ch4'] # Units are actually hogs
-    ls = ls.sel(lat=slice(s.lat_min, s.lat_max), 
-                    lon=slice(s.lon_min, s.lon_max))
-    ls.attrs['units'] = 'count'
+#     print(f'Total {animal} 0.01x0.01 2012-2018   : ', total.values)
+#     print(f'Total {animal} 0.25x0.3125 2012-2018 : ', total_rg.values)
 
-    ls_rg = xr.open_dataarray(f'{data_dir}livestock/{animal}.nc')
+#     ls_data_2012[animal] = ip.clusters_2d_to_1d(clusters, ls_rg.sel(year=2012)*total[0]/total_rg[0])
+#     ls_data_2018[animal] = ip.clusters_2d_to_1d(clusters, ls_rg.sel(year=2018)*total[-1]/total_rg[-1])
 
-    # Livestock grid
-    if i == 0:
-        lon_e_ls = np.round(np.append(ls.lon.values - delta_lon_ls/2,
-                                      ls.lon[-1].values + delta_lon_ls/2), 3)
-        lat_e_ls = np.round(np.append(ls.lat.values - delta_lat_ls/2,
-                                      ls.lat[-1].values + delta_lat_ls/2), 3)
-        area_ls = Re**2*(np.sin(lat_e_ls[1:]/180*np.pi) - 
-                         np.sin(lat_e_ls[:-1]/180*np.pi))*delta_lon_ls/180*np.pi
+# ls_data_2012.to_csv(f'{data_dir}livestock/livestock_2012_summary.csv')
+# ls_data_2018.to_csv(f'{data_dir}livestock/livestock_2018_summary.csv')
 
-    # Calculate totals
-    total = (ls*area_ls[:, None, None]).sum(['lat', 'lon']) # Mg/m2/yr -> Mg/y
-    total_rg = (ls_rg*area_gc[None, :, None]).sum(['lat', 'lon'])
+ls_data_2012 = pd.read_csv(f'{data_dir}livestock/livestock_2012_summary.csv', 
+                           index_col=0)
+ls_data_2018 = pd.read_csv(f'{data_dir}livestock/livestock_2018_summary.csv', 
+                           index_col=0)
 
-    print(f'Total {animal} 0.01x0.01 2012-2018   : ', total.values)
-    print(f'Total {animal} 0.25x0.3125 2012-2018 : ', total_rg.values)
+## ------------------------------------------------------------------------ ##
+## Do a multiple linear regression
+## ------------------------------------------------------------------------ ##
+mlr = linear_model.LinearRegression()
 
-    ls_data[animal] = ip.clusters_2d_to_1d(clusters, ls_rg*total/total_rg)
+# ls_data_2012 = ls_data_2012[['cattle_feed', 'hogs', 'dairy']]
+# ls_data_2018 = ls_data_2018[['cattle_feed', 'hogs', 'dairy']]
 
-ls_data.to_csv(f'{data_dir}livestock/livestock_summary.csv')
+print(ls_data_2012.columns.values)
+
+print('-'*75)
+print('Enteric fermentation (2012)')
+xhat_diff_abs = w.loc['enteric_fermentation'].values[:, None]*(xhat - 1)
+xhat_diff_abs = xhat_diff_abs.mean(axis=1).values # Ensemble mean
+xhat_diff_abs = xhat_diff_abs/area.reshape(-1,)*1e6 # Tg/yr -> Mg/km2/yr
+mlr.fit(ls_data_2012, xhat_diff_abs)
+print(mlr.coef_.round(2)*1000)
+print(mlr.score(ls_data_2012, xhat_diff_abs))
+
+print('-'*75)
+print('Enteric fermentation (2018)')
+mlr.fit(ls_data_2018, xhat_diff_abs)
+print(mlr.coef_.round(2)*1000)
+print(mlr.score(ls_data_2018, xhat_diff_abs))
+
+print('-'*75)
+print('Manure management (2012)')
+xhat_diff_abs = w.loc['manure_management'].values[:, None]*(xhat - 1)
+xhat_diff_abs = xhat_diff_abs.mean(axis=1).values # Ensemble mean
+xhat_diff_abs = xhat_diff_abs/area.reshape(-1,)*1e6 # Tg/yr -> Mg/km2/yr
+mlr.fit(ls_data_2012, xhat_diff_abs)
+print(mlr.coef_.round(2)*1000)
+print(mlr.score(ls_data_2012, xhat_diff_abs))
+
+print('-'*75)
+print('Manure management (2018)')
+mlr.fit(ls_data_2018, xhat_diff_abs)
+print(mlr.coef_.round(2)*1000)
+print(mlr.score(ls_data_2018, xhat_diff_abs))
 
 # ls_data['manure_management'] = ls_data['dairy'] + ls_data['hogs'] + ls_data['poultry'] + ls_data['beef_bison_cattle']
 

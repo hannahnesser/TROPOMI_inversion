@@ -51,34 +51,25 @@ plot_dir = base_dir + 'plots/'
 DOFS_filter = 0.2
 
 # Define emission categories
-emis = {'Oil and natural gas' : 'ong', 
-        'Coal' : 'coal', 
-        'Landfills' : 'landfills', 
-        'Wastewater' : 'wastewater', 
-        'Livestock' : 'livestock',
-        'Other anthropogenic' : 'other_anth'}
+sectors = ['livestock', 'ong', 'coal', 'landfills', 'wastewater', 'other_anth']
 
-basin_studies = {
-    'Fairley and Fischer (2015)' : {'San Francisco Bay' : [240, 60, 60]}, # 2009 - 2012 https://www.sciencedirect.com/science/article/pii/S1352231015000886
-    'Jeong et al. (2016)' : {'South Coast' : [380, 79, 110],
-                             'San Francisco Bay' : [245, 86, 95]}, # values are medians June 2013 - May 2014 https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1002/2016JD025404
-    'Jeong et al. (2017)' : {'San Francisco Bay' : [226, 60, 63]}, # Median for Sept - Dec 2015, much of underestimation from landfills https://agupubs.onlinelibrary.wiley.com/doi/pdf/10.1002/2016GL071794
-    'Guha et al. (2020)' : {'San Francisco Bay' : [222.3, 40, 40]}, # 88% increase over inventory, 2015 - 2019 measurements https://pubs-acs-org.ezp-prod1.hul.harvard.edu/doi/pdf/10.1021/acs.est.0c01212
-    'Cui et al. (2015)' : {'South Coast' : [406, 81, 81]}, # mean of 6 flights flown over 2010 https://agupubs.onlinelibrary.wiley.com/doi/pdf/10.1002/2014JD023002
-    'Wunch et al. (2016)' : {'South Coast' : [413, 86, 86]}, # 2007 - 2016 average, relatively steady methane emissions https://acp.copernicus.org/articles/16/14091/2016/acp-16-14091-2016.pdf
-    'Yadav et al. (2019)' : {'South Coast' : [333, 89, 89]}, # 2015-2016 mean, excluding Aliso Canyon leak https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2018JD030062
-    'Kuwayama et al. (2019)' : {'South Coast' : [177, 19, 19]}, #158 196
-    'Cusworth et al. (2020)' : {'South Coast' : [274, 72, 72]}, # Multi-tiered inversion with CLARS-FTS and TROPOMI aand AVIRIS-NG for Jan 2017- Sept 2018 https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1029/2020GL087869
-    'Yadav et al. (2023)' : {'South Coast' : [251, 10, 10]}
-    # 'Karion et al. (2015)' : {'Dallas' : [660, 110, 110]}, # DFW mass baalance from 8 different flight days in March and October 2013 https://pubs.acs.org/doi/full/10.1021/acs.est.5b00217
-               }
+# Load other studies
+basin_studies = pd.read_csv(f'{data_dir}cities/other_studies.csv')
+basin_studies = basin_studies.sort_values(by=['Publication year', 'Label'], 
+                                        ascending=False).reset_index(drop=True)
+basin_studies = basin_studies[basin_studies['City'].isin(['San Francisco', 
+                                                          'Los Angeles'])]
+basin_studies.loc[basin_studies['City'] == 'San Francisco', 'City'] = 'San Francisco Bay'
+basin_studies.loc[basin_studies['City'] == 'Los Angeles', 'City'] = 'South Coast'
+
+# Jeong et al
+jeong = pd.read_csv(f'{data_dir}states/jeong.csv', index_col=0)
 
 ## ------------------------------------------------------------------------ ##
 ## Load files
 ## ------------------------------------------------------------------------ ##
 # Load the cities mask
 w_airbasin = pd.read_csv(f'{data_dir}states/airbasin_mask.csv', header=0).T
-print(w_airbasin)
 
 # Load clusters
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc').squeeze()
@@ -92,9 +83,6 @@ dofs = pd.read_csv(f'{data_dir}ensemble/dofs.csv', index_col=0)
 xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
 ensemble = xhat.columns
 
-# ID two priors
-w404_cols = [s for s in ensemble if 'w404' in s]
-
 # # Load reduced DOFS
 # a_files = glob.glob(f'{data_dir}ensemble/a2_*_urban.csv')
 # a_files.sort()
@@ -107,13 +95,19 @@ w404_cols = [s for s in ensemble if 'w404' in s]
 
 # Load weighting matrices in units Gg/yr (we don't consider wetlands
 # here, so it doesn't matter which W we use)
-w = pd.read_csv(f'{data_dir}w_w404_edf.csv')
-w = dc(w[list(emis.values())])
+w = pd.read_csv(f'{data_dir}w_w37_edf.csv')
+w = dc(w[sectors])
 w['total'] = w.sum(axis=1)
 w = w.T*1e-3
 
 # Get the posterior xhat_abs (this is n x 15)
 xhat_abs = (w.loc['total'].values[:, None]*xhat)
+xhat_abs_sect = pd.DataFrame(columns=[f'post_{s}' for s in w.index[:-1]])
+for sect in w.index:
+    if sect != 'total':
+        xx = (w.loc[sect].values[:, None]*xhat)
+        xx = ip.get_ensemble_stats(xx)['mean']
+        xhat_abs_sect[f'post_{sect}'] = xx
 
 ## ------------------------------------------------------------------------ ##
 ## Calculate metropolitan statistical areas sectoral prior and posterior
@@ -128,6 +122,7 @@ prior_c = (w_airbasin @ w.T).add_prefix('prior_')
 
 ## Posterior (We want a matrix that is ncities x 15)
 post_c = (w_airbasin @ xhat_abs)
+post_sect_c = (w_airbasin @ xhat_abs_sect)
 
 ## Difference
 diff_c = post_c - prior_c['prior_total'].values[:, None]
@@ -141,14 +136,17 @@ post_stats_c = ip.get_ensemble_stats(post_c).add_prefix('post_')
 diff_stats_c = ip.get_ensemble_stats(diff_c).add_prefix('diff_')
 
 ## Aggregate
-summ_c = pd.concat([pd.DataFrame(area_c), prior_c,
+summ_c = pd.concat([pd.DataFrame(area_c), prior_c, post_sect_c,
                     post_stats_c, xhat_stats_c, diff_stats_c], axis=1)
+summ_c.to_csv(f'{data_dir}/states/summ_california.csv', header=True, 
+              index=True)
 
 ## ------------------------------------------------------------------------ ##
 ## Plot results
 ## ------------------------------------------------------------------------ ##
 # Subset
 summ_c = summ_c[summ_c['post_mean'] > 50]
+summ_c.to_csv(f'{data_dir}/states/summ_airbasins.csv', header=True, index=True)
 
 # Adjust min/max definitions for error bars
 summ_c['post_max'] = summ_c['post_max'] - summ_c['post_mean']
@@ -158,7 +156,9 @@ summ_c['post_min'] = summ_c['post_mean'] - summ_c['post_min']
 ys = np.arange(1, summ_c.shape[0] + 1)
 
 # And begin the plot!
-fig, ax = fp.get_figax(aspect=3*6/7, max_width=config.BASE_WIDTH) 
+fig, ax = fp.get_figax(aspect=1.5*7/summ_c.shape[0], 
+                       max_width=config.BASE_WIDTH, 
+                       max_height=config.BASE_HEIGHT) 
 #                        # max_height=config.BASE_HEIGHT*config.SCALE)
 # plt.subplots_adjust(wspace=0.1)
 
@@ -170,63 +170,58 @@ ax = fp.add_title(ax, 'California air basin emissions',
                   fontsize=config.TITLE_FONTSIZE)
 
 # Formatters
-cc = [fp.color(i, lut=2*7) for i in [6, 10, 2, 8, 0, 12, 0]]
-formats = ['o', 's', '^']
-sizes = [4, 4, 4]
+formats = ['o', 's', '^', 'D']
+sizes = [4, 4, 4, 4]
 
 # Prior
 left_prior = np.zeros(len(ys))
-for i, (l, e) in enumerate(emis.items()):
+left_post = np.zeros(len(ys))
+for i, e in enumerate(sectors):
+    l = list(s.sectors.keys())[list(s.sectors.values()).index(e)]
     ax.barh(ys - 0.175, summ_c[f'prior_{e}'], left=left_prior, 
-               height=0.3, color=cc[i], label=f'{l}')
+               height=0.3, color=s.sector_colors[e], label=f'{l}')
     left_prior += summ_c[f'prior_{e}']
 
-# # Prior #2
-# left_prior = np.zeros(len(ys))
-# for i, (l, e) in enumerate(emis.items()):
-#     ax.barh(ys - 0.0875, summ_c[f'prior2019_{e}'], left=left_prior, 
-#                height=0.125, color=cc[i])
-#     left_prior += summ_c[f'prior2019_{e}']
-#     if e == 'ong':
-#         ax.barh(ys - 0.0875, (summ_c['pop_2010']/pop_conus)*(11.4/25*1e3),
-#                    left=left_prior, height=0.125, color=cc[i], alpha=0.6,
-#                    label='Post meter natural gas')
-#         left_prior += summ_c[f'pop_2010']/pop_conus*(11.4/25*1e3)
-# # ax.barh(ys, )
+    # Posterior
+    ax.barh(ys + 0.175, summ_c[f'post_{e}'], left=left_post,
+            height=0.3, color=s.sector_colors[e])
+    left_post += summ_c[f'post_{e}']
 
-# Posterior
-ax.barh(ys + 0.175, summ_c['post_mean'],
-           xerr=np.array(summ_c[['post_min', 'post_max']]).T,
-           error_kw={'ecolor' : '0.6', 'lw' : 0.5, 'capsize' : 1,
-                     'capthick' : 0.5},
-           height=0.3, color=fp.color(3), alpha=0.3, 
-           label='Posterior total')
+ax.errorbar(summ_c[f'post_mean'], ys + 0.175,
+            xerr=np.array(summ_c[['post_min', 'post_max']]).T,
+            ecolor='0.65', lw=0.75, capsize=2, capthick=0.75, fmt='none', 
+            zorder=10)
 
 # Other studies
 i = 0
-for cs_name, cs in basin_studies.items():
-    study_used = False
-    for c_name, cd in cs.items():
-        if c_name in labels:
-            if ~study_used:
-                label = cs_name
-            else:
-                label = None
-            study_used = True
-            # print(cs_name, i, formats[i])
-            y = np.argwhere(c_name == labels)[0][0]
-            ax.errorbar(cd[0], y + 1, xerr=np.array(cd[1:])[:, None], 
-                           fmt=formats[i % 3], markersize=sizes[i % 3], 
-                           markerfacecolor=fp.color(math.ceil((i + 1)/3), 
-                                                    cmap='viridis', lut=5),
-                           markeredgecolor='black',
-                           ecolor='black', elinewidth=0.25, 
-                           capsize=1, capthick=0.5, zorder=10,
-                           label=label)
-            print(cs_name, c_name, i, math.ceil((i + 1)/3), fp.color(math.ceil((i + 1)/3), cmap='viridis', lut=5))
+for study in basin_studies['Label'].unique():
+    studies = basin_studies[basin_studies['Label'] == study]
 
-    if study_used:
-        i += 1
+    # Subset for only cities in the top nc and iterate through those
+    for basin in studies['City'].unique():
+        result = studies[studies['City'] == basin]
+        y = np.argwhere(basin == labels)[0][0]
+        ax.errorbar(
+            result['Mean'].values, (y + 1)*np.ones(result.shape[0]), 
+            xerr=result[['Min', 'Max']].values.T, fmt=formats[i % 4], 
+            markersize=sizes[i % 4], markeredgecolor='black', 
+            markerfacecolor=fp.color(math.ceil((i + 1)/4), 
+                                     cmap='viridis', lut=4),
+            ecolor='black', elinewidth=0.25, capsize=1, capthick=0.5, 
+            zorder=10, label=study)
+    i += 1
+
+jeong = jeong.loc[summ_c.index]
+jeong['med'] = (jeong['min'] + jeong['max'])/2
+jeong['max'] = jeong['max'] - jeong['med']
+jeong['min'] = jeong['med'] - jeong['min']
+ax.errorbar(jeong['med'], ys, xerr=jeong[['min', 'max']].values.T, 
+            fmt=formats[i % 4], markersize=sizes[i % 4], 
+            markeredgecolor='black', 
+            markerfacecolor=fp.color(math.ceil((i + 1)/4), 
+                                     cmap='viridis', lut=4),
+            ecolor='black', elinewidth=0.25, capsize=1, capthick=0.5, 
+            zorder=10, label='Jeong et al. (2016)')
 
 # Add labels
 ax.set_yticks(ys)
@@ -235,11 +230,7 @@ ax.invert_yaxis()
 ax.tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
 
 # Deal with scales
-# ax.set_xlim(0, 2e3)
-# ax.set_xscale('log')
-# ax.set_xlim(10, 2.1e3)
 ax.set_xlim(0, 1.2e3)
-# ax.set_xscale('log')
 
 # Final aesthetics
 ax.set_yticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE)
@@ -248,7 +239,7 @@ ax = fp.add_labels(ax, r'Emissions (Gg a$^{-1}$)', '',
                       labelsize=config.TICK_FONTSIZE, labelpad=10)
 
 for i in range(20):
-    ax.axvline((i + 1)*250, color='0.75', lw=0.5, zorder=-10)
+    ax.axvline((i + 1)*200, color='0.75', lw=0.5, zorder=-10)
 
 # Horizontal grid lines
 for i in range(len(ys) + 1):
@@ -277,8 +268,8 @@ labels = [labels[i] for i in reorder]
 # labels = [labels[idx] for idx in reorder]
 
 # Add legend
-ax = fp.add_legend(ax, handles=handles, labels=labels, ncol=2,
+ax = fp.add_legend(ax, handles=handles, labels=labels, ncol=3,
                    fontsize=config.TICK_FONTSIZE, loc='upper center', 
-                   bbox_to_anchor=(0.5, -0.5))
+                   bbox_to_anchor=(0.5, -0.2))
 
 fp.save_fig(fig, plot_dir, f'california_ensemble')
