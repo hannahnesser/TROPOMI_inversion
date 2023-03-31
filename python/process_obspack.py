@@ -250,9 +250,14 @@ plot_dir = base_dir + 'plots/'
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc').squeeze()
 
 # Get obs
+ll = gc.load_obj(f'{data_dir}2019_corrected.pkl')
+ll = ll['LAT']
 y = xr.open_dataarray(f'{data_dir}ensemble/y.nc')
 ya = xr.open_dataarray(f'{data_dir}ensemble/ya_w37_edf_nlc.nc') + 9.11
 yhat = xr.open_dataarray(f'{data_dir}ensemble/ya_post.nc')
+
+ya = ya - (1.85 + 0.195*ll)
+yhat = yhat - (1.85 + 0.195*ll)
 
 # Load data
 data = pd.read_csv(f'{data_dir}obspack/obspack_ch4.2019.csv', index_col=0)
@@ -266,65 +271,95 @@ data['utc_conv'] = pd.to_timedelta(data['utc_conv'], unit='h')
 # Get site
 data['site'] = dc(data['id'].str.split('~ch4_').str[-1].str.split('_').str[0])
 
+# Get GC grid
+lats, lons = gc.create_gc_grid(*s.lats, s.lat_delta,*s.lons, s.lon_delta,
+                               centers=False, return_xarray=False)
+data['lat_center'] = lats[gc.nearest_loc(data['lat'].values, lats)]
+data['lon_center'] = lons[gc.nearest_loc(data['lon'].values, lons)]
+
 # Remove scenes with 0 pressure
 data = data[data['pressure'] != 0]
 data = data[data['pressure'] > 300]
+
+# Remove scenes not in CONUS
+conus_mask = np.load(f'{data_dir}countries/CONUS_mask.npy').reshape((-1,))
+conus_mask = ip.match_data_to_clusters(conus_mask, clusters, default_value=0)
+conus_mask = conus_mask.to_dataframe().reset_index()
+conus_mask = conus_mask[conus_mask['Clusters'] > 0].reset_index(drop=True)
+data = data[data['lat_center'].isin(conus_mask['lat']) & 
+            data['lon_center'].isin(conus_mask['lon'])]
+
+# Correct GEOS-chem
+data['prior'] = data['prior'] - (1.85 + 0.195*data['lat'])
+data['post'] = data['post'] - (1.85 + 0.195*data['lat'])
 
 # "For surface and tower measurements,we use only daytime (10:00–16:00 LT,
 # local time) observations and average them to the corresponding daytime mean 
 # values. We exclude outliers at individual sites that depart by more than 3 
 # standard deviations from the mean." Lu et al. (2021)
 ## Subset to only look at surface and tower for now
-data_st = dc(data[data['platform'].isin(['surface', 'tower'])])
+# data_st = dc(data[data['platform'].isin(['surface', 'tower'])])
+data_st = dc(data[data['platform'].isin(['surface'])])
 
 ## Convert to local time zone and subset to include only daytime measurements
 data_st['time_ltc'] = data_st['time'] + data_st['utc_conv']
 data_st = data_st.loc[(data_st['time'].dt.hour >= 10) & 
                       (data_st['time'].dt.hour <= 16)]
 
-## Now exclude outliers
-### First get the mean and standard dev for each day and site
-data_st_mean = data_st.groupby([data_st['site'], 
-                                data_st['time'].dt.normalize()])
-data_st_mean = data_st_mean.agg(['mean', 'std'])['obspack']
-data_st_mean = data_st_mean.rename(columns={'mean' : 'obspack_mean',
-                                            'std' : 'obspack_std'})
+# ## Now exclude outliers
+# ### First get the mean and standard dev for each day and site
+# data_st_mean = data_st.groupby([data_st['site'], 
+                                # data_st['time'].dt.normalize()])
+                                # # data_st['time'].dt.month])
+# data_st_mean = data_st_mean.agg(['mean', 'std'])['obspack']
+# data_st_mean = data_st_mean.rename(columns={'mean' : 'obspack_mean',
+#                                             'std' : 'obspack_std'})
 
-### Now merge these in
-data_st = pd.merge(data_st, data_st_mean, 
-                  left_on=[data_st['site'], data_st['time'].dt.normalize()],
-                  right_index=True)
-data_st = data_st.drop(columns=['key_0', 'key_1'])
+# ### Now merge these in
+# data_st = pd.merge(data_st, data_st_mean, 
+#                   left_on=[data_st['site'], data_st['time'].dt.normalize()],
+#                   # left_on=[data_st['site'], data_st['time'].dt.month],
+#                   right_index=True)
+# data_st = data_st.drop(columns=['key_0', 'key_1'])
 
-### Now exclude from outliers
-data_st = data_st[(data_st['obspack'] - data_st['obspack_mean']).abs() <= 
-                  3*data_st['obspack_std']]
-# data_st = data_st[~data_st['site'].isin(['wgc'])]
-# print(data_st[data_st['obspack'] < 1700])
+# ### Now exclude from outliers
+# data_st = data_st[(data_st['obspack'] - data_st['obspack_mean']).abs() <= 
+#                   3*data_st['obspack_std']]
+# data_st = data_st[~data_st['site'].isin(['wgc', 'sgp', 'abt'])]
+# # # print(data_st[data_st['obspack'] < 1700])
 # print(data_st[data_st['obspack'] > 2500])
 
 ### Now recalculate the mean
 data_st_mean = data_st.groupby([data_st['site'], 
-                                data_st['time'].dt.normalize()])
+                                # data_st['time'].dt.normalize()])
+                                data_st['time'].dt.month])
 
 # And subset
 data_st_mean = data_st_mean.mean()[['lat', 'lon', 'obspack', 'prior', 'post']]
 data_st_mean = data_st_mean.reset_index(drop=True)
 
-# Get the remaining data
-data_rest = dc(data[~data['platform'].isin(['surface', 'tower'])])
+# # Get the remaining data
+# data_rest = dc(data[~data['platform'].isin(['surface', 'tower'])])
 
-# Remove a single anomalously large observation
-# data_rest = data_rest[data_rest['obspack'] < 3.5e3]
+# # Remove a single anomalously large observation
+# # data_rest = data_rest[data_rest['obspack'] < 3.5e3]
 
-# Remove aircore data
-data_rest = data_rest[data_rest['platform'] != 'aircore']
+# # Remove aircore data
+# data_rest = data_rest[data_rest['platform'] != 'aircore']
+
+# # Group by lat/lon box and day
+# data_rest = data_rest.groupby([data_rest['lat_center'], 
+#                                data_rest['lon_center'],
+#                                data_rest['time'].dt.normalize()])
+# data_rest = data_rest.mean()[['lat', 'lon', 'obspack', 'prior', 'post']]
+# data_rest = data_rest.reset_index(drop=True)
 
 # Subset
-data_rest = data_rest[['lat', 'lon', 'obspack', 'prior', 'post']].reset_index(drop=True)
+# data_rest = data_rest.groupby()
 
 # And concatenate them!
-data = pd.concat([data_rest, data_st_mean]).reset_index(drop=True)
+# data = pd.concat([data_rest, data_st_mean]).reset_index(drop=True)
+data = dc(data_st_mean)
 
 # Plot locations
 fig, ax = fp.get_figax(cols=2, maps=True, lats=clusters.lat, lons=clusters.lon)
@@ -344,9 +379,9 @@ fig, ax = fp.get_figax(cols=2, rows=2, aspect=1, sharey='row')
 plt.subplots_adjust(wspace=0.2, hspace=0.4)
 
 op_min = 1.8e3
-op_max = 2.15e3
+op_max = 2.25e3
 op_vmin = 0
-op_vmax = 2.5e3
+op_vmax = 3
 xs = np.array([op_min, op_max])
 
 # Get basic statistics
@@ -359,6 +394,7 @@ m_post, b_post, r_post, bias_post, std_post = stats_post
 
 rma_prior = gc.rma(data['obspack'].values, data['prior'].values)
 rma_post = gc.rma(data['obspack'].values, data['post'].values)
+print(rma_prior)
 
 print(f'OBSPACK            Prior     Posterior')
 print(f'RMSE               {rmse_prior:<10.2f}{rmse_post:<10.2f}')
@@ -369,21 +405,27 @@ print(f'RMA slope          {rma_prior[0]:<10.2f}{rma_post[0]:<10.2f}')
 print(f'RMA intercept      {rma_prior[1]:<10.2f}{rma_post[1]:<10.2f}')
 print('')
 
-ax[1, 0].hexbin(data['obspack'].values, data['prior'].values, gridsize=40,
-                cmap=fp.cmap_trans('inferno'), vmin=op_vmin, vmax=op_vmax, 
-                extent=(op_min, op_max, op_min, op_max),
-                linewidths=0, zorder=-1)
-# ax[1, 0].plot(xs, rma_prior[0]*xs + rma_prior[1], color='grey', ls='-', 
-#               zorder=20)
-c = ax[1, 1].hexbin(data['obspack'].values, data['post'].values, gridsize=40,
-                    cmap=fp.cmap_trans('inferno'), vmin=op_vmin, vmax=op_vmax, 
-                    extent=(op_min, op_max, op_min, op_max),
-                    linewidths=0, zorder=-1)
-# ax[1, 1].plot(xs, rma_post[0]*xs + rma_post[1], color='grey', ls='-', 
-#               zorder=20)
+ax[1, 0].scatter(data['obspack'].values, data['prior'].values, 
+                 color=fp.color(1, cmap='inferno'), s=5)
 
-stats = [(r_prior, rmse_prior, bias_prior, std_prior), 
-         (r_post, rmse_post, bias_post, std_post)]
+# ax[1, 0].hexbin(data['obspack'].values, data['prior'].values, gridsize=40,
+#                 cmap=fp.cmap_trans('inferno'), vmin=op_vmin, vmax=op_vmax, 
+#                 extent=(op_min, op_max, op_min, op_max),
+#                 linewidths=0, zorder=-1)
+ax[1, 0].plot(xs, rma_prior[0]*xs + rma_prior[1], color='red', ls='-', 
+              zorder=20)
+
+ax[1, 1].scatter(data['obspack'].values, data['post'].values, 
+                 color=fp.color(1, cmap='inferno'), s=5)
+# c = ax[1, 1].hexbin(data['obspack'].values, data['post'].values, gridsize=40,
+#                     cmap=fp.cmap_trans('inferno'), vmin=op_vmin, vmax=op_vmax, 
+#                     extent=(op_min, op_max, op_min, op_max),
+#                     linewidths=0, zorder=-1)
+ax[1, 1].plot(xs, rma_post[0]*xs + rma_post[1], color='red', ls='-', 
+              zorder=20)
+
+stats = [(r_prior, rmse_prior, rma_prior[0], std_prior), 
+         (r_post, rmse_post, rma_post[0], std_post)]
 for i in range(2, 4):
     axis = ax.flatten()[i]
     axis.text(0.05, 0.95, r'R$^2$ = %.2f' % stats[i % 2][0]**2, va='top', 
@@ -392,7 +434,7 @@ for i in range(2, 4):
     axis.text(0.05, 0.85, r'RMSE = %.1f ppb' % stats[i % 2][1], va='top', 
               ha='left', fontsize=config.LABEL_FONTSIZE*config.SCALE,
               transform=axis.transAxes)
-    axis.text(0.05, 0.75, r'Bias = %.1f ppb' % stats[i % 2][2], va='top', 
+    axis.text(0.05, 0.75, r'RMA slope = %.1f ppb' % stats[i % 2][2], va='top', 
               ha='left', fontsize=config.LABEL_FONTSIZE*config.SCALE,
               transform=axis.transAxes)
 
@@ -400,9 +442,9 @@ for i in range(2, 4):
     axis.set_ylim(op_min, op_max)
     axis = fp.plot_one_to_one(axis)
 
-cax = fp.add_cax(fig, ax[1, 1])
-cb = fig.colorbar(c, cax=cax)
-cb = fp.format_cbar(cb, cbar_title='Count')
+# cax = fp.add_cax(fig, ax[1, 1])
+# cb = fig.colorbar(c, cax=cax)
+# cb = fp.format_cbar(cb, cbar_title='Count')
 
 trop_min = 1.75e3
 trop_max = 1.95e3
@@ -421,6 +463,8 @@ m_post, b_post, r_post, bias_post, std_post = stats_post
 rma_prior = gc.rma(y.values, ya.values)
 rma_post = gc.rma(y.values, yhat.values)
 
+print(rma_prior)
+
 print(f'TROPOMI            Prior     Posterior')
 print(f'RMSE               {rmse_prior:<10.2f}{rmse_post:<10.2f}')
 print(f'R^2                {r_prior**2:<10.2f}{r_post**2:<10.2f}')
@@ -434,18 +478,18 @@ ax[0, 0].hexbin(y.values, ya.values, gridsize=40,
                 cmap=fp.cmap_trans('inferno'), vmin=trop_vmin, vmax=trop_vmax, 
                 extent=(trop_min, trop_max, trop_min, trop_max),
                 linewidths=0, zorder=-1)
-# ax[0, 0].plot(xs, rma_prior[0]*xs + rma_prior[1], color='grey', ls='-', 
-#               zorder=20)
+ax[0, 0].plot(xs, rma_prior[0]*xs + rma_prior[1], color='red', ls='-', 
+              zorder=20)
 c = ax[0, 1].hexbin(y.values, yhat.values, gridsize=40,
                     cmap=fp.cmap_trans('inferno'), 
                     vmin=trop_vmin, vmax=trop_vmax, 
                     extent=(trop_min, trop_max, trop_min, trop_max),
                     linewidths=0, zorder=-1)
-# ax[0, 1].plot(xs, rma_post[0]*xs + rma_post[1], color='grey', ls='-', 
-#               zorder=20)
+ax[0, 1].plot(xs, rma_post[0]*xs + rma_post[1], color='red', ls='-', 
+              zorder=20)
 
-stats = [(r_prior, rmse_prior, bias_prior, std_prior, rma_prior), 
-         (r_post, rmse_post, bias_post, std_post, rma_post)]
+stats = [(r_prior, rmse_prior, rma_prior[0], std_prior, rma_prior), 
+         (r_post, rmse_post, rma_post[0], std_post, rma_post)]
 for i in range(2):
     axis = ax.flatten()[i]
     axis.text(0.05, 0.95, r'R$^2$ = %.2f' % stats[i][0]**2, va='top', 
@@ -454,7 +498,7 @@ for i in range(2):
     axis.text(0.05, 0.85, r'RMSE = %.1f ppb' % stats[i][1], va='top', 
               ha='left', fontsize=config.LABEL_FONTSIZE*config.SCALE,
               transform=axis.transAxes)
-    axis.text(0.05, 0.75, r'Bias = %.1f ppb' % stats[i][2], va='top', 
+    axis.text(0.05, 0.75, r'RMA slope = %.1f ppb' % stats[i][2], va='top', 
               ha='left', fontsize=config.LABEL_FONTSIZE*config.SCALE,
               transform=axis.transAxes)
     axis.set_xlim(trop_min, trop_max)
