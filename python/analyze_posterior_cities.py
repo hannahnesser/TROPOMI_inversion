@@ -132,12 +132,12 @@ w_hr = w_hr[['gas_distribution', 'landfills', 'wastewater']]
 w_hr['total'] = w_hr.sum(axis=1)
 w_hr = w_hr.T*1e-3
 
-# Also get the W matrix for the hackish 2022 EPA GHGI
-epa = pd.read_csv(f'{data_dir}countries/epa_ghgi_2022.csv')
+# Also get the W matrix for the hackish 2023 EPA GHGI
+epa = pd.read_csv(f'{data_dir}countries/epa_ghgi_2023.csv')
 
 ## Define various ONG contributions
 epa_postmeter_2019 = 457 # Gg
-epa_gasdist_2019 = 555 # Gg
+epa_gasdist_2019 = 554 # Gg
 
 ## Group by sector
 epa = epa.groupby('sector').agg({'mean' : 'sum', 
@@ -233,7 +233,7 @@ post_hr_stats_c = ip.get_ensemble_stats(post_hr_c).add_prefix('post_hr_')
 diff_stats_c = ip.get_ensemble_stats(diff_c).add_prefix('diff_')
 
 ## Aggregate
-summ_c = pd.concat([pd.DataFrame(area_c), prior_c, post_stats_c, 
+summ_c = pd.concat([pd.DataFrame(area_c), prior_c, post_stats_c,
                     post_hr_stats_c, diff_stats_c], axis=1)
 
 # Merge DOFS into summ_c
@@ -252,7 +252,7 @@ summ_c['prior_total'] += summ_c['prior_postmeter']
 ## included.
 
 ## Posterior ratios
-xhat_c = post_c/prior_c['prior_total'].values[:, None]
+xhat_c = post_c/summ_c['prior_total'].values[:, None]
 
 ## Get statistics
 xhat_stats_c = ip.get_ensemble_stats(xhat_c).add_prefix('xhat_')
@@ -308,6 +308,7 @@ print(f'These cities are responsible for {(100*city_emis_frac_prior):.2f}% of pr
 print(f'We find prior emissions of {prior_tot*1e-3:.2f} Tg/yr.')
 print(f'We find a net adjustment of {diff_c.sum(axis=0).mean():.2f} ({diff_c.sum(axis=0).min():.2f}, {diff_c.sum(axis=0).max():.2f}) Gg/yr.')
 print(f'We find emissions of {post_c.sum(axis=0).mean()*1e-3:.2f} ({post_c.sum(axis=0).min()*1e-3:.2f}, {post_c.sum(axis=0).max()*1e-3:.2f}) Tg/yr.')
+print(f'We find a total correction of {post_c.sum(axis=0).mean()/prior_tot:.2f} ({post_c.sum(axis=0).min()/prior_tot:.2f}, {post_c.sum(axis=0).max()/prior_tot:.2f}) Tg/yr.')
 print(f'  xhat mean                      {xhat_mean.mean():.2f} ({xhat_mean.min():.2f}, {xhat_mean.max():.2f})')
 print(f'  xhat std                       {xhat_std.mean():.2f}')
 print(f'  dofs mean                      {dofs_mean.mean():.2f} ({dofs_mean.min():.2f}, {dofs_mean.max():.2f})')
@@ -395,7 +396,8 @@ city = shapefile.Reader(f'{data_dir}cities/2019_tl_urban_areas/tl_2019_us_uac10_
 
 fig, ax = fp.get_figax(maps=True, lats=clusters.lat, lons=clusters.lon)
 for shape in city.shapeRecords():
-    if shape.record[2] == 'Atlanta, GA': #in summ_c.index.values:
+    # if shape.record[2] == 'Atlanta, GA':
+    if shape.record[2] in summ_c.index.values:
         # Get edges of city
         x = [i[0] for i in shape.shape.points[:]]
         y = [i[1] for i in shape.shape.points[:]]
@@ -405,15 +407,17 @@ for shape in city.shapeRecords():
         ax.fill(x, y, facecolor=color, edgecolor='black', linewidth=0.1)
 lats, lons = gc.create_gc_grid(*s.lats, s.lat_delta,*s.lons, s.lon_delta,
                                centers=False, return_xarray=False)
-for lat in lats:
-    if lat > np.min(y) and lat < np.max(y):
-        ax.axhline(lat, color='0.3')
-for lon in lons:
-    if lon > np.min(x) and lon < np.max(x):
-        ax.axvline(lon, color='0.3')
+# for lat in lats:
+#     if lat > np.min(y) and lat < np.max(y):
+#         ax.axhline(lat, color='0.3')
+# for lon in lons:
+#     if lon > np.min(x) and lon < np.max(x):
+#         ax.axvline(lon, color='0.3')
 
-ax = fp.add_title(ax, 'Atlanta, Georgia Urban Area')
-ax = fp.format_map(ax, lats=y, lons=x)
+# ax = fp.add_title(ax, 'Atlanta, Georgia Urban Area')
+# ax = fp.format_map(ax, lats=y, lons=x)
+ax = fp.add_title(ax, 'CONUS urban areas')
+ax = fp.format_map(ax, lats=clusters.lat, lons=clusters.lon)
 cmap = plt.cm.ScalarMappable(cmap=sf_cmap, norm=div_norm)
 cax = fp.add_cax(fig, ax)
 cb = fig.colorbar(cmap, ax=ax, cax=cax)
@@ -629,11 +633,13 @@ summ_c['post_min'] = summ_c['post_mean'] - summ_c['post_min']
 summ_c['dofs_max'] = summ_c['dofs_max'] - summ_c['dofs_mean']
 summ_c['dofs_min'] = summ_c['dofs_mean'] - summ_c['dofs_min']
 
+print(summ_c.iloc[0, :])
+
 # Define ys
 ys = np.arange(1, nc + 1)
 
 figsize = fp.get_figsize(aspect=1.5*7/nc*2.5, 
-                         max_width=config.BASE_WIDTH*config.SCALE*0.9)
+                         max_width=config.BASE_WIDTH*config.SCALE*0.7)
 fig = plt.figure(figsize=figsize)
 gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 0.5], wspace=0.1)
 # gs2 = gridspec.GridSpecFromSubplotSpec(1, 2, width_ratios)
@@ -691,8 +697,7 @@ ax[0].barh(ys + 0.175, summ_c['post_mean'],
            xerr=np.array(summ_c[['post_min', 'post_max']]).T,
            error_kw={'ecolor' : '0.65', 'lw' : 0.75, 'capsize' : 2,
                      'capthick' : 0.75},
-           height=0.3, color=fp.color(4, lut=17), alpha=0.175, 
-           label='Total')
+           height=0.3, color='0.7', alpha=0.4, label='Total')
 
 # Other studies
 i = 0
@@ -786,7 +791,7 @@ ax[1].barh(ys + 0.175, summ_c[f'post_mean']/summ_c['pop_2010']*1e6,
            xerr=np.array(summ_c[['post_min', 'post_max']]/summ_c['pop_2010'].values[:, None]*1e6).T,
            error_kw={'ecolor' : '0.65', 'lw' : 0.75, 'capsize' : 2,
                      'capthick' : 0.75},
-           height=0.3, color=fp.color(4, lut=17), alpha=0.175, zorder=10)
+           height=0.3, color='0.7', alpha=0.4, zorder=10)
 
 ax[1].set_yticks(ys)
 ax[1].set_ylim(0.5, nc + 0.5)
@@ -862,25 +867,30 @@ handles.extend(blank_handle)
 labels.extend(blank_label)
 
 # Reorder
-reorder = [-1, -1, -1, -1, -1, -1, -1, 
-           1, 5, 8, 9, 13, 17, 0, 
-           2, 6, -1, 10, 14, 18, -1,
-           3, 7, -1, 11, 13, 19, -1,
-           4, -1, -1, 12, 16, 20, -1]
+reorder = [-1, -1, -1, -1, -1, -1, -1, -1, -1,
+            1,  4,  7,  8,  9, 10, 11, 12, 0,
+            2,  5, -1, -1, 13, 14, 15, 16, -1,
+            3,  6, -1, -1, 17, 18, 19, 20, -1]
+# reorder = [-1, -1, -1, -1, -1, -1, -1, 
+#            1, 5, 8, 9, 13, 17, 0, 
+#            2, 6, -1, 10, 14, 18, -1,
+#            3, 7, -1, 11, 15, 19, -1,
+#            4, -1, -1, 12, 16, 20, -1]
 # reorder = np.arange(1, 22).reshape((3, 7)).T.flatten()
 # reorder[-1] = 0
 # reorder = list(reorder)
 handles = [handles[i] for i in reorder]
 labels = [labels[i] for i in reorder]
 
-labels[0] = 'EPA GHGI : '
-labels[2] = 'Posterior : '
-labels[3] = 'Other studies : '
-labels[6] = 'Other inventories : '
+labels[0] = 'Gridded 2023 EPA'
+labels[1] = 'GHGI for 2019 : '
+labels[3] = 'Posterior : '
+labels[4] = 'Other studies : '
+labels[8] = 'Other inventories : '
 
 # Add legend
-ax[2].legend(handles=handles, labels=labels, ncol=5, frameon=False,
+ax[2].legend(handles=handles, labels=labels, ncol=4, frameon=False,
              fontsize=config.TICK_FONTSIZE, loc='upper right', 
-             bbox_to_anchor=(1, -0.25), bbox_transform=ax[2].transAxes)
+             bbox_to_anchor=(1, -0.35), bbox_transform=ax[2].transAxes)
 
 fp.save_fig(fig, plot_dir, f'cities_ensemble')

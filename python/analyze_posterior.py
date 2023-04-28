@@ -11,6 +11,7 @@ import pandas as pd
 from scipy.stats import probplot as qq
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from matplotlib.lines import Line2D
 from matplotlib.patches import Patch as patch
 import cartopy.feature as cfeature
 import cartopy.io.shapereader as shpreader
@@ -83,11 +84,29 @@ sectors = list(s.sectors.values())[1:]
 
 # Compare to other studies and EPA
 other_studies = pd.read_csv(f'{data_dir}countries/other_studies.csv')
-epa = pd.read_csv(f'{data_dir}countries/epa_ghgi_2022.csv')
-epa = epa.groupby('sector').agg({'mean' : 'sum', 
-                                 'minus' : gc.add_quad, 'plus' : gc.add_quad})
-epa = epa.loc[sectors[:-2]].rename(columns={'minus' : 'min', 'plus' : 'max'}).T
-print(epa)
+
+# EPA 2022
+epa22 = pd.read_csv(f'{data_dir}countries/epa_ghgi_2022.csv')
+epa22 = epa22.groupby('sector').agg({'mean' : 'sum', 
+                                     'minus' : gc.add_quad, 
+                                     'plus' : gc.add_quad})
+epa22 = epa22.loc[sectors[:-2]].rename(columns={'minus' : 'min', 
+                                                'plus' : 'max'}).T
+print('-'*75)
+print('2022 GHGI for 2019')
+print(epa22)
+
+# EPA 2023
+epa23 = pd.read_csv(f'{data_dir}countries/epa_ghgi_2023.csv')
+epa23 = epa23.groupby('sector').agg({'mean' : 'sum', 
+                                     'minus' : gc.add_quad, 
+                                     'plus' : gc.add_quad})
+epa23 = epa23.loc[sectors[:-2]].rename(columns={'minus' : 'min', 
+                                                'plus' : 'max'}).T
+print('-'*75)
+print('2023 GHGI for 2019')
+print(epa23)
+print('_'*75)
 
 # Get ensemble values
 ensemble = glob.glob(f'{data_dir}ensemble/xhat_fr2*')
@@ -403,7 +422,7 @@ ax = fp.add_title(ax, f'{c} sectoral emissions',
 
 # Plot the total emissions
 # Prior
-ax.barh(ys[:-1] - 0.185, epa.loc['mean'], 
+ax.barh(ys[:-1] - 0.185, epa23.loc['mean'], 
         height=0.3, color='white', edgecolor=cc[:-1])
 ax.barh(ys[-1] - 0.185, e['mean']['prior_wetlands'], 
         height=0.3, color='white', edgecolor=cc[-1])
@@ -420,22 +439,22 @@ for i, row in enumerate(post_rows):
 # Plot the optimized bar
 # Anthropogenic
 unopt = e['mean'][prior_rows[:-1]].values - e['mean'][prior_sub_rows[:-1]]
-ax.barh(ys[:-1] - 0.185, epa.loc['mean'].values - unopt, left=unopt,
-        height=0.3, color=cc[:-1], alpha=0.3)
+# ax.barh(ys[:-1] - 0.185, epa23.loc['mean'].values - unopt, left=unopt,
+#         height=0.3, color=cc[:-1], alpha=0.3)
 
-# Wetlands
-ax.barh(ys[-1] - 0.185, e['mean']['prior_sub_wetlands'], 
-        left=e['mean']['prior_wetlands'] - e['mean']['prior_sub_wetlands'],
-        height=0.3, color=cc[-1], alpha=0.3)
+# # Wetlands
+# ax.barh(ys[-1] - 0.185, e['mean']['prior_sub_wetlands'], 
+#         left=e['mean']['prior_wetlands'] - e['mean']['prior_sub_wetlands'],
+#         height=0.3, color=cc[-1], alpha=0.3)
 
 ax.barh(ys + 0.185, e['mean'][post_sub_rows], 
         left=e['mean'][post_rows].values - e['mean'][post_sub_rows],
         height=0.3, color=cc, alpha=0.3)
 
-# Plot EPA 2019
+# Plot 2023 EPA for 2019
 for i, row in enumerate(sectors[:-2]):
-    ax.errorbar(epa.loc['mean'][row], ys[i] - 0.185, 
-                xerr=np.array(epa.loc[['min', 'max']][row])[:, None],
+    ax.errorbar(epa23.loc['mean'][row], ys[i] - 0.175, 
+                xerr=np.array(epa23.loc[['min', 'max']][row])[:, None],
                 fmt='none', #markersize=3, zorder=20,
                 # markerfacecolor='white', markeredgecolor='black', 
                 ecolor=cc[i], lw=0.75, capsize=2, capthick=0.75, zorder=20)
@@ -443,22 +462,41 @@ for i, row in enumerate(sectors[:-2]):
 # Reorder Lu data
 lu2022 = other_studies[other_studies['study'] == 'Lu et al. (2022)']
 lu2022 = lu2022.set_index('sector').loc[sectors[:-1]]
-ax.errorbar(lu2022['mean'], ys + 0.185, 
+ax.errorbar(lu2022['mean'], ys, 
             xerr=np.array(lu2022[['min', 'max']]).T, 
             fmt='s', markerfacecolor='white', markeredgecolor='black', 
             markersize=3.5, ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
             label='Lu et al. (2022)', zorder=20)
 
+# Plot Worden data
+worden2022 = other_studies[other_studies['study'] == 'Worden et al. (2022)']
+y = np.array([np.argwhere(ss == np.array(sectors[:-1]))[0][0] + 1 \
+              for ss in worden2022['sector'].values])
+ax.errorbar(worden2022['mean'], y - 0.175, 
+            xerr=np.array(worden2022[['min', 'max']]).T, 
+            fmt='o', markerfacecolor='white', markeredgecolor='black', 
+            markersize=3.5, ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
+            label='Worden et al. (2022)', zorder=20)
+
 # Plot Shen data
 shen2022 = other_studies[other_studies['study'] == 'Shen et al. (2022)']
 y = np.argwhere('ong' == np.array(sectors[:-1]))[0][0] + 1
-ax.errorbar(shen2022['mean'], y + 0.185 + 0.05, 
-            xerr=np.array(shen2022[['min', 'max']]).T, fmt='o', 
-            markersize=3.5, markerfacecolor='white', markeredgecolor='black', 
+ax.errorbar(shen2022['mean'], y + 0.175, 
+            xerr=np.array(shen2022[['min', 'max']]).T, fmt='^', 
+            markersize=4, markerfacecolor='white', markeredgecolor='black', 
             ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
             label='Shen et al. (2022)', zorder=21)
 
-ax.set_xlim(0, 15.2)
+# Plot Lu 2023 data
+lu2023 = other_studies[other_studies['study'] == 'Lu et al. (2023)']
+y = np.argwhere('ong' == np.array(sectors[:-1]))[0][0] + 1
+ax.errorbar(lu2023['mean'], y + 0.175, 
+            xerr=np.array(lu2023[['min', 'max']]).T, fmt='D', 
+            markersize=3.5, markerfacecolor='white', markeredgecolor='black', 
+            ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
+            label='Lu et al. (2023)', zorder=21)
+
+ax.set_xlim(0, 17.2)
 ax.set_ylim(0.5, 7.5)
 
 # Add labels
@@ -479,11 +517,12 @@ ax.set_yticklabels(list(s.sectors.keys())[1:-1], ha='right',
 # Add prior/posterior labels 
 left = summ_c['CONUS']['mean'] + summ_c['CONUS']['max']
 ax.text(0.1, ys[0] - 0.155, # summ_c['CONUS']['mean']['prior_livestock'] + 0.25
-       'EPA GHGI', ha='left', va='center', fontsize=config.TICK_FONTSIZE - 2)
+       '2023 EPA GHGI for 2019', ha='left', va='center', 
+       fontsize=config.TICK_FONTSIZE - 2)
+ax.text(0.1, ys[0] + 0.215, 'Posterior',  #left['post_livestock'] + 0.25
+        ha='left', va='center', fontsize=config.TICK_FONTSIZE - 2)
 ax.text(0.1, ys[-1] - 0.155, 
        'WetCHARTs', ha='left', va='center', fontsize=config.TICK_FONTSIZE - 2)
-ax.text(0.1, ys[0] + 0.205, 'Posterior',  #left['post_livestock'] + 0.25
-        ha='left', va='center', fontsize=config.TICK_FONTSIZE - 2)
 
 # Add grid lines
 for j in range(2):
@@ -491,17 +530,20 @@ for j in range(2):
 
 # Add legend
 custom_patches = [patch(facecolor='white', edgecolor='0.5', alpha=1),
-                  patch(facecolor='0.3', edgecolor='0.5', alpha=0.3)]
+                  patch(facecolor='0.3', edgecolor='0.5', alpha=0.3),
+                  Line2D([0], [0], markersize=0, lw=0), 
+                  Line2D([0], [0], markersize=0, lw=0)]
                   # patch(color=fp.color(0), alpha=0.3)]
 custom_labels = [r'Not optimized (A$_{ii}$ $<$'f' {DOFS_filter})',
-                 r'Optimized (A$_{ii}$ $\ge$'f' {DOFS_filter})']
+                 r'Optimized (A$_{ii}$ $\ge$'f' {DOFS_filter})',
+                 '', '']
                 # #'Lu et al. (2022)']
 patches, labels = ax.get_legend_handles_labels()
 custom_patches.extend(patches)
 custom_labels.extend(labels)
-fp.add_legend(ax, handles=custom_patches, labels=custom_labels,
-              bbox_to_anchor=(0.5, -0.25), loc='upper center', ncol=2,
-              fontsize=config.TICK_FONTSIZE)
+ax.legend(handles=custom_patches, labels=custom_labels,
+          bbox_to_anchor=(0.5, -0.25), loc='upper center', ncol=2,
+          fontsize=config.TICK_FONTSIZE, frameon=False)
 
 fp.save_fig(fig, plot_dir, f'sectors_bar_ensemble')
 plt.close()

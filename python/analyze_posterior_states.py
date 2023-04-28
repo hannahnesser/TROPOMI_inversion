@@ -257,7 +257,7 @@ xs = np.arange(1, ns + 1)
 #                        max_height=config.BASE_HEIGHT*config.SCALE)
 figsize = fp.get_figsize(aspect=1.8, 
                          max_height=config.BASE_HEIGHT*config.SCALE,
-                         max_width=config.BASE_WIDTH*config.SCALE*1)
+                         max_width=config.BASE_WIDTH*config.SCALE*0.8)
 fig = plt.figure(figsize=figsize)
 
 ylim2 = [0, 2.25e3]
@@ -375,7 +375,7 @@ ax[1] = fp.add_labels(ax[1], '', r'Methane emissions (Gg a$^{-1}$)',
 
 # Final aesthetics
 for j in range(3):
-    for k in range(ns - 1):
+    for k in range(ns + 1):
         if k % 5 == 0:
             ls = '-'
         else:
@@ -423,7 +423,7 @@ y1 = (ax[1].get_position().y1 + ax[-1].get_position().y0)/2
 ax[1].yaxis.set_label_coords(0.07, y1, transform=fig.transFigure)
 
 # Add labels
-ax[1].text(0.625, summ_s['epa_total'][0], 'EPA GHGI', ha='right',
+ax[1].text(0.625, summ_s['epa_total'][0], '2022 EPA GHGI for 2019', ha='right',
            #summ_s['prior_total'][1] + 100, 'Prior', ha='right', 
            va='top', rotation=90, fontsize=config.TICK_FONTSIZE - 2)
 ax[1].text(1.5, summ_s['post_mean'][0], 'Posterior',
