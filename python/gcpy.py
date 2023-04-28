@@ -176,6 +176,20 @@ def comparison_stats(xdata, ydata):
     std = (ydata - xdata).std()
     return m, b, r, bias, std
 
+def rma(x, y):
+    syy = ((y - y.mean())**2).sum()
+    sxx = ((x - x.mean())**2).sum()
+    m_rma = np.sign((x*y).sum())*np.sqrt(syy/sxx)
+    b_rma = y.mean() - m_rma*x.mean()
+
+    # Method 2
+    m, b, r, _, _ = linregress(x, y)
+    m_rma_2 = m/r
+    b_rma_2 = y.mean() - m_rma_2*x.mean()
+
+    return m_rma, b_rma
+
+
 ## -------------------------------------------------------------------------##
 ## Grid functions
 ## -------------------------------------------------------------------------##
@@ -242,10 +256,6 @@ def nearest_loc(data, compare_data):
 def grid_shape_overlap(clusters, x, y, name=None, plot_dir='../plots'):
     # Initialize mask
     mask = np.zeros(int(clusters.values.max()))
-
-    # # Get edges of the shape
-    # x = [i[0] for i in shape.shape.points[:]]
-    # y = [i[1] for i in shape.shape.points[:]]
 
     # Make a polygon
     c_poly = Polygon(np.column_stack((x, y)))
@@ -421,16 +431,16 @@ def group_by_gridbox(pf_df):
 ## -------------------------------------------------------------------------##
 ## Plotting functions : comparison
 ## -------------------------------------------------------------------------##
-def add_stats_text(ax, r, bias):
+def add_stats_text(ax, r, spatial_bias):
     if r**2 <= 0.99:
-        ax.text(0.05, 0.9, r'R = %.2f' % r,
+        ax.text(0.05, 0.9, r'R$^2$ = %.2f' % r**2,
                 fontsize=config.LABEL_FONTSIZE*config.SCALE,
                 transform=ax.transAxes)
     else:
-        ax.text(0.05, 0.9, r'R $>$ 0.99',
+        ax.text(0.05, 0.9, r'R$^2$ $>$ 0.99',
                 fontsize=config.LABEL_FONTSIZE*fp.SCALE,
                 transform=ax.transAxes)
-    ax.text(0.05, 0.875, 'Bias = %.2f' % bias,
+    ax.text(0.05, 0.875, r'Regional bias = %.2f ppb' % spatial_bias,
             fontsize=config.LABEL_FONTSIZE*config.SCALE,
             transform=ax.transAxes,
             va='top')
@@ -464,7 +474,8 @@ def plot_comparison_hexbin(xdata, ydata, cbar, stats, **kw):
     # Print information about R2 on the plot
     if stats:
         _, _, r, bias, _ = comparison_stats(xdata, ydata)
-        ax = add_stats_text(ax, r, bias)
+        spatial_bias = (ydata - xdata).std()
+        ax = add_stats_text(ax, r, spatial_bias)
 
     if cbar:
         cbar_title = cbar_kwargs.pop('title', '')
