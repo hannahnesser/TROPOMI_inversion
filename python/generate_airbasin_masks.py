@@ -44,5 +44,10 @@ for j, shape in enumerate(airbasin.shapeRecords()):
     w_ca[shape.record[4]] = gc.grid_shape_overlap(clusters, x, y, 
                                                     shape.record[4])
 
+# # And do the Cusworth domain
+# x = [-119, -119, -117, -117]
+# y = [33.5, 34.5, 34.5, 33.5]
+# w_ca['Cusworth et al. (2020)'] = gc.grid_shape_overlap(clusters, x, y)
+
 # Save out w_city
 w_ca.to_csv(f'{data_dir}states/airbasin_mask.csv', header=True, index=False)
