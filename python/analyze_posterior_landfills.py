@@ -157,6 +157,13 @@ ghgrp_short = ghgrp_short.join(xhat_abs, how='left')
 
 # Drop NAs, filter on DOFS, and limit to grid cells with 50% of emissions
 # explained by landfills
+temp = ghgrp_short[ghgrp_short['dofs'] < DOFS_filter]
+fig, ax = fp.get_figax(maps=True, lats=clusters.lat, lons=clusters.lon)
+ax.scatter(temp.reset_index()['lon_center'], 
+           temp.reset_index()['lat_center'])
+ax = fp.format_map(ax, clusters.lat, clusters.lon)
+fp.save_fig(fig, plot_dir, 'multiple_landfills')
+
 ghgrp_short = ghgrp_short.dropna()
 ghgrp_short = ghgrp_short[ghgrp_short['dofs'] >= DOFS_filter]
 print(ghgrp_short.shape[0], 'landfills remain that have A >= ', DOFS_filter)
@@ -191,6 +198,13 @@ ghgrp = ghgrp.reset_index()
 # Print some things
 ghgrp_mean = ghgrp['ghgrp'].mean()
 post_mean = ghgrp['post_mean'].mean()
+xhat_mean = (ghgrp['post_mean']/ghgrp['ghgrp']).mean()
+xhat_median = (ghgrp['post_mean']/ghgrp['ghgrp']).median()
+print(ghgrp['post_mean']/ghgrp['ghgrp'])
+fig, ax = fp.get_figax()
+ax.hist(ghgrp['post_mean']/ghgrp['ghgrp'], bins=30, color=fp.color(3))
+ax.axvline(1, color='grey')
+fp.save_fig(fig, plot_dir, 'ghgrp_his t')
 dofs_mean = ghgrp['dofs'].mean()
 frac_mean = ghgrp['frac'].mean()
 frac_std = ghgrp['frac'].std()
@@ -200,6 +214,7 @@ print(f'The average sensitivity across these {nl} landfills in GHGRP is {dofs_me
 print(f'Landfills explain an average of {frac_mean*100:.2f} +/- {frac_std*100:.2f}% emissions in these {nl} grid cells.')
 print(f'The average emissions across these {nl} landfills in GHGRP is {ghgrp_mean:.2f} Gg/yr.')
 print(f'The average emissions across these {nl} landfills in the posterior is {post_mean:.2f} Gg/yr.')
+print(f'The average increase across these {nl} landfills in the posterior is {xhat_mean:.2f} (median {xhat_median:.2f}).')
 print('-'*75)
 
 ghgrp.to_csv(f'{data_dir}landfills/ghgrp_processed.csv')
@@ -342,6 +357,22 @@ ax.text(0.025, 0.9, r'R$^2$ (capacity $>$ 5 MW) = %.2f' % r**2,
 # ax.plot([0, 100], [b, 100*m+b], color='black')
 print(f'{m:.2f}*GHGRP_recovery + {b:.2f} = posterior_recovery')
 
+lmop_sub = dc(lmop[(lmop['LFG_start_date'].dt.year >= 2005)])
+recovery_rates = lmop_sub[[f'{m}_recovery' for m in ensemble]].mean(axis=0)
+
+print('\n'f'For {lmop_sub.shape[0]} facilities with greater than or equal to 5 MW capacity:')
+print('Mean GHGRP recovery rate (>5 MW): ', lmop_sub['ghgrp_recovery'].mean().round(1))
+print('Mean posterior recovery rate (>5 MW): ', recovery_rates.mean().round(1), '(', recovery_rates.min().round(1), ' - ', recovery_rates.max().round(1), ')')
+
+m, b, r, _, _ = gc.comparison_stats(lmop_sub['ghgrp_recovery'].values,
+                                    lmop_sub['mean_recovery'].values)
+ax.text(0.025, 0.85, r'R$^2$ (start date $>$ 2009) = %.2f' % r**2,
+        fontsize=config.LABEL_FONTSIZE*config.SCALE,
+        transform=ax.transAxes)
+# ax.plot([0, 100], [b, 100*m+b], color='black')
+print(f'{m:.2f}*GHGRP_recovery + {b:.2f} = posterior_recovery')
+
+
 # lmop_sub = dc(lmop[(lmop['capacity'] < 5)])
 # print('\n'f'For {lmop_sub.shape[0]} facilities with less than 5 MW capacity:')
 # print('Mean GHGRP recovery rate (<5 MW): ', lmop_sub['ghgrp_recovery'].mean().round(1))
@@ -417,8 +448,10 @@ print(lf_names)
 ## ------------------------------------------------------------------------ ##
 ## Plot results: map
 ## ------------------------------------------------------------------------ ##
-aspect = fp.get_aspect(rows=1, cols=1, maps=True, lats=clusters.lat, 
-                       lons=clusters.lon)
+CONUS_lats = [clusters.lat.min(), 50]
+CONUS_lons = [-125, -65]
+aspect = fp.get_aspect(rows=1, cols=1, maps=True, lats=CONUS_lats, 
+                       lons=CONUS_lons)
 figsize = fp.get_figsize(aspect*1.25, max_width=config.BASE_WIDTH - 2)
 fig = plt.figure(figsize=figsize)
 
@@ -427,6 +460,8 @@ ax0 = plt.subplot(gs[0], projection=ccrs.PlateCarree())
 ax1 = plt.subplot(gs[1])
 ax = [ax0, ax1]
 
+ax[0] = fp.format_map(ax[0], lats=CONUS_lats, lons=CONUS_lons)
+
 # Add California inset
 ca_lats = [32.2, 39.2]
 ca_lons = [-122.9, -116.5]
@@ -434,7 +469,7 @@ ca_aspect = fp.get_aspect(rows=1, cols=1, maps=True,
                           lats=ca_lats, lons=ca_lons)
 
 ca_ax = inset_axes(ax[0], width=f'{40*ca_aspect:.0f}%', height='40%',
-                   bbox_to_anchor=(-0.02, 0, 1, 1), loc=3,
+                   bbox_to_anchor=(-0.025, 0, 1, 1), loc=3,
                    bbox_transform=ax[0].transAxes,
                    axes_class=cartopy.mpl.geoaxes.GeoAxes, 
                    axes_kwargs=dict(map_projection=cartopy.crs.PlateCarree()))
@@ -456,7 +491,7 @@ ilin_aspect = fp.get_aspect(rows=1, cols=1, maps=True,
 ilin_to_ca = (ca_lons[1] - ca_lons[0])/(ilin_lons[1] - ilin_lons[0])
 ilin_ax = inset_axes(ax[0], width=f'{40*ilin_to_ca*ilin_aspect:.0f}%', 
                      height=f'{40*ilin_to_ca:.0f}%',
-                     bbox_to_anchor=(0, 0, 1.01, 1), loc=4,
+                     bbox_to_anchor=(0, 0, 1.03, 1), loc=4,
                      bbox_transform=ax[0].transAxes,
                      axes_class=cartopy.mpl.geoaxes.GeoAxes, 
                      axes_kwargs=dict(map_projection=cartopy.crs.PlateCarree()))
@@ -499,29 +534,29 @@ for combustion in [False, True]:
     data_sub = data[data['id'].isin(lf_studies['id'].values)]
     ax[0].scatter(data_sub['lon'], data_sub['lat'], c='white', 
                   edgecolor=valid_color, linewidth=3, marker=marker,
-                  s=0.8*data_sub['post_mean'], label='Validation site')
+                  s=0.7*data_sub['post_mean'], label='Validation site')
 
     c = ax[0].scatter(data['lon'], data['lat'], c=data['diff_abs'], 
                       edgecolor='black', linewidth=0.5, marker=marker, 
                       vmin=-30, vmax=30, cmap='RdBu_r',
-                      s=0.8*data['post_mean'], label=label)
+                      s=0.7*data['post_mean'], label=label)
     cs.append(c)
 
     ca_ax.scatter(data_sub['lon'], data_sub['lat'], c='white', 
                   edgecolor=valid_color, linewidth=3, marker=marker,
-                  s=0.8*data_sub['post_mean'], label='Validation site')
+                  s=0.7*data_sub['post_mean'], label='Validation site')
     ca_ax.scatter(data['lon'], data['lat'], c=data['diff_abs'], 
                   edgecolor='black', linewidth=0.5, marker=marker, 
                   vmin=-30, vmax=30, cmap='RdBu_r',
-                  s=0.8*data['post_mean'], label=label)
+                  s=0.7*data['post_mean'], label=label)
 
     ilin_ax.scatter(data_sub['lon'], data_sub['lat'], c='white', 
                     edgecolor=valid_color, linewidth=3, marker=marker,
-                    s=0.8*data_sub['post_mean'], label='Validation site')
+                    s=0.7*data_sub['post_mean'], label='Validation site')
     ilin_ax.scatter(data['lon'], data['lat'], c=data['diff_abs'], 
                     edgecolor='black', linewidth=0.5, marker=marker, 
                     vmin=-30, vmax=30, cmap='RdBu_r',
-                    s=0.8*data['post_mean'], label=label)
+                    s=0.7*data['post_mean'], label=label)
 
 # Plot validation sites
 ys = np.arange(1, len(lf_names) + 1)
@@ -554,6 +589,7 @@ for study in lf_studies['study'].unique():
     for lf in studies['name'].unique():
         result = studies[studies['name'] == lf]
         y = np.argwhere(lf == lf_names)[0][0]*np.ones(result.shape[0])
+        print(y, lf)
         ax[1].errorbar(
             result['mean'].values, y + 1,
             xerr=np.array(result[['min', 'max']]).T, fmt=formats[i % 4],
@@ -563,15 +599,16 @@ for study in lf_studies['study'].unique():
     i += 1
 
 ax[1].set_xlim(0, 55)
-# for j in range(6):
-#     ax[1].axvline(10*(j + 1), color='0.75', lw=0.5, zorder=-10)
+ax[1].set_xticks([0, 25, 50])
+# for j in range(2):
+#     ax[1].axvline(25*(j + 1), color='0.75', lw=0.5, zorder=-10)
 
 ax[1].set_ylim(0.5, ys.max() + 0.5)
 ax[1].set_yticks(ys)
 ax[1].set_yticklabels(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
                       ha='right', fontsize=config.TICK_FONTSIZE*config.SCALE)
 
-ax[1] = fp.add_labels(ax[1], 'Methane\nemissions\n'r'(Gg a$^{-1}$)', '',
+ax[1] = fp.add_labels(ax[1], r'Emissions (Gg a$^{-1}$)', '',
                       labelpad=config.LABEL_PAD/3.9)
 ax[1].text(1, ys[0] - 0.155, 'EPA GHGRP', ha='left', va='center', 
            fontsize=config.TICK_FONTSIZE - 2, zorder=40)
@@ -579,7 +616,6 @@ ax[1].text(1, ys[0] + 0.205, 'Posterior',  #left['post_livestock'] + 0.25
            ha='left', va='center', 
            fontsize=config.TICK_FONTSIZE - 2, zorder=40)
 
-ax[1].set_aspect(17.5)
 ax[1].invert_yaxis()
 # # plot numbers
 # data = ghgrp[(ghgrp['post_mean'] - ghgrp['post_min'] > 1.5*ghgrp['ghgrp']) |
@@ -600,13 +636,22 @@ ax[1].invert_yaxis()
 # ax.scatter(neg_adjustments['lon_center'], neg_adjustments['lat_center'], 
            # color='white', edgecolors='blue', s=15)
 
-ax[0] = fp.add_title(ax[0], 'Landfill emissions')
+ax[0] = fp.add_title(ax[0], 'Landfill methane emissions')
 ax[1] = fp.add_title(ax[1], 'Validation')
-ax[0] = fp.format_map(ax[0], clusters.lat, clusters.lon)
+# ax[0] = fp.format_map(ax[0], lats=CONUS_lats, lons=CONUS_lons)
 cax = fp.add_cax(fig, ax[0], cbar_pad_inches=0.25, horizontal=True)
 cb = fig.colorbar(c, cax=cax, orientation='horizontal')
 cb = fp.format_cbar(cb,
-                    cbar_title=r'Posterior - GHGRP methane emissions (Gg a$^{-1}$)', horizontal='horizontal', y=-2.75)
+                    cbar_title=r'$\Delta$ (Posterior - GHGRP) methane emissions (Gg a$^{-1}$)', horizontal='horizontal', y=-2.75)
+
+
+# cax.get_position().x1
+w0 = ax[1].get_position().x0
+w1 = ax[1].get_position().x1
+h0 = cax.get_position().y0
+h1 = ax[0].get_position().y1
+ax[1].set_position([w0, h0, w1 - w0, h1 - h0])
+# ax[1].set_aspect(17.5)
 
 
 # Add legend
@@ -618,10 +663,10 @@ l = l.keys()
 custom_h = [Line2D([0], [0], markersize=0, lw=0)] + \
            [(Line2D([0], [0], marker='D', markerfacecolor='0.7',
              markeredgecolor='black', markeredgewidth=0.5,
-             color='w', lw=0, markersize=np.sqrt(0.8*ss)), 
+             color='w', lw=0, markersize=np.sqrt(0.7*ss)), 
              Line2D([0], [0], marker='o', markerfacecolor='0.7',
              markeredgecolor='black', markeredgewidth=0.5,
-             color='w', lw=0, markersize=np.sqrt(0.8*ss))) 
+             color='w', lw=0, markersize=np.sqrt(0.7*ss))) 
              for ss in [10, 20, 40]] + \
             [Line2D([0], [0], markersize=0, lw=0),
              Line2D([0], [0], marker='o', markerfacecolor='white', 
@@ -643,7 +688,7 @@ custom_l.extend(l)
 
 ax[0].legend(handles=custom_h, labels=custom_l, 
              handler_map={tuple: HandlerTuple(ndivide=None)},
-             loc='upper left', bbox_to_anchor=(0.05, -0.25), frameon=False,
+             loc='upper left', bbox_to_anchor=(0.05, -0.35), frameon=False,
              fontsize=config.LABEL_FONTSIZE*config.SCALE, ncol=3)
              # columnspacing=0.5)
 

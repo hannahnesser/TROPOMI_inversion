@@ -65,15 +65,38 @@ label_map = {'permian' :'Permian',
              'uinta': 'Uinta'}
 
 # Units all in GG/yr, errors are rrelative
-shen2022 = {'permian' : (2903, 0.14), 'delaware' : (790, 0.19),
-        'haynesville' : (656, 0.16), 'barnett' : (478, 0.13), 
-        'anadarko' : (610, 0.22), 'northeast' : (613, 0.28),
-        'eagle_ford' : (508, 0.18), 'san_juan' : (236, 0.22), 
-        'california' : (244, 0.3), 'bakken' : (123, 0.26), 
-        'wyoming' : (124, 0.29), 'dj' : (52, 0.45), 
-        'alberta_west' : (68, 0.24), 'fayetteville' : (36, 0.48), 
-        'sw_pa' : (44, 0.29), 'west_arkoma' : (51, 0.31), 'ne_pa' : (28, 0.34),
-        'alberta_east' : (32, 0.51), 'uinta' : (96, 0.21)}
+shen2022 = {'permian' : (3700, 0.09), 'delaware' : (970, 0.18),
+            'haynesville' : (656, 0.16), 'barnett' : (478, 0.13), 
+            'anadarko' : (610, 0.22), 'northeast' : (613, 0.28),
+            'eagle_ford' : (508, 0.18), 'san_juan' : (236, 0.22), 
+            'california' : (244, 0.3), 'bakken' : (123, 0.26), 
+            'wyoming' : (124, 0.29), 'dj' : (52, 0.45), 
+            'alberta_west' : (68, 0.24), 'fayetteville' : (36, 0.48), 
+            'sw_pa' : (44, 0.29), 'west_arkoma' : (51, 0.31), 
+            'ne_pa' : (28, 0.34),
+            'alberta_east' : (32, 0.51), 'uinta' : (96, 0.21)}
+
+
+# Load Lu 2023
+files = glob.glob(f'{data_dir}ong/Lu2023/Region_emission*')
+files.sort()
+cols = ['Year', 'Emissions [Tg]', 'Emission(Min)', 'Emission(Max)']
+lu2023 = pd.DataFrame(columns=cols)
+for f in files:
+    data = pd.read_csv(f, usecols=cols)
+    data = data[data['Year'] == 2019]
+    data['Basin'] = f.split('_')[-1].split('.')[0].lower().replace(' ', '_')
+    data = data.set_index('Basin')
+    lu2023 = lu2023.append(data)
+lu2023 = lu2023.drop(columns='Year')
+lu2023 = lu2023.rename(index={'marcellus' : 'northeast'},
+                       columns={'Emissions [Tg]' : 'mean',
+                                'Emission(Min)' : 'min',
+                                'Emission(Max)' : 'max'})
+lu2023['min'] = lu2023['mean'] - lu2023['min']
+lu2023['max'] = lu2023['max'] - lu2023['mean']
+print(lu2023)
+lu2023 = lu2023.drop('us')
 
 ## ------------------------------------------------------------------------ ##
 ## Load files
@@ -83,6 +106,10 @@ w_ong = pd.read_csv(f'{data_dir}ong/ong_mask.csv', header=0).T
 
 # Load clusters
 clusters = xr.open_dataarray(f'{data_dir}clusters.nc').squeeze()
+
+# fig, ax, c = ip.plot_state(w_ong.loc['permian'], clusters)
+# ax = fp.format_map(ax, lats=clusters.lat.values, lons=clusters.lon.values)
+# plt.show()
 
 # Load area (km2)
 area = xr.open_dataarray(f'{data_dir}area.nc').values.reshape((-1, 1))
@@ -125,6 +152,7 @@ post_stats = ip.get_ensemble_stats(post).add_prefix('post_')
 
 ## Aggregate
 summ = pd.concat([area, prior, post_stats, xhat_stats], axis=1)
+print(summ.loc['permian'])
 
 # Sort by posterior anthropogenic emissions
 summ = summ.sort_values(by='post_mean', ascending=False)
@@ -152,32 +180,47 @@ shen2022_data = np.array([shen2022[l][0] for l in summ.index.values])
 shen2022_err = np.array([shen2022[l][0]*shen2022[l][1] 
                          for l in summ.index.values])
 
-print((summ['post_mean'] - shen2022_data*1e-3))
-print(shen2022_data)
-print(shen2022_err)
-
 # Adjust min/max definitions for error bars
 summ['post_max'] = summ['post_max'] - summ['post_mean']
 summ['post_min'] = summ['post_mean'] - summ['post_min']
 
+print('-'*70)
+print('Differences between mean emissions between Shen et al. (2022) and our work')
+print(summ['post_mean'] - shen2022_data*1e-3)
+
 # Plot bar
-ax.bar(xs - 0.175, summ['prior'], width=0.3, color=s.sector_colors['ong'], 
-       label='Prior')
-ax.bar(xs + 0.175, summ['post_mean'], 
+# ax.bar(xs - 0.175, summ['prior'], width=0.3, color=s.sector_colors['ong'], 
+#        label='Prior')
+ax.bar(xs, summ['post_mean'], 
        yerr=np.array(summ[['post_min', 'post_max']]).T,
        error_kw={'ecolor' : '0.65', 'lw' : 0.75, 'capsize' : 2, 
                  'capthick' : 0.75},
-       width=0.3, color=s.sector_colors['ong'], alpha=0.15, label='Posterior')
+       width=0.3, color=s.sector_colors['ong'], alpha=0.5, 
+       label='Posterior emissions')
 
 # Add Shen data
-ax.errorbar(xs + 0.175, shen2022_data*1e-3, yerr=shen2022_err*1e-3, fmt='o', 
+ax.errorbar(xs - 0.075, shen2022_data*1e-3, yerr=shen2022_err*1e-3, fmt='o', 
             markersize=4, markerfacecolor='white', markeredgecolor='black', 
             ecolor='black', lw=0.5, capsize=1, capthick=0.5, 
             label='Shen et al. (2022)')
 
 # Add Shen threshold
 ax.fill_between([0, nb + 1], [0, 0], [0.5, 0.5], 
-                color='0.3', alpha=0.1, label='Quantification threshold')
+                color='0.3', alpha=0.1, label='Quantification threshold', 
+                zorder=-5)
+
+# Add Lu data
+x = np.array([np.argwhere(b == summ.index.values)[0][0] + 1 for b in lu2023.index.values])
+ax.errorbar(x + 0.075, lu2023['mean'], yerr=np.array(lu2023[['min', 'max']]).T,
+            fmt='s', markersize=4, markerfacecolor='white', 
+            markeredgecolor='black', ecolor='black', lw=0.5, 
+            capsize=1, capthick=0.5, 
+            label='Lu et al. (2023)')
+print('Comparing total emissions in Lu et al. (2023)')
+print('Our estimate :', summ.loc[lu2023.index.values]['post_mean'].sum(), 'Tg')
+print('Their estimate :', lu2023['mean'].sum(), 'Tg') 
+print('Our estimate :', summ.loc[lu2023.index.values]['post_mean'][summ.loc[lu2023.index.values]['post_mean'] > 0.5].sum(), 'Tg')
+print('Their estimate :', lu2023['mean'][lu2023['mean'] > 0.5 ].sum(), 'Tg') 
 
 # Add labels
 ax.set_xticks(xs)
@@ -186,7 +229,7 @@ ax.set_xlim(0, nb + 1)
 ax.set_xticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE,
                    rotation=90)
 
-ax.set_ylim(0, 3.5)
+ax.set_ylim(0, 4.1)
 
 ax.tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
 # plt.setp(ax.get_xticklabels(), visible=False)
