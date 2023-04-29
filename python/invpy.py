@@ -679,7 +679,7 @@ def plot_posterior(xhat, dofs, clusters, **kwargs):
     div_norm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=1, vmax=3)
 
     small_map_kwargs = {'draw_labels' : False}
-    xhat_cbar_kwargs = {'title' : r'Scale factor', 'horizontal' : True , 
+    xhat_cbar_kwargs = {'title' : r'Posterior/prior scale factor', 'horizontal' : True , 
                         'y' : -3}
     xhat_kwargs = {'cmap' : sf_cmap, 'norm' : div_norm,
                    'default_value' : 1, 'cbar_kwargs' : xhat_cbar_kwargs,
@@ -697,7 +697,7 @@ def plot_posterior(xhat, dofs, clusters, **kwargs):
 
     # Plot xhat
     fig, ax[0], c = plot_state(xhat, clusters, 
-                               title='Posterior emission scale factors',
+                               title='Posterior/prior scale factors',
                                **xhat_kwargs)
 
     # Plot dofs
