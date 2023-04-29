@@ -22,6 +22,7 @@ import mpl_toolkits.mplot3d
 from matplotlib.collections import PolyCollection, LineCollection
 import cartopy.crs as ccrs
 import cartopy
+import cartopy.io.shapereader as shpreader
 import cartopy.feature as cf
 from cartopy.mpl.patch import geos_to_path
 import matplotlib.colors as mc
@@ -287,32 +288,35 @@ def format_map(ax, lats, lons,
     # Format
     ax.set_ylim(min(lats), max(lats))
     ax.set_xlim(min(lons), max(lons))
+
+    # Get states
+    states = shpreader.natural_earth(resolution='50m', category='cultural', 
+                                     name='admin_1_states_provinces_lakes')
+    reader = shpreader.Reader(states)
+    STATES = [x for x in reader.records() 
+              if x.attributes['admin'] == 'United States of America']
+    STATES = cf.ShapelyFeature([x.geometry for x in STATES], 
+                                ccrs.PlateCarree())
+
+    # Get borders
+    borders = shpreader.natural_earth(resolution='50m', category='cultural',
+                                      name='admin_0_countries_lakes')
+    reader = shpreader.Reader(borders)
+    BORDERS = [x for x in reader.records()]
+    BORDERS = cf.ShapelyFeature([x.geometry for x in BORDERS], 
+                                ccrs.PlateCarree())
+
     ax.add_feature(cf.OCEAN.with_scale('50m'), facecolor='0.98', linewidth=0.5)
     ax.add_feature(cf.LAND.with_scale('50m'), facecolor='0.98', linewidth=0.5)
-    ax.add_feature(cf.STATES.with_scale('50m'), edgecolor='0.3', linewidth=0.2,
-                   zorder=10)
-    ax.add_feature(cf.LAKES.with_scale('50m'), facecolor='none',
-                   edgecolor='0.3 ', linewidth=0.2)
+    # ax.add_feature(cf.BORDERS.with_scale('50m'), edgecolor='0.2',
+    #                linewidth=0.5)
+    ax.add_feature(STATES, edgecolor='0.3', linewidth=0.2, facecolor='none')
+    ax.add_feature(BORDERS, edgecolor='0.2', linewidth=0.5, facecolor='none')
     ax.coastlines(resolution='50m', color='0.2', linewidth=0.5)
 
-    # States
-    shapeFilename = '../inversion_data/states/ne_50m_admin_1_states_provinces/ne_50m_admin_1_states_provinces.shp'
-    reader = cartopy.io.shapereader.Reader(shapeFilename)
-    states = reader.records()
-    states = [s.geometry() for s in states 
-              if s.attributes['admin'] == 'Mexico']
-    ax.add_geometries(states, ccrs.PlateCarree(), edgecolor='0.3', 
-                      linewidth=0.2, zorder=10)
-
-    # gl = ax.gridlines(**gridline_kwargs)
-    # gl.xlabel_style = {'fontsize' : fontsize}
-    # gl.ylabel_style = {'fontsize' : fontsize}
     return ax
 
 def format_cbar(cbar, cbar_title='', horizontal=False, **cbar_kwargs):
-    # cbar.set_label(cbar_title, fontsize=BASEFONT*config.SCALE,
-    #                labelpad=CBAR_config.LABEL_PAD)
-            # x0
     if horizontal:
         x = 0.5
         y = cbar_kwargs.pop('y', -4)
@@ -326,11 +330,13 @@ def format_cbar(cbar, cbar_title='', horizontal=False, **cbar_kwargs):
         va = 'center'
         ha = 'left'
 
-    cbar.ax.tick_params(axis='both', which='both',
-                        labelsize=config.TICK_FONTSIZE*config.SCALE)
+    labelsize = cbar_kwargs.pop('labelsize', config.TICK_FONTSIZE*config.SCALE)
+    fontsize = cbar_kwargs.pop('fontsize', config.LABEL_FONTSIZE*config.SCALE)
+
+    cbar.ax.tick_params(axis='both', which='both', labelsize=labelsize)
     cbar.ax.text(x, y, cbar_title, ha=ha, va=va, rotation=rotation,
-                 fontsize=config.LABEL_FONTSIZE*config.SCALE,
-                 transform=cbar.ax.transAxes)
+                 fontsize=fontsize, transform=cbar.ax.transAxes, 
+                 multialignment='center')
 
     return cbar
 
@@ -342,6 +348,7 @@ def plot_one_to_one(ax):
     return ax
 
 def save_fig(fig, loc, name, **kwargs):
+    dpi = kwargs.pop('dpi', 500)
     fig.savefig(join(loc, name + '.png'), bbox_inches='tight',
-                dpi=500, transparent=True, **kwargs)
+                dpi=dpi, transparent=True, **kwargs)
     print('Saved %s' % name + '.png')
