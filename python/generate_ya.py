@@ -17,11 +17,11 @@ import inversion_settings as s
 ## ---------------------------------------------------------------------##
 ## Directories
 ## ---------------------------------------------------------------------##
-data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_w37_edf/ProcessedDir'
+data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_w37_edf_posterior/ProcessedDir'
 output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
 inv_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
 y_file = 'y.nc'
-latitudinal_correction = True
+latitudinal_correction = False
 err_min = 10
 suffix = 'w37_edf'
 err_suffix = f'rg2rt_{err_min}t_{suffix}'
