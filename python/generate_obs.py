@@ -185,7 +185,7 @@ remove_mean_bias = True
 lat_bins = np.arange(10, 65, 5)
 
 # Which analyses do you wish to perform?
-analyze_biases = True
+analyze_biases = False
 
 # Calculate the error variances?
 calculate_so = True
@@ -790,19 +790,34 @@ if analyze_biases:
         ## Seasonal latitudinal bias
         ## ----------------------------------------- ##
         lm_b['LAT'] = lm_b['LAT_BIN'].apply(lambda x: x.mid)
-        fig, ax = fp.get_figax(aspect=1.75)
-        ax.errorbar(l_b['LAT'], l_b['mean'], yerr=l_b['std'],
-                    color=fp.color(4))
+        fig, ax = fp.get_figax(aspect=1.75, max_width=config.BASE_WIDTH/2,
+                               max_height=config.BASE_HEIGHT/2)
+        ax.errorbar(l_b['LAT'], l_b['mean'] + 9.11, yerr=l_b['std'],
+                    color=fp.color(4), label='Annual average', zorder=10,
+                    ecolor=fp.color(4), elinewidth=0.75, capsize=1, 
+                    capthick=0.5)
         ax.set_xticks(np.arange(10, 70, 10))
         ax.set_xlim(10, 60)
-        ax = fp.add_labels(ax, 'Latitude', 'Model - observation')
-        ax = fp.add_title(ax, f'Latitudinal bias in prior run')
+        ax = fp.add_labels(ax, 'Latitude (degrees)', 
+                           'Model - observation (ppb)',
+                           labelpad=10)
+        ax = fp.add_title(ax, f'Latitudinal and seasonal bias in prior simulation')
         linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
         for i, season in enumerate(np.unique(lm_b['SEASON'])):
             d = lm_b[lm_b['SEASON'] == season]
-            ax.plot(d['LAT'].values, d['mean'].values, color=fp.color(4),
-                    label=season, ls=linestyles[i], lw=0.5)
-        fp.add_legend(ax)
+            ax.plot(d['LAT'].values, d['mean'].values + 9.11, 
+                    color=fp.color(4), alpha=0.5, label=f'{season} average', 
+                    ls=linestyles[i], lw=0.5, zorder=0)
+        ax.axhline(9.11, color='0.6', ls='-', label='Mean bias', zorder=20,
+                   lw=0.75)
+        ax.plot(np.arange(10, 70, 10), -5.40 + 0.39*np.arange(10, 70, 10),
+                color='0.6', ls='--', label='Latitudinal bias fit', zorder=20,
+                lw=0.75)
+        handles, labels = ax.get_legend_handles_labels()
+        handles = [handles[i] for i in [6, 0, 1, 2, 3, 4, 5]]
+        labels = [labels[i] for i in [6, 0, 1, 2, 3, 4, 5]]
+        fp.add_legend(ax, handles=handles, labels=labels, 
+                      bbox_to_anchor=(1, 0.5), loc='center left', ncol=1)
         fp.save_fig(fig, plot_dir,
                     f'prior_seasonal_latitudinal_bias{suffix}')
         plt.close()
@@ -944,7 +959,7 @@ if (plot_dir is not None) and calculate_so:
     # Also calculate seasonal errors
     # We calculate the mean bias, observation, and precision on the GEOS-Chem
     # grid, accounting for the squaring of the precision
-    groupby = ['LAT_CENTER', 'LON_CENTER', 'SEASON']
+    groupby = ['LAT_CENTER', 'LON_CENTER']
     group_quantities = ['DIFF', 'OBS', 'PREC_SQ']
     plot_data['PREC_SQ'] = plot_data['PREC']**2
     res_err = plot_data.groupby(groupby).mean()[group_quantities].reset_index()
@@ -987,63 +1002,69 @@ if (plot_dir is not None) and calculate_so:
     d_p = d_p[['STD', 'AVG_OBS', 'AVG_DIFF', 'COUNT']].to_xarray()
     d_p = d_p.rename({'LAT_CENTER' : 'lats', 'LON_CENTER' : 'lons'})
 
-    fig, ax = fp.get_figax(rows=2, cols=4, maps=True,
+    fig, ax = fp.get_figax(rows=1, cols=2, maps=True,
                            lats=d_p.lats, lons=d_p.lons,
                            max_width=config.BASE_WIDTH,
                            max_height=config.BASE_HEIGHT)
     plt.subplots_adjust(hspace=-0.25, wspace=0.1) # wspace=0.05)
 
-    # fig_c, ax_c = fp.get_figax(rows=1, cols=4, maps=True,
-    #                            lats=d_p.lats, lons=d_p.lons,
-    #                            max_width=config.PRES_WIDTH*config.SCALE*1.5,
-    #                            max_height=config.PRES_HEIGHT*config.SCALE*1.5)
-    fig_e, ax_e = fp.get_figax(rows=1, cols=4, maps=True,
-                               lats=d_p.lats, lons=d_p.lons,
-                               max_width=config.PRES_WIDTH*config.SCALE*1.5,
-                               max_height=config.PRES_HEIGHT*config.SCALE*1.5)
-    fig_cb, ax_cb = fp.get_figax(rows=1, cols=4, maps=True,
-                                 lats=d_p.lats, lons=d_p.lons,
-                                 max_width=config.PRES_WIDTH*config.SCALE*1.5,
-                                 max_height=config.PRES_HEIGHT*config.SCALE*1.5)
-    for i, s in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
-        d = d_p.where(d_p.SEASON == s, drop=True)
-
-        c = d['AVG_OBS'].plot(ax=ax[0, i], cmap='plasma', vmin=1800, vmax=1900,
-                              add_colorbar=False)
-        c_c = d['COUNT'].plot(ax=ax[1, i], cmap='afmhot', vmin=0, vmax=300,
-                              add_colorbar=False)
-        c_e = d['STD'].plot(ax=ax_e[i], cmap='plasma', vmin=0, vmax=25,
+    c = d_p['AVG_OBS'].plot(ax=ax[0], cmap='plasma', vmin=1820, vmax=1880,
                             add_colorbar=False)
-        # c_c = d['COUNT'].plot(ax=ax_c[i], cmap='afmhot', vmin=0, vmax=300,
-        #                       add_colorbar=False)
-        c_cb = d['AVG_DIFF'].plot(ax=ax_cb[i], cmap='PuOr_r',
-                                  vmin=-30, vmax=30, add_colorbar=False)
-        for j, axis in enumerate([ax[0, i], ax_e[i], ax_cb[i]]):
-            axis = fp.format_map(axis, d.lats, d.lons)
-            axis = fp.add_title(axis, s, fontsize=config.TITLE_FONTSIZE)
-        ax[1, i] = fp.format_map(ax[1, i], d.lats, d.lons)
-        ax[1, i] = fp.add_title(ax[1, i], '')
+    ax[0] = fp.add_title(ax[0], '2019 TROPOMI methane observations')
+    c_c = d_p['COUNT'].plot(ax=ax[1], cmap='inferno', vmin=0, vmax=1e3,
+                            add_colorbar=False)
+    ax[1] = fp.add_title(ax[1], 'Observational density')
 
-    cax = fp.add_cax(fig, ax[0, :]) #cbar_pad_inches=0.075)
-    cb = fig.colorbar(c, ax=ax[0, :], cax=cax)
-    cb = fp.format_cbar(cb, 'XCH4 (ppb)')
+    cax = []
+    for axis in ax:
+        axis = fp.format_map(axis, d_p.lats, d_p.lons)
+        caxis = fp.add_cax(fig, axis, horizontal=True, cbar_pad_inches=0.25)
+        cax.append(caxis)
 
-    cax_c = fp.add_cax(fig, ax[1, :]) #cbar_pad_inches=0.075)
-    cb_c = fig.colorbar(c_c, ax=ax[1, :], cax=cax_c, ticks=[50, 150, 250])
-    cb_c = fp.format_cbar(cb_c, 'Count')
-    # fp.save_fig(fig_c, plot_dir, f'counts{suffix}')
+    cb = fig.colorbar(c, ax=ax[0], cax=cax[0], orientation='horizontal')
+    cb = fp.format_cbar(cb, 'Methane mixing ratio (ppb)', y=-3, horizontal='horizontal')
+
+    cb_c = fig.colorbar(c_c, ax=ax[1], cax=cax[1], orientation='horizontal')
+    cb_c = fp.format_cbar(cb_c, 'Count', y=-3, horizontal='horizontal')
 
     fp.save_fig(fig, plot_dir, f'observations{suffix}')
 
-    cax_e = fp.add_cax(fig_e, ax_e)
-    cb_e = fig.colorbar(c_e, ax=ax_e, cax=cax_e)
-    cb_e = fp.format_cbar(cb_e, 'St. Dev.\n(ppb)')
-    fp.save_fig(fig_e, plot_dir, f'errors{suffix}')
 
-    cax_cb = fp.add_cax(fig_cb, ax_cb)
-    cb_cb = fig.colorbar(c_cb, ax=ax_cb, cax=cax_cb)
-    cb_cb = fp.format_cbar(cb_cb, 'GC-TROPOMI\n(ppb)')
-    fp.save_fig(fig_cb, plot_dir, f'diff{suffix}')
+    # # fig_c, ax_c = fp.get_figax(rows=1, cols=4, maps=True,
+    # #                            lats=d_p.lats, lons=d_p.lons,
+    # #                            max_width=config.PRES_WIDTH*config.SCALE*1.5,
+    # #                            max_height=config.PRES_HEIGHT*config.SCALE*1.5)
+    # fig_e, ax_e = fp.get_figax(rows=1, cols=4, maps=True,
+    #                            lats=d_p.lats, lons=d_p.lons,
+    #                            max_width=config.PRES_WIDTH*config.SCALE*1.5,
+    #                            max_height=config.PRES_HEIGHT*config.SCALE*1.5)
+    # fig_cb, ax_cb = fp.get_figax(rows=1, cols=4, maps=True,
+    #                              lats=d_p.lats, lons=d_p.lons,
+    #                              max_width=config.PRES_WIDTH*config.SCALE*1.5,
+    #                              max_height=config.PRES_HEIGHT*config.SCALE*1.5)
+    # for i, s in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
+    #     d = d_p.where(d_p.SEASON == s, drop=True)
+    #     c_e = d['STD'].plot(ax=ax_e[i], cmap='plasma', vmin=0, vmax=25,
+    #                         add_colorbar=False)
+    #     # c_c = d['COUNT'].plot(ax=ax_c[i], cmap='afmhot', vmin=0, vmax=300,
+    #     #                       add_colorbar=False)
+    #     c_cb = d['AVG_DIFF'].plot(ax=ax_cb[i], cmap='PuOr_r',
+    #                               vmin=-30, vmax=30, add_colorbar=False)
+        # for j, axis in enumerate([ax[0, i], ax_e[i], ax_cb[i]]):
+        #     axis = fp.format_map(axis, d.lats, d.lons)
+        #     axis = fp.add_title(axis, s, fontsize=config.TITLE_FONTSIZE)
+        # ax[1, i] = fp.format_map(ax[1, i], d.lats, d.lons)
+        # ax[1, i] = fp.add_title(ax[1, i], '')
+
+    # cax_e = fp.add_cax(fig_e, ax_e)
+    # cb_e = fig.colorbar(c_e, ax=ax_e, cax=cax_e)
+    # cb_e = fp.format_cbar(cb_e, 'St. Dev.\n(ppb)')
+    # fp.save_fig(fig_e, plot_dir, f'errors{suffix}')
+
+    # cax_cb = fp.add_cax(fig_cb, ax_cb)
+    # cb_cb = fig.colorbar(c_cb, ax=ax_cb, cax=cax_cb)
+    # cb_cb = fp.format_cbar(cb_cb, 'GC-TROPOMI\n(ppb)')
+    # fp.save_fig(fig_cb, plot_dir, f'diff{suffix}')
 
     # Now plot the histograms
     hist_bins = np.arange(0, 26, 0.5)
