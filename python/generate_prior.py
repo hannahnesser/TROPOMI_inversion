@@ -126,19 +126,6 @@ for ss, coefs in sources.items():
 print('-'*75)
 print('\n')
 
-## ------------------------------------------------------------------------ ##
-## Define EPA errors 
-## ------------------------------------------------------------------------ ##
-EPA_err_min = pd.Series({'coal' : 0.06, 'gas' : 0.1, 'oil' : 0.12, 
-                         'landfills' : 0.19, 'wastewater' : 0.01, 
-                         'livestock' : 0.05, 'other' : 0.23,
-                         'wetlands' : 0.5})
-
-EPA_err_max = pd.Series({'coal' : 0.07, 'gas' : 0.15, 'oil' : 0.76, 
-                         'landfills' : 0.33, 'wastewater' : 0.2, 
-                         'livestock' : 0.07, 'other' : 0.5,
-                         'wetlands' : 0.5})
-
 ## -------------------------------------------------------------------------##
 ## Load and process raw emissions data
 ## -------------------------------------------------------------------------##
@@ -354,43 +341,6 @@ print(w_hr.sum(axis=0)*1e-6)
 print('total         ', w_hr.values.sum()*1e-6 +
                         (soil_abs*area).values.sum()*1e-6)
 print('total         ', (xa_abs*area).sum().values*1e-6)
-
-## -------------------------------------------------------------------------##
-## Get sectoral errors
-## -------------------------------------------------------------------------##
-# sect_err_max = np.sqrt(((w*EPA_err_max)**2).sum(axis=1))/w.sum(axis=1).values
-# sect_err_max = np.array(sect_err_max)
-# sect_err_max = np.nan_to_num(sect_err_max, 0.5)
-# sect_err_max[sect_err_max == 0.0] = 0.5
-
-# sect_err_min = np.sqrt(((w*EPA_err_min)**2).sum(axis=1))/w.sum(axis=1).values
-# sect_err_min = np.array(sect_err_min)
-# sect_err_min = np.nan_to_num(sect_err_min, 0.5)
-# sect_err_min[sect_err_min == 0] = 0.5
-
-# # cbar_kwargs = {'title' : r'Relative errors'}
-# # small_map_kwargs = {'draw_labels' : False}
-# # small_fig_kwargs = {'max_width' : 4,
-# #                     'max_height' : 3.5}
-# # emis_kwargs = {'cmap' : fp.cmap_trans('viridis'), 'vmin' : 0, 'vmax' : 0.5,
-# #                'default_value' : 0, 'cbar_kwargs' : cbar_kwargs, 
-# #                'fig_kwargs' : small_fig_kwargs, 
-# #                'map_kwargs' : small_map_kwargs}
-# # # fig, ax = fp.get_figax(rows=1, cols=2, maps=True,
-# # #                        lats=emis['std'].lat, lons=emis['std'].lon)
-# # plt.subplots_adjust(hspace=0.5)
-# # # fig, ax[0], c = ip.plot_state(sect_err_min, clusters, cbar=False,
-# # #                               title='Minimum sectoral errors',
-# # #                               fig_kwargs={'figax' : [fig, ax[0]]},
-# # #                               **emis_kwargs)
-# # fig, ax, c = ip.plot_state(sect_err_max, clusters, #cbar=False,
-# #                               title='Sectoral errors',
-# #                               # fig_kwargs={'figax' : [fig, ax[1]]},
-# #                               **emis_kwargs)
-# # # cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
-# # # cb = fig.colorbar(c, cax=cax, ticks=np.arange(0, 0.6, 0.1))
-# # # cb = fp.format_cbar(cb, cbar_title=r'Relative errors') 
-# # fp.save_fig(fig, plot_dir, 'sectoral_errors')
 
 ## -------------------------------------------------------------------------##
 ## Sensitivity tests: Boundary condition
