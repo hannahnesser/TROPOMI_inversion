@@ -93,33 +93,6 @@ rel_err = 1
 days = xr.DataArray([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
                     dims='time')
 
-# Sectoral breakdown
-emissions = {'wetlands' : 'Wetlands',
-             'livestock' : 'Livestock',
-             'coal' : 'Coal',
-             'ong' : ['Oil', 'Gas'],
-             # 'gas' : 'Gas',
-             'landfills' : 'Landfills',
-             'wastewater' : 'Wastewater',
-             'other_anth' : ['Rice', 'OtherAnth'],
-             'other_bio' : ['Termites', 'Seeps', 'BiomassBurn', 'Lakes']}
-
-emissions_hr = {'enteric_fermentation' : 'LIVESTOCK_4A',
-                'manure_management' : 'LIVESTOCK_4B',
-                'coal_abandoned' : 'COAL_ABANDONED',
-                'coal_surface' : 'COAL_SURFACE',
-                'coal_underground' : 'COAL_UNDERGROUND',
-                'oil' : 'OIL',
-                'gas_distribution' : 'GAS_DISTRIBUTION',
-                'gas_upstream' : ['GAS_TRANSMISSION', 'GAS_PROCESSING', 
-                                  'GAS_PRODUCTION'],
-                'landfills' : ['LANDFILLS_IND', 'LANDFILLS_MUN'],
-                'wastewater' : ['WASTEWATER_IND', 'WASTEWATER_DOM'],
-                'other_anth' : ['OTHERANTH_1A_M', 'OTHERANTH_1A_S',
-                                'OTHERANTH_2B5', 'OTHERANTH_2C2', 
-                                'OTHERANTH_4F', 'OTHERANTH_5',
-                                'OTHERANTH_6D']}
-
 ## ------------------------------------------------------------------------ ##
 ## Figure out what the relative prior errors should be set at
 ## ------------------------------------------------------------------------ ##
@@ -157,14 +130,14 @@ print('\n')
 ## Define EPA errors 
 ## ------------------------------------------------------------------------ ##
 EPA_err_min = pd.Series({'coal' : 0.06, 'gas' : 0.1, 'oil' : 0.12, 
-                            'landfills' : 0.19, 'wastewater' : 0.01, 
-                            'livestock' : 0.05, 'other' : 0.23,
-                            'wetlands' : 0.5})
+                         'landfills' : 0.19, 'wastewater' : 0.01, 
+                         'livestock' : 0.05, 'other' : 0.23,
+                         'wetlands' : 0.5})
 
 EPA_err_max = pd.Series({'coal' : 0.07, 'gas' : 0.15, 'oil' : 0.76, 
-                            'landfills' : 0.33, 'wastewater' : 0.2, 
-                            'livestock' : 0.07, 'other' : 0.5,
-                             'wetlands' : 0.5})
+                         'landfills' : 0.33, 'wastewater' : 0.2, 
+                         'livestock' : 0.07, 'other' : 0.5,
+                         'wetlands' : 0.5})
 
 ## -------------------------------------------------------------------------##
 ## Load and process raw emissions data
@@ -188,15 +161,32 @@ for e_str, e_file in emis_files.items():
         # Save summary files
         if e_str == 'std':
             name = f'HEMCO_diagnostics.2019.nc'
-        else:
+        elif e_str == 'hr':
             name = f'HEMCO_diagnostics_hr.2019.nc'
         emis[e_str].to_netcdf(f'{data_dir}/prior/total_emissions/{name}')
 
-    # Adjust units to Mg/km2/yr
-    emis[e_str] *= 1e-3*(60*60*24*365)*(1000*1000)
+    # Adjust units to Mg/km2/yr (from kg/m2/s)
+    if e_str == 'std':
+        conv_factor = 1e-3*(60*60*24*365)*(1000*1000)
+        emis[e_str] *= conv_factor
+        emis[e_str]['AREA'] /= conv_factor*(1000*1000) # Fix area/convert to km2 from m2
+    elif e_str == 'hr': 
+        conv_factor = 1e-3*(60*60*24*365)*(1000*1000)*1e4
+        emis[e_str] *= conv_factor
+        emis[e_str]['AREA'] /= conv_factor*(1000*1000)
 
-    # Fix area and convert to km2 from m2
-    emis[e_str]['AREA'] /= 1e-3*(60*60*24*365)*(1000*1000)**2
+
+# Re = 6375e3 # Radius of the earth in m
+# lon_e_gc = np.append(clusters.lon.values - s.lon_delta/2,
+#                      clusters.lon[-1].values + s.lon_delta/2)
+# lat_e_gc = np.append(clusters.lat.values - s.lat_delta/2,
+#                      clusters.lat[-1].values + s.lat_delta/2)
+# area_gc = Re**2*(np.sin(lat_e_gc[1:]/180*np.pi) - 
+#                  np.sin(lat_e_gc[:-1]/180*np.pi))*s.lon_delta/180*np.pi
+
+# print(area_gc/1e6)
+# print(emis['hr']['AREA'].values[:, 0])
+# print(emis['std']['AREA'].values[:, 0])
 
 # Save out area as km2
 area = ip.clusters_2d_to_1d(clusters, emis['std']['AREA'])
@@ -314,7 +304,7 @@ print('-'*75)
 ## Group by sector
 ## -------------------------------------------------------------------------##
 def sectoral_matrix(raw_emis, suffix, prefix='EmisCH4_', area=area,
-                    clusters=clusters, emis_cats=emissions):
+                    clusters=clusters, emis_cats=s.sector_groups):
     w = pd.DataFrame(columns=emis_cats.keys())
     for label, categories in emis_cats.items():
         # Get emissions
@@ -337,8 +327,19 @@ def sectoral_matrix(raw_emis, suffix, prefix='EmisCH4_', area=area,
     return w
 
 w = sectoral_matrix(emis['std'], '')
-# w_hr = sectoral_matrix(emis['hr'], suffix='_hr', prefix='InvGEPA_CH4_', 
-#                        emis_cats=emissions_hr)
+
+# High resolution sectoral W
+w_hr = sectoral_matrix(emis['hr'], suffix='_hr', prefix='InvGEPA_CH4_', 
+                       emis_cats=s.sector_groups_hr)
+
+## And now correct for updates to oil and natural gas
+### Scale natural gas emissions by 2020 GHGI emissions for 2018
+w_hr['gas_distribution'] *= (473*1e3)/w_hr['gas_distribution'].sum()
+
+### Convert the upstream emissions to match W --> but we need to do 
+### this with the EDF emissions included, so we'll do it below.
+### This is a place holder to check the arithmetic.
+w_hr['ong_upstream'] = conus_mask*(w['ong'] - w_hr['gas_distribution'])
 
 print('-'*75)
 print('Standard emissions')
@@ -347,12 +348,12 @@ print('total         ', w.values.sum()*1e-6 +
                         (soil_abs*area).values.sum()*1e-6)
 print('total         ', (xa_abs*area).sum().values*1e-6)
 
-# print('-'*75)
-# print('Sectoral high resolution emissions')
-# print(w_hr.sum(axis=0)*1e-6)
-# print('total         ', w_hr.values.sum()*1e-6 +
-#                         (soil_abs*area).values.sum()*1e-6)
-# print('total         ', (xa_abs*area).sum().values*1e-6)
+print('-'*75)
+print('Sectoral high resolution emissions')
+print(w_hr.sum(axis=0)*1e-6)
+print('total         ', w_hr.values.sum()*1e-6 +
+                        (soil_abs*area).values.sum()*1e-6)
+print('total         ', (xa_abs*area).sum().values*1e-6)
 
 ## -------------------------------------------------------------------------##
 ## Get sectoral errors
@@ -451,15 +452,39 @@ w_edf = dc(w)
 # w_edf['gas'][permian_idx] = xa_abs_permian_ng_edf
 w_edf['ong'][permian_idx] = (xa_abs_permian_o_edf + xa_abs_permian_ng_edf)*area[permian_idx]
 
-# f. Save out
+# h. Corrrect the high resolution inventory for EDF
+w_hr['ong_upstream'] = conus_mask*(w_edf['ong'] - w_hr['gas_distribution'])
+
+## Including by dealing with the negatives created by subtracting gas 
+## distribution...
+w_hr_neg = dc(w_hr['ong_upstream'])
+w_hr_neg[w_hr_neg > 0] = 0
+w_hr['gas_distribution'] += w_hr_neg
+w_hr['ong_upstream'][w_hr['ong_upstream'] < 0] = 0
+# tmp = dc(w_hr['ong_upstream']/area)
+# tmp[tmp > 0] = 0
+# print(tmp.min())
+# print(tmp.max())
+# ip.plot_state(tmp, clusters, cmap='RdBu_r', vmin=-1, vmax=1)
+# plt.show()
+
+# i. Save out
 xa_abs_edf = xr.DataArray(xa_abs_edf, dims=('nstate'))
 xa_abs_edf.to_netcdf(join(data_dir, 'xa_abs_edf.nc'))
 w_edf.to_csv(join(data_dir, f'w_edf.csv'), index=False)
+w_hr.to_csv(join(data_dir, f'w_edf_hr.csv'), index=False)
 
 print('-'*75)
 print('EDF inventory emissions')
 print(w_edf.sum(axis=0)*1e-6)
 print('total         ', w_edf.values.sum()*1e-6 + 
+                        (soil_abs*area).values.sum()*1e-6)
+print('total         ', (xa_abs_edf*area).sum().values*1e-6)
+
+print('-'*75)
+print('High-resolution EDF inventory emissions')
+print(w_hr.sum(axis=0)*1e-6)
+print('total         ', w_hr.values.sum()*1e-6 + 
                         (soil_abs*area).values.sum()*1e-6)
 print('total         ', (xa_abs_edf*area).sum().values*1e-6)
 
@@ -579,11 +604,11 @@ if plot_dir is not None:
                   fontsize=config.TICK_FONTSIZE,
                   transform=axis.transAxes)
     plt.subplots_adjust(hspace=-0.25, wspace=0.1)
-    cax = fp.add_cax(fig, ax, horizontal=False)#, cbar_pad_inches=0.2)
+    cax = fp.add_cax(fig, ax, horizontal=True)#, cbar_pad_inches=0.2)
     cb = fig.colorbar(c, cax=cax, ticks=np.arange(0, 6, 1), 
-                      orientation='vertical')
-    cb = fp.format_cbar(cb, cbar_title=r'Initial emissions estimate (Mg km$^2$ a$^{-1}$)',
-                        horizontal=False, y=-3)
+                      orientation='horizontal')
+    cb = fp.format_cbar(cb, cbar_title=r'Methane emissions (Mg km$^2$ a$^{-1}$)',
+                        horizontal=True, y=-3)
     fp.save_fig(fig, plot_dir, 'prior_emissions_2019')
 
     # Create another plot comparing orig and correct
