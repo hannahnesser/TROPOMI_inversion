@@ -1,7 +1,8 @@
 import xarray as xr
 import numpy as np
+import pandas as pd
 import glob
-import copy
+from copy import deepcopy as dc
 
 # Define directories
 code_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/python/'
@@ -16,13 +17,22 @@ import invpy as ip
 import format_plots as fp
 import matplotlib.pyplot as plt
 
+generate_jac_bcs = False
+generate_post_bcs = True
+
+# Define number of ensmeble members
+n_members = 8
+
+# Define BC string for GEOS-Chem
+bc_str = 'SpeciesBC_CH4'
+
 # Get boundary conditions
 bcs = glob.glob(f'{bc_dir}boundary_conditions/GEOSChem.BoundaryConditions.2019*')
 bcs.sort()
 # bcs = ['../inversion_data/GEOSChem.BoundaryConditions.20191124_0000z.nc4']
 
 # Get boundary condition edges
-bcf = xr.open_dataset(bcs[0])['SpeciesBC_CH4']
+bcf = xr.open_dataset(bcs[0])[bc_str]
 lat_e = ((bcf.lat.values[:-1] + bcf.lat.values[1:])/2)[1:-1]
 lat_e = np.hstack((lat_e.min() - 2, lat_e, lat_e.max() + 2))
 lon_e = ((bcf.lon.values[:-1] + bcf.lon.values[1:])/2)[1:-1]
@@ -40,48 +50,59 @@ ebc = (lon_e[lon_e < ee[0]][-1], lon_e[lon_e > ee[1]][0])
 sbc = (lat_e[lat_e < ss[0]][-1], lat_e[lat_e > ss[1]][0])
 wbc = (lon_e[lon_e < ww[0]][-1], lon_e[lon_e > ww[1]][0])
 
+if generate_post_bcs:
+    # Load boundary condition corrections
+    xhat_bc = pd.read_csv(f'{bc_dir}posterior/xhat_bc.csv', header=0, 
+                          index_col=0)
+    xhat_bc = xhat_bc.sum(axis=1)/n_members
+
 print('-'*100)
 for bc in bcs:
     fname = bc.split('/')[-1]
     print(fname)
     bcf = xr.open_dataset(bc)
 
-    # Northern boundary
-    bcf_n = copy.deepcopy(bcf)
-    bcf_n['SpeciesBC_CH4'].loc[{'lat' : slice(*nbc),
-                                'lon' : slice(wbc[0], ebc[1])}] += 10*1e-9
-    # bcf_n['SpeciesBC_CH4'].loc[{'lat' : slice(*nbc),
-    #                             'lon' : slice(wbc[0], ebc[1])}] *= 1.5
-    bcf_n.to_netcdf(f'{bc_dir}boundary_conditions_N/{fname}')
+    if generate_jac_bcs:
+        # Northern boundary
+        bcf_n = dc(bcf)
+        bcf_n[bc_str].loc[{'lat' : slice(*nbc),
+                           'lon' : slice(wbc[0], ebc[1])}] += 10*1e-9
+        bcf_n.to_netcdf(f'{bc_dir}boundary_conditions_N/{fname}')
 
-    # Eastern boundary
-    bcf_e = copy.deepcopy(bcf)
-    bcf_e['SpeciesBC_CH4'].loc[{'lat' : slice(sbc[1], nbc[0]),
-                                'lon' : slice(*ebc)}] += 10*1e-9
-    # bcf_e['SpeciesBC_CH4'].loc[{'lat' : slice(sbc[1], nbc[0]),
-    #                             'lon' : slice(*ebc)}] *= 1.5
-    bcf_e.to_netcdf(f'{bc_dir}boundary_conditions_E/{fname}')
+        # Eastern boundary
+        bcf_e = dc(bcf)
+        bcf_e[bc_str].loc[{'lat' : slice(sbc[1], nbc[0]),
+                           'lon' : slice(*ebc)}] += 10*1e-9
+        bcf_e.to_netcdf(f'{bc_dir}boundary_conditions_E/{fname}')
 
-    # Southern boundary
-    bcf_s = copy.deepcopy(bcf)
-    bcf_s['SpeciesBC_CH4'].loc[{'lat' : slice(*sbc),
-                                'lon' : slice(wbc[0], ebc[1])}] += 10*1e-9
-    # bcf_s['SpeciesBC_CH4'].loc[{'lat' : slice(*sbc),
-    #                             'lon' : slice(wbc[0], ebc[1])}] *= 1.5
-    bcf_s.to_netcdf(f'{bc_dir}boundary_conditions_S/{fname}')
+        # Southern boundary
+        bcf_s = dc(bcf)
+        bcf_s[bc_str].loc[{'lat' : slice(*sbc),
+                           'lon' : slice(wbc[0], ebc[1])}] += 10*1e-9
+        bcf_s.to_netcdf(f'{bc_dir}boundary_conditions_S/{fname}')
 
-    # Western boundary
-    bcf_w = copy.deepcopy(bcf)
-    bcf_w['SpeciesBC_CH4'].loc[{'lat' : slice(sbc[1], nbc[0]),
-                                'lon' : slice(*wbc)}] += 10*1e-9
-    # bcf_w['SpeciesBC_CH4'].loc[{'lat' : slice(sbc[1], nbc[0]),
-    #                             'lon' : slice(*wbc)}] *= 1.5
-    bcf_w.to_netcdf(f'{bc_dir}boundary_conditions_W/{fname}')
+        # Western boundary
+        bcf_w = dc(bcf)
+        bcf_w[bc_str].loc[{'lat' : slice(sbc[1], nbc[0]),
+                           'lon' : slice(*wbc)}] += 10*1e-9
+        bcf_w.to_netcdf(f'{bc_dir}boundary_conditions_W/{fname}')
+
+    if generate_post_bcs:
+        bcp = dc(bcf)
+        bcp[bc_str].loc[{'lat' : slice(*nbc),
+                         'lon' : slice(wbc[0], ebc[1])}] += xhat_bc['N']*1e-9
+        bcp[bc_str].loc[{'lat' : slice(sbc[1], nbc[0]),
+                         'lon' : slice(*ebc)}] += xhat_bc['E']*1e-9
+        bcp[bc_str].loc[{'lat' : slice(*sbc),
+                         'lon' : slice(wbc[0], ebc[1])}] += xhat_bc['S']*1e-9
+        bcp[bc_str].loc[{'lat' : slice(sbc[1], nbc[0]),
+                         'lon' : slice(*wbc)}] += xhat_bc['W']*1e-9
+        bcp.to_netcdf(f'{bc_dir}boundary_conditions_post/{fname}')
 
 
 # for f in ['N', 'E', 'S', 'W']:
 #     f = xr.open_dataset(f'../inversion_data/GEOSChem.BoundaryConditions.20190102_0000z_{f}.nc4')
-#     f = f.sel(lev=f.lev[0], time=f.time[0])['SpeciesBC_CH4']
+#     f = f.sel(lev=f.lev[0], time=f.time[0])[bc_str]
 #     fig, ax = fp.get_figax(maps=True, lats=f.lat, lons=f.lon)
 #     f.plot(ax=ax)
 #     ax = fp.format_map(ax, f.lat, f.lon)
