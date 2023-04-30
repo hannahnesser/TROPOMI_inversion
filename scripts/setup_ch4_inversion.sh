@@ -94,6 +94,8 @@ UseSeparateWetlandSF=false
 UseOHSF=false
 PLANEFLIGHT=false
 PLANEFLIGHT_FILES="\/n\/seasasfs02\/hnesser\/GC_TROPOMI_bias\/PFs\/planeflight_combined_YYYYMMDD"
+OBSPACK=true
+OBSPACK_FILES="\/n/\jacob_lab\/Lab\/seasasfs02\/hnesser\/TROPOMI_inversion\/obspack\/obspack_ch4_1_GLOBALVIEWplus_v3.0_2021-05-07.YYYYMMDD.nc"
 HourlyCH4=true
 
 ##=======================================================================
@@ -322,51 +324,56 @@ cd ..
 
 fi # SetupTemplateRunDir
 
-# ##=======================================================================
-# ##  Set up posterior run directory
-# ##=======================================================================
-# if  "$SetupPosteriorRun"; then
+##=======================================================================
+##  Set up posterior run directory
+##=======================================================================
+if  "$SetupPosteriorRun"; then
 
-#     ### Define the run directory name
-#     posterior_name="${RUN_NAME}_Posterior"
+    ### Define the run directory name
+    posterior_name="${RUN_NAME}_posterior"
 
-#     ### Make the directory
-#     runDir="posterior_run"
-#     mkdir -p ${runDir}
+    ### Make the directory
+    runDir="posterior_run"
+    mkdir -p ${runDir}
 
-#     ### Copy and point to the necessary data
-#     cp -r ${RUN_TEMPLATE}/*  ${runDir}
-#     cd $runDir
+    ### Copy and point to the necessary data
+    cp -r ${RUN_TEMPLATE}/*  ${runDir}
+    cd $runDir
 
-#     ### Link to GEOS-Chem executable instead of having a copy in each run dir
-#     rm -rf geos
-#     ln -sTf ../${RUN_TEMPLATE}/geos .
+    ### Link to GEOS-Chem executable instead of having a copy in each run dir
+    rm -rf geos
+    ln -sTf ../${RUN_TEMPLATE}/geos .
 
-#     # Link to restart file
-#     if "$DO_SPINUP"; then
-#        ln -s ../../spinup_run/GEOSChem.Restart.${SPINUP_END}_0000z.nc4 GEOSChem.Restart.${START_DATE}_0000z.nc4
-#     else
-#        ln -sTf $RESTART_FILE GEOSChem.Restart.${START_DATE}_0000z.nc4
-#     fi
+    # Link to restart file
+    if "$DO_SPINUP"; then
+       ln -s ../../spinup_run/GEOSChem.Restart.${SPINUP_END}_0000z.nc4 GEOSChem.Restart.${START_DATE}_0000z.nc4
+    else
+       ln -sTf $RESTART_FILE GEOSChem.Restart.${START_DATE}_0000z.nc4
+    fi
     
-#     ### Update settings in input.geos
-#     sed -i -e "s|Do analytical inversion?: T|Do analytical inversion?: F|g" \
-# 	       -e "s|pertpert|1.0|g" \
-#            -e "s|clustnumclustnum|0|g" input.geos
+    ### Update settings in input.geos
+    sed -i -e "s|Do analytical inversion?: T|Do analytical inversion?: F|g" \
+	       -e "s|pertpert|1.0|g" \
+           -e "s|clustnumclustnum|0|g" input.geos
 
-#     ### Create run script from template
-#     sed -e "s:namename:${spinup_name}:g" \
-# 	-e "s:##:#:g" GEOS-Chem_run.template > ${posterior_name}.run
-#     chmod 755 ${posterior_name}.run
+    ### Create run script from template
+    sed -e "s:namename:${spinup_name}:g" \
+	-e "s:##:#:g" GEOS-Chem_run.template > ${posterior_name}.run
+    chmod 755 ${posterior_name}.run
 
-#     ### Print diagnostics
-#     echo "CREATED: ${runDir}"
-#     echo "\nNote: You will need to manually modify HEMCO_Config.rc to apply the appropriate scale factors."
+    ## Update HEMCO_Config
+    OLD="\#\* EMIS_SF"
+    NEW="\* EMIS_SF"
+    sed -i "s/$OLD/$NEW/g" HEMCO_Config.rc
+
+    ### Print diagnostics
+    echo "CREATED: ${runDir}"
+    echo "\nNote: You will need to manually modify HEMCO_Config.rc to apply the appropriate scale factors."
     
-#     ### Navigate back to top-level directory
-#     cd ..
+    ### Navigate back to top-level directory
+    cd ..
     
-# fi # SetupPosteriorRun
+fi # SetupPosteriorRun
 
 ##=======================================================================
 ##  Set up Jacobian run directories
@@ -422,18 +429,43 @@ while [[ $x -le $nPerturbationsMax && $x -ge $nPerturbationsMin ]];do
     sed -i -e "s:pertpert:${PERT}:g" \
            -e "s:clustnumclustnum:${xUSE}:g" input.geos
 
-    # Turn on LevelEdgeDiags for the prior run
+    # Change settings for prior run
     if [ $x -eq 0 ]; then
+        # Turn off the analytical inversion
         OLD="Do analytical inversion?: T"
         NEW="Do analytical inversion?: F"
         sed -i "s/$OLD/$NEW/g" input.geos
 
+        # Turn on level edge diags
         sed -i -e 's/#'\''LevelEdgeDiags/'\''LevelEdgeDiags/g' \
  	      -e 's/LevelEdgeDiags.frequency:   00000100 000000/LevelEdgeDiags.frequency:   00000000 010000/g' \
  	      -e 's/LevelEdgeDiags.duration:    00000100 000000/LevelEdgeDiags.duration:    00000001 000000/g' \
  	      -e 's/LevelEdgeDiags.mode:        '\''time-averaged/LevelEdgeDiags.mode:        '\''instantaneous/g' HISTORY.rc
 
         JAC="False"
+
+        if "$OBSPACK"; then
+            mkdir -p obspack
+
+            # Turn on OBSPACK diagnostics
+            OLD="Turn on ObsPack diag?   : F"
+            NEW="Turn on ObsPack diag?   : T"
+            sed -i "s/$OLD/$NEW/g" input.geos
+
+            # Turn off OBSPACK logfile input
+            OLD="Quiet logfile output    : F"
+            NEW="Quiet logfile output    : T"
+            sed -i "s/$OLD/$NEW/g" input.geos
+
+            # Replace files name
+            OLD="ObsPack input file      : obspackinput"
+            NEW="ObsPack input file      : ${OBSPACK_FILES}"
+            sed -i "s/$OLD/$NEW/g" input.geos
+
+            OLD="ObsPack output file     : GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4"
+            NEW="ObsPack output file     : obspack\/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4"
+            sed -i "s/$OLD/$NEW/g" input.geos
+fi
     fi
 
     # Update settings for non-prior runs
@@ -482,29 +514,5 @@ done
 echo "=== DONE CREATING JACOBIAN RUN DIRECTORIES ==="
 
 fi  # SetupJacobianRuns
-
-##=======================================================================
-##  Setup inversion directory -- THIS IS NOT RELEVANT TO MY USE CASE
-##=======================================================================
-if "$SetupInversion"; then
-
-    cd ${JAC_PATH}/$RUN_NAME
-    mkdir -p inversion
-    mkdir -p inversion/data_converted
-    mkdir -p inversion/data_GC
-    mkdir -p inversion/Sensi
-    ln -s /n/holylfs/LABS/jacob_lab/lshen/CH4/TROPOMI/data inversion/data_TROPOMI
-    cp ${INV_PATH}/PostprocessingScripts/CH4_TROPOMI_INV/*.py inversion/
-    cp ${INV_PATH}/PostprocessingScripts/CH4_TROPOMI_INV/run_inversion.sh inversion/
-    sed -i -e "s:{CLUSTERS}:${nClusters}:g" \
-	   -e "s:{START}:${START_DATE}:g" \
-           -e "s:{END}:${END_DATE}:g" \
-	   -e "s:{RUNDIRS}:${JAC_PATH}/${RUN_NAME}/jacobian_runs:g" \
-	   -e "s:{RUNNAME}:${RUN_NAME}:g" \
-	   -e "s:{MYPATH}:${JAC_PATH}:g" inversion/run_inversion.sh
-	   
-    echo "=== DONE SETTING UP INVERSION DIRECTORY ==="
-
-fi #SetupInversion
 
 exit 0
