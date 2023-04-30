@@ -88,58 +88,104 @@ raw_files.sort()
 cols = ['UTC_Start', 'UTC_Stop', 'G_LONG', 'G_LAT', 'P',
         'CH4_NOAA', 'CO_NOAA', 'O3_CL']
 
-        # NOTE: this data requires stratosphere analysis
+    # NOTE: this data requires stratosphere analysis
 
-    # Read in data with troposphere boolean flag
-    # pf = pd.read_csv(join(data_dir, 'planeflight_total.csv'), index_col=0,
-    #                  low_memory=False)
+# Read in data with troposphere boolean flag
+# pf = pd.read_csv(join(data_dir, 'planeflight_total.csv'), index_col=0,
+#                  low_memory=False)
 
-    # Subset for troposphere
-    pf = pf[pf['TROP']]
+# Subset for troposphere
+pf = pf[pf['TROP']]
 
-    # Group by grid box
-    pf_gr = gc.group_by_gridbox(pf)
+# Group by grid box
+pf_gr = gc.group_by_gridbox(pf)
 
-    # figsize
-    figsize = fp.get_figsize(aspect=1.225, rows=2, cols=1)
-    fig, ax = plt.subplots(figsize=figsize)
-    ax.set_facecolor('0.98')
+# figsize
+figsize = fp.get_figsize(aspect=1.225, rows=2, cols=1)
+fig, ax = plt.subplots(figsize=figsize)
+ax.set_facecolor('0.98')
 
-    # Plot
-    fig, ax, c = gc.plot_comparison(pf_gr['OBS'].values,
-                                    pf_gr['MOD'].values,
-                                    lims=[1750, 2250],
-                                    xlabel='Observation', ylabel='Model',
-                                    hexbin=False, stats=False,
-                                    fig_kwargs={'figax' : [fig, ax]})
-    _, _, r, bias = gc.comparison_stats(pf['OBS'].values, pf['MOD'].values)
-    ax = gc.add_stats_text(ax, r, bias)
-    fp.save_fig(fig, plot_dir, 'planeflight_bias')
+# Plot
+fig, ax, c = gc.plot_comparison(pf_gr['OBS'].values,
+                                pf_gr['MOD'].values,
+                                lims=[1750, 2250],
+                                xlabel='Observation', ylabel='Model',
+                                hexbin=False, stats=False,
+                                fig_kwargs={'figax' : [fig, ax]})
+_, _, r, bias = gc.comparison_stats(pf['OBS'].values, pf['MOD'].values)
+ax = gc.add_stats_text(ax, r, bias)
+fp.save_fig(fig, plot_dir, 'planeflight_bias')
 
-    # Lat bias
-    pf['LAT_BIN'] = pd.cut(pf['LAT'], bins=lat_bins)
-    pf_lat = gc.group_data(pf, groupby=['LAT_BIN'])
-    pf_lat['LAT'] = pf_lat['LAT_BIN'].apply(lambda x: x.mid)
+# Lat bias
+pf['LAT_BIN'] = pd.cut(pf['LAT'], bins=lat_bins)
+pf_lat = gc.group_data(pf, groupby=['LAT_BIN'])
+pf_lat['LAT'] = pf_lat['LAT_BIN'].apply(lambda x: x.mid)
 
-    fig = plt.figure(figsize=figsize)
-    gs = fig.add_gridspec(2, 1, height_ratios=(3, 7),
-                          left=0.1, right=0.9, bottom=0.1, top=0.9,
-                          wspace=0, hspace=0)
+fig = plt.figure(figsize=figsize)
+gs = fig.add_gridspec(2, 1, height_ratios=(3, 7),
+                      left=0.1, right=0.9, bottom=0.1, top=0.9,
+                      wspace=0, hspace=0)
 
-    # Latitude plot
-    ax = fig.add_subplot(gs[1])
-    ax.errorbar(pf_lat['LAT'], pf_lat['mean'], yerr=pf_lat['std'],
-                color=fp.color(4))
-    ax.set_xticks(np.arange(10, 70, 10))
-    ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
-    ax.set_facecolor('0.98')
+# Latitude plot
+ax = fig.add_subplot(gs[1])
+ax.errorbar(pf_lat['LAT'], pf_lat['mean'], yerr=pf_lat['std'],
+            color=fp.color(4))
+ax.set_xticks(np.arange(10, 70, 10))
+ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
+ax.set_facecolor('0.98')
 
-    # Histogram
-    ax_hist = fig.add_subplot(gs[0], sharex=ax)
-    ax_hist.hist(pf['LAT'], bins=np.arange(10, 75, 2.5),
-                 color=fp.color(4))
-    ax_hist.tick_params(axis='x', labelbottom=False)
-    ax_hist.tick_params(axis='y', left=False, labelleft=False)
-    ax_hist.set_facecolor('0.98')
+# Histogram
+ax_hist = fig.add_subplot(gs[0], sharex=ax)
+ax_hist.hist(pf['LAT'], bins=np.arange(10, 75, 2.5),
+             color=fp.color(4))
+ax_hist.tick_params(axis='x', labelbottom=False)
+ax_hist.tick_params(axis='y', left=False, labelleft=False)
+ax_hist.set_ylabel('Count')
+ax_hist.set_facecolor('0.98')
 
-    fp.save_fig(fig, plot_dir, 'planeflight_latitudinal_bias')
+fp.save_fig(fig, plot_dir, 'planeflight_latitudinal_bias')
+
+    # # Albedo bias
+    # # figsize
+    # figsize = fp.get_figsize(aspect=1.225, rows=2, cols=1)
+    # fig, ax = plt.subplots(figsize=figsize)
+    # ax.set_facecolor('0.98')
+
+    # # Plot
+    # fig, ax, c = gc.plot_comparison(pf_gr['OBS'].values,
+    #                                 pf_gr['MOD'].values,
+    #                                 lims=[1750, 2250],
+    #                                 xlabel='Observation', ylabel='Model',
+    #                                 hexbin=False, stats=False,
+    #                                 fig_kwargs={'figax' : [fig, ax]})
+    # _, _, r, bias = gc.comparison_stats(pf['OBS'].values, pf['MOD'].values)
+    # ax = gc.add_stats_text(ax, r, bias)
+    # fp.save_fig(fig, plot_dir, 'planeflight_bias')
+
+    # # Lat bias
+    # pf['LAT_BIN'] = pd.cut(pf['LAT'], bins=lat_bins)
+    # pf_lat = gc.group_data(pf, groupby=['LAT_BIN'])
+    # pf_lat['LAT'] = pf_lat['LAT_BIN'].apply(lambda x: x.mid)
+
+    # fig = plt.figure(figsize=figsize)
+    # gs = fig.add_gridspec(2, 1, height_ratios=(3, 7),
+    #                       left=0.1, right=0.9, bottom=0.1, top=0.9,
+    #                       wspace=0, hspace=0)
+
+    # # Latitude plot
+    # ax = fig.add_subplot(gs[1])
+    # ax.errorbar(pf_lat['LAT'], pf_lat['mean'], yerr=pf_lat['std'],
+    #             color=fp.color(4))
+    # ax.set_xticks(np.arange(10, 70, 10))
+    # ax = fp.add_labels(ax, 'Latitude', 'Model - Observation')
+    # ax.set_facecolor('0.98')
+
+    # # Histogram
+    # ax_hist = fig.add_subplot(gs[0], sharex=ax)
+    # ax_hist.hist(pf['LAT'], bins=np.arange(10, 75, 2.5),
+    #              color=fp.color(4))
+    # ax_hist.tick_params(axis='x', labelbottom=False)
+    # ax_hist.tick_params(axis='y', left=False, labelleft=False)
+    # ax_hist.set_facecolor('0.98')
+
+    # fp.save_fig(fig, plot_dir, 'planeflight_latitudinal_bias')

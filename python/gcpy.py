@@ -9,9 +9,17 @@ import xarray as xr
 import pickle
 import math
 from scipy.stats import linregress
+import h5py
+import dask.array as da
+
+import shapefile
+from shapely.geometry import Polygon, MultiPolygon
 
 from os.path import join
 from os import listdir
+import os
+import warnings
+import datetime
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -26,6 +34,7 @@ import sys
 sys.path.append('.')
 import format_plots as fp
 import config
+import inversion_settings as s
 
 # Other font details
 rcParams['font.family'] = 'sans-serif'
@@ -39,21 +48,114 @@ rcParams['axes.titlepad'] = 0
 ## -------------------------------------------------------------------------##
 ## Loading functions
 ## -------------------------------------------------------------------------##
-def save_obj(obj, name):
+def file_exists(file_name):
     '''
-    This is a generic function to save a data object using
-    pickle, which reduces the memory requirements.
+    Check for the existence of a file
     '''
-    with open(name , 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+    data_dir = file_name.rpartition('/')[0]
+    if file_name.split('/')[-1] in listdir(data_dir):
+        return True
+    else:
+        print(f'{file_name} is not in the data directory.')
+        return False
 
-def load_obj(name):
-    '''
-    This is a generic function to open a data object using
-    pickle, which reduces the memory requirements.
-    '''
-    with open(name, 'rb') as f:
+def save_obj(obj, name):
+        with open(name , 'wb') as f:
+            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(file_name):
+    # Open a generic file using pickle
+    with open(file_name, 'rb') as f:
         return pickle.load(f)
+
+def read_file(*file_names, **kwargs):
+    file_suffix = file_names[0].split('.')[-1]
+    # Require that the file exists
+    for f in file_names:
+        # Require that the files exist and that all files are the
+        # same type
+        assert file_exists(f), f'{f} does not exist.'
+        assert f.split('.')[-1] == file_suffix, \
+               'Variable file types provided.'
+
+        # If multiple files are provided, require that they are netcdfs
+        if len(file_names) > 1:
+            assert file_suffix[:2] == 'nc', \
+                   'Multiple files are provided that are not netcdfs.'
+
+    # If a netcdf, read it using xarray
+    if file_suffix[:2] == 'nc':
+        file = read_netcdf_file(*file_names, **kwargs)
+    # Else, read it using a generic function
+    else:
+        if 'chunks' in kwargs:
+            warnings.warn('NOTE: Chunk sizes were provided, but the file is not a netcdf. Chunk size is ignored.', stacklevel=2)
+        file = read_generic_file(*file_names, **kwargs)
+
+    return file
+
+def read_generic_file(file_name):
+    # Open a generic file using pickle
+    with open(file_name, 'rb') as f:
+        return pickle.load(f)
+
+def read_netcdf_file(*file_names, **kwargs):
+    # Open a dataset
+    if len(file_names) > 1:
+        # Currently assumes that we are stacking the files
+        # vertically
+        if 'concat_dim' in kwargs:
+            if len(kwargs['concat_dim']) > 1:
+                file_names = [[f] for f in file_names]
+        data = xr.open_mfdataset(file_names, **kwargs)
+    else:
+        if 'dims' in kwargs:
+            del kwargs['dims']
+        data = xr.open_dataset(file_names[0], **kwargs)
+
+    # If there is only one variable, convert to a dataarray
+    variables = list(data.keys())
+    if len(variables) == 1:
+        data = data[variables[0]]
+
+    # Return the file
+    return data
+
+def calculate_chunk_size(available_memory_GB, n_threads=None,
+                         dtype='float32'):
+    '''
+    This function returns a number that gives the total number of
+    elements that should be held in a chunk. It does not specify the exact
+    chunks for specific dimensions.
+    '''
+
+    # Get the number of active threads
+    if n_threads is None:
+        n_threads = int(os.environ['OMP_NUM_THREADS'])
+
+    # Approximate the number of chunks that are held in memory simultaneously
+    # by dask (reference: https://docs.dask.org/en/latest/array-best-practices.html#:~:text=Orient%20your%20chunks,-When%20reading%20data&text=If%20your%20Dask%20array%20chunks,closer%20to%201MB%20than%20100MB.)
+    chunks_in_memory = 20*n_threads
+
+    # Calculate the memory that is available per chunk (in GB)
+    mem_per_chunk = available_memory_GB/chunks_in_memory
+
+    # Define the number of bytes required for each element
+    if dtype == 'float32':
+        bytes_per_element = 4
+    elif dtype == 'float64':
+        bytes_per_element = 8
+    else:
+        print('Data type is not recognized. Defaulting to reserving 8 bytes')
+        print('per element.')
+        bytes_per_element = 8
+
+    # Calculate the number of elements that can be held in the available
+    # memory for each chunk
+    number_of_elements = mem_per_chunk*1e9/bytes_per_element
+
+    # Scale the number of elements down by 10% to allow for wiggle room.
+    return int(0.9*number_of_elements)
 
 ## -------------------------------------------------------------------------##
 ## Statistics functions
@@ -71,7 +173,22 @@ def group_data(data, groupby, quantity='DIFF',
 def comparison_stats(xdata, ydata):
     m, b, r, p, err = linregress(xdata.flatten(), ydata.flatten())
     bias = (ydata - xdata).mean()
-    return m, b, r, bias
+    std = (ydata - xdata).std()
+    return m, b, r, bias, std
+
+def rma(x, y):
+    syy = ((y - y.mean())**2).sum()
+    sxx = ((x - x.mean())**2).sum()
+    m_rma = np.sign((x*y).sum())*np.sqrt(syy/sxx)
+    b_rma = y.mean() - m_rma*x.mean()
+
+    # Method 2
+    m, b, r, _, _ = linregress(x, y)
+    m_rma_2 = m/r
+    b_rma_2 = y.mean() - m_rma_2*x.mean()
+
+    return m_rma, b_rma
+
 
 ## -------------------------------------------------------------------------##
 ## Grid functions
@@ -136,6 +253,69 @@ def nearest_loc(data, compare_data):
                      data.reshape(1, -1)).argmin(axis=0)
     return indices
 
+def grid_shape_overlap(clusters, x, y, name=None, plot_dir='../plots'):
+    # Initialize mask
+    mask = np.zeros(int(clusters.values.max()))
+
+    # Make a polygon
+    c_poly = Polygon(np.column_stack((x, y)))
+    if not c_poly.is_valid:
+        print(f'Buffering {name}')
+        c_poly = c_poly.buffer(0)
+        # fig, ax = fp.get_figax(cols=2, maps=True, 
+        #                        lats=clusters.lat, lons=clusters.lon)
+        # ax[0].plot(x, y)
+        # try:
+        #     ax[1].plot(*c_poly.exterior.xy)
+        # except:
+        #     for c_geom in c_poly.geoms:
+        #         ax[1].plot(*c_geom.exterior.xy)
+        # fp.save_fig(fig, plot_dir, f'buffer_{shape.record[0]}')
+        # plt.close()
+
+    # Get maximum latitude and longitude limits
+    lat_lims = (np.min(y), np.max(y))
+    lon_lims = (np.min(x), np.max(x))
+
+    # Convert that to the GC grid (admittedly using grid cell centers 
+    # instead of edges, but that should be consesrvative)
+    c_lat_lims = (clusters.lat.values[clusters.lat < lat_lims[0]][-1],
+                  clusters.lat.values[clusters.lat > lat_lims[1]][0])
+    c_lon_lims = (clusters.lon.values[clusters.lon < lon_lims[0]][-1],
+                  clusters.lon.values[clusters.lon > lon_lims[1]][0])
+    c_clusters = clusters.sel(lat=slice(*c_lat_lims), 
+                              lon=slice(*c_lon_lims))
+    c_cluster_list = c_clusters.values.flatten()
+    c_cluster_list = c_cluster_list[c_cluster_list > 0]
+
+    # Iterate through overlapping grid cells
+    for i, gc in enumerate(c_cluster_list):
+        # Get center of grid box
+        gc_center = c_clusters.where(c_clusters == gc, drop=True)
+        gc_center = (gc_center.lon.values[0], gc_center.lat.values[0])
+        
+        # Get corners
+        gc_corners_lon = [gc_center[0] - s.lon_delta/2,
+                          gc_center[0] + s.lon_delta/2,
+                          gc_center[0] + s.lon_delta/2,
+                          gc_center[0] - s.lon_delta/2]
+        gc_corners_lat = [gc_center[1] - s.lat_delta/2,
+                          gc_center[1] - s.lat_delta/2,
+                          gc_center[1] + s.lat_delta/2,
+                          gc_center[1] + s.lat_delta/2]
+
+        # Make polygon
+        gc_poly = Polygon(np.column_stack((gc_corners_lon, gc_corners_lat)))
+
+        if gc_poly.intersects(c_poly):
+            # Get area of overlap area and GC cell and calculate
+            # the fractional contribution of the overlap area
+            overlap_area = c_poly.intersection(gc_poly).area
+            gc_area = gc_poly.area
+            mask[int(gc) - 1] = overlap_area/gc_area
+
+    return mask
+
 ## -------------------------------------------------------------------------##
 ## GEOS-Chem correction functions
 ## -------------------------------------------------------------------------##
@@ -157,22 +337,6 @@ def fill_GC_first_hour(data):
     return data
 
 ## -------------------------------------------------------------------------##
-## GEOS-Chem output-processing functions
-## -------------------------------------------------------------------------##
-def load_files(*files, **kwargs):
-    '''
-    A function that will load one or more files
-    '''
-    if len(files) > 1:
-        # Open files
-        files = [f for f in files if f in listdir(kwargs['data_dir'])]
-        data = xr.open_mfdataset(files)
-    else:
-        data = xr.open_dataset(files[0])
-
-    return data
-
-## -------------------------------------------------------------------------##
 ## HEMCO input functions
 ## -------------------------------------------------------------------------##
 def define_HEMCO_std_attributes(data, name=None):
@@ -189,6 +353,7 @@ def define_HEMCO_std_attributes(data, name=None):
 
     # Check if time is in the dataset and, if not, add it
     if 'time' not in data.coords:
+        data = data.assign_coords(time=0)
         data = data.expand_dims('time')
 
     # Convert to dataset
@@ -204,16 +369,18 @@ def define_HEMCO_std_attributes(data, name=None):
     data.lon.attrs = {'long_name': 'longitude', 'units': 'degrees_east'}
     return data
 
-def define_HEMCO_var_attributes(data, var, long_name, units):
-    data[var].attrs = {'long_name' : long_name, 'units' : units}
+def define_HEMCO_var_attributes(data, var, long_name, units, **kwargs):
+    data[var].attrs = {'long_name' : long_name, 'units' : units,
+                       **kwargs}
     return data
 
-def save_HEMCO_netcdf(data, data_dir, file_name):
-    encoding = {'_FillValue' : None, 'dtype' : 'float32'}
+def save_HEMCO_netcdf(data, data_dir, file_name, dtype='float32', **kwargs):
+    encoding = {'_FillValue' : None, 'dtype' : dtype}
     var = {k : encoding for k in data.keys()}
     coord = {k : encoding for k in data.coords}
     var.update(coord)
-    data.to_netcdf(join(data_dir, file_name), encoding=var)
+    data.to_netcdf(join(data_dir, file_name), encoding=var,
+                   unlimited_dims=['time'], **kwargs)
 
 ## -------------------------------------------------------------------------##
 ## Planeflight functions
@@ -264,16 +431,16 @@ def group_by_gridbox(pf_df):
 ## -------------------------------------------------------------------------##
 ## Plotting functions : comparison
 ## -------------------------------------------------------------------------##
-def add_stats_text(ax, r, bias):
+def add_stats_text(ax, r, spatial_bias):
     if r**2 <= 0.99:
-        ax.text(0.05, 0.9, r'R = %.2f' % r,
+        ax.text(0.05, 0.9, r'R$^2$ = %.2f' % r**2,
                 fontsize=config.LABEL_FONTSIZE*config.SCALE,
                 transform=ax.transAxes)
     else:
-        ax.text(0.05, 0.9, r'R $>$ 0.99',
+        ax.text(0.05, 0.9, r'R$^2$ $>$ 0.99',
                 fontsize=config.LABEL_FONTSIZE*fp.SCALE,
                 transform=ax.transAxes)
-    ax.text(0.05, 0.875, 'Bias = %.2f' % bias,
+    ax.text(0.05, 0.875, r'Regional bias = %.2f ppb' % spatial_bias,
             fontsize=config.LABEL_FONTSIZE*config.SCALE,
             transform=ax.transAxes,
             va='top')
@@ -306,8 +473,9 @@ def plot_comparison_hexbin(xdata, ydata, cbar, stats, **kw):
 
     # Print information about R2 on the plot
     if stats:
-        _, _, r, bias = comparison_stats(xdata, ydata)
-        ax = add_stats_text(ax, r, bias)
+        _, _, r, bias, _ = comparison_stats(xdata, ydata)
+        spatial_bias = (ydata - xdata).std()
+        ax = add_stats_text(ax, r, spatial_bias)
 
     if cbar:
         cbar_title = cbar_kwargs.pop('title', '')
@@ -339,7 +507,7 @@ def plot_comparison_scatter(xdata, ydata, stats, **kw):
 
     # Print information about R2 on the plot
     if stats:
-        _, _, r, bias = comparison_stats(xdata, ydata)
+        _, _, r, bias, _ = comparison_stats(xdata, ydata)
         ax = add_stats_text(ax, r, bias)
 
     return fig, ax, c

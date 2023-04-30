@@ -1,0 +1,69 @@
+#!/bin/bash
+
+##SBATCH -c 16
+##SBATCH -N 1
+##SBATCH -t 4-00:00
+##SBATCH -p huce_cascade
+##SBATCH --mem=20000
+##SBATCH --mail-type=END
+
+# Set the proper # of threads for OpenMP
+# SLURM_CPUS_PER_TASK ensures this matches the number you set with -c above
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+#-------------------------------------------------
+# Initialize
+#-------------------------------------------------
+# Define version ID
+id=namename
+
+# Define GEOS-Chem log file
+log="$id.log"
+
+# Define the directories for post-processing code
+INV_PATH="$(dirname $(dirname $(pwd)))"
+SCRIPT_DIR="${INV_PATH}/scripts"
+CODE_DIR="${INV_PATH}/python"
+
+# Define the directories for post-processing files
+GC_CH4_DIR=$(pwd -P)/OutputDir # CH4 concentrations (current dir)
+GC_CH4_HALFSTEP_DIR=halfstephalfstep
+GC_PEDGE_DIR=pedgepedge # Pressure edges (prior dir)
+SAT_DIR=satdirsatdir # Satellite data directory
+OUTPUT_DIR=$(pwd -P)/ProcessedDir
+
+# Define whether or not this is a Jacobian run
+JAC=jacjac
+
+#-------------------------------------------------
+# Start the simulation
+#-------------------------------------------------
+# Load the compiler
+. ~/init/init.gc-classic.ifort17.centos7
+
+# Run GEOS-Chem and pipe output to log
+./geos >> $log
+
+# Echo end fin
+echo '===> Run ended at' `date` >> $log
+
+#-------------------------------------------------
+# Post-processing
+#-------------------------------------------------
+# If the run succeeded, go on to post-processing
+if grep -q 'E N D   O F   G E O S -- C H E M' $log
+then
+  # Run the TROPOMI operator
+  jid1=$(sbatch --array=1-3 ${SCRIPT_DIR}/apply_TROPOMI_operator.sh ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR} ${OUTPUT_DIR} ${JAC})
+  # python -u ${CODE_DIR}/TROPOMI_operator.py ${CODE_DIR} ${SAT_DIR} ${GC_PEDGE_DIR} ${GC_CH4_DIR} ${GC_CH4_HALFSTEP_DIR} ${OUTPUT_DIR} ${JAC} >> $log
+
+  # Clean up
+  if [[ ${id##*_} != "0000" ]]
+  then
+    sbatch --dependency=afterok:${jid1##* } ${SCRIPT_DIR}/clean_up.sh ${GC_CH4_DIR} ${OUTPUT_DIR}
+  fi
+fi
+
+# Exit normally
+exit 0
+#EOC

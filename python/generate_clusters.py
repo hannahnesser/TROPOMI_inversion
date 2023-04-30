@@ -1,22 +1,67 @@
 '''
-This python script generates the clusters for an analytic inversion
+This script generates a cluster file that meets HEMCO requirements for use in inversions. The file defines a unique integer key for every grid cell contained in the state vector. A grid cell is included in the state vector if it meets either the `emis_threshold` or `land_threshold` criteria.
 
-Inputs:
-    emis      This contains the prior run emissions. It can either be a list
-              of monthly files or a yearly average.
+   **Inputs**
+
+   | ----------------- | -------------------------------------------------- |
+   | Input             | Description                                        |
+   | ----------------- | -------------------------------------------------- |
+   | emis_file         | A file or files containing information on methane  |
+   |                   | emissions from the prior run. This is typically    |
+   |                   | given by HEMCO_diagnostics. The input here can be  |
+   |                   | either a list of monthly files or a single file    |
+   |                   | with an annual average.                            |
+   | ----------------- | -------------------------------------------------- |
+   | land_file         | A file containing information on land cover for    |
+   |                   | inversion domain. This can be provided by the land |
+   |                   | cover file referenced by HEMCO_Config.rc.          |
+   | ----------------- | -------------------------------------------------- |
+   | emis_threshold    | An emission threshold in Mg/km2/yr that gives the  |
+   |                   | minimum anthropogenic emissions needed in a grid   |
+   |                   | cell for its inclusion in the cluster file. The    |
+   |                   | default value is 0.1.                              |
+   | ----------------- | -------------------------------------------------- |
+   | land_threshold    | A fractional land threshold that gives the minimum |
+   |                   | fraction of a grid cell that must be land covered  |
+   |                   | for inclusion in the cluster file. The default     |
+   |                   | value is 0.25.                                     |
+   | ----------------- | -------------------------------------------------- |
+
+   **Outputs**
+
+   | ----------------- | -------------------------------------------------- |
+   | Output            | Description                                        |
+   | ----------------- | -------------------------------------------------- |
+   | clusters.nc       | A HEMCO-ready cluster file that contains 0s in all |
+   |                   | grid cells not contained in the state vector and   |
+   |                   | a unique integer key in every other grid cell.     |
+   | ----------------- | -------------------------------------------------- |
+   | clusters.png      | A plot of the clusters.                            |
+   | ----------------- | -------------------------------------------------- |
 '''
 
 ## -------------------------------------------------------------------------##
 ## Load packages and set environment defaults
 ## -------------------------------------------------------------------------##
-import xarray as xr
-import matplotlib.pyplot as plt
+from os.path import join
+import sys
+
 import math
 import numpy as np
+import xarray as xr
 
-from os.path import join
-from os import listdir
-import sys
+import matplotlib.pyplot as plt
+
+# Custom packages
+sys.path.append('.')
+import config
+config.SCALE = config.PRES_SCALE
+config.BASE_WIDTH = config.PRES_WIDTH
+config.BASE_HEIGHT = config.PRES_HEIGHT
+import gcpy as gc
+import troppy as tp
+import format_plots as fp
+import inversion_settings as settings
 
 ## -------------------------------------------------------------------------##
 ## Set user preferences
@@ -29,61 +74,26 @@ plot_dir = base_dir + 'plots/'
 
 # The emissions can either be a list of files or a single file
 # with an annual average
-year = 2019
-months = np.arange(1, 12, 1) # excluding December for now
-days = np.arange(1, 32, 1)
-# emis_file = [f'{data_dir}HEMCO_diagnostics.{year}{mm:02d}010000.nc'
-#              for mm in months]
-emis_file = f'{data_dir}HEMCO_diagnostics.{year}.nc'
+# emis_file = [f'{data_dir}HEMCO_diagnostics.{settings.year}{mm:02d}010000.nc'
+#              for mm in settings.months]
+emis_file = f'{data_dir}HEMCO_diagnostics.{settings.year}.nc'
 
 # We also need to define a land cover file
 land_file = f'{base_dir}gc_inputs/GEOSFP.20200101.CN.025x03125.NA.nc'
 
-# Set emission threshold in Mg/km2/yr (we use anthropogenic emissions
-# only)
+# Set emission threshold in Mg/km2/yr (anthropogenic emissions only)
 emis_threshold = 0.1
 
 # Set the land threshold
 land_threshold = 0.25
 
-# Information on the grid
-lat_bins = np.arange(10, 65, 5)
-lat_min = 9.75
-lat_max = 60
-lat_delta = 0.25
-lon_min = -130
-lon_max = -60
-lon_delta = 0.3125
-buffers = [3, 3, 3, 3]
-
-## ------------------------------------------------------------------------ ##
-## Import custom packages
-## ------------------------------------------------------------------------ ##
-# Custom packages
-sys.path.append(code_dir)
-import config
-config.SCALE = config.PRES_SCALE
-config.BASE_WIDTH = config.PRES_WIDTH
-config.BASE_HEIGHT = config.PRES_HEIGHT
-import gcpy as gc
-import troppy as tp
-import format_plots as fp
-
-## ------------------------------------------------------------------------ ##
-## Define the inversion grid
-## ------------------------------------------------------------------------ ##
-# Get information on the lats and lons (edges of the domain) (this means
-# removing the buffer grid cells)
-lat_e, lon_e = gc.adjust_grid_bounds(lat_min, lat_max, lat_delta,
-                                     lon_min, lon_max, lon_delta, buffers)
-
 ## -------------------------------------------------------------------------##
 ## Load raw emissions data
 ## -------------------------------------------------------------------------##
-emis = gc.load_files(emis_file)
+emis = gc.read_netcdf_file(emis_file)
 
 # Remove emissions from buffer grid cells
-emis = gc.subset_data_latlon(emis, *lat_e, *lon_e)
+emis = gc.subset_data_latlon(emis, *settings.lats, *settings.lons)
 
 # Average over time
 if 'time' in emis.dims:
@@ -117,7 +127,7 @@ fp.save_fig(fig, plot_dir, 'prior_emis_distribution')
 lc = xr.open_dataset(land_file)
 
 # Subset to lat/lon grid
-lc = gc.subset_data_latlon(lc, *lat_e, *lon_e)
+lc = gc.subset_data_latlon(lc, *settings.lats, *settings.lons)
 
 # Group together
 lc = (lc['FRLAKE'] + lc['FRLAND'] + lc['FRLANDIC']).drop('time').squeeze()
@@ -127,33 +137,42 @@ lc = (lc['FRLAKE'] + lc['FRLAND'] + lc['FRLANDIC']).drop('time').squeeze()
 ## -------------------------------------------------------------------------##
 # Where the emissions are larger than the threshold, set the values to nan
 # so that we can use iterate through them. Elsewhere, set the value to 0.
-emis = emis.where((emis < emis_threshold) & (lc < land_threshold))
-emis = emis.where(emis.isnull(), 0)
+clusters = emis.where((emis < emis_threshold) & (lc < land_threshold))
+clusters = clusters.where(clusters.isnull(), 0)
 
 # Fill in the cluster values
-emis.values[emis.isnull()] = np.arange(1, emis.isnull().sum()+1)[::-1]
+clusters_vals = clusters.values
+clusters_vals[clusters.isnull()] = np.arange(1, clusters.isnull().sum()+1)[::-1]
+clusters.values = clusters_vals
 
 # Print information about clusters
-print(f'The inversion will optimize {int(emis.max().values)} clusters.')
+print(f'The inversion will optimize {int(clusters.max().values)} clusters.')
 
 # Format for HEMCO
-emis = gc.define_HEMCO_std_attributes(emis, name='Clusters')
-emis = gc.define_HEMCO_var_attributes(emis, 'Clusters',
+clusters = gc.define_HEMCO_std_attributes(clusters, name='Clusters')
+clusters = gc.define_HEMCO_var_attributes(clusters, 'Clusters',
                                       long_name='Clusters generated for analytical inversion',
                                       units='none')
-emis.attrs = {'Title' : 'Clusters generated for analytical inversion'}
+clusters.attrs = {'Title' : 'Clusters generated for analytical inversion'}
 
 # Save out clusters
-gc.save_HEMCO_netcdf(emis, output_dir, 'clusters_0.25x0.3125.nc')
+gc.save_HEMCO_netcdf(clusters, output_dir, 'clusters.nc')
+
+# Print information on clusters
+emis_tot = emis.sum().values
+cluster_tot = emis.where(clusters['Clusters'] > 0).sum().values
+cluster_min = emis.where(clusters['Clusters'] > 0).min().values
+print(cluster_tot, emis_tot, cluster_tot/emis_tot)
+print(cluster_min)
 
 ## -------------------------------------------------------------------------##
 ## Plot the result
 ## -------------------------------------------------------------------------##
-fig, ax = fp.get_figax(maps=True, lats=emis.lat, lons=emis.lon)
-cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
-ax = fp.format_map(ax, lats=emis.lat, lons=emis.lon)
-c = emis['Clusters'].plot(ax=ax, cmap=fp.cmap_trans('jet_r', nalpha=5),
+fig, ax = fp.get_figax(maps=True, lats=clusters.lat, lons=clusters.lon)
+ax = fp.format_map(ax, lats=clusters.lat, lons=clusters.lon)
+c = clusters['Clusters'].plot(ax=ax, cmap=fp.cmap_trans('jet_r', nalpha=5),
                           add_colorbar=False, vmin=1)
+cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
 cb = fig.colorbar(c, cax=cax)
 cb = fp.format_cbar(cb, cbar_title=r'Cluster Number')
 ax = fp.add_title(ax, 'Clusters')

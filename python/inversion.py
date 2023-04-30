@@ -1,4 +1,7 @@
 import xarray as xr
+from dask.diagnostics import ProgressBar
+import dask.array as da
+from dask import is_dask_collection
 import numpy as np
 # from numpy import diag as diags
 # from numpy import identity
@@ -27,6 +30,7 @@ import cartopy
 import config
 import format_plots as fp
 import invpy as ip
+import gcpy as gc
 
 # Other font details
 rcParams['font.family'] = 'sans-serif'
@@ -42,8 +46,6 @@ This class creates an inversion object that contains the quantities
  necessary for conducting an analytic inversion. It also defines the
 following functions:
     calculate_c             Calculate the constant in y = Kx + c
-    obs_mod_diff            Calculate the difference between modeled
-                            observations and observations (y - Kx)
     cost_func               Calculate the cost function for a given x
     solve_inversion         Solve the analytic inversion, inclduing the
                             posterior emissions, error, and information
@@ -62,8 +64,19 @@ And the following utility functions:
 '''
 
 class Inversion:
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec,
-                 rf=1, latres=1, lonres=1.25):
+    # Set global class attributes
+    state_dim = 'nstate' # This is only partially implemented
+    obs_dim = 'nobs' # This is only partially implemented
+    dims = {'xa' : [state_dim], 'sa' : [state_dim, state_dim],
+            'y' : [obs_dim], 'ya' : [obs_dim], 'so' : [obs_dim, obs_dim],
+            'c' : [obs_dim], 'k' : [obs_dim, state_dim],
+            'xhat' : [state_dim],
+            'yhat' : [obs_dim],   'shat' : [state_dim, state_dim],
+            'dofs' : [state_dim], 'a'    : [state_dim, state_dim],
+            'rf' : None}
+
+    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+                 k_is_positive=False):
         '''
         Define an inversion object with the following required
         inputs:
@@ -72,147 +85,224 @@ class Inversion:
                             simulated observations to each element of the
                             state vector
             xa              The prior for the state vector
-            sa_vec          The prior error variances as a vector. This class
+            sa              The prior error variances as a vector. This class
                             is not currently written to accept error
                             covariances (such a change would be simple to
                             implement).
             y               The observations
-            y_base          The simulated observations generated from the prior
+            ya              The simulated observations generated from the prior
                             state vector
-            so_vec          The observational error variances as a vector,
+            so              The observational error variances as a vector,
                             including errors from the forward model and the
                             observations. This class is not currently written
                             to accept error covariances, though such a change
                             would be simple to implement
+        All inputs can either be arrays or arrays. Any arrays passed to the
+        class will be coerced into xarrays.
 
         The object also accepts the following inputs:
-            rf              A regularization factor gamma defined in the cost
-                            function as
-                                J(x) = (x-xa)T Sa (x-xa) + rf(y-Kx)T So (y-Kx).
-                            The regularization factor changes the weighting of
-                            the observational term relative to the prior term.
-                            The rf is functionally equivalent to dividing the
-                            observational error variances by rf.
-            latres          The latitudinal resolution of the state vector
-            lonres          The longitudinal resolution of the state vector
+            c                        An array or file name containing a vector
+                                     of dimension nobs that represents the
+                                     intercept of the forward model:
+                                            y = F(x) + c
+            regularization_factor    A regularization factor gamma defined in
+                                     the cost function as
+                            J(x) = (x-xa)T Sa (x-xa) + gamma(y-Kx)T So (y-Kx).
+                                     The regularization factor changes the
+                                     weighting of the observational term
+                                     relative to the prior term by reducing So
+                                     by a factor of gamma.
+            k_is_positive            A flag indicating whether the Jacobian
+                                     has already been checked for negative
+                                     elements. Set to true if you have already
+                                     checked for negative elements, or if you
+                                     want to keep negative elements (e.g. OH).
+                                     Default is False.
 
         The object then defines the following:
             nstate          The dimension of the state vector
             nobs            The dimension of the observation vector
-            state_vector    A vector containing an index for each state vector
-                            element (necessary for multiscale grid methods).
-            c               The constant defined as y = Kxa + c
             xhat            Empty, held for the posterior state vector
             shat            Empty, held for the posterior error
             a               Empty, held for the averaging kernel, a measure
                             of the information content of the inverse system
-            y_out           Empty, the updated simulated observations, defined
+            yhat            Empty, the updated simulated observations, defined
                             as y = Kxhat + c
         '''
         print('... Initializing inversion object ...')
 
-        # Check that the data are all the same types
-        assert all(isinstance(z, np.ndarray)
-                   for z in [k, xa, sa_vec, y, so_vec]), \
-               'Input types aren\'t all numpy arrays.'
+        # Read in the elements of the inversion
+        self.regularization_factor = regularization_factor
 
-        # Define the state and observational dimensions
-        self.nstate = xa.shape[0]
-        self.nobs = y.shape[0]
-        self.latres = latres
-        self.lonres = lonres
-        self.state_vector = np.arange(1, self.nstate+1, 1)
+        # Read in the prior elements first because that allows us to calculate
+        # nstate and thus the chunk size in that dimension
+        print('Loading the prior and prior error.')
+        self.xa = self.read(xa, dims=Inversion.dims['xa'])
+        self.sa = self.read(sa, dims=Inversion.dims['sa'])
 
-        # Check whether all inputs have the right dimensions
-        assert k.shape[1] == self.nstate, \
-               'Dimension mismatch: Jacobian and prior.'
-        assert k.shape[0] == self.nobs, \
-               'Dimension mismatch: Jacobian and observations.'
-        assert so_vec.shape[0] == self.nobs, \
-               'Dimension mismatch: observational error'
-        assert sa_vec.shape[0] == self.nstate, \
-               'Dimension mismatch: prior error.'
+        # Save out the state vector dimension
+        self.nstate = self.xa.shape[0]
+        print(f'State vector dimension : {self.nstate}\n')
 
-        # If everything works out, then we create the instance.
-        self.k = k
-        self.xa = xa
-        self.sa_vec = sa_vec
-        self.y = y
-        self.y_base = y_base
-        self.so_vec = so_vec
-        self.rf = rf
+        # Load observational data
+        print('Loading the Jacobian, observations, and observational error.')
+        self.k = self.read(k, dims=Inversion.dims['k'])
+        self.y = self.read(y, dims=Inversion.dims['y'])
+        self.ya = self.read(ya, dims=Inversion.dims['ya'])
+        self.so = self.read(so, dims=Inversion.dims['so'])
+
+        # Save out the observation vector dimension
+        self.nobs = self.y.shape[0]
+        print(f'Observation vector dimension : {self.nobs}\n')
+
+        # Modify so by the regularization factor
+        if self.regularization_factor != 1:
+            self.so /= self.regularization_factor
+
+        # Check that the dimensions match up
+        self._check_dimensions()
 
         # Force k to be positive
-        if np.any(self.k < 0):
-            print('Forcing negative values of the Jacobian to 0.')
-            self.k[self.k < 0] = 0
+        if not k_is_positive:
+            print('Checking the Jacobian for negative values.')
+            if (self.k < 0).any():
+                print('Forcing negative values of the Jacobian to 0.\n')
+                self.k = np.where(self.k > 0, self.k, 0)
 
         # Solve for the constant c.
-        self.c = self.calculate_c()
+        if c is None:
+            print('Calculating c as c = y - F(xa) = y - ya')
+            self.c = self.calculate_c()
+        else:
+            self.c = self.read(c, dims=Inversion.dims['c'])
 
         # Now create some holding spaces for values that may be filled
         # in the course of solving the inversion.
         self.xhat = None
         self.shat = None
         self.a = None
-        self.y_out = None
-        self.dofs = None
+        self.dofs = None # diagonal elements of A
+        self.yhat = None
 
         print('... Complete ...\n')
+
+    #########################
+    ### UTILITY FUNCTIONS ###
+    #########################
+    def read(self, item, dims=None, **kwargs):
+        # If item is a string or a list, load the file
+        if type(item) == str:
+            item = gc.read_file(*[item], **kwargs)
+
+        # Force the items to be dataarrays
+        if type(item) != np.ndarray:
+            item = np.array(item)
+
+        # Reshape 1D arrays to be (-1, 1)
+        if self._find_dimension(item) == 1:
+            item = item.reshape(-1,1)
+
+        return item
+
+    def save(self, attribute:str, file_name=None):
+        item = getattr(self, attribute)
+
+        # Get file name
+        if file_name is None:
+            file_name = attribute
+
+        item.to_netcdf(f'{file_name}.nc')
+
+    def add_attr_to_dataset(self, ds:xr.Dataset, attr_str:str, dims):
+        '''
+        Adds an attribute from Inversion instance to an xarray Dataset. Modiefies Dataset inplace.
+        '''
+        attr = getattr(self, attr_str)
+        if attr is None:
+            print(f'{attr_str} has not been assigned yet - skipping.')
+        else:
+            try:
+                attr = attr.squeeze()
+            except Exception:
+                pass
+            if dims is None: # for 0-d attributes
+                ds = ds.assign_attrs({attr_str : attr})
+            else:
+                ds[attr_str] = xr.DataArray(data=attr, dims=dims)
+
+    def to_dataset(self):
+        '''
+        Convert an instance of the Inversion object to an xarray Dataset.
+        Vectors are stored as DataArrays, and scalars are stored
+        as attributes in the Dataset.
+        '''
+        # warn that there is no custom implementation for each subclass
+        if type(self)!=Inversion:
+            warnings.warn('Inversion.to_xarray will only export Inversion class attributes. Attributes from subclasses (e.g. ReducedRankInversion) are not currently included.',
+                          stacklevel=2)
+
+        # intialize dataset
+        ds = xr.Dataset()
+
+        # Add attributes to the dataset
+        attrs = ['state_vector', 'k', 'xa', 'sa', 'y', 'y_base', 'so', 'c',
+                 'xhat', 'shat', 'a', 'y_out', 'dofs', 'rf']
+        for attr in attrs:
+            try:
+                self.add_attr_to_dataset(ds, attr, Inversion.dims[attr])
+            except:
+                self.add_attr_to_dataset(ds, attr, [Inversion.dims[attr][0]])
+
+        return ds
+
+    def _check_dimensions(self, dims):
+        # Check whether all inputs have the right dimensions
+        assert self.k.shape[1] == self.nstate, \
+               'Dimension mismatch: Jacobian and prior.'
+        assert self.k.shape[0] == self.nobs, \
+               'Dimension mismatch: Jacobian and observations.'
+        assert self.so.shape[0] == self.nobs, \
+               'Dimension mismatch: observational error'
+        assert self.sa.shape[0] == self.nstate, \
+               'Dimension mismatch: prior error.'
+
+    @staticmethod
+    def _find_dimension(data):
+        if len(data.shape) == 1:
+            return 1
+        elif data.shape[1] == 1:
+            return 1
+        else:
+            return 2
 
     ####################################
     ### STANDARD INVERSION FUNCTIONS ###
     ####################################
-
     def calculate_c(self):
         '''
         Calculate c for the forward model, defined as ybase = Kxa + c.
         Save c as an element of the object.
         '''
-        c = self.y_base - self.k @ self.xa
+        c = ip.calculate_c(self.k, self.ya, self.xa)
         return c
 
-    def obs_mod_diff(self, x):
-        '''
-        Calculate the difference between the true observations y and the
-        simulated observations Kx + c for a given x. It returns this
-        difference as a vector.
-
-        Parameters:
-            x      The state vector at which to evaluate the difference
-                   between the true and simulated observations
-        Returns:
-            diff   The difference between the true and simulated observations
-                   as a vector
-        '''
-        diff = self.y - (self.k @ x + self.c)
-        return diff
-
-    def cost_func(self, x):
+    def cost_func(self, x, y):
         '''
         Calculate the value of the Bayesian cost function
-            J(x) = (x - xa)T Sa (x-xa) + rf(y - Kx)T So (y - Kx)
+            J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
         for a given x. Prints out that value and the contributions from
         the emission and observational terms.
 
         Parameters:
             x      The state vector at which to evaluate the cost function
+            y      The observations vector at which to evaluate the cost function
+                   Note that by definition y=Kx+c, so: ya=Kxa+c, and yhat=Kxhat+c
         Returns:
             cost   The value of the cost function at x
         '''
 
         # Calculate the observational component of the cost function
-        cost_obs = self.obs_mod_diff(x).T \
-                   @ diags(self.rf/self.so_vec) @ self.obs_mod_diff(x)
-
-        # Calculate the emissions/prior component of the cost function
-        cost_emi = (x - self.xa).T @ diags(1/self.sa_vec) @ (x - self.xa)
-
-        # Calculate the total cost, print out information on the cost, and
-        # return the total cost function value
-        cost = cost_obs + cost_emi
-        print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
-              % (cost, cost_emi, cost_obs))
+        cost = ip.cost_func(y, self.y, self.so, x, self.xa, self.sa)
         return cost
 
     def solve_inversion(self):
@@ -226,50 +316,9 @@ class Inversion:
         negative state vector elements in the posterior solution, and the
         DOFS of the posterior solution.
         '''
-        print('... Solving inversion ...')
-
-        # We use the inverse of both the prior and observational
-        # error covariance matrices, so we save those as separate variables.
-        # Here we convert the variance vectors into diagonal covariance
-        # matrices. We also apply the regularization factor rf to the
-        # observational error covariance.
-        # Note: This would change if error variances were redefined as
-        # covariance matrices
-        so_inv = diags(self.rf/self.so_vec)
-        sa_inv = diags(1/self.sa_vec)
-
-        # Calculate the cost function at the prior.
-        print('Calculating the cost function at the prior mean.')
-        cost_prior = self.cost_func(self.xa)
-
-        # Calculate the posterior error.
-        print('Calculating the posterior error.')
-        self.shat = np.asarray(inv(self.k.T @ so_inv @ self.k + sa_inv))
-
-        # Calculate the posterior mean
-        print('Calculating the posterior mean.')
-        gain = np.asarray(self.shat @ self.k.T @ so_inv)
-        self.xhat = self.xa + (gain @ self.obs_mod_diff(self.xa))
-
-        # Calculate the cost function at the posterior. Also
-        # calculate the number of negative cells as an indicator of
-        # inversion success.
-        print('Calculating the cost function at the posterior mean.')
-        cost_post = self.cost_func(self.xhat)
-        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
-
-        # Calculate the averaging kernel.
-        print('Calculating the averaging kernel.')
-        self.a = np.asarray(identity(self.nstate) \
-                            - self.shat @ sa_inv)
-        self.dofs = np.diag(self.a)
-        print('     DOFS: %.2f' % np.trace(self.a))
-
-        # Calculate the new set of modeled observations.
-        print('Calculating updated modeled observations.')
-        self.y_out = self.k @ self.xhat + self.c
-
-        print('... Complete ...\n')
+        sol = ip.solve_inversion(self.k, self.y, self.ya, self.so,
+                                 self.xa, self.sa)
+        self.xhat, self.shat, self.a, self.yhat = sol
 
     ##########################
     ### PLOTTING FUNCTIONS ###
@@ -290,7 +339,7 @@ class Inversion:
         kw['title'] = kw.get('title', attribute_str)
 
         # Match the data to lat/lon data
-        fig, ax, c = ip.plot_state(data, clusters_plot,
+        fig, ax, c = ip.plot_state(np.array(data).squeeze(), clusters_plot,
                                    default_value, cbar, **kw)
         return fig, ax, c
 
@@ -340,69 +389,189 @@ class Inversion:
 
         return fig, ax, c
 
-    #########################
-    ### Utility functions ###
-    #########################
-    def add_attr_to_dataset(self, ds:xr.Dataset, attr_str:str, dims:tuple):
-        '''
-        Adds an attribute from Inversion instance to an xarray Dataset. Modiefies Dataset inplace.
-        '''
-        attr = getattr(self,attr_str)
-        if attr is None: 
-            print(f'{attr_str} has not been assigned yet - skipping.')
-        else:
-            if dims is None: # for 0-d attributes
-                ds = ds.assign_attrs({attr_str : attr})
-            else:
-                ds[attr_str] = xr.DataArray(data=attr, dims=dims)      
+class InversionLoop(Inversion):
+    """
+    Exactly the same as Inversion, but implements a simple loop for solve_inversion.
+    Can only handle diagonal (1D) s_o values. Loop is based on Lu & Danny's code.
 
-    def to_xarray(self):
-        '''
-        Convert an instance of the Inversion object to an xarray Dataset. 
-        Vectors are stored as DataArrays, and scalars are stored 
-        as attributes in the Dataset.
-        '''
-        # warn that there is no custom implementation for each subclass
-        if type(self)!=Inversion:
-            warnings.warn('Inversion.to_xarray will only export attributes present in the Inversion class. Specialized attributes from subclasses (e.g. ReducedRankInversion) are not currently exported to the dataset, so some attributes might be missing. If you would like to add individual attributes to your dataset, you can use the add_attrs_to_dataset method.', stacklevel=2)
-        
-        # intialize datasets
-        ds = xr.Dataset()
-    
-        # store vectors as DataArrays
-        # inputs
-        self.add_attr_to_dataset(ds, 'state_vector', ('nstate'))
-        self.add_attr_to_dataset(ds, 'k',            ('nobs','nstate'))
-        self.add_attr_to_dataset(ds, 'xa',           ('nstate'))
-        self.add_attr_to_dataset(ds, 'sa_vec',       ('nstate'))
-        self.add_attr_to_dataset(ds, 'y',            ('nobs'))
-        self.add_attr_to_dataset(ds, 'y_base',       ('nobs'))
-        self.add_attr_to_dataset(ds, 'so_vec',       ('nobs'))
-        # outputs
-        self.add_attr_to_dataset(ds, 'c',     ('nobs'))
-        self.add_attr_to_dataset(ds, 'xhat',  ('nstate'))
-        self.add_attr_to_dataset(ds, 'shat',  ('nstate','nstate'))
-        self.add_attr_to_dataset(ds, 'a',     ('nstate','nstate'))
-        self.add_attr_to_dataset(ds, 'y_out', ('nobs'))
-        self.add_attr_to_dataset(ds, 'dofs',  ('nstate'))
-        # scalar values (stored as attributes, dims=None)
-        self.add_attr_to_dataset(ds, 'latres', None)
-        self.add_attr_to_dataset(ds, 'lonres', None)
-        self.add_attr_to_dataset(ds, 'rf',     None)
-    
-        return ds
+    This function can handle a K which does not fit in memory. Just make sure to
+    read it in as list of filepaths, which will force use of Dask.
 
+    Unique Parameters:
+        obs_subset_size     The number of observations which are processed in each
+                            iteration of the loop. The optimal size for this appears
+                            to depend on the number of processors/memory you are
+                            using so if it's taking more than ~5 minutes per loop you
+                            may want to adjust.
+    """
+    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+                k_is_positive=False, obs_subset_size=300000):
+        super().__init__(k, xa, sa, y, ya, so, c=c,
+                         regularization_factor=regularization_factor,
+                         k_is_positive=k_is_positive)
+        # save obs_subset_size, the size of chunks you want your inversion processed in
+        self.obs_subset_size = obs_subset_size
+        # require diagonal observational errors
+        assert len(so.squeeze().shape)==1, 'Observation errors (so) must be diagonal.'
+        # todo: relax the SA is diagonal requirment using Dask.
+        assert len(sa.squeeze().shape)==1, 'Prior errors (sa) must be diagonal.'
+
+    # Use the read functions from ReducedMemoryInversion
+    # Don't inherit because that function is changing too rapidly.
+    @staticmethod
+    def make_dims_1d_if_diagonal(item,dims):
+        # check if item is a diagonal of a square matrix (2D w/ same dim twice)
+        item_is_diag = (len(dims) == 2) and (dims[0] == dims[1]) and \
+                       (len(item.shape) == 1)
+        if item_is_diag:
+            dims = [dims[0]]
+        return dims
+
+    def read(self, item, dims=None, chunks={}, **kwargs):
+        """
+        We use a modified read function which uses data arrays instead of numpy arrays.
+        It also ensures that diagonal errors have correct (1d) dimensions.
+        """
+        # If item is a string or a list, load the file
+        if type(item) in [str, list]:
+            item = self._load(item, dims=dims, **kwargs)
+
+        # Force the items to be dataarrays
+        if type(item) != xr.core.dataarray.DataArray:
+            dims = self.make_dims_1d_if_diagonal(item, dims) # replace with 1d dims if diagonal
+            item = self._to_dataarray(item, dims=dims)
+
+        return item
+
+    def cost_func(self, x, y):
+        '''
+        Modified from Inversion.cost_func to use numpy arrays only.
+
+        Calculate the value of the Bayesian cost function
+            J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
+        for a given x. Prints out that value and the contributions from
+        the emission and observational terms. This cost function
+
+        Parameters:
+            x      The state vector at which to evaluate the cost function
+            y      The observations vector at which to evaluate the cost function
+                   Note that by definition y=Kx+c, so: ya=Kxa+c, and yhat=Kxhat+c
+        Returns:
+            cost   The value of the cost function at x
+        '''
+
+        # Calculate the observational component of the cost function
+        cost_obs = (self.y.data - y.data).T \
+                   @ diags(1/self.so.data) @ (self.y.data-y.data)
+
+        # Calculate the emissions/prior component of the cost function
+        cost_emi = (x.data - self.xa.data).T \
+                  @ diags(1/self.sa.data) @ (x.data - self.xa.data)
+
+        # Calculate the total cost, print out information on the cost, and
+        # return the total cost function value
+        cost = cost_obs + cost_emi
+        print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
+              % (cost, cost_emi, cost_obs))
+        return cost
+
+    # Code taken Lu Shen & Daniel Varon's TROPOMI_Inversion script
+    def solve_inversion(self):
+        # Initialize slicing array to read in a few observations at a time
+        ind_slice  = np.append(np.arange(0,self.nobs,self.obs_subset_size),self.nobs)
+        # Initialize two parts of the inversion equation
+        KT_invSo_K     = np.zeros([self.nstate,self.nstate], dtype=float)
+        KT_invSo_ydiff = np.zeros([self.nstate], dtype=float)
+
+        # Inverse of prior error covariance matrix, inv(S_a)
+        invSa = diags(1/self.sa.data)   # Inverse of prior error covariance matrix
+        # Define gamma for convenience
+        gamma = self.regularization_factor
+
+        # ==========================================================================================
+        # Now we will assemble different terms of the analytical inversion.
+        #
+        # These are the terms of eq. (5) and (6) in Zhang et al. (2018) ACP:
+        # "Monitoring global OH concentrations using satellite observations of atmospheric methane".
+        #
+        # Specifically, we are going to solve:
+        #   xhat = xA + G*(y-K*xA)
+        #        = xA + inv(gamma*K^T*inv(S_o)*K + inv(S_a)) * gamma*K^T*inv(S_o) * (y-K*xA)
+        #
+        # In the code below this becomes
+        #   xhat = xA + inv(gamma*kT_invso       + inv(S_a)) * gamma*kT_invSo_ydiff
+        #        = xA + ratio
+        # ==========================================================================================
+        # Process observations obs_subset_size observations at a time
+        for islice in np.arange(len(ind_slice)-1):
+            istart = ind_slice[islice]
+            iend   = ind_slice[islice+1]
+            print(f'Processing observations {istart}-{iend} out of {self.nobs}...')
+
+            # grab just this subset of the observations
+            K  = self.k[istart:iend,:].load().data
+            so = self.so[istart:iend].load().data
+            y  = self.y[istart:iend].load().data
+            ya = self.ya[istart:iend].load().data
+
+            # Define KT_invSo = K^T*inv(S_o)
+            KT = K.transpose()
+            KT_invSo = KT * 1/so
+
+            # Parts of inversion equation - for this slice of observations only
+            KT_invSo_K_islice     = KT_invSo@K            # K^T*inv(S_o)*K
+            KT_invSo_ydiff_islice = KT_invSo@(y - ya)     # K^T*inv(S_o)*(y-K*xA)
+
+            # Add each slice to running sums
+            KT_invSo_K     += KT_invSo_K_islice
+            KT_invSo_ydiff += KT_invSo_ydiff_islice
+
+            # Solve for posterior scaling factors, xhat
+            ratio = inv(gamma*KT_invSo_K + invSa)@(gamma*KT_invSo_ydiff)
+            xhat = self.xa.data + ratio
+            self.xhat = self._to_dataarray(np.array(xhat).squeeze(),
+                                          dims=Inversion.dims['xhat'])
+
+        # Calculate the posterior error.
+        print('Calculating the posterior error.')
+        self.shat = inv(KT_invSo_K + invSa)
+
+        # Calculate the new set of modeled observations.
+        print('Calculating updated modeled observations.')
+        self.yhat = self.k@self.xhat + self.c
+        if is_dask_collection(self.yhat): self.yhat = self.yhat.compute().load()
+
+        # Calculate the averaging kernel.
+        print('Calculating the averaging kernel.')
+        a = identity(self.nstate) - self.shat @ invSa
+        self.a = self._to_dataarray(np.array(a).squeeze(),dims=Inversion.dims['a'])
+
+        # Calculate DOFS
+        self.dofs = np.diag(self.a.data)
+        print('     DOFS: %.2f' % np.trace(self.a))
+
+        # Calculate the cost function at the prior.
+        print('Calculating the cost function at the prior mean.')
+        cost_prior = self.cost_func(self.xa, self.ya)
+
+        # Calculate the cost function at the posterior.
+        print('Calculating the cost function at the posterior mean.')
+        cost_post = self.cost_func(self.xhat, self.yhat)
+
+        # Calculate the # of negative cells as an indicator of inversion success.
+        print('     Negative cells: %d' % self.xhat[self.xhat < 0].sum())
+        print('... Complete ...\n')
 
 class ReducedRankInversion(Inversion):
-    # class variables shared by all instances
-
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
+    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+                 k_is_positive=False, rank=None):
         # We inherit from the inversion class and create space for
         # the reduced rank solutions.
-        Inversion.__init__(self, k, xa, sa_vec, y, y_base, so_vec)
+        Inversion.__init__(k, xa, sa, y, ya, so, c,
+                           regularization_factor, k_is_positive)
 
         # We create space for the rank
-        self.rank = None
+        self.rank = rank
 
         # We also want to save the eigendecomposition values
         self.evals_q = None
@@ -423,53 +592,28 @@ class ReducedRankInversion(Inversion):
     ########################################
     ### REDUCED RANK INVERSION FUNCTIONS ###
     ########################################
-
     def get_rank(self, pct_of_info=None, rank=None, snr=None):
-        frac = np.cumsum(self.evals_q/self.evals_q.sum())
-        if sum(x is not None for x in [pct_of_info, rank, snr]) > 1:
-            raise AttributeError('Conflicting arguments provided to determine rank.')
-        elif sum(x is not None for x in [pct_of_info, rank, snr]) == 0:
-            raise AttributeError('Must provide one of pct_of_info, rank, or snr.')
-        elif pct_of_info is not None:
-            diff = np.abs(frac - pct_of_info)
-            rank = np.argwhere(diff == np.min(diff))[0][0]
-            print('Calculated rank from percent of information: %d' % rank)
-            print('     Percent of information: %.4f%%' % (100*pct_of_info))
-            print('     Signal-to-noise ratio: %.2f' % self.evals_h[rank])
-        elif snr is not None:
-            diff = np.abs(self.evals_h - snr)
-            rank = np.argwhere(diff == np.min(diff))[0][0]
-            print('Calculated rank from signal-to-noise ratio : %d' % rank)
-            print('     Percent of information: %.4f%%' % (100*frac[rank]))
-            print('     Signal-to-noise ratio: %.2f' % snr)
-        elif rank is not None:
-            print('Using defined rank: %d' % rank)
-            print('     Percent of information: %.4f%%' % (100*frac[rank]))
-            print('     Signal-to-noise ratio: %.2f' % self.evals_h[rank])
+        rank = ip.get_rank(self.evals_q, self.evals_q,
+                           pct_of_info, rank, snr)
         return rank
 
     def pph(self):
-        # Calculate the prior pre-conditioned Hessian assuming
-        # that the errors are diagonal
-        sa_sqrt = self.sa_vec**0.5
-        so_inv = self.rf/self.so_vec
-        pph = (self.sa_vec**0.5)*self.k.T
-        pph = np.dot(pph, ((self.rf/self.so_vec)*pph.T))
-        print('Calculated PPH.')
+        pph = ip.pph(self.k, self.so, self.sa)
         return pph
 
-    def edecomp(self, eval_threshold=None, number_of_evals=None):
+    def edecomp(self, pph=None, eval_threshold=None, number_of_evals=None):
         print('... Calculating eigendecomposition ...')
-        # Calculate pph and require that it be symmetric
-        pph = self.pph()
+        # Calculate the prior pre-conditioned Hessian
+        if pph is None:
+            pph = self.pph()
+
+        # Check that the PPH is symmetric
         assert np.allclose(pph, pph.T, rtol=1e-5), \
                'The prior pre-conditioned Hessian is not symmetric.'
 
-        # Perform the eigendecomposition of the prior
-        # pre-conditioned Hessian
+        # Perform the eigendecomposition of the prior pre-conditioned Hessian
         # We return the evals of the projection, not of the
         # prior pre-conditioned Hessian.
-
         if (eval_threshold is None) and (number_of_evals is None):
              evals, evecs = eigh(pph)
         elif (eval_threshold is None):
@@ -520,8 +664,8 @@ class ReducedRankInversion(Inversion):
 
         # Calculate the prolongation and reduction operators and
         # the resulting projection operator.
-        prolongation = (evecs_subset.T * self.sa_vec**0.5).T
-        reduction = (1/self.sa_vec**0.5) * evecs_subset.T
+        prolongation = (evecs_subset.T * self.sa**0.5).T
+        reduction = (1/self.sa**0.5) * evecs_subset.T
         projection = prolongation @ reduction
 
         return rank, prolongation, reduction, projection
@@ -540,11 +684,11 @@ class ReducedRankInversion(Inversion):
         rank = self.get_rank(pct_of_info=pct_of_info, rank=rank)
 
         # Calculate a few quantities that will be useful
-        sa_sqrt = diags(self.sa_vec**0.5)
-        sa_sqrt_inv = diags(1/self.sa_vec**0.5)
-        # so_vec = self.rf*self.so_vec
-        so_inv = diags(self.rf/self.so_vec)
-        # so_sqrt_inv = diags(1/so_vec**0.5)
+        sa_sqrt = diags(self.sa**0.5)
+        sa_sqrt_inv = diags(1/self.sa**0.5)
+        # so = self.regularization_factor*self.so
+        so_inv = diags(1/self.so)
+        # so_sqrt_inv = diags(1/so**0.5)
 
         # Subset evecs and evals
         vk = self.evecs[:, :rank]
@@ -558,7 +702,7 @@ class ReducedRankInversion(Inversion):
         self.xhat_proj = (np.asarray(sa_sqrt
                                     @ ((vk/(1+lk)) @ vk.T)
                                     @ sa_sqrt @ self.k.T @ so_inv
-                                    @ self.obs_mod_diff(self.xa))
+                                    @ (self.y - self.ya))
                          + self.xa)
         self.shat_proj = np.asarray(sa_sqrt
                                     @ (((1/(1+lk))*vk) @ vk.T)
@@ -575,7 +719,7 @@ class ReducedRankInversion(Inversion):
         self.solve_inversion_proj(pct_of_info=pct_of_info, rank=rank)
 
         # Calculate a few quantities that will be useful
-        sa = diags(self.sa_vec)
+        sa = diags(self.sa)
 
         # Calculate the solutions
         self.xhat_kproj = self.xhat_proj
@@ -587,10 +731,9 @@ class ReducedRankInversion(Inversion):
         print('... Solving full rank approximation inversion ...')
         self.solve_inversion_kproj(pct_of_info=pct_of_info, rank=rank)
 
-        so_inv = diags(self.rf/self.so_vec)
-        d = self.obs_mod_diff(self.xa)
+        so_inv = diags(1/self.so)
 
-        self.xhat_fr = self.shat_kproj @ self.k.T @ so_inv @ d
+        self.xhat_fr = self.shat_kproj @ self.k.T @ so_inv @ (self.y - self.ya)
         print('... Complete ...\n')
 
     ##########################
@@ -640,11 +783,12 @@ class ReducedRankInversion(Inversion):
         return fig, ax
 
 class ReducedRankJacobian(ReducedRankInversion):
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
+    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+                 k_is_positive=False, rank=None):
         # Inherit from the parent class.
-        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, y_base, so_vec)
-
-        self.perturbed_cells = np.array([])
+        ReducedRankInversion.__init__(self, k, xa, sa, y, ya, so, c,
+                                      regularization_factor, k_is_positive,
+                                      rank)
         self.model_runs = 0
 
     # Rewrite to take any prolongation matrix?
@@ -680,12 +824,12 @@ class ReducedRankJacobian(ReducedRankInversion):
         # Save to a new instance
         new = ReducedRankJacobian(k=k,
                                   xa=copy.deepcopy(self.xa),
-                                  sa_vec=copy.deepcopy(self.sa_vec),
+                                  sa=copy.deepcopy(self.sa),
                                   y=copy.deepcopy(self.y),
-                                  y_base=copy.deepcopy(self.y_base),
-                                  so_vec=copy.deepcopy(self.so_vec))
+                                  ya=copy.deepcopy(self.ya),
+                                  so=copy.deepcopy(self.so),
+                                  regularization_factor=self.regularization_factor)
         new.model_runs = copy.deepcopy(self.model_runs) + prolongation.shape[1]
-        new.rf = copy.deepcopy(self.rf)
 
         # Do the eigendecomposition
         new.edecomp()
@@ -730,10 +874,20 @@ class ReducedRankJacobian(ReducedRankInversion):
         return self_f, true_f
 
 class ReducedDimensionJacobian(ReducedRankInversion):
-    def __init__(self, k, xa, sa_vec, y, y_base, so_vec):
-        # Inherit from the parent class.
-        ReducedRankInversion.__init__(self, k, xa, sa_vec, y, y_base, so_vec)
+    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+                 reduced_memory=False, available_memory_GB=None,
+                 k_is_positive=False, rank=None):
 
+        # state_vector    A vector containing an index for each state vector
+        #                 element (necessary for multiscale grid methods).
+
+        # Inherit from the parent class.
+        ReducedRankInversion.__init__(self, k, xa, sa, y, ya, so, c,
+                                      regularization_factor, reduced_memory,
+                                      available_memory_GB, k_is_positive,
+                                      rank)
+
+        self.state_vector = np.arange(1, self.nstate+1, 1)
         self.perturbed_cells = np.array([])
         self.model_runs = 0
 
@@ -873,18 +1027,18 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         k_ms = k_ms.groupby(self.state_vector, axis=1).sum()
         self.k = np.array(k_ms)
 
-    def calculate_prior(self, xa_abs, sa_vec):
+    def calculate_prior(self, xa_abs, sa):
         xa_abs_ms = pd.DataFrame(xa_abs).groupby(self.state_vector).sum()
 
-        sa_vec_abs = pd.DataFrame(sa_vec*xa_abs)
-        sa_vec_abs_ms = (sa_vec_abs**2).groupby(self.state_vector).sum()**0.5
-        sa_vec_ms = sa_vec_abs_ms/xa_abs_ms
+        sa_abs = pd.DataFrame(sa*xa_abs)
+        sa_abs_ms = (sa_abs**2).groupby(self.state_vector).sum()**0.5
+        sa_ms = sa_abs_ms/xa_abs_ms
 
         self.xa_abs = np.array(xa_abs_ms).reshape(-1,)
         self.xa = np.ones(self.nstate).reshape(-1,)
-        self.sa_vec = np.array(sa_vec_ms).reshape(-1,)
+        self.sa = np.array(sa_ms).reshape(-1,)
 
-    def update_jacobian_rd(self, forward_model, xa_abs, sa_vec, clusters_plot,
+    def update_jacobian_rd(self, forward_model, xa_abs, sa, clusters_plot,
                            pct_of_info=None, rank=None, snr=None,
                            n_cells=[100, 200],
                            n_cluster_size=[1, 2],
@@ -931,14 +1085,14 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         # is where
         new = ReducedRankJacobian(k=k_base,
                                   xa=copy.deepcopy(self.xa),
-                                  sa_vec=copy.deepcopy(self.sa_vec),
+                                  sa=copy.deepcopy(self.sa),
                                   y=copy.deepcopy(self.y),
-                                  y_base=copy.deepcopy(self.y_base),
-                                  so_vec=copy.deepcopy(self.so_vec))
+                                  ya=copy.deepcopy(self.ya),
+                                  so=copy.deepcopy(self.so))
         new.state_vector = copy.deepcopy(self.state_vector)
         new.dofs = copy.deepcopy(self.dofs)
         new.model_runs = copy.deepcopy(self.model_runs)
-        new.rf = copy.deepcopy(self.rf)
+        new.regularization_factor = copy.deepcopy(self.regularization_factor)
         _, counts = np.unique(self.state_vector, return_counts=True)
 
         # If previously optimized, set significance to 0
@@ -964,10 +1118,12 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         # # Now update the Jacobian
         new.nstate = len(elements)
         new.calculate_k(forward_model)
-        new.calculate_prior(xa_abs=xa_abs, sa_vec=sa_vec)
+        new.calculate_prior(xa_abs=xa_abs, sa=sa)
 
-        # Adjust the rf
-        new.rf = self.rf*new.nstate/self.nstate
+        # Adjust the regularization_factor
+        new.regularization_factor = self.regularization_factor*new.nstate/self.nstate
+        # THIS NEEDS TO BE FIXED NOW THAT WE DEFINE SO/REG FACTOR IN
+        # INITIALIZATION
 
         # Update the value of c in the new instance
         new.calculate_c()
@@ -1015,3 +1171,130 @@ class ReducedDimensionJacobian(ReducedRankInversion):
         ax = fp.format_map(ax, data.lat, data.lon, **map_kwargs)
 
         return fig, ax
+
+class ReducedMemoryInversion(ReducedRankJacobian):
+    def __init__(self, k, xa, sa, y, ya, so, c=None, regularization_factor=1,
+                 k_is_positive=False, rank=None, available_memory_GB=None):
+
+        '''
+            reduced_memory           This flag (default false) will determine
+                                     whether or not to read in the file or
+                                     arrays provided in chunks.
+            available_memory_GB      If reduced_memory is True, both the number
+                                     of cores and the memory available (in
+                                     gigabytes) must be provided.
+            k_is_positive            A flag indicating whether the Jacobian
+                                     has already been checked for negative
+                                     elements. Default is False.
+        '''
+
+        # Check that available memory is provided
+        assert available_memory_GB is not None, \
+               'Available memory is not provided.'
+
+        # Set initial chunk values [BROKEN]
+        max_chunk_size = gc.calculate_chunk_size(available_memory_GB)
+        chunk_size = math.floor(max_chunk_size**0.5)
+        self.chunks = {state_dim : -1, obs_dim : None}
+
+        # Before inheriting from the parent class, we are going to load
+        # all of the items using chunks.
+        xa = self.read(xa, 'xa')
+        sa = self.read(sa, 'sa')
+        k = self.read(k, 'k')
+        y = self.read(y, 'y')
+        ya = self.read(ya, 'ya')
+        so = self.read(so, 'so')
+
+        # Inherit from the parent class.
+        ReducedRankJacobian.__init__(self, k, xa, sa, y, ya, so, c,
+                                     regularization_factor, k_is_positive,
+                                     rank)
+
+        # Save out chunks
+        self.chunks = chunks
+
+
+    #########################
+    ### UTILITY FUNCTIONS ###
+    #########################
+    def read(self, item, item_name, **kwargs):
+        # If item is a string or a list, load the file
+        if type(item) in [str, list]:
+            item = self._load(item, item_name, **kwargs)
+
+        # Force the items to be dataarrays
+        if type(item) != xr.core.dataarray.DataArray:
+            item = self._to_dataarray(item, item_name)
+
+        return item
+
+    def _is_diagonal(self, item_name):
+        item = self.getattr(item_name)
+        item_shape = self._find_dimension(item)
+        item_dims = Inversion.dims[item_name]
+        item_is_diag = ((item_shape == 1) and
+                        (len(item_dims) == 2) and
+                        (item_dims[0] == item_dims[1]))
+        return item_is_diag
+
+    def _load(self, item, item_name, **kwargs):
+        # This function is only called by read()
+        # Add chunks to kwargs.
+        kwargs['chunks'] = {k : self.chunks[k]
+                            for k in Inversion.dims[item_name]}
+        if type(item) == list:
+            # If it's a list, set some specific settings for open_mfdataset
+            # This currently assumes that the coords are not properly set,
+            # which was an oopsy when making the K0 datasets.
+            kwargs['combine'] = 'nested'
+            kwargs['concat_dim'] = Inversion.dims[item_name]
+        else:
+            item = [item]
+
+        item = gc.read_file(*item, **kwargs)
+        return item
+
+    def _to_dataarray(self, item, item_name):
+        # If it's a dataset, require that there be only one variable
+        if type(item) == xr.core.dataset.Dataset:
+            variables = list(item.keys())
+            assert len(variables) == 1, \
+                  'A dataset with multiple variables was provided. This \
+                   class requires that any datasets contain only one \
+                   variable.'
+            item = item[variables[0]]
+        # Else convert to a dataarray
+        else:
+            assert dims is not None, \
+                   'Creating an xarray dataset and dims is not provided.'
+
+            # Check that dimensions match the stated dimensions
+            if self._is_diagonal(item_name):
+                Inversion.dims[item_name] = [Inversion.dims[item_name[0]]]
+
+            # Convert to a datarray
+            item = xr.DataArray(item, dims=tuple(Inversion.dims[item_name]))
+
+            # If chunks are provided, chunk
+            chunks = {k : self.chunks[k] for k in Inversion.dims[item_name]}
+            if len(chunks) > 0:
+                item = item.chunk(chunks)
+
+        return item
+
+    def save(self, attribute:str, file_name=None):
+        item = getattr(self, attribute)
+
+        # Get file name
+        if file_name is None:
+            file_name = attribute
+
+        with ProgressBar():
+                item.to_netcdf(f'{file_name}.nc')
+
+    ###########################
+    ### INVERSION FUNCTIONS ###
+    ###########################
+    def solve_inversion(self):
+        ...
