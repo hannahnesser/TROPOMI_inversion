@@ -3,14 +3,20 @@ Generic inversion functions (this is integrated with the inversion class).
 '''
 
 import numpy as np
+from numpy.linalg import inv
 import pandas as pd
 import xarray as xr
+import dask.array as da
 import pickle
 import math
 from scipy.stats import linregress
+from scipy.linalg import sqrtm
 
 from os.path import join
 from os import listdir
+import glob
+import time
+import copy
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -27,36 +33,71 @@ import format_plots as fp
 import config
 
 ## -------------------------------------------------------------------------##
+## Utility functions
+## -------------------------------------------------------------------------##
+def find_dimension(data):
+    if len(data.shape) == 1:
+        return 1
+    elif (data.shape[1] == 1) or (data.shape[0] == 1):
+        return 1
+    else:
+        return 2
+
+def inv_cov_matrix(data):
+    if find_dimension(data) == 1:
+        return np.diag(1/data)
+    else:
+        return inv(data)
+
+def sqrt_cov_matrix(data):
+    if find_dimension(data) == 1:
+        return np.diag(data**0.5)
+    else:
+        return sqrtm(data)
+
+def multiply_data_by_inv_cov(data, data_cov):
+    if find_dimension(data_cov) == 1:
+        return data/data_cov
+    else:
+        return data @ inv(data_cov)
+
+def multiply_data_by_sqrt_cov(data, data_cov):
+    if find_dimension(data_cov) == 1:
+        return data*data_cov**0.5
+    else:
+        return data @ sqrtm(data_cov)
+
+## -------------------------------------------------------------------------##
 ## Cluster functions
 ## -------------------------------------------------------------------------##
 def match_data_to_clusters(data, clusters, default_value=0):
     '''
-    Matches inversion data to a cluster file. 
+    Matches inversion data to a cluster file.
     Parameters:
-        data (np.array)        : Inversion data. Must have the same length 
-                                 as the number of clusters, and must be 
-                                 sorted in ascending order of cluster number 
-                                 - i.e. [datapoint for cluster 1, datapoint for 
-                                 cluster 2, datapoint for cluster 3...] 
-        clusters (xr.Datarray) : 2d array of cluster values for each gridcell. 
-                                 You can get this directly from a cluster file 
-                                 used in an analytical inversion. 
+        data (np.array)        : Inversion data. Must have the same length
+                                 as the number of clusters, and must be
+                                 sorted in ascending order of cluster number
+                                 - i.e. [datapoint for cluster 1, datapoint for
+                                 cluster 2, datapoint for cluster 3...]
+        clusters (xr.Datarray) : 2d array of cluster values for each gridcell.
+                                 You can get this directly from a cluster file
+                                 used in an analytical inversion.
                                  Dimensions: ('lat','lon')
-        default_value (numeric): The fill value for the array returned. 
+        default_value (numeric): The fill value for the array returned.
     Returns:
-        result (xr.Datarray)   : A 2d array on the GEOS-Chem grid, with 
-                                 inversion data assigned to each gridcell based 
-                                 on the cluster file. 
+        result (xr.Datarray)   : A 2d array on the GEOS-Chem grid, with
+                                 inversion data assigned to each gridcell based
+                                 on the cluster file.
                                  Missing data default to the default_value.
-                                 Dimensions: same as clusters ('lat','lon'). 
+                                 Dimensions: same as clusters ('lat','lon').
     '''
     # check that length of data is the same as number of clusters
     clust_list = np.unique(clusters)[np.unique(clusters)!=0] # unique, nonzero clusters
     assert len(data)==len(clust_list), (f'Data length ({len(data)}) is not the same as '
                                         f'the number of clusters ({len(clust_list)}).')
 
-    # build a lookup table from data. 
-    #    data_lookup[0] = default_value (value for cluster 0), 
+    # build a lookup table from data.
+    #    data_lookup[0] = default_value (value for cluster 0),
     #    data_lookup[1] = value for cluster 1, and so forth
     data_lookup = np.append(default_value, data)
 
@@ -67,17 +108,17 @@ def match_data_to_clusters(data, clusters, default_value=0):
 
     return result
 
-def clusters_2d_to_1d(clusters, data):
+def clusters_2d_to_1d(clusters, data, fill_value=0):
     '''
     Flattens data on the GEOS-Chem grid, and ensures the resulting order is
-    ascending with respect to cluster number. 
+    ascending with respect to cluster number.
     Parameters:
-        clusters (xr.Datarray) : 2d array of cluster values for each gridcell. 
-                                 You can get this directly from a cluster file 
-                                 used in an analytical inversion. 
+        clusters (xr.Datarray) : 2d array of cluster values for each gridcell.
+                                 You can get this directly from a cluster file
+                                 used in an analytical inversion.
                                  Dimensions: ('lat','lon')
         data (xr.DataArray)    : Data on a 2d GEOS-Chem grid.
-                                 Dimensions: ('lat','lon') 
+                                 Dimensions: ('lat','lon')
    '''
     # Data must be a dataarray
     assert type(data) == xr.core.dataarray.DataArray, \
@@ -94,6 +135,10 @@ def clusters_2d_to_1d(clusters, data):
     # Remove non-cluster datapoints
     data = data[data['clusters'] > 0]
 
+    # Fill nans that may result from data and clusters being different
+    # shapes
+    data = data.fillna(fill_value)
+
     # Sort
     data = data.sort_values(by='clusters')
 
@@ -102,25 +147,25 @@ def clusters_2d_to_1d(clusters, data):
 def get_one_statevec_layer(data, category=None, time=None,
                            category_list=None, time_list=None, cluster_list=None):
     '''
-    Grabs only the specified category/time combo from the state vector. 
-    Should result in a list of clusters which can then be mapped onto a cluster file and plotted. 
+    Grabs only the specified category/time combo from the state vector.
+    Should result in a list of clusters which can then be mapped onto a cluster file and plotted.
     Parameters:
-        data (np.array)      : Inversion attribute. 
+        data (np.array)      : Inversion attribute.
                                Dimensions: nstate
-        category (string)    : The category you would like to extract. Must match with 
+        category (string)    : The category you would like to extract. Must match with
                                element(s) in in category_list.
-        time (string)        : The time you would like to extract. Must match with 
+        time (string)        : The time you would like to extract. Must match with
                                element(s) in time_list. If there is no time, use None.
-        category_list (list) : The category labels for each element of the state vector. 
+        category_list (list) : The category labels for each element of the state vector.
                                Dimensions: nstate
-        time_list (list)     : The time labels for each element of the state vector. 
+        time_list (list)     : The time labels for each element of the state vector.
                                Dimensions: nstate
         cluster_list (list)  : Cluster numbers for each element of the state vector.
-                               If this option is not included, cluster numbers of the 
-                               data must be in ascending order. 
-                               Dimensions: nstate. 
+                               If this option is not included, cluster numbers of the
+                               data must be in ascending order.
+                               Dimensions: nstate.
     Returns:
-        data_out (np.array)  : data subset by category & time. 
+        data_out (np.array)  : data subset by category & time.
                                Dimensions: # of clusters
     '''
     # check which labels are defined
@@ -163,38 +208,233 @@ def get_one_statevec_layer(data, category=None, time=None,
     return data_out
 
 ## -------------------------------------------------------------------------##
+## Reduced rank inversion functions
+## -------------------------------------------------------------------------##
+def calculate_Kx(k_dir, x_data, niter, chunks, optimize_bc):
+    # List of K files
+    k_files = glob.glob(f'{k_dir}/k{niter}_c??.nc')
+    k_files.sort()
+
+    # if niter == 2, also load the boundary condition K
+    if optimize_bc:
+        k_bc = xr.open_dataarray(f'{k_dir}/k{niter}_bc.nc',
+                                 chunks=chunks)
+        x_data = np.append(x_data, np.ones((4,)))
+
+    # Start time
+    start_time = time.time()
+
+    # Iterate
+    print('[', end='')
+    kx = []
+    i0 = 0
+    for i, kf in enumerate(k_files):
+        print('-', end='')
+        k_n = xr.open_dataarray(kf, chunks=chunks)
+        # Append the BC K if it's the second iteration
+        if optimize_bc:
+            i1 = i0 + k_n.shape[0]
+            k_bc_n = k_bc[i0:i1, :]
+            k_n = xr.concat([k_n, k_bc_n], dim='nstate')
+            i0 = copy.deepcopy(i1)
+        k_n = da.tensordot(k_n, x_data, axes=(1, 0))
+        k_n = k_n.compute()
+        kx.append(k_n)
+    active_time = (time.time() - start_time)/60
+    print(f'] {active_time:02f} minutes')
+
+    return np.concatenate(kx)
+
+def calculate_c(k, ya, xa):
+    '''
+    Calculate c for the forward model, defined as ybase = Kxa + c.
+    Save c as an element of the object.
+    '''
+    c = ya - k @ xa
+    return c
+
+def cost_func(ynew, y, so, xnew, xa, sa):
+    '''
+    Calculate the value of the Bayesian cost function
+        J(x) = (x - xa)T Sa (x-xa) + regularization_factor(y - Kx)T So (y - Kx)
+    for a given x. Prints out that value and the contributions from
+    the emission and observational terms.
+
+    Parameters:
+        x      The state vector at which to evaluate the cost function
+        y      The observations vector at which to evaluate the cost function
+               Note that by definition y=Kx+c, so: ya=Kxa+c, and yhat=Kxhat+c
+    Returns:
+        cost   The value of the cost function at x
+    '''
+
+    # Calculate the observational component of the cost function
+    cost_obs = (ynew - y).T @ inv_cov_matrix(so) @ (ynew - y)
+
+    # Calculate the emissions/prior component of the cost function
+    cost_emi = (xnew - xa).T @ inv_cov_matrix(sa) @ (xnew - xa)
+
+    # Calculate the total cost, print out information on the cost, and
+    # return the total cost function value
+    cost = cost_obs + cost_emi
+    print('     Cost function: %.2f (Emissions: %.2f, Observations: %.2f)'
+          % (cost, cost_emi, cost_obs))
+    return cost
+
+def calculate_xhat(xa, shat, kt_so_ydiff):
+    # (this formulation only works with constant errors I think)
+    return xa.reshape(-1,) + np.array(shat @ kt_so_ydiff)
+
+def calculate_xhat_fr(xa, shat_kpi, kt_so_ydiff):
+    return xa.reshape(-1,) + np.array(shat_kpi @ kt_so_ydiff)
+
+def calculate_a(evecs, evals_h, sa):
+    evals_q = (evals_h/(1 + evals_h)).reshape((1, -1))
+    a = (sa.reshape((-1, 1))**0.5*evecs*evals_q) @ (evecs.T/sa.reshape((1, -1))**0.5)
+    return a
+
+def calculate_shat_kpi(a, sa):
+    return (np.identity(a.shape[0]) - a)*sa.reshape((1, -1))
+
+def solve_inversion(xa, evecs, evals_h, sa, kt_so_ydiff):
+    a = calculate_a(evecs, evals_h, sa) # nothing changed
+    shat_kpi = calculate_shat_kpi(a, sa) # the same
+    # xhat = calculate_xhat(xa, shat, kt_so_ydiff)
+    xhat_fr = calculate_xhat_fr(xa, shat_kpi, kt_so_ydiff)
+    return xhat_fr, shat_kpi, a
+
+def get_rank(evals_q=None, evals_h=None, 
+             pct_of_info=None, rank=None, snr=None):
+    # Check whether evals_q or evals_h are provided:
+    if sum(x is not None for x in [evals_q, evals_h]) == 0:
+        raise AttributeError('Must provide one of evals_q or evals_h.')
+    elif evals_h is None:
+        evals_h = evals_q/(1 - evals_q)
+    elif  evals_q is None:
+        evals_q = evals_h/(1 + evals_h)
+
+    # Calculate the cumulative fraction of information content explained
+    # by each subsequent eigenvector
+    frac = np.cumsum(evals_q/evals_q.sum())
+
+    # Obtain the rank, requiring one and only one of pct_of_info, rank,
+    # or snr to be provided
+    if sum(x is not None for x in [pct_of_info, rank, snr]) > 1:
+        raise AttributeError('Provide only one of pct_of_info, rank, or snr.')
+    elif sum(x is not None for x in [pct_of_info, rank, snr]) == 0:
+        raise AttributeError('Must provide one of pct_of_info, rank, or snr.')
+    elif pct_of_info is not None:
+        diff = np.abs(frac - pct_of_info)
+        rank = np.argwhere(diff == np.min(diff))[0][0]
+        print('Calculated rank from percent of information: %d' % rank)
+        print('     Percent of information: %.4f%%' % (100*pct_of_info))
+        print('     Signal-to-noise ratio: %.2f'
+              % (evals_h[rank])**0.5)
+    elif snr is not None:
+        diff = np.abs(evals_h**0.5 - snr)
+        rank = np.argwhere(diff == np.min(diff))[0][0]
+        print('Calculated rank from signal-to-noise ratio : %d' % rank)
+        print('     Percent of information: %.4f%%' % (100*frac[rank]))
+        print('     Signal-to-noise ratio: %.2f' % snr)
+    elif rank is not None:
+        print('Using defined rank: %d' % rank)
+        print('     Percent of information: %.4f%%' % (100*frac[rank]))
+        print('     Signal-to-noise ratio: %.2f'
+              % (evals_h[rank])**0.5)
+    return rank
+
+def pph(k, so, sa, big_mem=False):
+    sasqrt_kt = multiply_data_by_sqrt_cov(k, sa)
+    sasqrt_kt_soinv = multiply_data_by_inv_cov(sasqrt_kt.T, so)
+
+    if big_mem:
+        pph = da.tensordot(sasqrt_kt_soinv, sasqrt_kt, axes=(1, 0))
+        pph = xr.DataArray(pph, dims=['nstate_0', 'nstate_1'],
+                           name=f'pph')
+    else:
+        pph = sasqrt_kt_soinv @ sasqrt_kt
+
+    print('Calculated PPH.')
+    return pph
+
+## -------------------------------------------------------------------------##
+## Source attribution functions
+## -------------------------------------------------------------------------##
+def source_attribution(w, xhat, shat=None, a=None):
+    # This takes a W matrix and returns xhat, shat, and a in the 
+    # original units they were provided to the function
+
+    # Check for singular matrix conditions
+    if np.any(w.sum(axis=1) == 0):
+        print('Dropping ', w.index[w.sum(axis=1) == 0].values)
+        w = w.drop(index=w.index[w.sum(axis=1) == 0].values)
+
+    # Normalize W
+    w_tot = w.sum(axis=1)
+    w = w/w_tot.values[:, None]
+
+    # xhat red = W xhat
+    xhat_red = w @ xhat
+
+    if (shat is not None) and (a is not None):
+        # Convert error covariance matrices
+        # S red = W S W^T
+        shat_red = w @ shat @ w.T
+
+        # Calculate Pearson's correlation coefficient (cov(X,Y)/stdx*stdy)
+        stdev_red = np.sqrt(np.diagonal(shat_red)) 
+        r_red = shat_red/(stdev_red[:, None]*stdev_red[None, :])
+
+        # Calculate reduced averaging kernel
+        # a_red = np.identity(w.shape[0]) - shat_red @ inv(sa_red)
+        a_red = w @ a @ w.T @ inv((w @ w.T))
+        return xhat_red, shat_red, r_red, a_red
+    else:
+        return xhat_red
+
+## -------------------------------------------------------------------------##
+## Ensemble functions
+## -------------------------------------------------------------------------##
+def get_ensemble_stats(data_frame):
+    # Takes a dataframe that is 
+    stats = pd.DataFrame({'mean' : data_frame.mean(axis=1),
+                          'min' : data_frame.min(axis=1),
+                          'max' : data_frame.max(axis=1)})
+    return stats
+
+## -------------------------------------------------------------------------##
 ## Plotting functions : state vectors
 ## -------------------------------------------------------------------------##
 def plot_state(data, clusters_plot, default_value=0, cbar=True,
                category=None, time=None, category_list=None,
                time_list=None, cluster_list=None, **kw):
     '''
-    Plots a state vector element. 
+    Plots a state vector element.
     Parameters:
-        data (np.array)         : Inversion data. 
+        data (np.array)         : Inversion data.
                                   Dimensions: nstate
-        clusters (xr.Datarray)  : 2d array of cluster values for each gridcell. 
-                                  You can get this directly from a cluster file 
-                                  used in an analytical inversion. 
+        clusters (xr.Datarray)  : 2d array of cluster values for each gridcell.
+                                  You can get this directly from a cluster file
+                                  used in an analytical inversion.
                                   Dimensions: ('lat','lon')
     Optional Parameters:
-        default_value (numeric) : The fill value for the array returned. 
-        cbar (bool)             : Should the function a colorbar? 
-        category (string)       : The category you would like to extract. Must match with 
+        default_value (numeric) : The fill value for the array returned.
+        cbar (bool)             : Should the function a colorbar?
+        category (string)       : The category you would like to extract. Must match with
                                   element(s) in in category_list.
-        time (string)           : The time you would like to extract. Must match with 
+        time (string)           : The time you would like to extract. Must match with
                                   element(s) in time_list. If there is no time, use None.
-        category_list (list)    : The category labels for each element of the state vector. 
+        category_list (list)    : The category labels for each element of the state vector.
                                   Dimensions: nstate
-        time_list (list)        : The time labels for each element of the state vector. 
+        time_list (list)        : The time labels for each element of the state vector.
                                   Dimensions: nstate
         cluster_list (list)     : Cluster numbers for each element of the state vector.
-                                  If this option is not included, the data must be 
-                                  in ascending order of cluster number. 
-                                  Dimensions: nstate. 
-       
-    Returns: 
-        fig, ax, c: Figure, axis, and colorbar for an mpl plot. 
+                                  If this option is not included, the data must be
+                                  in ascending order of cluster number.
+                                  Dimensions: nstate.
+
+    Returns:
+        fig, ax, c: Figure, axis, and colorbar for an mpl plot.
     '''
     # protect inputs from modification
     data_to_plot = np.copy(data)
@@ -220,21 +460,22 @@ def plot_state(data, clusters_plot, default_value=0, cbar=True,
 
 def plot_state_format(data, default_value=0, cbar=True, **kw):
     '''
-    Format and plot one layer of the state vector. 
+    Format and plot one layer of the state vector.
     Parameters:
-        data (xr.DataArray)     : One layer of the state vector, mapped onto a 
-                                  2d GEOS-Chem grid using a cluster file. If 
-                                  your state vector has only one layer, 
+        data (xr.DataArray)     : One layer of the state vector, mapped onto a
+                                  2d GEOS-Chem grid using a cluster file. If
+                                  your state vector has only one layer,
                                   this may contain your entire state vector.
                                   Dimensions: ('lat','lon')
-        default_value (numeric) : The fill value for the array returned. 
-        cbar (bool)             : Should the function plot a colorbar? 
+        default_value (numeric) : The fill value for the array returned.
+        cbar (bool)             : Should the function plot a colorbar?
     '''
     # Get kw
     title = kw.pop('title', '')
     kw['cmap'] = kw.get('cmap', 'viridis')
-    kw['vmin'] = kw.get('vmin', data.min())
-    kw['vmax'] = kw.get('vmax', data.max())
+    if 'norm' not in kw:
+        kw['vmin'] = kw.get('vmin', data.min())
+        kw['vmax'] = kw.get('vmax', data.max())
     kw['add_colorbar'] = False
     cbar_kwargs = kw.pop('cbar_kwargs', {})
     label_kwargs = kw.pop('label_kwargs', {})
@@ -243,27 +484,36 @@ def plot_state_format(data, default_value=0, cbar=True, **kw):
     fig_kwargs = kw.pop('fig_kwargs', {})
 
     # Get figure
-    lat_range = [data.lat.min(), data.lat.max()]
-    lon_range = [data.lon.min(), data.lon.max()]
+    lat_step = np.median(np.diff(data.lat))
+    lat_range = [data.lat.min().values - lat_step/2,
+                 data.lat.max().values + lat_step/2]
+    lon_step = np.median(np.diff(data.lon))
+    lon_range = [data.lon.min().values - lon_step/2,
+                 data.lon.max().values + lon_step/2]
     fig, ax  = fp.get_figax(maps=True, lats=lat_range, lons=lon_range,
                             **fig_kwargs)
 
     # Plot data
     c = data.plot(ax=ax, snap=True, **kw)
 
-    # Set limits
-    ax.set_xlim(lon_range)
-    ax.set_ylim(lat_range)
-
     # Add title and format map
     ax = fp.add_title(ax, title, **title_kwargs)
-    ax = fp.format_map(ax, data.lat, data.lon, **map_kwargs)
+    ax = fp.format_map(ax, lat_range, lon_range, **map_kwargs)
 
     if cbar:
         cbar_title = cbar_kwargs.pop('title', '')
-        cax = fp.add_cax(fig, ax)
-        cb = fig.colorbar(c, ax=ax, cax=cax, **cbar_kwargs)
-        cb = fp.format_cbar(cb, cbar_title)
+        horiz = cbar_kwargs.pop('horizontal', False)
+        cpi = cbar_kwargs.pop('cbar_pad_inches', 0.25)
+        if horiz:
+            orient = 'horizontal'
+            cbar_t_kwargs = {'y' : cbar_kwargs.pop('y', -4)}
+        else:
+            orient = 'vertical'
+            cbar_t_kwargs = {'x' : cbar_kwargs.pop('x', 5)}
+
+        cax = fp.add_cax(fig, ax, horizontal=horiz, cbar_pad_inches=cpi)
+        cb = fig.colorbar(c, ax=ax, cax=cax, orientation=orient, **cbar_kwargs)
+        cb = fp.format_cbar(cb, cbar_title, horizontal=horiz, **cbar_t_kwargs)
         return fig, ax, cb
     else:
         return fig, ax, c
@@ -288,13 +538,10 @@ def plot_state_grid(data, rows, cols, clusters_plot,
         pass
 
     fig_kwargs = kw.pop('fig_kwargs', {})
+    cbar_kwargs = kw.pop('cbar_kwargs', {})
     fig, ax = fp.get_figax(rows, cols, maps=True,
                            lats=clusters_plot.lat, lons=clusters_plot.lon,
                             **fig_kwargs)
-
-    if cbar:
-        cax = fp.add_cax(fig, ax)
-        cbar_kwargs = kw.pop('cbar_kwargs', {})
 
     for i, axis in enumerate(ax.flatten()):
         kw['fig_kwargs'] = {'figax' : [fig, axis]}
@@ -307,9 +554,66 @@ def plot_state_grid(data, rows, cols, clusters_plot,
 
         fig, axis, c = plot_state(data[:,i], clusters_plot,
                                   cbar=False, **kw)
+
     if cbar:
+        cax = fp.add_cax(fig, ax)
         cbar_title = cbar_kwargs.pop('title', '')
         c = fig.colorbar(c, cax=cax, **cbar_kwargs)
         c = fp.format_cbar(c, cbar_title)
 
     return fig, ax, c
+
+def plot_posterior(xhat, dofs, clusters, **kwargs):
+    # config.SCALE = 1
+
+    # Get figure
+    fig, ax = fp.get_figax(rows=1, cols=2, maps=True,
+                           lats=clusters.lat, lons=clusters.lon)
+    plt.subplots_adjust(wspace=0.1)
+    old_scale = copy.deepcopy(config.SCALE)
+    config.SCALE = 1
+
+    # Define kwargs
+    sf_cmap_1 = plt.cm.PuOr_r(np.linspace(0.2, 0.5, 256))
+    sf_cmap_2 = plt.cm.PuOr_r(np.linspace(0.5, 1, 256))
+    sf_cmap = np.vstack((sf_cmap_1, sf_cmap_2))
+    sf_cmap = colors.LinearSegmentedColormap.from_list('sf_cmap', sf_cmap)
+    div_norm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=1, vmax=3)
+
+    small_map_kwargs = {'draw_labels' : False}
+    xhat_cbar_kwargs = {'title' : r'Posterior/prior scale factor', 'horizontal' : True , 
+                        'y' : -3}
+    xhat_kwargs = {'cmap' : sf_cmap, 'norm' : div_norm,
+                   'default_value' : 1, 'cbar_kwargs' : xhat_cbar_kwargs,
+                   'title_kwargs' : {'fontsize' : config.TITLE_FONTSIZE},
+                   'map_kwargs' : small_map_kwargs,
+                   'fig_kwargs' : {'figax' : [fig, ax[0]]},}
+    avker_cbar_kwargs = {'title' : r'$\partial\hat{x}_i/\partial x_i$',
+                         'horizontal' : True, 'y' : -3}
+    avker_kwargs = {'cmap' : fp.cmap_trans('plasma'), 'vmin' : 0, 'vmax' : 1,
+                   'title_kwargs' : {'fontsize' : config.TITLE_FONTSIZE},
+                    'cbar_kwargs' : avker_cbar_kwargs,
+                    'map_kwargs' : small_map_kwargs,
+                    'fig_kwargs' : {'figax' : [fig, ax[1]]}}
+
+
+    # Plot xhat
+    fig, ax[0], c = plot_state(xhat, clusters, 
+                               title='Posterior/prior scale factors',
+                               **xhat_kwargs)
+
+    # Plot dofs
+    fig, ax[1], c = plot_state(dofs, clusters,
+                               title='Averaging kernel sensitivities',
+                              **avker_kwargs)
+    ax[1].text(0.025, 0.05, 'DOFS = %d' % round(dofs.sum()),
+               fontsize=config.LABEL_FONTSIZE,
+               transform=ax[1].transAxes)
+
+
+    # Reset config SCALE
+    config.SCALE = old_scale
+
+    return fig, ax
+
+

@@ -1,4 +1,4 @@
-# -------------------------------------------------------------------------##
+## -------------------------------------------------------------------------##
 ## Load packages and set environment defaults
 ## -------------------------------------------------------------------------##
 import numpy as np
@@ -10,35 +10,48 @@ import sys
 import pandas as pd
 import datetime
 import copy
+import glob as glob
 
-sys.path.append('.')
+## -------------------------------------------------------------------------##
+## Read in user preferences
+## -------------------------------------------------------------------------##
+# code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
+# sat_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/TROPOMI"
+# GC_pressure_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/OutputDir"
+# GC_ch4_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_mb/OutputDir"
+# GC_ch4_halfstep_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_halfstep"
+# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/ProcessedDir/"
+# jacobian = False
+# reprocess = True
+# MONTHS = [1]
+# # MONTHS = [9, 10, 11, 12]
+# # jacobian = True
+
+code_dir = sys.argv[1]
+sat_data_dir = sys.argv[2]
+GC_pressure_dir = sys.argv[3]
+GC_ch4_dir = sys.argv[4]
+GC_ch4_halfstep_dir = sys.argv[5]
+output_dir = sys.argv[6]
+jacobian = sys.argv[7]
+MONTHS = [int(sys.argv[8])*4 -3 + i for i in range(4)]
+reprocess = False
+
+# MONTHS = np.arange(1, 13)
+
+# Convert strings to booleans
+if jacobian == 'True':
+    jacobian = True
+else:
+    jacobian = False
+
+# Load custom packages
+sys.path.append(code_dir)
 import gcpy as gc
+import inversion_settings as s
 
-## -------------------------------------------------------------------------##
-## Set user preferences
-## -------------------------------------------------------------------------##
-# sat_data_dir = "/n/seasasfs02/CH4_inversion/InputData/Obs/TROPOMI/"
-# GC_data_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/OutputDir"
-# output_dir = "/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000/ProcessedDir/"
-
-# LON_MIN = -130
-# LON_MAX = -60
-# LON_DELTA = 0.3125
-# LAT_MIN = 9.75
-# LAT_MAX = 60
-# LAT_DELTA = 0.25
-# BUFFER = [3, 3, 3, 3] # [N S E W]
-
-# YEAR = 2019
-# MONTH = 1
-
-# ## -------------------------------------------------------------------------##
-# ## Remove buffer boxes
-# ## -------------------------------------------------------------------------##
-# LAT_MAX -= LAT_DELTA*BUFFER[0]
-# LAT_MIN += LAT_DELTA*BUFFER[1]
-# LON_MAX -= LON_DELTA*BUFFER[2]
-# LON_MIN += LON_DELTA*BUFFER[3]
+# print(f'Applying TROPOMI operator for {s.year}-{MONTHS}\n')
+print('Applying TROPOMI operator\n')
 
 ## -------------------------------------------------------------------------##
 ## Define functions
@@ -47,12 +60,24 @@ def save_obj(obj, name):
     with open(name , 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
-def load_obj(name):
-    with open( name, 'rb') as f:
-        return pickle.load(f)
+def nearest_loc(GC, TROPOMI):
+    # Find the grid box and time indices corresponding to TROPOMI obs
+    # i index
+    iGC = np.abs(GC.lon.values.reshape((-1, 1))
+                 - TROPOMI['longitude'].values.reshape((1, -1)))
+    iGC = iGC.argmin(axis=0)
 
-def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
-                   lat_min, lat_max, lat_delta):
+    # j index
+    jGC = np.abs(GC.lat.values.reshape((-1, 1))
+                 - TROPOMI['latitude'].values.reshape((1, -1)))
+    jGC = jGC.argmin(axis=0)
+
+    # Time index
+    tGC = np.where(TROPOMI['utctime'].dt.hour == GC.time.dt.hour)[1]
+
+    return iGC, jGC, tGC
+
+def filter_tropomi(data, date, lon_min, lon_max, lat_min, lat_max):
     # Filter on qa_value
     data = data.where(data['qa_value'] > 0.5, drop=True)
 
@@ -73,7 +98,7 @@ def filter_tropomi(data, date, lon_min, lon_max, lon_delta,
                        & (data['time'][:, 2] == int(date[6:]))), drop=True)
 
     # Filter on nan cloud fraction values
-    data = data.dropna(dim='nobs', how='any')
+    # data = data.dropna(dim='nobs', how='any')
 
     return data
 
@@ -140,34 +165,22 @@ def get_diagnostic(data_dir, diag_name, date):
     data = xr.open_dataset(filename)
     return data
 
-def read_GC(data_dir, date):
-    # Start by downloading methane data (ppb)
-    data = get_diagnostic(data_dir, 'SpeciesConc', date)
+def read_GC(ch4_data_dir, ch4_halfstep_data_dir, pedge_data_dir, date):
+    # Start by downloading and formatting the methane data (ppb)
+    data = get_diagnostic(ch4_data_dir, 'SpeciesConc', date)
     data = data[['SpeciesConc_CH4']]*1e9
-
-    # Now get the other variables
-    met = get_diagnostic(data_dir, 'StateMet', date)
-    met = met[['Met_PBLH', 'Met_AIRDEN', 'Met_BXHEIGHT', 'Met_AD']]
-    met = met.assign(DRYAIR=met['Met_AIRDEN']*met['Met_BXHEIGHT'])
-    data = xr.merge([data, met])
-    met.close()
-
-    # Calculate the GC column
-    GCCOL = ((data['SpeciesConc_CH4']*data['Met_AD']).sum(dim='lev')
-             /data['Met_AD'].sum(dim='lev'))
-    data = data.assign(GCCOL=GCCOL)
-
-    # Remove superfluous variables
-    data = data.drop(['Met_AIRDEN', 'Met_BXHEIGHT', 'Met_AD'])
+    data = gc.subset_data_latlon(data, *s.lats, *s.lons)
+    data = correct_GC(data, ch4_halfstep_data_dir, date)
 
     # Get pressure information (hPa)
-    pres = get_diagnostic(data_dir, 'LevelEdgeDiags', date)[['Met_PEDGE']]
+    pres = get_diagnostic(pedge_data_dir,
+                          'LevelEdgeDiags', date)[['Met_PEDGE']]
+    pres = gc.subset_data_latlon(pres, *s.lats, *s.lons)
     data = xr.merge([data, pres])
     pres.close()
 
     # Rename variables
     data = data.rename({'SpeciesConc_CH4' : 'CH4',
-                        'Met_PBLH' : 'TROPP',
                         'Met_PEDGE' : 'PEDGE'})
 
     # Flip order
@@ -175,331 +188,249 @@ def read_GC(data_dir, date):
 
     # Check that the data has all 24 hours
     if len(data.time) != 24:
-        print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
-        print('Filling data with the first hour.')
+        # print('GEOS-Chem Data does not contain 24 hours on %s.' % date)
+        # print('Filling data with the first hour.')
         data = gc.fill_GC_first_hour(data)
 
+    # Return the output
     return data
 
-# quzhen 2020/2/13
-def get_intmap(Sat_p, GC_p):
-    '''I think this is equivalent to the cal_weights function, at least
-    a little bit.'''
-    nobs = Sat_p.shape[0]
-    ngc = GC_p.shape[1] - 1
-    ntrop = Sat_p.shape[1]
+def correct_GC(ch4_data, ch4_halfstep_data_dir, date, scale_factor=5):
+    # Load the vertical profile
+    vp = xr.open_dataset(f'{ch4_halfstep_data_dir}/VerticalProfiles/mean_profile_{(date[:6])}.nc')['SpeciesConc_CH4']*1e9
 
-    intmap = np.zeros((nobs, ngc, ntrop))
-    count = np.zeros(nobs)
+    # Subset the CH4 data
+    ch4_data = ch4_data['SpeciesConc_CH4']
 
-    # Start by considering the cases where the satellite pressures
-    # are out of the GC bounds.
+    # Check if any values are more than 5x greater than or less than
+    # the profile
+    diff = np.abs(xr.ufuncs.log10(ch4_data)/np.log10(scale_factor) -
+                  xr.ufuncs.log10(vp)/np.log10(scale_factor))
 
-    # Case 1: Satellite pressures are higher than GC surface pressure
-    idx = np.greater(Sat_p, GC_p[:, 0].reshape(-1, 1))
-    count = idx.sum(axis=1)
+    # Replace the bottom level with 0s
+    diff = diff.where(diff.lev < 0.5, 0)
 
-    # set the satelllite column corresponding to count - 1
-    # equal to 1. (i.e. if count == 1, set the 0th ntrop dimension
-    # equal to 1 for that observation)
-    idx = ((count - 1).reshape(-1, 1) == np.arange(ntrop))[:, None, :]
-    idx = np.tile(idx, (1, ngc, 1))
-    intmap[idx] = 1
+    # If so, replace those values
+    if (diff >= 1).any():
+        print(f'Replacing data on {date}')
 
-    # Now set the GC row up to and including the count-1 satellite
-    # column equal to 1/count
-    idx = np.zeros((nobs, ngc, ntrop), dtype=bool)
-    idx[:, 0, :] = ((count - 1).reshape(-1, 1) >= np.arange(ntrop))
-    count = np.tile(count[:, None, None], (1, ngc, ntrop))
-    intmap[idx] = 1/count[idx]
+        # The original file, only where the problem values are
+        old = ch4_data.where(diff >=1, drop=True).squeeze()
+        for l in old.lev.values:
+            old_dat = old.sel(lev=l).values
+            # print(l, np.nanmin(old_dat), np.nanmax(old_dat))
 
-    # Case 2: Satellite pressures are lower than top level GC pressure
-    idx = np.zeros((nobs, ngc, ntrop), dtype=bool)
-    idx[:, -1, :] = np.less(Sat_p, GC_p[:, -1].reshape(-1, 1))
-    intmap[idx] = 1
+        # Open the new file (that will replace the problem values)
+        new = get_diagnostic(f'{ch4_halfstep_data_dir}/OutputDir',
+                             'SpeciesConc', date)['SpeciesConc_CH4']*1e9
+        new = gc.subset_data_latlon(new, *s.lats, *s.lons)
 
-    # Case 3: Satellite pressures are between the top and bottom GC pressure
-    # Criteria 1:
-    idx1 = (~np.greater_equal(Sat_p, GC_p[:, 0].reshape(-1, 1)) &
-            ~np.less_equal(Sat_p, GC_p[:, -1].reshape(-1, 1)))[:, None, :]
-    idx1 = np.tile(idx1, (1, ngc, 1))
+        # Check for time dimension
+        if len(new.time) != 24:
+            new = gc.fill_GC_first_hour(new)
 
-    lo = GC_p[:, 1:]
-    hi = GC_p[:, :-1]
-    diff = hi - lo
+        # Fill in the data by replacing the entire level
+        cond = ch4_data.lev.isin(old.lev.values)
+        ch4_data = ch4_data.where(~cond, new)
 
-    # Criteria 2: satellite pressure is between the geos-chem pressure levels
-    idx2 = (np.less_equal(Sat_p[:, None, :], hi[:, :, None]) &
-            np.greater(Sat_p[:, None, :], lo[:, :, None]))
+    return ch4_data.to_dataset()
 
-    # Combine the criteria
-    idx = idx1 & idx2
+    # save out file
+    # data.to_netcdf(join(data_dir, file))
 
-    # Create an array for GC indices
-    idx_gc = np.tile(np.arange(1, ngc+1)[None, :, None], (nobs, 1, ntrop))
+def GC_to_sat_levels(GC_CH4, GC_edges, sat_edges):
+    '''
+    The provided edges for GEOS-Chem and the satellite should
+    have dimension number of observations x number of edges
+    '''
+    # We want to account for the case when the GEOS-Chem surface
+    # is above the satellite surface (altitude wise) or the GEOS-Chem
+    # top is below the satellite top.. We do this by adjusting the
+    # GEOS-Chem surface pressure up to the TROPOMI surface pressure
+    idx_bottom = np.less(GC_edges[:, 0], sat_edges[:, 0])
+    idx_top = np.greater(GC_edges[:, -1], sat_edges[:, -1])
+    GC_edges[idx_bottom, 0] = sat_edges[idx_bottom, 0]
+    GC_edges[idx_top, -1] = sat_edges[idx_top, -1]
 
-    # In all circumstances:
-    idx_gc_count = copy.deepcopy(idx_gc)
-    idx_gc_count[~idx] = nobs + ngc + ntrop
-    idx_gc_count = np.min(idx_gc_count, axis=1)
-    idx_gen_f = (idx_gc > idx_gc_count[:, None, :])
-    intmap[idx_gen_f] = 1
+    # Define vectors that give the "low" and "high" pressure
+    # values for each GEOS-Chem and satellite layer.
+    GC_lo = GC_edges[:, 1:][:, :, None]
+    GC_hi = GC_edges[:, :-1][:, :, None]
+    sat_lo = sat_edges[:, 1:][:, None, :]
+    sat_hi = sat_edges[:, :-1][:, None, :]
 
-    # If also the lowest satellite level, set all GC indices up to
-    # the maximum true G index equal to 1
-    idx_losat = np.zeros((nobs, ngc, ntrop), dtype=bool)
-    idx_losat[:, :, 0] = True
-    idx_gc_count = copy.deepcopy(idx_gc)
-    idx_gc_count[~(idx & idx_losat)] = 0
-    idx_gc_count = np.max(idx_gc_count, axis=1)
-    idx_losat_f = (idx_gc <= idx_gc_count[:, None, :])
-    intmap[idx_losat_f] = 1
+    # Get the indices where the GC-to-satellite mapping, which is
+    # a nobs x ngc x nsat matrix, is non-zero
+    idx = (np.less_equal(sat_lo, GC_hi) & np.greater_equal(sat_hi, GC_lo))
 
-    # If not the lowest satellite level
-    # Change 1
-    iobs, igc, itrop = np.where(idx & ~idx_losat)
-    intmap[iobs, igc, itrop-1] = ((hi[iobs, igc] - Sat_p[iobs, itrop])
-                                  /diff[iobs, igc])
-    intmap[iobs, igc, itrop] = ((Sat_p[iobs, itrop] - lo[iobs, igc])
-                                /diff[iobs, igc])
+    # Find the fraction of each GC level that contributes to each
+    # TROPOMI level. We should first divide (to normalize) and then
+    # multiply (to apply the map to the column) by the GC pressure
+    # difference, but we exclude this (since it's the same as x1).
+    GC_to_sat = np.minimum(sat_hi, GC_hi) - np.maximum(sat_lo, GC_lo)
+    GC_to_sat[~idx] = 0
 
-    # Change 2
-    idx_nohigc = np.roll((idx & ~idx_losat), -1, axis=2)
-    idx_gc_count = copy.deepcopy(idx_gc)
-    idx_gc_count[~idx_nohigc] = nobs + ngc + ntrop # sufficiently big
-    idx_gc_count = np.min(idx_gc_count, axis=1)
-    idx_nohigc_f = (idx_gc > idx_gc_count[:, None, :])
-    intmap[idx_nohigc_f] = 0
+    # Now map the GC CH4 to the satellite levels
+    GC_on_sat = (GC_to_sat*GC_CH4[:, :, None]).sum(axis=1)
+    GC_on_sat = GC_on_sat/GC_to_sat.sum(axis=1)
 
-    return intmap
+    return GC_on_sat
 
-def get_newmap(intmap, gc_ch4_native, dryair):
-    nobs, ngc, ntrop = intmap.shape
-    # gc_ch4 = np.zeros((nobs, ntrop - 1))
-    # gc_weight = np.zeros((nobs, ntrop - 1))
-
-    temp_gc = (intmap * gc_ch4_native[:, :, None] * dryair[:, :, None])
-    temp_gc = temp_gc.sum(axis=1)[:, :-1]
-    temp_dry = (intmap * dryair[:, :, None]).sum(axis=1)[:, :-1]
-
-    gc_ch4 = temp_gc / temp_dry
-    gc_weight = temp_dry / dryair.sum(axis=1)[:, None]
-
-    met = {}
-    met['GC_CH4'] = gc_ch4
-    met['GC_WEIGHT'] = gc_weight
-
-    return met
-
-def apply_avker(avker, prior, dryair, sat_ch4, gc_weight, filt=None):
+def apply_avker(sat_avker, sat_prior, sat_pressure_weight, GC_CH4, filt=None):
+    '''
+    Apply the averaging kernel
+    Inputs:
+        sat_avker            The averaging kernel for the satellite
+        sat_prior            The satellite prior profile in ppb
+        sat_pressure_weight  The relative pressure weights for each level
+        GC_CH4               The GC methane on the satellite levels
+        filt                 A filter, optional
+    '''
     if filt is None:
-        filt = np.ones(avker.shape[1])
+        filt = np.ones(sat_avker.shape[1])
     else:
         filt = filt.astype(int)
 
-    # Apply filter
-    rat = prior/dryair * 1e9
+    GC_col = (filt*sat_pressure_weight
+              *(sat_prior + sat_avker*(GC_CH4 - sat_prior)))
+    GC_col = GC_col.sum(axis=1)
+    return GC_col
 
-    # Return XCH4 with averaging kernel applied
-    return (filt*gc_weight*(rat + avker*(sat_ch4 - rat))).sum(axis=1)
+## -------------------------------------------------------------------------##
+## List all satellite files for the year and date defined
+## -------------------------------------------------------------------------##
+# List all raw netcdf TROPOMI files
+raw_files = glob.glob(os.path.join(sat_data_dir, '*.nc'))
+raw_files.sort()
 
-def nearest_loc(GC, TROPOMI):
+# List all of the dates that have already been processed
+if not reprocess:
+    saved_dates = glob.glob(os.path.join(output_dir, '*.pkl'))
+    saved_dates = [d.split('/')[-1].split('_')[0] for d in saved_dates]
+    saved_dates.sort()
+
+# Create empty list
+Sat_files = {}
+
+# Iterate through the raw TROPOMI data
+for index in range(len(raw_files)):
+    filename = raw_files[index]
+
+    # Get the date (YYYY, MM, and DD) of the raw TROPOMI file
+    shortname = re.split('\/|\.', filename)[-2]
+    strdate = re.split('_+|T', shortname)
+    start_date = strdate[4]
+    end_date = strdate[6]
+
+    # Check if the start date is in range
+    start = ((int(start_date[:4]) == s.year)
+             and (int(start_date[4:6]) in MONTHS))
+
+    # Check if the end date is in range
+    end = ((int(end_date[:4]) == s.year)
+           and (int(end_date[4:6]) in MONTHS))
+
+    # Check if either date is in saved dates
+    if not reprocess:
+        start = (start and (start_date not in saved_dates))
+        end = (end and (end_date not in saved_dates))
+
+    # Skip observations not in range
+    if not (start or end):
+        continue
+
+    # Add the file to the list of Sat_files
+    if start:
+        if start_date in Sat_files.keys():
+            Sat_files[start_date].append(filename)
+        else:
+            Sat_files[start_date] = [filename]
+    elif end:
+        if end_date in Sat_files.keys():
+            Sat_files[end_date].append(filename)
+        else:
+            Sat_files[end_date] = [filename]
+
+print('Number of dates: ', len(Sat_files))
+
+## -------------------------------------------------------------------------##
+## Apply the operator to each date of satellite observations
+## -------------------------------------------------------------------------##
+for date, filenames in Sat_files.items():
+    # print('=========== %s ===========' % date)
+    preprocess = lambda d: filter_tropomi(d, date,
+                                          s.lon_min, s.lon_max,
+                                          s.lat_min, s.lat_max)
+    TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
+                                combine='nested',
+                                chunks=10000,
+                                mask_and_scale=False,
+                                preprocess=preprocess)
+    TROPOMI = process_tropomi(TROPOMI, date)
+
+    if TROPOMI is None:
+        print(f'{date} : 0 observations')
+        # print('================================')
+        continue
+
+    # Get observation dimension (number of good observations in that single
+    # observation file)
+    NN = TROPOMI.nobs.shape[0]
+    print(f'{date} : {NN} observations')
+
+    # Then, read in the GC data for these dates.
+    GC = read_GC(GC_ch4_dir, GC_ch4_halfstep_dir, GC_pressure_dir, date)
+
     # Find the grid box and time indices corresponding to TROPOMI obs
-    # i index
-    iGC = np.abs(GC.lon.values.reshape((-1, 1))
-                 - TROPOMI['longitude'].values.reshape((1, -1)))
-    iGC = iGC.argmin(axis=0)
+    iGC, jGC, tGC = nearest_loc(GC, TROPOMI)
 
-    # j index
-    jGC = np.abs(GC.lat.values.reshape((-1, 1))
-                 - TROPOMI['latitude'].values.reshape((1, -1)))
-    jGC = jGC.argmin(axis=0)
+    # Then select GC accordingly
+    GC_P = GC['PEDGE'].values[tGC, iGC, jGC, :]
+    GC_CH4 = GC['CH4'].values[tGC, iGC, jGC, :]
 
-    # Time index
-    tGC = np.where(TROPOMI['utctime'].dt.hour == GC.time.dt.hour)[1]
+    # And calculate TROPOMI XCH4 in ppb and the TROPOMI pressure weights
+    TROP_CH4 = 1e9*(TROPOMI['methane_profile_apriori']
+                    /TROPOMI['dry_air_subcolumns']).values
+    TROP_PW = (-np.diff(TROPOMI['pressures'])/
+               (TROPOMI['pressures'][:, 0] -
+                TROPOMI['pressures'][:, -1]).values[:, None])
 
-    return iGC, jGC, tGC
+    # Map the GC CH4 onto the TROPOMI levels
+    GC_on_sat = GC_to_sat_levels(GC_CH4, GC_P, TROPOMI['pressures'].values)
 
-## -------------------------------------------------------------------------##
-## TROPOMI operator
-## -------------------------------------------------------------------------##
-if __name__ == '__main__':
-    ## ---------------------------------------------------------------------##
-    ## Set user settings
-    ## ---------------------------------------------------------------------##
-    # Decrease threads
-    # os.environ['OMP_NUM_THREADS'] = '2'
-    import glob as glob
+    # Finally, apply the averaging kernel
+    GC_on_sat = apply_avker(TROPOMI['column_AK'].values,
+                            TROP_CH4, TROP_PW, GC_on_sat)
 
-    ## ---------------------------------------------------------------------##
-    ## Read in user preferences
-    ## ---------------------------------------------------------------------##
-    sat_data_dir = sys.argv[1]
-    GC_data_dir = sys.argv[2]
-    output_dir = sys.argv[3]
+    if np.isnan(GC_on_sat).sum() > 0:
+        print('NAN VALUES ARE PRESENT')
 
-    LON_MIN = float(sys.argv[4])
-    LON_MAX = float(sys.argv[5])
-    LON_DELTA = float(sys.argv[6])
+    # Save out values
+    # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
+    # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
+    if not jacobian:
+        N = 11
+    else:
+        N = 2
+    OBS_MOD = np.zeros([NN, N],dtype=np.float32)
+    OBS_MOD[:, 0] = TROPOMI['methane']
+    OBS_MOD[:, 1] = GC_on_sat
+    if not jacobian:
+        OBS_MOD[:, 2] = TROPOMI['longitude']
+        OBS_MOD[:, 3] = TROPOMI['latitude']
+        OBS_MOD[:, 4] = iGC
+        OBS_MOD[:, 5] = jGC
+        OBS_MOD[:, 6] = TROPOMI['precision']
+        OBS_MOD[:, 7] = TROPOMI['albedo'][:,1]
+        OBS_MOD[:, 8] = TROPOMI['albedo'][:,0]
+        OBS_MOD[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
 
-    LAT_MIN = float(sys.argv[7])
-    LAT_MAX = float(sys.argv[8])
-    LAT_DELTA = float(sys.argv[9])
+        # and finally get a cloud fraction variable to deal
+        # with the bug in cloud fraction (since this was accidentally
+        # excluded in the filter_TROPOMI function)
+        OBS_MOD[:, 10] = TROPOMI['cloud_fraction'].isnull().sum(axis=1).values
 
-    BUFFER = sys.argv[10:14]
-    BUFFER = [int(b) for b in BUFFER]
+    save_obj(OBS_MOD, os.path.join(output_dir, date + '_GCtoTROPOMI.pkl'))
+    # print('================================')
 
-    YEAR = int(sys.argv[14])
-    MONTH = int(sys.argv[15])
-
-    print('Applying TROPOMI operator for %d-%02d\n' % (YEAR, MONTH))
-
-    ## ---------------------------------------------------------------------##
-    ## Remove buffer boxes and adjust to be grid box edges
-    ## ---------------------------------------------------------------------##
-    LATLON = [LAT_MIN, LAT_MAX, LAT_DELTA, LON_MIN, LON_MAX, LON_DELTA, BUFFER]
-    LAT_EDGES, LON_EDGES = gc.adjust_grid_bounds(*LATLON)
-    LAT_MIN, LAT_MAX = LAT_EDGES
-    LON_MIN, LON_MAX = LON_EDGES
-
-    ## ---------------------------------------------------------------------##
-    ## List all satellite files for the year and date defined
-    ## ---------------------------------------------------------------------##
-    # List all raw netcdf TROPOMI files
-    allfiles = glob.glob(sat_data_dir+'*.nc')
-    allfiles.sort()
-
-    # # Exclude the file associated with the 11427th orbit. This orbit fails
-    # # to remove cloudy scenes over coastal eastern Mexico on December 27th,
-    # # resulting in very underestimated methane retrievals.
-    # allfiles = [f for f in allfiles if '_11427_' not in f]
-
-    # Create empty list
-    Sat_files = {}
-
-    # Iterate through the raw TROPOMI data
-    for index in range(len(allfiles)):
-        filename = allfiles[index]
-
-        # Get the date (YYYY, MM, and DD) of the raw TROPOMI file
-        shortname = re.split('\/|\.', filename)[-2]
-        strdate = re.split('_+|T', shortname)
-        start_date = strdate[4]
-        end_date = strdate[6]
-
-        # start condition
-        start = ((int(start_date[:4]) == YEAR)
-                 and (int(start_date[4:6]) == MONTH))
-        end = ((int(end_date[:4]) == YEAR)
-               and (int(end_date[4:6]) == MONTH))
-        # year = (int(start_date[:4]) == YEAR)
-        # month = ((int(start_date[4:6]) == MONTH)
-        #           or (int(end_date[4:6]) == MONTH))
-
-        # Skip observations not in range
-        # if not (year and month):
-        if not (start or end):
-            continue
-
-        # Add the file to the list of Sat_files
-        if start:
-            if start_date in Sat_files.keys():
-                Sat_files[start_date].append(filename)
-            else:
-                Sat_files[start_date] = [filename]
-        elif end:
-            if end_date in Sat_files.keys():
-                Sat_files[end_date].append(filename)
-            else:
-                Sat_files[end_date] = [filename]
-
-    print('Number of dates: ', len(Sat_files))
-
-    ## -------------------------------------------------------------------------##
-    ## Iterate throught the Sat_files we created
-    ## -------------------------------------------------------------------------##
-    for date, filenames in Sat_files.items():
-        print('=========== %s ===========' % date)
-        preprocess = lambda d: filter_tropomi(d, date,
-                                              LON_MIN, LON_MAX, LON_DELTA,
-                                              LAT_MIN, LAT_MAX, LAT_DELTA)
-        TROPOMI = xr.open_mfdataset(filenames, concat_dim='nobs',
-                                    combine='nested',
-                                    chunks=10000,
-                                    preprocess=preprocess,
-                                    mask_and_scale=False)
-        if len(TROPOMI.nobs) == 0:
-            print('No observations remain.')
-            print('================================')
-            continue
-
-        TROPOMI = process_tropomi(TROPOMI, date)
-
-        # Get observation dimension (number of good observations in that single
-        # observation file)
-        NN = TROPOMI.nobs.shape[0]
-        print('Processing %d Observations' % NN)
-        print('================================')
-
-        # create an empty matrix to store TROPOMI CH4, GC CH4,
-        # lon, lat, II, and JJ (GC indices)
-        temp_obs_GC=np.zeros([NN, 12],dtype=np.float32)
-
-        #================================
-        #--- now compute sensitivity ---
-        #================================
-
-        # Then, read in the GC data for these dates. This works by
-        # reading the lon, lat, pressure edge, xch4, xch4_adjusted
-        # (which I believe is the stratospheric corrected data), TROPP
-        # (which is the planetary boundary layer info), and dry air.
-        GC = read_GC(GC_data_dir, date)
-
-        # Find the grid box and time indices corresponding to TROPOMI obs
-        iGC, jGC, tGC = nearest_loc(GC, TROPOMI)
-
-        # Then select GC accordingly
-        GC_P = GC['PEDGE'].values[tGC, iGC, jGC, :]
-        GC_DA = GC['DRYAIR'].values[tGC, iGC, jGC, :]
-        GC_CH4 = GC['CH4'].values[tGC, iGC, jGC, :]
-        GC_COL = GC['GCCOL'].values[tGC, iGC, jGC]
-
-        # Create mapping between GC and TROPOMI pressure levels
-        intmap = get_intmap(TROPOMI['pressures'].values, GC_P)
-
-        # Apply that mapping to the GC data to generate GC data on
-        # the TROPOMI grid
-        newmap = get_newmap(intmap, GC_CH4, GC_DA)
-
-        # Finally, apply the averaging kernel
-        GC_base_post = apply_avker(TROPOMI['column_AK'].values,
-                                   TROPOMI['methane_profile_apriori'].values,
-                                   TROPOMI['dry_air_subcolumns'].values,
-                                   newmap['GC_CH4'], newmap['GC_WEIGHT'])
-        # GC_base_pri = apply_avker(np.ones(TROPOMI['column_AK'].shape),
-        #                           TROPOMI['methane_profile_apriori'].values,
-        #                           TROPOMI['dry_air_subcolumns'].values,
-        #                           newmap['GC_CH4'], newmap['GC_WEIGHT'])
-
-        # Save out values
-        # The columns are: OBS, MOD, LON, LAT, iGC, jGC, PRECISION,
-        # ALBEDO_SWIR, ALBEDO_NIR, AOD, MOD_COL
-        temp_obs_GC[:, 0] = TROPOMI['methane']
-        temp_obs_GC[:, 1] = GC_base_post
-        temp_obs_GC[:, 2] = TROPOMI['longitude']
-        temp_obs_GC[:, 3] = TROPOMI['latitude']
-        temp_obs_GC[:, 4] = iGC
-        temp_obs_GC[:, 5] = jGC
-        temp_obs_GC[:, 6] = TROPOMI['precision']
-        temp_obs_GC[:, 7] = TROPOMI['albedo'][:,1]
-        temp_obs_GC[:, 8] = TROPOMI['albedo'][:,0]
-        temp_obs_GC[:, 9] = TROPOMI['aerosol_optical_depth'][:,1]
-        temp_obs_GC[:, 10] = TROPOMI['glint']
-        temp_obs_GC[:, 11] = GC_COL
-
-        result={}
-        result['obs_GC'] = temp_obs_GC
-
-        save_obj(result, output_dir + date + '_GCtoTROPOMI.pkl')
-
-    print('CODE FINISHED')
+print('CODE FINISHED')

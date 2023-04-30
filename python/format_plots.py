@@ -12,6 +12,7 @@ from sklearn.cluster import KMeans
 
 import math
 import itertools
+from collections import OrderedDict
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -21,8 +22,11 @@ import mpl_toolkits.mplot3d
 from matplotlib.collections import PolyCollection, LineCollection
 import cartopy.crs as ccrs
 import cartopy
-import cartopy.feature
+import cartopy.io.shapereader as shpreader
+import cartopy.feature as cf
 from cartopy.mpl.patch import geos_to_path
+import matplotlib.colors as mc
+import colorsys
 
 # sys.path.append('.')
 import config
@@ -39,9 +43,17 @@ rcParams['axes.titlepad'] = config.TITLE_PAD
 from matplotlib.font_manager import findfont, FontProperties
 font = findfont(FontProperties(family=['sans-serif']))
 
-def color(k, cmap='inferno', lut=10):
+def color(k, cmap='plasma', lut=10, lighten=False, light_amt=1.33):
     c = plt.cm.get_cmap(cmap, lut=lut)
-    return colors.to_hex(c(k))
+    c = colors.to_hex(c(k))
+    if lighten:
+        c = adjust_lightness(c, amount=light_amt)
+    return c
+
+def cmap_from_color(color_high, color_low=(1, 1, 1), N=100):
+    rgb_map = [color_low, colors.to_rgb(color_high)]
+    cmap = colors.LinearSegmentedColormap.from_list('cmap', rgb_map, N=N)
+    return cmap
 
 def cmap_trans(cmap, ncolors=300, nalpha=20):
     color_array = plt.get_cmap(cmap)(range(ncolors))
@@ -72,7 +84,12 @@ def cmap_trans_center(cmap, ncolors=300, nalpha=20):
 
     return map_object
 
-def get_figsize(aspect, rows, cols, **fig_kwargs):
+def adjust_lightness(color, amount=1.5):
+    print(color)
+    c = colorsys.rgb_to_hls(*mc.to_rgb(color))
+    return colorsys.hls_to_rgb(c[0], max(0, min(1, amount*c[1])), c[2])
+
+def get_figsize(aspect, **fig_kwargs):
     # Set default kwarg values
     max_width = fig_kwargs.get('max_width', config.BASE_WIDTH*config.SCALE)
     max_height = fig_kwargs.get('max_height', config.BASE_HEIGHT*config.SCALE)
@@ -99,10 +116,12 @@ def make_axes(rows=1, cols=1, aspect=None,
               maps=False, lats=None, lons=None,
               **fig_kwargs):
     aspect = get_aspect(rows, cols, aspect, maps, lats, lons)
-    figsize = get_figsize(aspect, rows, cols, **fig_kwargs)
+    figsize = get_figsize(aspect, **fig_kwargs)
     kw = {}
     if maps:
         kw['subplot_kw'] = {'projection' : ccrs.PlateCarree()}
+    kw['sharex'] = fig_kwargs.pop('sharex', False)
+    kw['sharey'] = fig_kwargs.pop('sharey', False)
     # if (rows + cols) > 2:
     #     kw['constrained_layout'] = True
         # figsize = tuple(f*1.5 for f in figsize)
@@ -204,7 +223,18 @@ def add_legend(ax, **legend_kwargs):
     legend_kwargs['fontsize'] = legend_kwargs.get('fontsize',
                                                   (config.LABEL_FONTSIZE*
                                                    config.SCALE))
-    ax.legend(**legend_kwargs)
+
+    # Remove duplicates from legend
+    try:
+        handles = legend_kwargs.pop('handles')
+        labels = legend_kwargs.pop('labels')
+    except:
+        handles, labels = ax.get_legend_handles_labels()
+    labels = OrderedDict(zip(labels, handles))
+    handles = labels.values()
+    labels = labels.keys()
+
+    ax.legend(handles=handles, labels=labels, **legend_kwargs)
     return ax
 
 def add_title(ax, title, **title_kwargs):
@@ -258,33 +288,55 @@ def format_map(ax, lats, lons,
     # Format
     ax.set_ylim(min(lats), max(lats))
     ax.set_xlim(min(lons), max(lons))
-    ax.add_feature(cartopy.feature.OCEAN, facecolor='0.98', linewidth=0.5)
-    ax.add_feature(cartopy.feature.LAND, facecolor='0.98', linewidth=0.5)
-    ax.coastlines(color='grey', linewidth=0.5)
 
-    # gl = ax.gridlines(**gridline_kwargs)
-    # gl.xlabel_style = {'fontsize' : fontsize}
-    # gl.ylabel_style = {'fontsize' : fontsize}
+    # Get states
+    states = shpreader.natural_earth(resolution='50m', category='cultural', 
+                                     name='admin_1_states_provinces_lakes')
+    reader = shpreader.Reader(states)
+    STATES = [x for x in reader.records() 
+              if x.attributes['admin'] == 'United States of America']
+    STATES = cf.ShapelyFeature([x.geometry for x in STATES], 
+                                ccrs.PlateCarree())
+
+    # Get borders
+    borders = shpreader.natural_earth(resolution='50m', category='cultural',
+                                      name='admin_0_countries_lakes')
+    reader = shpreader.Reader(borders)
+    BORDERS = [x for x in reader.records()]
+    BORDERS = cf.ShapelyFeature([x.geometry for x in BORDERS], 
+                                ccrs.PlateCarree())
+
+    ax.add_feature(cf.OCEAN.with_scale('50m'), facecolor='0.98', linewidth=0.5)
+    ax.add_feature(cf.LAND.with_scale('50m'), facecolor='0.98', linewidth=0.5)
+    # ax.add_feature(cf.BORDERS.with_scale('50m'), edgecolor='0.2',
+    #                linewidth=0.5)
+    ax.add_feature(STATES, edgecolor='0.3', linewidth=0.2, facecolor='none')
+    ax.add_feature(BORDERS, edgecolor='0.2', linewidth=0.5, facecolor='none')
+    ax.coastlines(resolution='50m', color='0.2', linewidth=0.5)
+
     return ax
 
-def format_cbar(cbar, cbar_title='', horizontal=False):
-    # cbar.set_label(cbar_title, fontsize=BASEFONT*config.SCALE,
-    #                labelpad=CBAR_config.LABEL_PAD)
-            # x0
+def format_cbar(cbar, cbar_title='', horizontal=False, **cbar_kwargs):
     if horizontal:
         x = 0.5
-        y = -4
+        y = cbar_kwargs.pop('y', -4)
         rotation = 'horizontal'
+        va = 'top'
+        ha = 'center'
     else:
-        x = 6.5
+        x = cbar_kwargs.pop('x', 5)
         y = 0.5
         rotation = 'vertical'
+        va = 'center'
+        ha = 'left'
 
-    cbar.ax.tick_params(axis='both', which='both',
-                        labelsize=config.TICK_FONTSIZE*config.SCALE)
-    cbar.ax.text(x, y, cbar_title, ha='center', va='center', rotation=rotation,
-                 fontsize=config.LABEL_FONTSIZE*config.SCALE,
-                 transform=cbar.ax.transAxes)
+    labelsize = cbar_kwargs.pop('labelsize', config.TICK_FONTSIZE*config.SCALE)
+    fontsize = cbar_kwargs.pop('fontsize', config.LABEL_FONTSIZE*config.SCALE)
+
+    cbar.ax.tick_params(axis='both', which='both', labelsize=labelsize)
+    cbar.ax.text(x, y, cbar_title, ha=ha, va=va, rotation=rotation,
+                 fontsize=fontsize, transform=cbar.ax.transAxes, 
+                 multialignment='center')
 
     return cbar
 
@@ -295,8 +347,8 @@ def plot_one_to_one(ax):
             alpha=0.5, zorder=0)
     return ax
 
-def save_fig(fig, loc, name):
-    fig.savefig(join(loc, name + '.png'),
-                bbox_inches='tight', dpi=500,
-                transparent=True)
+def save_fig(fig, loc, name, **kwargs):
+    dpi = kwargs.pop('dpi', 500)
+    fig.savefig(join(loc, name + '.png'), bbox_inches='tight',
+                dpi=dpi, transparent=True, **kwargs)
     print('Saved %s' % name + '.png')
