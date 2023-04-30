@@ -64,30 +64,34 @@ clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 ## Figure: Resolution context
 ## ------------------------------------------------------------------------ ##
 # MA lat/lon lims
-lat_min = 40
-lat_max = 44
-lon_min = -74
-lon_max = -69
+lat_min = 43
+lat_max = 50
+lon_min = -98
+lon_max = -89
 
 # Get longitude edges
 lons_e = np.arange(lon_min, lon_max+0.3125, 0.3125)
-print(lons_e)
-# lons_e = lons_e[(lons_e > lon_min) & (lons_e < lon_max)]
+lons_e_2 = np.arange(lon_min, lon_max+1.25, 1.25)
 
 # Get latitude edges
 lats_e = np.arange(lat_min, lat_max+0.25, 0.25)
-# lats_e = lats_e[(lats_e > lat_min) & (lats_e < lat_max)]
-print(lats_e)
+lats_e_2 = np.arange(lat_min, lat_max+1, 1)
 
 fig, ax = fp.get_figax(maps=True,
                        lats=[lat_min, lat_max], lons=[lon_min, lon_max])
 ax = fp.format_map(ax, lats_e, lons_e, **small_map_kwargs)
 
 for lat in lats_e:
-    ax.axhline(lat, c=fp.color(4), lw=0.1)
+    ax.axhline(lat, c=fp.color(4), lw=0.05)
 
 for lon in lons_e:
-    ax.axvline(lon, c=fp.color(4), lw=0.1)
+    ax.axvline(lon, c=fp.color(4), lw=0.05)
+
+for lat in lats_e_2:
+    ax.axhline(lat, c=fp.color(4), lw=0.25)
+
+for lon in lons_e_2:
+    ax.axvline(lon, c=fp.color(4), lw=0.25)
 
 # Save
 fp.save_fig(fig, plot_dir, f'resolution')
@@ -396,9 +400,9 @@ fp.save_fig(fig, plot_dir, f'resolution')
 # Figure: Permian prior and observation comparison
 # ------------------------------------------------------------------------ ##
 # Open prior and clusterr files
-# xa_abs = xr.open_dataarray(f'{data_dir}xa_abs_bc0.nc') # Mg/km2/yr --> kg/km2/hr
-xa_abs = xr.open_dataarray(f'{data_dir}xa_abs.nc')#*1000/365/24
-xa_abs_edf = xr.open_dataarray(f'{data_dir}xa_abs_edf.nc')#*1000/365/24
+xa_abs = xr.open_dataarray(f'{data_dir}xa_abs_bc0.nc') # Mg/km2/yr --> kg/km2/hr
+# xa_abs = xr.open_dataarray(f'{data_dir}xa_abs.nc')#*1000/365/24
+xa_abs_edf = xr.open_dataarray(f'{data_dir}xa_abs.nc')#*1000/365/24
 permian_idx = np.load(f'{data_dir}permian_idx.npy')
 xa_abs_permian = xa_abs#[permian_idx]
 xa_abs_edf_permian = xa_abs_edf#[permian_idx]
