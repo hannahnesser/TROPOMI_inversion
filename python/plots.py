@@ -438,7 +438,7 @@ cbar_kwargs = {'title' : 'Emissions\n' r'(Mg km$^{-2}$ a$^{-1}$)',
 obs_kw = {'cmap' : viridis_trans, 'vmin' : 0, 'vmax' : 20, 'default_value' : 0,
           'cbar' : False, 'map_kwargs' : small_map_kwargs,
           'fig_kwargs' : fig_kwargs}
-title = 'Initial emissions\nestimate' # ({f}\%)'
+title = 'Gridded EPA GHGI' # ({f}\%)'
 fig, ax[0], c = ip.plot_state(xa_abs_permian, clusters, title=title, **obs_kw)
 ax[0] = fp.format_map(ax[0], p_lats, p_lons, **small_map_kwargs)
 # ax[0, 0].text(0.05, 0.05, f'{(xa_abs_permian.sum().values):.1f} Tg/yr',
