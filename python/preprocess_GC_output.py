@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-from os.path import join
-from os import listdir
-=======
 '''
 This script preprocesses the output of any GEOS-Chem simulation to remove buffer grid cells and to replace any grid cells where anomalously (unphysical) high methane concentrations result from the violation of the CFL condition near the boundary conditions.
 
