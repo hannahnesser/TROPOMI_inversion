@@ -116,9 +116,9 @@ Do analytical inversion?: F
 %%% OBSPACK MENU %%%    :
 Turn on ObsPack diag?   : F
 Quiet logfile output    : F
-ObsPack input file      : ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+ObsPack input file      : obspackinput
 ObsPack output file     : GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
-ObsPack output species  : NO CO O3
+ObsPack output species  : CH4
 ------------------------+------------------------------------------------------
 ###############################################################################
 #####  THE FOLLOWING MENUS ARE ONLY READ WHEN YOU COMPILE GEOS-Chem       #####
