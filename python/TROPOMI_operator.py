@@ -139,8 +139,9 @@ def process_tropomi(data, date):
     data = data.assign(pressures=pressures, pressures_mid=pressures_mid)
 
     # Remove irrelevant variables
-    data = data.drop(labels=['altitude_levels', 'surface_altitude', 'time',
-                             'cloud_fraction'])
+    data = data.drop(labels=['latitude_corners', 'longitude_corners',
+                             'glintflag', 'altitude_levels',
+                             'surface_altitude', 'time'])
 
     # Rename variables
     data = data.rename({'xch4_corrected' : 'methane',
@@ -150,11 +151,10 @@ def process_tropomi(data, date):
                         'surface_albedo' : 'albedo',
                         'aerosol_optical_thickness' : 'aerosol_optical_depth',
                         'xch4_column_averaging_kernel' : 'column_AK',
-                        'ch4_profile_apriori' : 'methane_profile_apriori',
-                        'glintflag' : 'glint'})
+                        'ch4_profile_apriori' : 'methane_profile_apriori'})
 
     # Transpose
-    data = data.transpose('nobs', 'nwin', 'ncorner', 'nlayer', 'ilayer')
+    data = data.transpose('nobs', 'nwin', 'nfov', 'nlayer', 'ilayer')
 
     return data
 
