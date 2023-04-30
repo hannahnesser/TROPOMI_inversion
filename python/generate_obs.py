@@ -623,8 +623,6 @@ if compare_gosat:
     fp.add_legend(ax, bbox_to_anchor=(1, 0.5), loc='center left', ncol=1)
     fp.save_fig(fig, plot_dir, 'gosat_tropomi_comparison')
 
-nobs = data.shape[0]
-
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
 ## ------------------------------------------------------------------------ ##
