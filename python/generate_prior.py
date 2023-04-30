@@ -411,12 +411,6 @@ w_hr_neg = dc(w_hr['ong_upstream'])
 w_hr_neg[w_hr_neg > 0] = 0
 w_hr['gas_distribution'] += w_hr_neg
 w_hr['ong_upstream'][w_hr['ong_upstream'] < 0] = 0
-# tmp = dc(w_hr['ong_upstream']/area)
-# tmp[tmp > 0] = 0
-# print(tmp.min())
-# print(tmp.max())
-# ip.plot_state(tmp, clusters, cmap='RdBu_r', vmin=-1, vmax=1)
-# plt.show()
 
 # i. Save out
 xa_abs_edf = xr.DataArray(xa_abs_edf, dims=('nstate'))
