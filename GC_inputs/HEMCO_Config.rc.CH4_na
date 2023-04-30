@@ -810,9 +810,7 @@ Warnings:                    {WARNINGS}
 #==============================================================================
 # --- Scale factors for posterior run ---
 #==============================================================================
-#* EMIS_SF    /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_Nonwetland.nc SF_Nonwetland 2000/1/1/0         C xy 1 * - 1 1
-#* WETLAND_SF /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_Wetland.nc    SF_Wetland    2010-2017/1-12/1/0 E xy 1 * - 1 1
-#* OH_SF      /n/jacob_lab/Lab/seasasfs02/CH4_inversion/InputData/Posterior/YZhang_SFs/Post_SF_OH.nc         SF_OH         2010-2017/1/1/0    E xy 1 * - 1 1
+#* EMIS_SF    /n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/posterior/xhat_gridded.nc posterior_sf 2009/1/1/0 C xy 1 * - 1 1
 
 ### END SECTION BASE EMISSIONS ###
 
