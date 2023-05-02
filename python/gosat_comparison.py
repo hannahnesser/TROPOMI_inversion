@@ -15,28 +15,12 @@ pd.set_option('display.max_columns', 15)
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-local = True
-
-if local:
-    # # Local preferences
-    base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
-    code_dir = base_dir + 'python'
-    data_dir = base_dir + 'inversion_data'
-    output_dir = base_dir + 'inversion_data'
-    plot_dir = base_dir + 'plots'
-else:
-    # Cannon long-path preferences
-    base_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/jacobian_runs/TROPOMI_inversion_0000_final/'
-    code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
-    data_dir = f'{base_dir}ProcessedDir'
-    output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data'
-
-# Cannon preferences
-# code_dir = sys.argv[1]
-# base_dir = sys.argv[2]
-# data_dir = f'{base_dir}ProcessedDir'
-# output_dir = sys.argv[3]
-# plot_dir = None
+# # Local preferences
+base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
+code_dir = base_dir + 'python'
+data_dir = base_dir + 'inversion_data'
+output_dir = base_dir + 'inversion_data'
+plot_dir = base_dir + 'plots'
 
 # Import Custom packages
 sys.path.append(code_dir)
@@ -52,8 +36,7 @@ import inversion_settings as settings
 # The prior_run can either be a list of files or a single file
 # with all of the data for simulation
 prior_run = f'{settings.year}_full.pkl'
-suffix = '_w37_edf'
-mod_suffix = '_w37_edf'
+suffix = '' # Blank or NLC
 # prior_run = [f'{settings.year}{mm:02d}{dd:02d}_GCtoTROPOMI.pkl'
 #              for mm in settings.months
 #              for dd in settings.days]
@@ -80,8 +63,6 @@ albedo_bins = np.arange(0, 1.1, 0.05)
 filter_on_seasonal_latitude = True
 
 # Remove latitudinal bias
-remove_latitudinal_bias = False
-remove_mean_bias = True
 lat_bins = np.arange(10, 65, 5)
 
 # Which analyses do you wish to perform?
@@ -92,79 +73,72 @@ calculate_so = False
 err_min = 10
 
 ## ------------------------------------------------------------------------ ##
-## Get grid information
+## Analysis function
 ## ------------------------------------------------------------------------ ##
-lats, lons = gc.create_gc_grid(*settings.lats, settings.lat_delta,
-                               *settings.lons, settings.lon_delta,
-                               centers=False, return_xarray=False)
+def compare_grids(TROPOMI_data, GOSAT_grid):
+    # Grid the TROPOMI data
+    T_g = TROPOMI_data.groupby(['LAT_CENTER_L', 'LON_CENTER_L',
+                                'DATE']).mean()[['OBS', 'BLENDED_ALBEDO']]
+    T_g = T_g.to_xarray().rename({'LAT_CENTER_L' : 'lats',
+                                  'LON_CENTER_L' : 'lons',
+                                  'DATE' : 'date'})
 
-# GOSAT comparison grid
-lats_l, lons_l = gc.create_gc_grid(*settings.lats, 2, *settings.lons, 2,
-                                   centers=False, return_xarray=False)
+    # Take the difference and save out some time information
+    T_g['DIFF'] = (T_g['OBS'] - GOSAT_grid)
+    T_g['GOSAT'] = GOSAT_grid
+    T_g = T_g.rename({'OBS' : 'TROPOMI'})
+    T_g['date'] = pd.to_datetime(T_g['date'].values,
+                                       format='%Y%m%d')
+    T_g['MONTH'] = T_g['date'].dt.month
+    T_g['SEASON'] = T_g['date'].dt.season
 
-groupby = ['LAT_CENTER_L', 'LON_CENTER_L', 'SEASON']
-err_suffix = '_rg2rt'
+    # Create a dataframe
+    diff_g = T_g.to_dataframe()[['GOSAT', 'TROPOMI', 'DIFF',
+                                 'MONTH', 'SEASON', 'BLENDED_ALBEDO']]
+    diff_g = diff_g.dropna().reset_index()
+
+    # Cut into blended albedo bins and latitude bins
+    diff_g['BLENDED_ALBEDO_BIN'] = pd.cut(diff_g['BLENDED_ALBEDO'],
+                                             blended_albedo_bins)
+    diff_g['LAT_BIN'] = pd.cut(diff_g['lats'], lat_bins)
+
+    # Also do a spatial analysis, grouped by month
+    T_g = T_g.groupby('date.season').mean()
+
+    # Group diff_g by blended albedo
+    diff_ba = gc.group_data(diff_g, groupby=['BLENDED_ALBEDO_BIN'])
+    diff_ba['BLENDED_ALBEDO'] = diff_ba['BLENDED_ALBEDO_BIN'].apply(lambda x: x.mid)
+
+    return T_g, diff_g, diff_ba
 
 ## ------------------------------------------------------------------------ ##
 ## Load GOSAT data
 ## ------------------------------------------------------------------------ ##
 print('-'*70)
-print(f'Opening GOSAT data in {output_dir}')
-gosat_data = gc.read_file(join(output_dir, f'{settings.year}_gosat.pkl'))
-gosat_grid = gc.read_file(join(output_dir,
-                               f'{settings.year}_gosat_gridded.nc'))
+print(f'Opening GOSAT data in {data_dir}')
+gosat_data = gc.read_file(f'{data_dir}/observations/{settings.year}_gosat.pkl')
+gosat_grid = gc.read_file(f'{data_dir}/observations/{settings.year}_gosat_gridded.nc')
 
 ## ------------------------------------------------------------------------ ##
 ## Load TROPOMI data
 ## ------------------------------------------------------------------------ ##
 print(f'Opening TROPOMI data in {output_dir}/{prior_run}')
-data = gc.load_obj(join(output_dir, prior_run))
+data = gc.load_obj(f'{data_dir}/observations/{prior_run}')
 
-# Prnt summary
+# Print summary
 print('-'*70)
 print('Original data (pre-filtering) is loaded.')
 print(f'm = {data.shape[0]}')
 
-# Update DIFF to apply to the mod_suffix
-data[f'DIFF'] = (data[f'MOD{mod_suffix.upper()}'] - 
-                                     data['OBS'])
-
 ## ------------------------------------------------------------------------ ##
 ## Process TROPOMI data
 ## ------------------------------------------------------------------------ ##
-# Grid the TROPOMI data
-trop_grid = data.groupby(['LAT_CENTER_L', 'LON_CENTER_L',
-                          'DATE']).mean()[['OBS', 'BLENDED_ALBEDO']]
-trop_grid = trop_grid.to_xarray().rename({'LAT_CENTER_L' : 'lats',
-                                          'LON_CENTER_L' : 'lons',
-                                          'DATE' : 'date'})
-
-# Take the difference and save out some time information
-trop_grid['DIFF'] = (trop_grid['OBS'] - gosat_grid)
-trop_grid['GOSAT'] = gosat_grid
-trop_grid = trop_grid.rename({'OBS' : 'TROPOMI'})
-trop_grid['date'] = pd.to_datetime(trop_grid['date'].values,
-                                   format='%Y%m%d')
-trop_grid['MONTH'] = trop_grid['date'].dt.month
-trop_grid['SEASON'] = trop_grid['date'].dt.season
-
-# Create a dataframe
-diff_grid = trop_grid.to_dataframe()[['GOSAT', 'TROPOMI', 
-                                      'DIFF',
-                                      'MONTH', 'SEASON', 'BLENDED_ALBEDO']]
-diff_grid = diff_grid.dropna().reset_index()
-
-# Cut into blended albedo bins and latitude bins
-diff_grid['BLENDED_ALBEDO_BIN'] = pd.cut(diff_grid['BLENDED_ALBEDO'],
-                                         blended_albedo_bins)
-diff_grid['LAT_BIN'] = pd.cut(diff_grid['lats'], lat_bins)
-
-# Also do a spatial analysis, grouped by month
-trop_grid = trop_grid.groupby('date.season').mean()
+TROP_grid, diff_grid, diff_ba = compare_grids(data, gosat_grid)
 
 ## ------------------------------------------------------------------------ ##
 ## Initialize the plot
 ## ------------------------------------------------------------------------ ##
+# PLOT 1: SCATTER PLOT
 fig, ax = fp.get_figax(aspect=1, rows=2, cols=4, sharex=True, sharey=True)
 plt.subplots_adjust(wspace=0.1, hspace=0.1)
 
@@ -195,6 +169,26 @@ for i, s in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
     ax[0, i] = gc.add_stats_text(ax[0, i], r, spatial_bias)
     ax[0, i].set_xlim(dmin - 5, dmax + 5)
     ax[0, i].set_ylim(dmin - 5, dmax + 5)
+
+# PLOT 2: BLENDED ALBEDO
+fig2, ax2 = fp.get_figax(aspect=1.75)
+ax2.errorbar(diff_ba['BLENDED_ALBEDO'], diff_ba['mean'],
+             yerr=diff_ba['std'], color=fp.color(4), label='All TROPOMI')
+
+# PLOT 3: SPATIAL DIFFERENCE
+fig3, ax3 = fp.get_figax(rows=2, cols=2, maps=True,
+                       lats=TROP_grid.lats, lons=TROP_grid.lons)
+for i, axis in enumerate(ax3.flatten()):
+    s = TROP_grid.season.values[i]
+    d = TROP_grid.sel(season=s)['DIFF']
+    c = d.plot(ax=axis, cmap='PuOr_r', vmin=-20, vmax=20,
+               add_colorbar=False)
+    axis = fp.format_map(axis, settings.lats, settings.lons)
+    axis = fp.add_title(axis, f'{s}')
+cax = fp.add_cax(fig3, ax3)
+cb = fig3.colorbar(c, ax=ax3, cax=cax)
+cb = fp.format_cbar(cb, r'TROPOMI - GOSAT')
+fp.save_fig(fig3, plot_dir, f'gosat_spatial_bias_prefilter')
 
 ## ------------------------------------------------------------------------ ##
 ## Make and apply observational mask
@@ -239,39 +233,12 @@ print('-'*70)
 ## ------------------------------------------------------------------------ ##
 ## Re-process TROPOMI data
 ## ------------------------------------------------------------------------ ##
-# Grid the TROPOMI data
-trop_grid = data.groupby(['LAT_CENTER_L', 'LON_CENTER_L',
-                          'DATE']).mean()[['OBS', 'BLENDED_ALBEDO']]
-trop_grid = trop_grid.to_xarray().rename({'LAT_CENTER_L' : 'lats',
-                                          'LON_CENTER_L' : 'lons',
-                                          'DATE' : 'date'})
-
-# Take the difference and save out some time information
-trop_grid['DIFF'] = (trop_grid['OBS'] - gosat_grid)
-trop_grid['GOSAT'] = gosat_grid
-trop_grid = trop_grid.rename({'OBS' : 'TROPOMI'})
-trop_grid['date'] = pd.to_datetime(trop_grid['date'].values,
-                                   format='%Y%m%d')
-trop_grid['MONTH'] = trop_grid['date'].dt.month
-trop_grid['SEASON'] = trop_grid['date'].dt.season
-
-# Create a dataframe
-diff_grid = trop_grid.to_dataframe()[['GOSAT', 'TROPOMI', 
-                                      'DIFF',
-                                      'MONTH', 'SEASON', 'BLENDED_ALBEDO']]
-diff_grid = diff_grid.dropna().reset_index()
-
-# Cut into blended albedo bins and latitude bins
-diff_grid['BLENDED_ALBEDO_BIN'] = pd.cut(diff_grid['BLENDED_ALBEDO'],
-                                         blended_albedo_bins)
-diff_grid['LAT_BIN'] = pd.cut(diff_grid['lats'], lat_bins)
-
-# Also do a spatial analysis, grouped by month
-trop_grid = trop_grid.groupby('date.season').mean()
+TROP_grid, diff_grid, diff_ba = compare_grids(data, gosat_grid)
 
 ## ------------------------------------------------------------------------ ##
 ## Finalize the plot
 ## ------------------------------------------------------------------------ ##
+# PLOT 1
 # Plot unfiltered data
 for i, s in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
     d = diff_grid[diff_grid['SEASON'] == s]
@@ -317,4 +284,30 @@ cb = fig.colorbar(c, cax=cax)
 cb = fp.format_cbar(cb, cbar_title='Count')
 
 fp.save_fig(fig, plot_dir, 'gosat_tropomi_comparison')
+
+# PLOT 2
+ax2.errorbar(diff_ba['BLENDED_ALBEDO'].astype(float) + 0.01, diff_ba['mean'],
+             yerr=diff_ba['std'], color=fp.color(7), label='Filtered TROPOMI')
+ax2.set_xticks(np.arange(0, 3.1, 0.25))
+ax2.set_xlim(0, 2.25)
+ax2.set_ylim(-30, 30)
+ax2 = fp.add_labels(ax2, 'Blended albedo', 'TROPOMI - GOSAT')
+ax2 = fp.add_title(ax2, 'Blended albedo bias in TROPOMI - GOSAT')
+fp.add_legend(ax2, loc='upper left', ncol=1)
+fp.save_fig(fig2, plot_dir, f'gosat_blended_albedo_bias')
+
+# PLOT 3: SPATIAL DIFFERENCE
+fig3, ax3 = fp.get_figax(rows=2, cols=2, maps=True,
+                       lats=TROP_grid.lats, lons=TROP_grid.lons)
+for i, axis in enumerate(ax3.flatten()):
+    s = TROP_grid.season.values[i]
+    d = TROP_grid.sel(season=s)['DIFF']
+    c = d.plot(ax=axis, cmap='PuOr_r', vmin=-20, vmax=20,
+               add_colorbar=False)
+    axis = fp.format_map(axis, settings.lats, settings.lons)
+    axis = fp.add_title(axis, f'{s}')
+cax = fp.add_cax(fig3, ax3)
+cb = fig3.colorbar(c, ax=ax3, cax=cax)
+cb = fp.format_cbar(cb, r'TROPOMI - GOSAT')
+fp.save_fig(fig3, plot_dir, f'gosat_spatial_bias_postfilter')
 
