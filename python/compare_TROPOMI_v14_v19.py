@@ -19,7 +19,7 @@ seasons = ['DJF', 'MAM', 'JJA', 'SON']
 # Open v19
 v19 = {}
 for seas in seasons:
-    data = xr.open_dataset(f'{data_dir}v19_{seas}.nc')
+    data = xr.open_dataset(f'{data_dir}observations/v19_{seas}.nc')
     data = data.sel(lat=slice(s.lat_min ,s.lat_max),
                     lon=slice(s.lon_min, s.lon_max))
     v19[seas] = data
@@ -34,7 +34,7 @@ for seas in seasons[1:]:
 v19_tot['mean'] = v19_tot['mean']/v19_tot['count']
 
 # Open v14
-v14 = gc.load_obj(f'{data_dir}2019_corrected.pkl')
+v14 = gc.load_obj(f'{data_dir}observations/2019_corrected.pkl')
 
 # Recalculate the lat/lon center for the ~50 observations for which it matters
 # (where the lat/lons are smack dab in the middle and Nick and my methods
