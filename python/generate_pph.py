@@ -20,12 +20,12 @@ if __name__ == '__main__':
     # niter = '2'
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # optimize_bc = False
-    # xa_abs_file = f'{data_dir}/xa_abs_w404_edf.nc'
+    # xa_abs_file = f'{data_dir}/xa_abs_w37_edf.nc'
     # sa_file = f'{data_dir}/sa.nc'
     # sa_scale = 1
-    # so_file = f'{data_dir}/so_rg2rt_10t_w404_edf.nc'
+    # so_file = f'{data_dir}/so_rg2rt_10t_w37_edf.nc'
     # rf = 1
-    # ya_file = f'{data_dir}/ya_w404_edf.nc'
+    # ya_file = f'{data_dir}/ya_w37_edf.nc'
     # suffix = '_rg2rt_10t_w37'
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python'
 
