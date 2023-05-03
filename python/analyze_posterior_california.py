@@ -95,7 +95,7 @@ ensemble = xhat.columns
 
 # Load weighting matrices in units Gg/yr (we don't consider wetlands
 # here, so it doesn't matter which W we use)
-w = pd.read_csv(f'{data_dir}w_w37_edf.csv')
+w = pd.read_csv(f'{data_dir}sectors/w.csv')
 w = dc(w[sectors])
 w['total'] = w.sum(axis=1)
 w = w.T*1e-3
