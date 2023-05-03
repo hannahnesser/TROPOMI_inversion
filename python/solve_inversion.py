@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results'
     # niter = '2'
     # sa_file = f'{data_dir}/sa.nc'
-    # w_file = f'{data_dir}/w_w37_edf.csv'
+    # w_file = f'{data_dir}/w.csv'
     # sa_scale = 0.75
     # rf = 0.25
     # evec_sf = 10
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     rf = float(sys.argv[7])
     w_file = sys.argv[8]
     pct_of_info = float(sys.argv[9])
-    evec_sf = float(sys.argv[10]) 
+    evec_sf = float(sys.argv[10])
     dofs_threshold = float(sys.argv[11])
     suffix = sys.argv[12]
     code_dir = sys.argv[13]
@@ -233,13 +233,13 @@ if __name__ == '__main__':
     dofs = np.diagonal(a)
 
     # Save the result
-    # np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
+    np.save(f'{data_dir}/iteration{niter}/a/a{niter}{suffix}.npy', a)
     np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
     # np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
     np.save(f'{data_dir}/iteration{niter}/xhat/xhat_fr{niter}{suffix}.npy', 
             xhat_fr)
     np.save(f'{data_dir}/iteration{niter}/shat/shat_kpi{niter}{suffix}.npy', 
-            np.diagonal(shat))
+            shat)
 
     # Subset for BC
     if optimize_bc:
