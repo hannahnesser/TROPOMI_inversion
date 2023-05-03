@@ -29,7 +29,6 @@ bc_str = 'SpeciesBC_CH4'
 # Get boundary conditions
 bcs = glob.glob(f'{bc_dir}boundary_conditions/GEOSChem.BoundaryConditions.2019*')
 bcs.sort()
-# bcs = ['../inversion_data/GEOSChem.BoundaryConditions.20191124_0000z.nc4']
 
 # Get boundary condition edges
 bcf = xr.open_dataset(bcs[0])[bc_str]
@@ -98,18 +97,3 @@ for bc in bcs:
         bcp[bc_str].loc[{'lat' : slice(sbc[1], nbc[0]),
                          'lon' : slice(*wbc)}] += xhat_bc['W']*1e-9
         bcp.to_netcdf(f'{bc_dir}boundary_conditions_post/{fname}')
-
-
-# for f in ['N', 'E', 'S', 'W']:
-#     f = xr.open_dataset(f'../inversion_data/GEOSChem.BoundaryConditions.20190102_0000z_{f}.nc4')
-#     f = f.sel(lev=f.lev[0], time=f.time[0])[bc_str]
-#     fig, ax = fp.get_figax(maps=True, lats=f.lat, lons=f.lon)
-#     f.plot(ax=ax)
-#     ax = fp.format_map(ax, f.lat, f.lon)
-#     ax.axvline(s.lon_min, color='black')
-#     ax.axvline(s.lon_max, color='black')
-#     ax.axhline(s.lat_min, color='black')
-#     ax.axhline(s.lat_max, color='black')
-#     ax.set_xlim(ww[0], ee[1])
-#     ax.set_ylim(ss[0], nn[1])
-#     plt.show()
