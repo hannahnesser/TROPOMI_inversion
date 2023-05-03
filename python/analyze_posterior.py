@@ -83,10 +83,10 @@ DOFS_filter = 0.05
 sectors = list(s.sectors.values())[1:]
 
 # Compare to other studies and EPA
-other_studies = pd.read_csv(f'{data_dir}countries/other_studies.csv')
+other_studies = pd.read_csv(f'{data_dir}sectors/other_studies.csv')
 
 # EPA 2022
-epa22 = pd.read_csv(f'{data_dir}countries/epa_ghgi_2022.csv')
+epa22 = pd.read_csv(f'{data_dir}sectors/epa_ghgi_2022.csv')
 epa22 = epa22.groupby('sector').agg({'mean' : 'sum', 
                                      'minus' : gc.add_quad, 
                                      'plus' : gc.add_quad})
@@ -97,7 +97,7 @@ print('2022 GHGI for 2019')
 print(epa22)
 
 # EPA 2023
-epa23 = pd.read_csv(f'{data_dir}countries/epa_ghgi_2023.csv')
+epa23 = pd.read_csv(f'{data_dir}sectors/epa_ghgi_2023.csv')
 epa23 = epa23.groupby('sector').agg({'mean' : 'sum', 
                                      'minus' : gc.add_quad, 
                                      'plus' : gc.add_quad})
@@ -111,8 +111,7 @@ print('_'*75)
 # Get ensemble values
 ensemble = glob.glob(f'{data_dir}ensemble/xhat_fr2*')
 ensemble.sort()
-ensemble = [f.split('/')[-1][9:-12] for f in ensemble
-            if f.split('10t_')[-1].split('_')[0] == 'w37']
+ensemble = [f.split('/')[-1][9:-4] for f in ensemble]
 
 # ID two priors and boundary condition elements
 bc_cols = [s for s in ensemble if s[:2] == 'bc']
@@ -135,7 +134,7 @@ soil = xr.open_dataarray(f'{data_dir}prior/xa_soil_abs.nc').values
 nstate = area.shape[0]
 
 # Load weighting matrix (Mg/yr)
-w = pd.read_csv(f'{data_dir}w_w37_edf.csv')
+w = pd.read_csv(f'{data_dir}sectors/w.csv')
 w['total'] = w.sum(axis=1)
 w['total_anth'] = w[anth_cols].sum(axis=1)
 w['total_bio'] = w[bio_cols].sum(axis=1)
@@ -162,9 +161,9 @@ for suff in ensemble:
     sa_scale = float(suff.split('_sax')[-1].split('_')[0])
 
     # Load the files
-    dofs_s = np.load(f'{data_dir}ensemble/dofs2_{suff}_poi80.0.npy')
-    xhat_s = np.load(f'{data_dir}ensemble/xhat_fr2_{suff}_poi80.0.npy')
-    shat_s = np.load(f'{data_dir}ensemble/shat_kpi2_{suff}_poi80.0.npy')
+    dofs_s = np.load(f'{data_dir}ensemble/dofs2_{suff}.npy')
+    xhat_s = np.load(f'{data_dir}ensemble/xhat_fr2_{suff}.npy')
+    shat_s = np.load(f'{data_dir}ensemble/shat_kpi2_{suff}.npy')
 
     # Filter on the DOFS filter
     xhat_s[dofs_s < DOFS_filter] = 1
@@ -244,16 +243,12 @@ if optimize_bc:
     print('-'*75)
 
 # Calculate statistics and print results
-xa_abs_opt_frac = np.tile(xa_abs, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/xa_abs.sum()
-xa_abs_anth_opt_frac = np.tile(xa_abs_anth, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/xa_abs_anth.sum(axis=0)
 xhat_abs_tot = (xhat_abs*1e-6).sum(axis=0)
 xhat_abs_anth_tot = (xhat_abs_anth*1e-6).sum(axis=0)
 n_opt = (dofs > DOFS_filter).sum(axis=0)
 negs = (xhat_abs < 0).sum(axis=0)
 
 print(f'We optimize {n_opt.mean():.0f} ({n_opt.min():d}, {n_opt.max():d}) grid cells if we analyze each ensemble member\nindividually. If we consider those grid cells that are included in the\nensemble mean, we optimize {(dofs_mean > DOFS_filter).sum():d} ({(dofs_mean > 0).sum():d}) grid cells.')
-print('')
-print(f'Across the ensemble, we optimize {(xa_abs_opt_frac.mean()*100):.1f} ({(xa_abs_opt_frac.min()*100):.1f} - {(xa_abs_opt_frac.max()*100):.1f})% of prior emissions\nand {(xa_abs_anth_opt_frac.mean()*100):.1f} ({(xa_abs_anth_opt_frac.min()*100):.1f} - {(xa_abs_anth_opt_frac.max()*100):.1f})% of prior anthropogenic emissions.')
 print('')
 print(f'This produces a mean of of {dofs.sum(axis=0).mean():.1f} ({dofs.sum(axis=0).min():.1f}, {dofs.sum(axis=0).max():.1f}) DOFS.')
 print('')
@@ -364,7 +359,7 @@ for country, mask in masks.items():
     summ = pd.concat([prior_c, prior_sub_c, post_c, post_sub_c], axis=0)
     summ['min'] = summ['mean'] - summ['min']
     summ['max'] = summ['max'] - summ['mean']
-    summ.to_csv(f'{base_dir}paper/{country}.csv')
+    summ.to_csv(f'{data_dir}countries/{country}.csv')
 
     # Remove bio other
     summ = summ.drop(index=['prior_other_bio', 'prior_sub_other_bio',
@@ -379,7 +374,6 @@ for country, mask in masks.items():
     # Reduced DOFS
     if country == 'CONUS':
         a_files = glob.glob(f'{data_dir}ensemble/a2_*_{country.lower()}.csv')
-        a_files = [f for f in a_files if 'w37' in f]
         a_files.sort()
 
         dofs_r = pd.DataFrame(index=sectors, columns=xhat.columns)
@@ -393,10 +387,7 @@ for country, mask in masks.items():
         dofs_r = ip.get_ensemble_stats(dofs_r).add_prefix('dofs_')
 
     # Print information 
-    xa_abs_opt_frac = np.tile(xa_abs*mask, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/(xa_abs*mask).sum()
-    xa_abs_anth_opt_frac = np.tile(xa_abs_anth*mask, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/(xa_abs_anth*mask).sum()
-    xa_abs_bio_opt_frac = np.tile(xa_abs_bio*mask, (8, 1)).T[dofs > DOFS_filter].sum(axis=0)/(xa_abs_bio*mask).sum()
-    print(f'In {country}, we achieve {dofs_c.mean():.1f} ({dofs_c.min():.1f}, {dofs_c.max():.1f}) DOFS and optimize {(xa_abs_opt_frac.mean()*100):.1f} ({(xa_abs_opt_frac.min()*100):.1f} - {(xa_abs_opt_frac.max()*100):.1f})%\nof prior emissions and {(xa_abs_anth_opt_frac.mean()*100):.1f} ({(xa_abs_anth_opt_frac.min()*100):.1f} - {(xa_abs_anth_opt_frac.max()*100):.1f})% of prior anthropogenic emissions\nand {(xa_abs_bio_opt_frac.mean()*100):.1f} ({(xa_abs_bio_opt_frac.min()*100):.1f} - {(xa_abs_bio_opt_frac.max()*100):.1f})% of prior biogenic emissions. Anthropogenic emissions\nchange by on average {(post_tot_anth - prior_tot).mean():.2f} ({(post_tot_anth - prior_tot).min():.2f}, {(post_tot_anth - prior_tot).max():.2f}) Tg/yr from {prior_tot.mean():.2f} Tg/yr to\n{post_tot_anth.mean():.2f} ({post_tot_anth.min():.2f}, {post_tot_anth.max():.2f}) Tg/yr. Biogenic emissions are {post_tot_bio.mean():.2f} ({post_tot_bio.min():.2f}, {post_tot_bio.max():.2f}). Total\nemissions are {post_tot.mean():.2f} ({post_tot.min():.2f}, {post_tot.max():.2f}).') #{prior_c.sum(axis=1)}')
+    print(f'In {country}, we achieve {dofs_c.mean():.1f} ({dofs_c.min():.1f}, {dofs_c.max():.1f}) DOFS. Anthropogenic emissions\nchange by on average {(post_tot_anth - prior_tot).mean():.2f} ({(post_tot_anth - prior_tot).min():.2f}, {(post_tot_anth - prior_tot).max():.2f}) Tg/yr from {prior_tot.mean():.2f} Tg/yr to\n{post_tot_anth.mean():.2f} ({post_tot_anth.min():.2f}, {post_tot_anth.max():.2f}) Tg/yr. Biogenic emissions are {post_tot_bio.mean():.2f} ({post_tot_bio.min():.2f}, {post_tot_bio.max():.2f}). Total\nemissions are {post_tot.mean():.2f} ({post_tot.min():.2f}, {post_tot.max():.2f}).') #{prior_c.sum(axis=1)}')
     if country == 'CONUS':
         print(dofs_r)
     print('-'*75)
