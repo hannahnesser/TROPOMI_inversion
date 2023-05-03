@@ -45,9 +45,9 @@ ll = gc.load_obj(f'{data_dir}2019_corrected.pkl')[['DATE', 'MONTH',
                                                    'LAT_CENTER', 'LON_CENTER']]
 ll = ll.rename(columns={'LAT_CENTER' : 'lat_center', 
                         'LON_CENTER' : 'lon_center'})
-y = xr.open_dataarray(f'{data_dir}ensemble/y.nc')
-ya = xr.open_dataarray(f'{data_dir}ensemble/ya_w37_edf_nlc.nc') + 9.11
-yhat = xr.open_dataarray(f'{data_dir}ensemble/ya_post.nc')
+y = xr.open_dataarray(f'{data_dir}observations/y.nc')
+ya = xr.open_dataarray(f'{data_dir}observations/ya_mb.nc') + 9.11
+yhat = xr.open_dataarray(f'{data_dir}observations/ya_post.nc')
 
 ya = ya - (1.85 + 0.195*ll['LAT'].values)
 yhat = yhat - (1.85 + 0.195*ll['LAT'].values)
@@ -333,9 +333,9 @@ fp.save_fig(fig, plot_dir, 'obspack_evaluation')
 
 # fig, ax = fp.get_figax(rows=3, maps=True, lats=clusters.lat, lons=clusters.lon)
 
-# # y = xr.open_dataarray(f'{data_dir}ensemble/y.nc')
-# # ya = xr.open_dataarray(f'{data_dir}ensemble/ya_w37_edf_nlc.nc') + 9.11
-# # yhat = xr.open_dataarray(f'{data_dir}ensemble/ya_post.nc')
+# # y = xr.open_dataarray(f'{data_dir}observations/y.nc')
+# # ya = xr.open_dataarray(f'{data_dir}observations/ya_mb.nc') + 9.11
+# # yhat = xr.open_dataarray(f'{data_dir}observations/ya_post.nc')
 
 
 # ll = gc.load_obj(f'{data_dir}2019_corrected.pkl')

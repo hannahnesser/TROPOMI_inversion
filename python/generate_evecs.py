@@ -15,8 +15,8 @@ if __name__ == '__main__':
     # code_dir = '/n/home04/hnesser/TROPOMI_inversion/python/'
     # data_dir = '/n/holyscratch01/jacob_lab/hnesser/TROPOMI_inversion/inversion_results/'
     # output_dir = '/n/jacob_lab/Lab/seasasfs02/hnesser/TROPOMI_inversion/inversion_data/'
-    # suffix = '_bc_rg2rt_10t_w404_edf_bc0'
-    # suffix2 = '_rg2rt_10t_w404_edf_nlc'
+    # suffix = '_bc_rg2rt_10t_w37_edf_bc0'
+    # suffix2 = '_rg2rt_10t_w37_edf_nlc'
     niter = sys.argv[1]
     n_evecs = int(sys.argv[2])
     data_dir = sys.argv[3]

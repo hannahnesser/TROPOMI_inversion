@@ -190,7 +190,7 @@ soil_abs.to_netcdf(f'{data_dir}/prior/xa_soil_abs.nc')
 xa_abs = emis['std']['EmisCH4_Total'] #- emis['EmisCH4_SoilAbsorb']
 xa_abs = ip.clusters_2d_to_1d(clusters, xa_abs)
 xa_abs = xr.DataArray(xa_abs, dims=('nstate'))
-xa_abs.to_netcdf(f'{data_dir}/prior/xa_abs.nc')
+xa_abs.to_netcdf(f'{data_dir}/prior/xa_abs_orig.nc')
 
 print('The minimum positive emission is',
       np.abs(emis['std']['EmisCH4_Total'].where(emis['std']['EmisCH4_Total'] > 0).min()).values)
@@ -309,11 +309,10 @@ def sectoral_matrix(raw_emis, suffix, prefix='EmisCH4_', area=area,
 
         # Saveout
         w[label] = e
-
-    w.to_csv(join(data_dir, f'w{suffix}.csv'), index=False)
     return w
 
-w = sectoral_matrix(emis['std'], '')
+w = sectoral_matrix(emis['std'], '_orig')
+w.to_csv(f'{data_dir}/sectors/w_orig.csv', index=False)
 
 # High resolution sectoral W
 w_hr = sectoral_matrix(emis['hr'], suffix='_hr', prefix='InvGEPA_CH4_', 
@@ -354,7 +353,7 @@ bc_idx.sort()
 # Set these to zero in the absolute prior
 xa_abs_bc0 = dc(xa_abs)
 xa_abs_bc0[bc_idx] = 0
-xa_abs_bc0.to_netcdf(join(data_dir, 'xa_abs_bc0.nc'))
+# xa_abs_bc0.to_netcdf(f'{data_dir}/prior/xa_abs_bc0.nc')
 
 # We can use the same sectoral breakdown as W.
 
@@ -414,9 +413,9 @@ w_hr['ong_upstream'][w_hr['ong_upstream'] < 0] = 0
 
 # i. Save out
 xa_abs_edf = xr.DataArray(xa_abs_edf, dims=('nstate'))
-xa_abs_edf.to_netcdf(join(data_dir, 'xa_abs_edf.nc'))
-w_edf.to_csv(join(data_dir, f'w_edf.csv'), index=False)
-w_hr.to_csv(join(data_dir, f'w_edf_hr.csv'), index=False)
+# xa_abs_edf.to_netcdf(f'{data_dir}/prior/xa_abs_edf.nc')
+# w_edf.to_csv(f'{data_dir}/sectors/w_edf.csv', index=False)
+w_hr.to_csv(f'{data_dir}/sectors/w_hr.csv', index=False) #  This was previous w_edf_hr
 
 print('-'*75)
 print('EDF inventory emissions')
@@ -451,7 +450,7 @@ emis_w37['AREA'] /= 1e-3*(60*60*24*365)*(1000*1000)**2
 
 xa_abs_w37 = ip.clusters_2d_to_1d(clusters, emis_w37['EmisCH4_Total'])
 xa_abs_w37 = xr.DataArray(xa_abs_w37, dims=('nstate'))
-xa_abs_w37.to_netcdf(join(data_dir, 'xa_abs_w37.nc'))
+# xa_abs_w37.to_netcdf(f'{data_dir}/prior/xa_abs_w37.nc')
 
 # Sectoral attribution matrix
 w_w37 = sectoral_matrix(emis_w37, '_w37')
@@ -469,16 +468,16 @@ print('total         ', (xa_abs_w37*area).sum().values*1e-6)
 # # EDF and BC0
 # xa_abs_edf_bc0 = dc(xa_abs_edf)
 # xa_abs_edf_bc0[bc_idx] = 0
-# xa_abs_edf_bc0.to_netcdf(join(data_dir, 'xa_abs_edf_bc0.nc'))
+# xa_abs_edf_bc0.to_netcdf(f'{data_dir}/prior/xa_abs_edf_bc0.nc')
 
 # EDF and Wetlands 37
 xa_abs_w37_edf = dc(xa_abs_edf) + (w_w37['wetlands'] - w['wetlands'])/area
-xa_abs_w37_edf.to_netcdf(join(data_dir, 'xa_abs_w37_edf.nc'))
+# xa_abs_w37_edf.to_netcdf(f'{data_dir}/prior/xa_abs_w37_edf.nc')
 
 w_w37_edf = dc(w)
 w_w37_edf['wetlands'] = dc(w_w37['wetlands'])
 w_w37_edf['ong'] = dc(w_edf['ong'])
-w_w37_edf.to_csv(join(data_dir, 'w_w37_edf.csv'), index=False)
+w_w37_edf.to_csv(f'{data_dir}/sectors/w.csv', index=False) # previously w_w37_edf
 
 print('-'*75)
 print('Removed wetland ensemble members emissions and EDF inventory')
@@ -491,7 +490,7 @@ print('-'*75)
 # EDF, Wetlands 37, and BC0
 xa_abs_w37_edf_bc0 = dc(xa_abs_w37_edf)
 xa_abs_w37_edf_bc0[bc_idx] = 0
-xa_abs_w37_edf_bc0.to_netcdf(join(data_dir, 'xa_abs_w37_edf_bc0.nc'))
+xa_abs_w37_edf_bc0.to_netcdf(f'{data_dir}/prior/xa_abs.nc') # used to be _w37_edf_bc0
 
 ## -------------------------------------------------------------------------##
 ## Plot

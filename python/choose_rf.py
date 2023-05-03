@@ -67,10 +67,10 @@ def heat_map(x, y, data, fig, ax, cmap, n_cmap, vmin, vmax):
 DOFS_filter = 0.05
 
 # Define file names
-f = '_bc_nlc'
-# f = '_bc'
-# f = '_nlc'
-# f = ''
+f = '_bc_mb'
+# f = '_bc_lb'
+# f = '_mb'
+# f = '_lb'
 
 # Define rfs, sa values, and DOFS thresholds
 # rfs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 1.0]
