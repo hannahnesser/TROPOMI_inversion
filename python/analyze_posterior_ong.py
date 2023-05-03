@@ -122,7 +122,7 @@ ensemble = xhat.columns
 
 # Load weighting matrices in units Tg/yr (we don't consider wetlands
 # here, so it doesn't matter which W we use)
-w = pd.read_csv(f'{data_dir}w_w37_edf.csv')
+w = pd.read_csv(f'{data_dir}sectors/w.csv')
 w = dc(w['ong']).T*1e-6
 
 # Get the posterior xhat_abs (this is n x nensemble) (only ONG)
@@ -261,7 +261,7 @@ fp.save_fig(fig, plot_dir, f'ong_ensemble')
 # Permian comparison
 # ------------------------------------------------------------------------ ##
 # Combine the Permian clusters with the NA clusters
-permian = xr.open_dataset(f'{data_dir}clusters_permian.nc')['Clusters']
+permian = xr.open_dataset(f'{data_dir}ong/clusters_permian.nc')['Clusters']
 c = clusters.squeeze(drop=True).to_dataset()
 c['Permian'] = permian
 
@@ -277,7 +277,7 @@ permian = permian.where(permian.isin(cell_idx), 0)
 
 # # Flatten and create boolean
 # permian_idx = (ip.clusters_2d_to_1d(permian, c) - 1).astype(int)
-permian_idx = np.load(f'{data_dir}permian_idx.npy')
+permian_idx = np.load(f'{data_dir}ong/permian_idx.npy')
 # print(c)
 # c[c > 0] = 1
 

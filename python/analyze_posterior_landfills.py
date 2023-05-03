@@ -66,11 +66,11 @@ xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
 ensemble = list(xhat.columns)
  
 # Load weighting matrices in units Gg/yr
-w = pd.read_csv(f'{data_dir}w_w37_edf.csv')[['landfills']].T*1e-3
+w = pd.read_csv(f'{data_dir}sectors/w.csv')[['landfills']].T*1e-3
 conus_mask = np.load(f'{data_dir}countries/CONUS_mask.npy').reshape((-1,))
 w *= conus_mask
 
-w_full = pd.read_csv(f'{data_dir}w_w37_edf.csv').T*1e-3
+w_full = pd.read_csv(f'{data_dir}sectors/w.csv').T*1e-3
 print('-'*75)
 print('Shreveport problems')
 print(w_full.iloc[:, shreveport - 1])

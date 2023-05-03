@@ -83,8 +83,8 @@ xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
 ensemble = xhat.columns
 
 # Load weighting matrices in units Tg/yr
-w = pd.read_csv(f'{data_dir}w_edf_hr.csv')[['enteric_fermentation', 
-                                            'manure_management']].T*1e-6
+w = pd.read_csv(f'{data_dir}sectors/w_hr.csv')[['enteric_fermentation', 
+                                                'manure_management']].T*1e-6
 
 # Get the posterior xhat_abs (this is n x 15)
 xa_abs = w.sum(axis=1)
@@ -141,7 +141,7 @@ print('-'*75)
 ## ------------------------------------------------------------------------ ##
 ## Compare to past studies
 ## ------------------------------------------------------------------------ ##
-w_std = pd.read_csv(f'{data_dir}w_w37_edf.csv')[['livestock']].T*1e-6
+w_std = pd.read_csv(f'{data_dir}sectors/w.csv')[['livestock']].T*1e-6
 
 # Iterate through the regions
 for name, reg in interest.items():
