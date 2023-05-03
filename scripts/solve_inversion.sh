@@ -22,34 +22,24 @@ CHUNK_SIZE=150000
 XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs.nc"
 SA_FILE="${SHORT_TERM_DATA_DIR}/sa.nc"
 
-# Inversion files: observations (DEFAULT)
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya.nc" # If niter = 0, this should be ya0
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t.nc" # Regridded errors (2x2) with threshold
-
 # Inversion files: sectoral breakdown (DEFAULT)
 W_FILE="${SHORT_TERM_DATA_DIR}/w.csv"
 
 # Scaling factors
-SA_SCALE="1"
-RF="1"
 PCT_OF_INFO="80"
 EVEC_SCALE_FACTOR="10"
 DOFS_THRESHOLD="0.05"
-
-# Saving out ("None" if original)
-FILE_SUFFIX="_rg2rt_10t"
 
 ## ------------------------------------------------------------------ ##
 ## Sensitivity inversion options
 ## ------------------------------------------------------------------ ##
 # ------------------------------------------------------------- #
 # Wetland remove ensemble members 3 and 7 and EDF and BC0 - 
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf_bc0.nc"
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf.nc"
-W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_lb.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_lb.nc"
 OPTIMIZE_BC="False"
-FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0"
+FILE_SUFFIX="_lb" # latitudinal bias correction
+# Formerly"_rg2rt_10t_w37_edf_bc0"
 
 # Ensemble member 1
 RF="0.175"
@@ -62,12 +52,11 @@ SA_SCALE="0.75"
 
 # ------------------------------------------------------------- #
 # Wetland remove ensemble members 3 and 7 and EDF and BC0 and NLC - 
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf_bc0.nc"
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf_nlc.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf_nlc.nc"
-W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_mb.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_mb.nc"
 OPTIMIZE_BC="False"
-FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0_nlc"
+FILE_SUFFIX="_mb"
+# FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0_nlc"
 
 # Ensemble member 1
 RF="0.175"
@@ -76,12 +65,10 @@ SA_SCALE="0.75"
 
 # ------------------------------------------------------------- #
 # Wetland remove ensemble members 3 and 7 and EDF and BC0 and BC -
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf_bc0.nc"
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf.nc"
-W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_lb.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_lb.nc"
 OPTIMIZE_BC="True"
-FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0"
+# FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0"
 
 # Ensemble member 1
 RF="0.2"
@@ -94,12 +81,10 @@ SA_SCALE="0.75"
 
 # ------------------------------------------------------------- #
 # Wetland remove ensemble members 3 and 7 and EDF and BC0 and NLC and BC - 
-XA_ABS_FILE="${SHORT_TERM_DATA_DIR}/xa_abs_w37_edf_bc0.nc"
-YA_FILE="${SHORT_TERM_DATA_DIR}/ya_w37_edf_nlc.nc"
-SO_FILE="${SHORT_TERM_DATA_DIR}/so_rg2rt_10t_w37_edf_nlc.nc"
-W_FILE="${SHORT_TERM_DATA_DIR}/w_w37_edf.csv"
+YA_FILE="${SHORT_TERM_DATA_DIR}/ya_mb.nc"
+SO_FILE="${SHORT_TERM_DATA_DIR}/so_mb.nc"
 OPTIMIZE_BC="True"
-FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0_nlc"
+# FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0_nlc"
 
 # Ensemble member 1
 RF="0.175"
