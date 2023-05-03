@@ -68,7 +68,7 @@ xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
 ensemble = xhat.columns
 
 # Load weighting matrices in units Mg/yr
-w = pd.read_csv(f'{data_dir}w_w37_edf.csv')['coal'].T
+w = pd.read_csv(f'{data_dir}sectors/w.csv')['coal'].T
 
 # Get the posterior xhat_abs (this is n x 15)
 xhat_diff_abs = (w.values[:, None]*(xhat - 1))
