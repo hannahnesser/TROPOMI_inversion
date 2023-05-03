@@ -105,11 +105,11 @@ fp.save_fig(fig, plot_dir, f'resolution')
 # 40, -80.625
 # 14412
 # Load observations to get lat/lon
-# obs = gc.read_file(f'{data_dir}2019.pkl')
+# obs = gc.read_file(f'{data_dir}observations/2019.pkl')
 # obs = obs[obs['MONTH'] == 6]
 
 # # Load Jacobian column
-# ki = gc.read_file(f'{data_dir}k1_m06_sample_column.nc').values
+# ki = gc.read_file(f'{data_dir}reduced_rank/k1_m06_sample_column.nc').values
 # print(ki.max())
 # # print(ki.max())
 
@@ -140,10 +140,10 @@ fp.save_fig(fig, plot_dir, f'resolution')
 # cax = fp.add_cax(fig, ax, cbar_pad_inches=0.5)
 
 # # open kw
-# kw = np.load(f'{data_dir}kw1_m06.npy')
+# kw = np.load(f'{data_dir}reduced_rank/kw1_m06.npy')
 
 # # Load observations to get lat/lon
-# obs = gc.read_file(f'{data_dir}2019.pkl')
+# obs = gc.read_file(f'{data_dir}observations/2019.pkl')
 # obs = obs[obs['MONTH'] == 6]
 
 # for i, axis in enumerate(ax.flatten()):
@@ -227,7 +227,7 @@ fp.save_fig(fig, plot_dir, f'resolution')
 ## Figure: Observational density
 ## ------------------------------------------------------------------------ ##
 # # Load observations
-# obs = gc.read_file(f'{data_dir}2019_corrected.pkl')
+# obs = gc.read_file(f'{data_dir}observations/2019_corrected.pkl')
 
 # # Get latitude and longitude edges
 # lat_e = np.arange(s.lat_min, s.lat_max + s.lat_delta, s.lat_delta)
@@ -400,15 +400,15 @@ fp.save_fig(fig, plot_dir, f'resolution')
 # Figure: Permian prior and observation comparison
 # ------------------------------------------------------------------------ ##
 # Open prior and clusterr files
-xa_abs = xr.open_dataarray(f'{data_dir}xa_abs_bc0.nc') # Mg/km2/yr --> kg/km2/hr
+xa_abs = xr.open_dataarray(f'{data_dir}prior/xa_abs_orig.nc') # Mg/km2/yr --> kg/km2/hr
 # xa_abs = xr.open_dataarray(f'{data_dir}xa_abs.nc')#*1000/365/24
-xa_abs_edf = xr.open_dataarray(f'{data_dir}xa_abs.nc')#*1000/365/24
-permian_idx = np.load(f'{data_dir}permian_idx.npy')
+xa_abs_edf = xr.open_dataarray(f'{data_dir}prior/xa_abs.nc')#*1000/365/24
+permian_idx = np.load(f'{data_dir}ong/permian_idx.npy')
 xa_abs_permian = xa_abs#[permian_idx]
 xa_abs_edf_permian = xa_abs_edf#[permian_idx]
 
 # Get the Permian cluster and basin indices (discard the buffer cells)
-permian = xr.open_dataset(f'{data_dir}clusters_permian.nc')['Clusters']
+permian = xr.open_dataset(f'{data_dir}ong/clusters_permian.nc')['Clusters']
 c = clusters.squeeze(drop=True).to_dataset()
 c['Permian'] = permian
 cell_idx, cell_cnt  = np.unique(c['Permian'], return_counts=True)
@@ -469,7 +469,7 @@ lat, lon = gc.create_gc_grid(permian.lat.min(), permian.lat.max(), s.lat_delta,
                              permian.lon.min(), permian.lon.max(), s.lon_delta,
                              centers=False, return_xarray=False)
 
-obs = gc.read_file(join(data_dir, f'{s.year}_corrected.pkl'))
+obs = gc.read_file(f'{data_dir}observations/{s.year}_corrected.pkl')
 
 # Select only one month
 obs = obs[obs['MONTH'] == 3]
