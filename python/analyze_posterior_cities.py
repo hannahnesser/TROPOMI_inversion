@@ -122,18 +122,18 @@ dofs_stats_c = ip.get_ensemble_stats(dofs_c).add_prefix('dofs_')
 
 # Load weighting matrices in units Gg/yr (we don't consider wetlands
 # here, so it doesn't matter which W we use)
-w = pd.read_csv(f'{data_dir}w_w37_edf.csv')*conus_mask.reshape(-1, 1)
+w = pd.read_csv(f'{data_dir}sectors/w.csv')*conus_mask.reshape(-1, 1)
 w = dc(w[sectors])
 w['total'] = w.sum(axis=1)
 w = w.T*1e-3
 
-w_hr = pd.read_csv(f'{data_dir}w_edf_hr.csv')
+w_hr = pd.read_csv(f'{data_dir}sectors/w_hr.csv')
 w_hr = w_hr[['gas_distribution', 'landfills', 'wastewater']]
 w_hr['total'] = w_hr.sum(axis=1)
 w_hr = w_hr.T*1e-3
 
 # Also get the W matrix for the hackish 2023 EPA GHGI
-epa = pd.read_csv(f'{data_dir}countries/epa_ghgi_2023.csv')
+epa = pd.read_csv(f'{data_dir}sectors/epa_ghgi_2023.csv')
 
 ## Define various ONG contributions
 epa_postmeter_2019 = 457 # Gg
