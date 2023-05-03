@@ -234,7 +234,7 @@ if __name__ == '__main__':
 
     # Save the result
     np.save(f'{data_dir}/final_ensemble/a{niter}{suffix}.npy', a)
-    np.save(f'{data_dir}/iteration{niter}/a/dofs{niter}{suffix}.npy', dofs)
+    np.save(f'{data_dir}/final_ensemble/dofs{niter}{suffix}.npy', dofs)
     # np.save(f'{data_dir}/iteration{niter}/xhat/xhat{niter}{suffix}.npy', xhat)
     np.save(f'{data_dir}/final_ensemble/xhat_fr{niter}{suffix}.npy', 
             xhat_fr)
