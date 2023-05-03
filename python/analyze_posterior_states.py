@@ -42,10 +42,6 @@ plot_dir = base_dir + 'plots/'
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
 ## ------------------------------------------------------------------------ ##
-# DOFS_filter
-# DOFS_filter = 0.05
-
-# sectors = ['livestock', 'ong', 'coal', 'landfills', 'wastewater', 'other_anth']
 sectors = ['ong', 'livestock', 'landfills', 'coal', 'wastewater', 'other_anth']
 sectors = sectors[::-1]
 
@@ -84,7 +80,7 @@ dofs_s = ip.get_ensemble_stats(dofs_s).add_prefix('dofs_')
 
 # Load weighting matrices in units Gg/yr (we don't consider wetlands
 # here, so it doesn't matter which W we use)
-w = pd.read_csv(f'{data_dir}w_w37_edf.csv')
+w = pd.read_csv(f'{data_dir}sectors/w.csv')
 w = dc(w[sectors])
 w['total'] = w.sum(axis=1)
 w = w.T*1e-3
@@ -436,7 +432,7 @@ fp.save_fig(fig, plot_dir, f'states_ensemble')
 ## ------------------------------------------------------------------------ ##
 ## Get Permian-Texas overlap
 ## ------------------------------------------------------------------------ ##
-permian_idx = np.load(f'{data_dir}permian_idx.npy')
+permian_idx = np.load(f'{data_dir}ong/permian_idx.npy')
 w_tx_nm = w_state.loc[['Texas','New Mexico']]
 w_tx_nm = w_tx_nm.iloc[:, permian_idx]
 xhat_abs_permian = xhat_abs.iloc[permian_idx, :]
