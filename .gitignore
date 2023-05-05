@@ -1,7 +1,25 @@
 python/__pycache__
 
 # Inversion data
-inversion_data/**
+inversion_data/archive
+inversion_data/cities/*
+inversion_data/coal
+inversion_data/countries/*
+inversion_data/counties
+inversion_data/ensemble/*
+inversion_data/ensemble_*
+inversion_data/geos_chem
+inversion_data/landfills
+inversion_data/livestock
+inversion_data/observations/*
+inversion_data/obspack
+inversion_data/ong/*
+inversion_data/original_K0_output
+inversion_data/prior/*
+inversion_data/reduced_rank
+inversion_data/regularization_factor
+inversion_data/sectors/*
+inversion_data/states*
 
 # Except for:
 !inversion_data/ensemble/xhat_fr2*
@@ -28,6 +46,11 @@ inversion_data/**
 !paper/figures/fig??.pdf
 !paper/figures/figS??.pdf
 
+# Irrelevant paper details
+paper/drafts/
+paper/coauthors/
+observations/
+
 # sublme settings
 *sublime*
 
@@ -39,15 +62,20 @@ inversion_data/**
 **.log
 
 # Netcdf files
-**.nc
-**.nc4
+#**.nc
+#**.nc4
+gc_inputs/*.nc4
+gc_inputs/*.nc
+gc_inputs/restarts/
 
 # csvs
-**.csv
+#**.csv
 
 # images
+plots/*
 **.png
 **.gif
+**.ai
 
 # pkl files
 **.pkl
