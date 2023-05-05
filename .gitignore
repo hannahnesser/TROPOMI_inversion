@@ -1,5 +1,33 @@
 python/__pycache__
 
+# Inversion data
+inversion_data/**
+
+# Except for:
+!inversion_data/ensemble/xhat_fr2*
+!inversion_data/ensemble/dofs2*
+!inversion_data/ensemble/xhat.csv
+!inversion_data/ensemble/xhat_gridded.nc
+!inversion_data/ensemble/xhat_bc.nc
+!inversion_data/ensemble/dofs.csv
+!inversion_data/sectors/w.csv
+!inversion_data/sectors/w_hr.csv
+!inversion_data/states/states_mask.csv
+!inversion_data/prior/xa_abs.nc
+!inversion_data/prior/sa.nc
+!inversion_data/ong/ong_mask.csv
+!inversion_data/observations/y.nc
+!inversion_data/observations/ya_lb.nc
+!inversion_data/observations/ya_mb.nc
+!inversion_data/observations/so_lb.nc
+!inversion_data/observations/so_mb.nc
+!inversion_data/countries/CONUS_mask.npy
+!inversion_data/cities/urban_areas_mask.csv
+!inversion_data/area.nc
+!inversion_data/clusters.nc
+!paper/figures/fig??.pdf
+!paper/figures/figS??.pdf
+
 # sublme settings
 *sublime*
 
