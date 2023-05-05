@@ -68,8 +68,8 @@ sectors = {'Total'               : 'total',
 # Sectoral colors
 sector_colors = {'livestock'  : fp.color(4, cmap='plasma', lut=17),
                  'ong'        : fp.color(0, cmap='plasma', lut=17),
-                 'coal'       : fp.color(11, cmap='plasma', lut=17),
-                 'landfills'  : fp.color(8, cmap='plasma', lut=17),
+                 'coal'       : fp.color(10, cmap='plasma', lut=17),
+                 'landfills'  : fp.color(7, cmap='plasma', lut=17),
                  'wastewater' : fp.color(15, cmap='plasma', lut=17),
                  'other_anth' : fp.color(13, cmap='viridis', lut=17),
                  'wetlands'   : '0.5'}
