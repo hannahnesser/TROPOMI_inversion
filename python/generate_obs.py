@@ -108,6 +108,7 @@ code_dir = base_dir + 'python'
 data_dir = base_dir + 'inversion_data'
 output_dir = base_dir + 'inversion_data'
 plot_dir = base_dir + 'plots'
+paper_dir = base_dir + 'paper/figures'
 
 # Import Custom packages
 sys.path.append(code_dir)
@@ -293,6 +294,7 @@ cb_c = fig.colorbar(c_c, ax=ax[1], cax=cax[1], orientation='horizontal')
 cb_c = fp.format_cbar(cb_c, 'Count', y=-3, horizontal='horizontal')
 
 fp.save_fig(fig, plot_dir, f'observations{suffix}')
+fp.save_fig(fig, paper_dir, 'fig02', for_acp=True)
 
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
@@ -477,6 +479,8 @@ for mod_suffix in ['_LB', '_MB']:
                       bbox_to_anchor=(1, 0.5), loc='center left', ncol=1)
         fp.save_fig(fig, plot_dir,
                     f'prior_seasonal_latitudinal_bias{suffix}{mod_suffix}')
+        fp.save_fig(fig, paper_dir, 'figS02', for_acp=True)
+
         plt.close()
 
     ## ----------------------------------------- ##

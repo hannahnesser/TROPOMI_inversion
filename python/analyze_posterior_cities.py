@@ -44,6 +44,7 @@ base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python/'
 data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
+paper_dir = base_dir + 'paper/figures'
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -894,3 +895,4 @@ ax[2].legend(handles=handles, labels=labels, ncol=4, frameon=False,
              bbox_to_anchor=(1, -0.35), bbox_transform=ax[2].transAxes)
 
 fp.save_fig(fig, plot_dir, f'cities_ensemble')
+fp.save_fig(fig, paper_dir, 'fig07', for_acp=True)
