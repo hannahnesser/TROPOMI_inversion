@@ -41,6 +41,7 @@ base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python/'
 data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
+paper_dir = base_dir + 'paper/figures/'
 
 ## ------------------------------------------------------------------------ ##
 ## Load posterior files
@@ -703,6 +704,8 @@ ax[0].legend(handles=custom_h, labels=custom_l,
 #            transform=ax[0].transAxes, rotation=90)
 
 fp.save_fig(fig, plot_dir, 'landfills_map', dpi=700)
+fp.save_fig(fig, paper_dir, 'fig05', for_acp=True)
+
 print('-'*75)
 
 ## ------------------------------------------------------------------------ ##

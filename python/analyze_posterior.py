@@ -38,6 +38,7 @@ base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python/'
 data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
+paper_dir = base_dir + 'paper/figures/'
 
 ## ------------------------------------------------------------------------ ##
 ## Set plotting preferences
@@ -163,12 +164,12 @@ for suff in ensemble:
     # Load the files
     dofs_s = np.load(f'{data_dir}ensemble/dofs2_{suff}.npy')
     xhat_s = np.load(f'{data_dir}ensemble/xhat_fr2_{suff}.npy')
-    shat_s = np.load(f'{data_dir}ensemble/shat_kpi2_{suff}.npy')
+    # shat_s = np.load(f'{data_dir}ensemble/shat_kpi2_{suff}.npy')
 
     # Filter on the DOFS filter
     xhat_s[dofs_s < DOFS_filter] = 1
     dofs_s[dofs_s < DOFS_filter] = 0
-    shat_s[dofs_s < DOFS_filter] = sa_scale**2
+    # shat_s[dofs_s < DOFS_filter] = sa_scale**2
 
     # If the ensemble member optimizes the boundary conditions, save
     # out the boundary condition and grid cell elements separately
@@ -178,12 +179,12 @@ for suff in ensemble:
         # Add BC elements
         dofs_bc[suff] = dofs_s[-4:]
         xhat_bc[suff] = xhat_s[-4:]
-        shat_bc[suff] = shat_s[-4:]
+        # shat_bc[suff] = shat_s[-4:]
 
         # Shorten results
         xhat_s = xhat_s[:-4]
         dofs_s = dofs_s[:-4]
-        shat_s = shat_s[:-4]
+        # shat_s = shat_s[:-4]
 
     # Save out the resulting values to the dataframe
     dofs[suff] = dofs_s
@@ -269,6 +270,7 @@ COUNTIES = cfeature.ShapelyFeature(counties, ccrs.PlateCarree())
 ## ------------------------------------------------------------------------ ##
 fig, ax = ip.plot_posterior(xhat_mean, dofs_mean, clusters)
 fp.save_fig(fig, plot_dir, f'posterior_ensemble')
+fp.save_fig(fig, paper_dir, 'fig03', for_acp=True)
 
 # # Plot averaging kernel sensitivities
 # title = f'Averaging kernel sensitivities' # ({f}\%)'
@@ -537,6 +539,7 @@ ax.legend(handles=custom_patches, labels=custom_labels,
           fontsize=config.TICK_FONTSIZE, frameon=False)
 
 fp.save_fig(fig, plot_dir, f'sectors_bar_ensemble')
+fp.save_fig(fig, paper_dir, 'fig04', for_acp=True)
 plt.close()
 
 ## ------------------------------------------------------------------------ ##

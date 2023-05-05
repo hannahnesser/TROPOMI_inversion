@@ -347,8 +347,14 @@ def plot_one_to_one(ax):
             alpha=0.5, zorder=0)
     return ax
 
-def save_fig(fig, loc, name, **kwargs):
-    dpi = kwargs.pop('dpi', 500)
-    fig.savefig(join(loc, name + '.png'), bbox_inches='tight',
-                dpi=dpi, transparent=True, **kwargs)
-    print('Saved %s' % name + '.png')
+def save_fig(fig, loc, name, for_acp=False, **kwargs):
+    if for_acp:
+        dpi = 300
+        fig.savefig(join(loc, name + '.pdf'), bbox_inches='tight',
+                    dpi=dpi)
+        print('Saved %s' % name + '.pdf')
+    else:
+        dpi = kwargs.pop('dpi', 500)
+        fig.savefig(join(loc, name + '.png'), bbox_inches='tight',
+                    dpi=dpi, transparent=True, **kwargs)
+        print('Saved %s' % name + '.png')

@@ -40,6 +40,7 @@ base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python/'
 data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
+paper_dir = base_dir + 'paper/figures/'
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -256,6 +257,7 @@ ax = fp.add_legend(ax, ncol=1, fontsize=config.TICK_FONTSIZE,
                    loc='upper right')
 
 fp.save_fig(fig, plot_dir, f'ong_ensemble')
+fp.save_fig(fig, paper_dir, 'figS03', for_acp=True)
 
 # ------------------------------------------------------------------------ ##
 # Permian comparison

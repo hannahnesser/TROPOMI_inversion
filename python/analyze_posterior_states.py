@@ -38,6 +38,7 @@ base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python/'
 data_dir = base_dir + 'inversion_data/'
 plot_dir = base_dir + 'plots/'
+paper_dir = base_dir + 'paper/figures/'
 
 ## ------------------------------------------------------------------------ ##
 ## Set user preferences
@@ -428,6 +429,7 @@ ax[1].text(1.5, summ_s['post_mean'][0], 'Posterior',
            fontsize=config.TICK_FONTSIZE - 2)
 
 fp.save_fig(fig, plot_dir, f'states_ensemble')
+fp.save_fig(fig, paper_dir, 'fig06', for_acp=True)
 
 ## ------------------------------------------------------------------------ ##
 ## Get Permian-Texas overlap

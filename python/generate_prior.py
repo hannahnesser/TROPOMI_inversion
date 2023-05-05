@@ -71,6 +71,7 @@ base_dir = '/Users/hannahnesser/Documents/Harvard/Research/TROPOMI_Inversion/'
 code_dir = base_dir + 'python'
 data_dir = base_dir + 'inversion_data'
 plot_dir = base_dir + 'plots'
+paper_dir = base_dir + 'paper/figures/'
 
 # The emissions can either be a list of files or a single file
 # with an annual average
@@ -553,6 +554,7 @@ if plot_dir is not None:
     cb = fp.format_cbar(cb, cbar_title=r'Methane emissions (Mg km$^2$ a$^{-1}$)',
                         horizontal=True, y=-3)
     fp.save_fig(fig, plot_dir, 'prior_emissions_2019')
+    fp.save_fig(fig, paper_dir, 'fig01', for_acp=True)
 
     # Create another plot comparing orig and correct
     fig, ax = fp.get_figax(rows=1, cols=3, maps=True, 
