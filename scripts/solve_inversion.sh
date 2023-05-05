@@ -68,6 +68,7 @@ SA_SCALE="0.75"
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya_lb.nc"
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_lb.nc"
 OPTIMIZE_BC="True"
+FILE_SUFFIX="_lb"
 # FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0"
 
 # Ensemble member 1
@@ -84,6 +85,7 @@ SA_SCALE="0.75"
 YA_FILE="${SHORT_TERM_DATA_DIR}/ya_mb.nc"
 SO_FILE="${SHORT_TERM_DATA_DIR}/so_mb.nc"
 OPTIMIZE_BC="True"
+FILE_SUFFIX="_mb"
 # FILE_SUFFIX="_rg2rt_10t_w37_edf_bc0_nlc"
 
 # Ensemble member 1
