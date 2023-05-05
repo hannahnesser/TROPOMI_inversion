@@ -1,0 +1,32 @@
+{'Intermediate_EPA_v2_AnimalMaps_shplmb.nc' : 'sheep'
+'Intermediate_EPA_v2_AnimalMaps_animal.nc' : 'animals'
+'Intermediate_EPA_v2_AnimalMaps_brltrk.nc' : 'broilers_turkeys'
+'Intermediate_EPA_v2_AnimalMaps_ctlfed.nc' : 'cattle_feed'
+'Intermediate_EPA_v2_AnimalMaps_ctlinv.nc' : 'beef_bison_cattle'
+'Intermediate_EPA_v2_AnimalMaps_goat.nc' : 'goats'
+'Intermediate_EPA_v2_AnimalMaps_hogpig.nc' : 'hogs'
+'Intermediate_EPA_v2_AnimalMaps_hrspny.nc' : 'horses'
+'Intermediate_EPA_v2_AnimalMaps_lyrplt.nc' : 'poultry'
+'Intermediate_EPA_v2_AnimalMaps_mlkcow.nc : 'dairy'}
+
+#Census data to LUC data mapping:
+#Uniform --> animal
+#Broilers + Turkeys --> brltrk
+#On Feed --> ctlfed
+#Beef + Bison +Cattle --> ctlinv
+#Goats --> goat
+#Hogs --> hogpig
+#Horses --> hrspny
+#Chickens + Layers + Pullets + Roosters --> lyrplt
+#Dairy --> mlkcow
+#Sheep --> shplmb
+
+_bc_rg2rt_10t_w37_edf_bc0_nlc_rf0.175_sax0.5_poi80.0
+_bc_rg2rt_10t_w37_edf_bc0_nlc_rf0.3_sax0.75_poi80.0
+_bc_rg2rt_10t_w37_edf_bc0_nlc_rf0.5_sax1.0_poi80.0
+_bc_rg2rt_10t_w37_edf_bc0_rf0.2_sax0.5_poi80.0
+_bc_rg2rt_10t_w37_edf_bc0_rf0.45_sax0.75_poi80.0
+_rg2rt_10t_w37_edf_bc0_nlc_rf0.175_sax0.75_poi80.0
+_rg2rt_10t_w37_edf_bc0_rf0.175_sax0.5_poi80.0
+_rg2rt_10t_w37_edf_bc0_rf0.35_sax0.75_poi80.0
+
