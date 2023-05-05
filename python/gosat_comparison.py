@@ -21,6 +21,7 @@ code_dir = base_dir + 'python'
 data_dir = base_dir + 'inversion_data'
 output_dir = base_dir + 'inversion_data'
 plot_dir = base_dir + 'plots'
+paper_dir = base_dir + 'paper/figures'
 
 # Import Custom packages
 sys.path.append(code_dir)
@@ -284,6 +285,7 @@ cb = fig.colorbar(c, cax=cax)
 cb = fp.format_cbar(cb, cbar_title='Count')
 
 fp.save_fig(fig, plot_dir, 'gosat_tropomi_comparison')
+fp.save_fig(fig, paper_dir, 'figS01', for_acp=True)
 
 # PLOT 2
 ax2.errorbar(diff_ba['BLENDED_ALBEDO'].astype(float) + 0.01, diff_ba['mean'],
