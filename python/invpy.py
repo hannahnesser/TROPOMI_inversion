@@ -577,6 +577,10 @@ def plot_posterior(xhat, dofs, clusters, **kwargs):
     sf_cmap_1 = plt.cm.PuOr_r(np.linspace(0.2, 0.5, 256))
     sf_cmap_2 = plt.cm.PuOr_r(np.linspace(0.5, 1, 256))
     sf_cmap = np.vstack((sf_cmap_1, sf_cmap_2))
+    sf_cmap[:, -1] = np.concatenate((np.ones(246),
+                                     np.linspace(1, 0, 10),
+                                     np.linspace(0, 1, 10),
+                                     np.ones(246)))
     sf_cmap = colors.LinearSegmentedColormap.from_list('sf_cmap', sf_cmap)
     div_norm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=1, vmax=3)
 
