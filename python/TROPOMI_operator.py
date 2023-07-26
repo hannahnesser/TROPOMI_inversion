@@ -245,7 +245,7 @@ def GC_to_sat_levels(GC_CH4, GC_edges, sat_edges):
     '''
     # We want to account for the case when the GEOS-Chem surface
     # is above the satellite surface (altitude wise) or the GEOS-Chem
-    # top is below the satellite top.. We do this by adjusting the
+    # top is below the satellite top. We do this by adjusting the
     # GEOS-Chem surface pressure up to the TROPOMI surface pressure
     idx_bottom = np.less(GC_edges[:, 0], sat_edges[:, 0])
     idx_top = np.greater(GC_edges[:, -1], sat_edges[:, -1])
