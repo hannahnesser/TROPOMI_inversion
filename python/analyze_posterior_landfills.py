@@ -134,9 +134,9 @@ ghgrp = ghgrp.drop(columns=['ZIP CODE', 'REPORTED ADDRESS'])
 ghgrp = ghgrp.sort_values(by='ghgrp', ascending=False)
 ghgrp = ghgrp.reset_index(drop=True)
 ghgrp['ghgrp'] /= (25*1e3) # Convert to Gg methane
-
-# Limit ourselves to landfills emitting more than 1 Gg/yr
 print(ghgrp.shape[0], 'landfills are in the original GHGRP file.')
+
+# Limit ourselves to landfills emitting more than 2.5 Gg/yr
 ghgrp = ghgrp[ghgrp['ghgrp'] >= 2.5]
 print(ghgrp.shape[0], 'landfills remain that emit more than 2.5 Gg/yr')
 
@@ -188,6 +188,10 @@ print(f'{ghgrp_short.shape[0]} is the final number of landfills')
 ghgrp = ghgrp.set_index(['lat_center', 'lon_center'])
 ghgrp = ghgrp_short.join(ghgrp.drop(columns=['ghgrp', 'id']), how='left')
 
+# # Limit to subpart HH
+# ghgrp = ghgrp[ghgrp['subparts'].str.contains('HH', regex=False)]
+# print(ghgrp.shape[0], 'landfills remain that report under Subpart HH')
+
 # Rank by largest discrepancy with the GHGRP
 ghgrp['diff_abs'] = ghgrp['post_mean'] - ghgrp['ghgrp']
 ghgrp['diff_rel'] = ghgrp['diff_abs']/ghgrp['ghgrp']
@@ -201,14 +205,15 @@ ghgrp_mean = ghgrp['ghgrp'].mean()
 post_mean = ghgrp['post_mean'].mean()
 xhat_mean = (ghgrp['post_mean']/ghgrp['ghgrp']).mean()
 xhat_median = (ghgrp['post_mean']/ghgrp['ghgrp']).median()
-print(ghgrp['post_mean']/ghgrp['ghgrp'])
+
 fig, ax = fp.get_figax()
 ax.hist(ghgrp['post_mean']/ghgrp['ghgrp'], bins=30, color=fp.color(3))
 ax.axvline(1, color='grey')
-fp.save_fig(fig, plot_dir, 'ghgrp_his t')
+fp.save_fig(fig, plot_dir, 'ghgrp_hist')
 dofs_mean = ghgrp['dofs'].mean()
 frac_mean = ghgrp['frac'].mean()
 frac_std = ghgrp['frac'].std()
+totals = ghgrp.sum()[['post_mean', 'ghgrp']].values
 nl = ghgrp.shape[0]
 
 print(f'The average sensitivity across these {nl} landfills in GHGRP is {dofs_mean:.2f}.')
@@ -216,6 +221,7 @@ print(f'Landfills explain an average of {frac_mean*100:.2f} +/- {frac_std*100:.2
 print(f'The average emissions across these {nl} landfills in GHGRP is {ghgrp_mean:.2f} Gg/yr.')
 print(f'The average emissions across these {nl} landfills in the posterior is {post_mean:.2f} Gg/yr.')
 print(f'The average increase across these {nl} landfills in the posterior is {xhat_mean:.2f} (median {xhat_median:.2f}).')
+print(f'The total emission is {totals[0]:.2f}, compared to the reported total of {totals[1]:.2f}.')
 print('-'*75)
 
 ghgrp.to_csv(f'{data_dir}landfills/ghgrp_processed.csv')
@@ -276,6 +282,7 @@ lmop = lmop.reset_index()
 
 # And join in ghgrp
 lmop = pd.merge(lmop, ghgrp, on='id', how='inner')
+non_lmop = ghgrp[~ghgrp['id'].isin(lmop['id'])]
 
 # Calculate the recovery rates
 lmop['ghgrp_recovery'] = 100*lmop['avoided_emissions']/(lmop['ghgrp'] + lmop['avoided_emissions'])
@@ -422,6 +429,61 @@ for i, q in enumerate(['LFG_start_date', 'capacity',
         axis.tick_params(axis='x', labelrotation=45)
 fp.save_fig(fig, plot_dir, 'landfills_recovery_mlr')
 
+print('Total emissions from landfill gas facilities: ', lmop['ghgrp'].sum())
+print('-'*75)
+
+## ------------------------------------------------------------------------ ##
+## Non LMOP sites
+## ------------------------------------------------------------------------ ##
+# Print some things
+non_lmop_mean = non_lmop['ghgrp'].mean()
+post_mean = non_lmop['post_mean'].mean()
+xhat_mean = (non_lmop['post_mean']/non_lmop['ghgrp']).mean()
+xhat_median = (non_lmop['post_mean']/non_lmop['ghgrp']).median()
+
+fig, ax = fp.get_figax()
+ax.hist(non_lmop['post_mean']/non_lmop['ghgrp'], bins=30, color=fp.color(3))
+ax.axvline(1, color='grey')
+fp.save_fig(fig, plot_dir, 'ghgrp_hist')
+dofs_mean = non_lmop['dofs'].mean()
+frac_mean = non_lmop['frac'].mean()
+frac_std = non_lmop['frac'].std()
+totals = non_lmop.sum()[['post_mean', 'ghgrp']].values
+nl = non_lmop.shape[0]
+
+print(f'The average sensitivity across these {nl} non-GCCS landfills in GHGRP is {dofs_mean:.2f}.')
+print(f'Landfills explain an average of {frac_mean*100:.2f} +/- {frac_std*100:.2f}% emissions in these {nl} grid cells.')
+print(f'The average emissions across these {nl} landfills in GHGRP is {ghgrp_mean:.2f} Gg/yr.')
+print(f'The average emissions across these {nl} landfills in the posterior is {post_mean:.2f} Gg/yr.')
+print(f'The average increase across these {nl} landfills in the posterior is {xhat_mean:.2f} (median {xhat_median:.2f}).')
+print(f'The total emission is {totals[0]:.2f}, compared to the reported total of {totals[1]:.2f}.')
+print('-'*75)
+
+## ------------------------------------------------------------------------ ##
+## LMOP sites
+## ------------------------------------------------------------------------ ##
+# Print some things
+lmop_mean = lmop['ghgrp'].mean()
+post_mean = lmop['post_mean'].mean()
+xhat_mean = (lmop['post_mean']/lmop['ghgrp']).mean()
+xhat_median = (lmop['post_mean']/lmop['ghgrp']).median()
+
+fig, ax = fp.get_figax()
+ax.hist(lmop['post_mean']/lmop['ghgrp'], bins=30, color=fp.color(3))
+ax.axvline(1, color='grey')
+fp.save_fig(fig, plot_dir, 'ghgrp_hist')
+dofs_mean = lmop['dofs'].mean()
+frac_mean = lmop['frac'].mean()
+frac_std = lmop['frac'].std()
+totals = lmop.sum()[['post_mean', 'ghgrp']].values
+nl = lmop.shape[0]
+
+print(f'The average sensitivity across these {nl} GCCS landfills in GHGRP is {dofs_mean:.2f}.')
+print(f'Landfills explain an average of {frac_mean*100:.2f} +/- {frac_std*100:.2f}% emissions in these {nl} grid cells.')
+print(f'The average emissions across these {nl} landfills in GHGRP is {ghgrp_mean:.2f} Gg/yr.')
+print(f'The average emissions across these {nl} landfills in the posterior is {post_mean:.2f} Gg/yr.')
+print(f'The average increase across these {nl} landfills in the posterior is {xhat_mean:.2f} (median {xhat_median:.2f}).')
+print(f'The total emission is {totals[0]:.2f}, compared to the reported total of {totals[1]:.2f}.')
 print('-'*75)
 
 ## ------------------------------------------------------------------------ ##
@@ -445,6 +507,86 @@ lf_studies = lf_studies.reset_index(drop=True)
 lf_names = lf_studies['name'].unique()
 print('Validation sites:')
 print(lf_names)
+
+# Load Cusworth et al data
+cusworth = pd.read_csv(f'{data_dir}landfills/cusworth_inprep.csv')
+cusworth = cusworth.rename(
+    columns={'GHGRP ID' : 'id',
+             'Average Emission Rate over all overpasses (kg/h)' : 'emis',
+             'Average Uncertainty Rate over all overpasses (kg/h)' : 'err',
+             'Average reported GHGRP emissions (METRIC TONS CO2e)' : 'ghgrp_cusworth'})
+
+# Subset it for only studies included in our work
+cusworth = cusworth[cusworth['id'].isin(ghgrp['id'])].reset_index(drop=True)
+
+# And remove null results
+cusworth = cusworth[~cusworth['emis'].isna()]
+
+# Convert to Gg/yr
+cusworth[['emis', 'err']] *= 24*365*1e-6
+cusworth[['ghgrp_cusworth']] /= (25*1e3)
+
+# Add in our results
+cusworth = pd.merge(
+    cusworth, ghgrp[['id', 'post_mean', 'post_min', 'post_max', 'ghgrp']], 
+    how='inner', on='id')
+
+## ------------------------------------------------------------------------ ##
+## Plot results: Cusworth
+## ------------------------------------------------------------------------ ##
+fig_v, ax_v = fp.get_figax(aspect=3)
+xs = np.arange(cusworth.shape[0])
+ax_v.scatter(xs - 0.15, cusworth['ghgrp_cusworth'],
+             color=s.sector_colors['landfills'], marker='o', s=4,
+             label='Cusworth GHGRP')
+ax_v.errorbar(xs - 0.05, cusworth['emis'], yerr=cusworth['err'],
+             color=s.sector_colors['landfills'], fmt='^',
+             ecolor=s.sector_colors['landfills'],
+             elinewidth=0.75, capsize=2, capthick=0.75, markersize=2,
+             label='Cusworth emissions')
+ax_v.scatter(xs + 0.05, cusworth['ghgrp'], s=4,
+             color=s.sector_colors['landfills'], marker='o', alpha=0.3,
+             label='2019 GHGRP')
+ax_v.errorbar(xs + 0.15, cusworth['post_mean'].values,
+             yerr=np.array(cusworth[['post_min', 'post_max']]).T,
+             color=s.sector_colors['landfills'], fmt='^',
+             ecolor=s.sector_colors['landfills'], alpha=0.3,
+             elinewidth=0.75, capsize=2, capthick=0.75, markersize=2,
+             label='Posterior emissions')
+
+rmse = ((cusworth['post_mean'] - cusworth['emis'])**2).mean()
+mean_bias = (cusworth['post_mean'] - cusworth['emis']).mean()
+ax_v.axhline(rmse, color='0.5', ls='--', label=f'RMSE = {rmse:.1f}')
+ax_v.axhline(mean_bias, color='0.5', ls='--', 
+             label=f'Mean bias = {mean_bias:.1f}')
+
+
+for i in xs:
+    ax_v.axvline(i - 0.5, color='0.75', alpha=1, lw=0.5, ls=':', zorder=-10)
+
+labels = cusworth['Landfill Name'].values
+print(labels)
+ax_v.set_xticks(xs)
+ax_v.set_xticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE,
+                     rotation=45)
+ax_v.set_ylim(0, 60)
+
+handles, labels = ax_v.get_legend_handles_labels()
+ax_v = fp.add_legend(ax_v, handles=handles, labels=labels, ncol=2,
+                   fontsize=config.TICK_FONTSIZE, loc='upper right')
+
+fp.save_fig(fig_v, plot_dir, 'landfills_cusworth_compare')
+
+fig, ax = fp.get_figax(aspect=1, max_width=config.BASE_WIDTH)
+ax.scatter(cusworth['emis'], cusworth['post_mean'], 
+           color=s.sector_colors['landfills'])
+# r2 = 
+ax.set_xlim(0, 45)
+ax.set_ylim(0, 45)
+ax.plot([0, 45], [0, 45], color='0.5', lw=1, ls='--')
+fp.add_labels(ax, 'Cusworth et al.', 'Nesser et al.')
+fp.save_fig(fig, plot_dir, 'landfills_cusworth_compare_scatter')
+
 
 ## ------------------------------------------------------------------------ ##
 ## Plot results: map
@@ -597,6 +739,7 @@ for study in lf_studies['study'].unique():
             markersize=3.5, markeredgecolor='black',
             markerfacecolor=valid_color, ecolor='black', elinewidth=0.5,
             capsize=1, capthick=0.5, zorder=20, label=study)
+
     i += 1
 
 ax[1].set_xlim(0, 55)
@@ -824,3 +967,5 @@ ax = fp.add_legend(ax, loc='lower right')
 
 # Save
 fp.save_fig(fig, plot_dir, 'landfills_ghgrp')
+
+
