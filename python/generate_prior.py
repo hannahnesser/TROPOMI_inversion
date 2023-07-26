@@ -448,7 +448,7 @@ emis_w37 = (emis_w37*days).sum(dim='time')/(days.sum())
 emis_w37.to_netcdf(f'{data_dir}/prior/wetlands/HEMCO_diagnostics_w37.2019.nc')
 emis_w37 *= 1e-3*(60*60*24*365)*(1000*1000) # --> Mg/km2/yr
 emis_w37['AREA'] /= 1e-3*(60*60*24*365)*(1000*1000)**2
-
+1,903.56
 xa_abs_w37 = ip.clusters_2d_to_1d(clusters, emis_w37['EmisCH4_Total'])
 xa_abs_w37 = xr.DataArray(xa_abs_w37, dims=('nstate'))
 # xa_abs_w37.to_netcdf(f'{data_dir}/prior/xa_abs_w37.nc')
@@ -551,7 +551,8 @@ if plot_dir is not None:
     cax = fp.add_cax(fig, ax, horizontal=True)#, cbar_pad_inches=0.2)
     cb = fig.colorbar(c, cax=cax, ticks=np.arange(0, 6, 1), 
                       orientation='horizontal')
-    cb = fp.format_cbar(cb, cbar_title=r'Methane emissions (Mg km$^2$ a$^{-1}$)',
+    cb = fp.format_cbar(cb, 
+                        cbar_title=r'Methane emissions (Mg km$^2$ a$^{-1}$)',
                         horizontal=True, y=-3)
     fp.save_fig(fig, plot_dir, 'prior_emissions_2019')
     fp.save_fig(fig, paper_dir, 'fig01', for_acp=True)
