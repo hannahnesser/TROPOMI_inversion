@@ -545,151 +545,163 @@ plt.close()
 ## ------------------------------------------------------------------------ ##
 ## Sectoral attribution maps
 ## ------------------------------------------------------------------------ ##
-# ul = 10
-# ncategory = len(s.sectors.values())
-# fig, ax = fp.get_figax(rows=2, cols=3, maps=True,
-#                        lats=clusters.lat, lons=clusters.lon)
-# plt.subplots_adjust(hspace=0.3)
+ul = 10
+ncategory = len(s.sectors.values())
+fig, ax = fp.get_figax(rows=2, cols=3, maps=True,
+                       lats=clusters.lat, lons=clusters.lon)
+plt.subplots_adjust(hspace=-0.2, wspace=0.1)
 
-# d_xhat_cbar_kwargs = {'title' : r'$\Delta$ Emissions (Mg km$^{-2}$ a$^{-1}$)'}
-# d_xhat_kwargs = {'cmap' : 'RdBu_r', 
-#                'cbar_kwargs' : d_xhat_cbar_kwargs,
-#                'map_kwargs' : small_map_kwargs}
+d_xhat_cbar_kwargs = {'title' : r'$\Delta$ Emissions (Mg km$^{-2}$ a$^{-1}$)'}
+d_xhat_kwargs = {'cmap' : 'RdBu_r', 
+               'cbar_kwargs' : d_xhat_cbar_kwargs,
+               'map_kwargs' : small_map_kwargs}
 
-# for axis, (title, emis_label) in zip(ax.flatten(), s.sectors.items()):
-#     # Get sectoral values (Mg/km2/yr)
-#     post_c = dc(w).loc[emis_label].values[:, None]*(xhat - 1)
-#     post_c = post_c.T
-#     xhat_diff_sect_i = post_c.mean(axis=0).values/area*1e6 # convert from Tg/yr to Mg/km2/yr
+for axis, (title, emis_label) in zip(ax.flatten(), s.sectors.items()):
+    # Get sectoral values (Mg/km2/yr)
+    post_c = dc(w).loc[emis_label].values[:, None]*xhat #*(xhat - 1)
+    post_c = post_c.T
+    xhat_diff_sect_i = post_c.mean(axis=0).values/area*1e6 # convert from Tg/yr to Mg/km2/yr
 
-#     # if title != 'Total':
-#     #     xhat_sect_i = (xhat - 1)*w_mask[emis_label].values.reshape(-1, 1) + 1
-#     #     fig2b, ax2b, c2b = ip.plot_state(xhat_sect_i, clusters, 
-#     #                                      title=f'{title} scaling factors',
-#     #                                      **xhat_kwargs)
-#     #     fp.save_fig(fig2b, plot_dir, f'xhat_sf_{emis_label}_{f}')
+    # if title != 'Total':
+    #     xhat_sect_i = (xhat - 1)*w_mask[emis_label].values.reshape(-1, 1) + 1
+    #     fig2b, ax2b, c2b = ip.plot_state(xhat_sect_i, clusters, 
+    #                                      title=f'{title} scaling factors',
+    #                                      **xhat_kwargs)
+    #     fp.save_fig(fig2b, plot_dir, f'xhat_sf_{emis_label}_{f}')
 
-#     fig, axis, c = ip.plot_state(xhat_diff_sect_i, clusters,
-#                                  fig_kwargs={'figax' : [fig, axis]},
-#                                  title=title, default_value=0,
-#                                  vmin=-ul, vmax=ul,
-#                                  cmap='RdBu_r', cbar=False)
+    fig, axis, c = ip.plot_state(xhat_diff_sect_i, clusters,
+                                 fig_kwargs={'figax' : [fig, axis]},
+                                 # title=title, 
+                                 title='',
+                                 default_value=0,
+                                 # vmin=-ul, vmax=ul, cmap='RdBu_r',
+                                 vmin=0, vmax=5, 
+                                 cmap=fp.cmap_trans('viridis'),
+                                 cbar=False)
+    axis.text(0.025, 0.025, title, ha='left', va='bottom', 
+                  fontsize=config.TICK_FONTSIZE,
+                  transform=axis.transAxes)
 
-#     fig2, ax2, c2 = ip.plot_state(xhat_diff_sect_i, clusters, default_value=0,
-#                                  vmin=-ul, vmax=ul, title=title, 
-#                                  **d_xhat_kwargs)
+    fig2, ax2, c2 = ip.plot_state(xhat_diff_sect_i, clusters, default_value=0,
+                                 # vmin=-ul, vmax=ul, 
+                                 vmin=-ul, vmax=ul,
+                                 title=title, **d_xhat_kwargs)
 
-#     d_xhat_kwargs['cbar_kwargs'] = {'title' : r'$\Delta$ Emissions (Mg km$^{-2}$ a$^{-1}$)'}
+    d_xhat_kwargs['cbar_kwargs'] = {'title' : r'$\Delta$ Emissions (Mg km$^{-2}$ a$^{-1}$)'}
 
-#     # Calculate annual difference
-#     # diff_sec_tot = (xhat_diff_sect_i.reshape((-1, 1))*area)
-#     # diff_sec_tot_pos = diff_sec_tot[diff_sec_tot > 0].sum()*1e-6
-#     # diff_sec_tot_neg = diff_sec_tot[diff_sec_tot <= 0].sum()*1e-6
-#     # diff_sec_tot = diff_sec_tot.sum()*1e-6
-#     # axis.text(0.05, 0.05, f'{diff_sec_tot:.2f} Tg', ha='left', va='bottom',
-#     #           fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#     #           transform=axis.transAxes)
-#     # ax2.text(0.05, 0.05, f'{diff_sec_tot:.2f} Tg ({diff_sec_tot_neg:.2f} Tg, {diff_sec_tot_pos:.2f} Tg)', ha='left', va='bottom',
-#     #          fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#     #          transform=ax2.transAxes)
+    # Calculate annual difference
+    # diff_sec_tot = (xhat_diff_sect_i.reshape((-1, 1))*area)
+    # diff_sec_tot_pos = diff_sec_tot[diff_sec_tot > 0].sum()*1e-6
+    # diff_sec_tot_neg = diff_sec_tot[diff_sec_tot <= 0].sum()*1e-6
+    # diff_sec_tot = diff_sec_tot.sum()*1e-6
+    # axis.text(0.05, 0.05, f'{diff_sec_tot:.2f} Tg', ha='left', va='bottom',
+    #           fontsize=config.LABEL_FONTSIZE*config.SCALE,
+    #           transform=axis.transAxes)
+    # ax2.text(0.05, 0.05, f'{diff_sec_tot:.2f} Tg ({diff_sec_tot_neg:.2f} Tg, {diff_sec_tot_pos:.2f} Tg)', ha='left', va='bottom',
+    #          fontsize=config.LABEL_FONTSIZE*config.SCALE,
+    #          transform=ax2.transAxes)
 
-#     # Save out individual plot
-#     fp.save_fig(fig2, plot_dir, f'xhat_ensemble_{emis_label}')
-#     plt.close(fig2)
+    # Save out individual plot
+    fp.save_fig(fig2, plot_dir, f'xhat_ensemble_{emis_label}')
+    plt.close(fig2)
 
-#     # # Plot regions of interst
-#     # if (emis_label in interest.keys()):
-#     #     for j, reg in enumerate(interest[emis_label]):
-#     #         fig3, ax3 = fp.get_figax(rows=2, cols=2, maps=True,
-#     #                                  lats=reg[1][:2], lons=reg[1][2:],
-#     #                                  max_height=config.BASE_WIDTH*config.SCALE)
-#     #         figw, figh = fig3.get_size_inches()
-#     #         plt.subplots_adjust(hspace=0.5/figh, wspace=6/figw)
-#     #         # fig3.set_figheight(figh + 0.5)
-#     #         # fig3.set_figwidth(figw + 7)
+    # # Plot regions of interst
+    # if (emis_label in interest.keys()):
+    #     for j, reg in enumerate(interest[emis_label]):
+    #         fig3, ax3 = fp.get_figax(rows=2, cols=2, maps=True,
+    #                                  lats=reg[1][:2], lons=reg[1][2:],
+    #                                  max_height=config.BASE_WIDTH*config.SCALE)
+    #         figw, figh = fig3.get_size_inches()
+    #         plt.subplots_adjust(hspace=0.5/figh, wspace=6/figw)
+    #         # fig3.set_figheight(figh + 0.5)
+    #         # fig3.set_figwidth(figw + 7)
 
-#     #         c = clusters.where((clusters.lat > reg[1][0]) &
-#     #                            (clusters.lat < reg[1][1]) &
-#     #                            (clusters.lon > reg[1][2]) &
-#     #                            (clusters.lon < reg[1][3]), drop=True)
-#     #         c_idx = (c.values[c.values > 0] - 1).astype(int)
+    #         c = clusters.where((clusters.lat > reg[1][0]) &
+    #                            (clusters.lat < reg[1][1]) &
+    #                            (clusters.lon > reg[1][2]) &
+    #                            (clusters.lon < reg[1][3]), drop=True)
+    #         c_idx = (c.values[c.values > 0] - 1).astype(int)
 
-#     #         fig3, ax3[0, 0], c32 = ip.plot_state(
-#     #             w.loc[:, emis_label]/area.reshape(-1,), clusters, 
-#     #             title='Sector prior', cbar=False, cmap=viridis_trans, 
-#     #             vmin=reg[2][0], vmax=reg[2][1], default_value=0, 
-#     #             fig_kwargs={'figax' : [fig3, ax3[0, 0]]}, 
-#     #             map_kwargs=small_map_kwargs)
-#     #         fig3, ax3[0, 1], _ = ip.plot_state(
-#     #             xhat_diff_sect_i + w.loc[:, emis_label]/area.reshape(-1,),
-#     #             clusters, title='Sector posterior', cbar=False, 
-#     #             cmap=viridis_trans, vmin=reg[2][0], vmax=reg[2][1],
-#     #             default_value=0, fig_kwargs={'figax' : [fig3, ax3[0, 1]]},
-#     #             map_kwargs=small_map_kwargs)
-#     #         fig3, ax3[1, 0], c30 = ip.plot_state(
-#     #             xhat, clusters, title=f'Scale factors', 
-#     #             cbar=False, cmap=sf_cmap, norm=div_norm, default_value=1,
-#     #             fig_kwargs={'figax' : [fig3, ax3[1, 0]]},
-#     #             map_kwargs=small_map_kwargs)
-#     #         fig3, ax3[1, 1], c31 = ip.plot_state(
-#     #             xhat_diff_sect_i, clusters, title='Emissions change', 
-#     #             cbar=False, vmin=-reg[2][1]/4, vmax=reg[2][1]/4,
-#     #             fig_kwargs={'figax' : [fig3, ax3[1, 1]]}, **d_xhat_kwargs)
+    #         fig3, ax3[0, 0], c32 = ip.plot_state(
+    #             w.loc[:, emis_label]/area.reshape(-1,), clusters, 
+    #             title='Sector prior', cbar=False, cmap=viridis_trans, 
+    #             vmin=reg[2][0], vmax=reg[2][1], default_value=0, 
+    #             fig_kwargs={'figax' : [fig3, ax3[0, 0]]}, 
+    #             map_kwargs=small_map_kwargs)
+    #         fig3, ax3[0, 1], _ = ip.plot_state(
+    #             xhat_diff_sect_i + w.loc[:, emis_label]/area.reshape(-1,),
+    #             clusters, title='Sector posterior', cbar=False, 
+    #             cmap=viridis_trans, vmin=reg[2][0], vmax=reg[2][1],
+    #             default_value=0, fig_kwargs={'figax' : [fig3, ax3[0, 1]]},
+    #             map_kwargs=small_map_kwargs)
+    #         fig3, ax3[1, 0], c30 = ip.plot_state(
+    #             xhat, clusters, title=f'Scale factors', 
+    #             cbar=False, cmap=sf_cmap, norm=div_norm, default_value=1,
+    #             fig_kwargs={'figax' : [fig3, ax3[1, 0]]},
+    #             map_kwargs=small_map_kwargs)
+    #         fig3, ax3[1, 1], c31 = ip.plot_state(
+    #             xhat_diff_sect_i, clusters, title='Emissions change', 
+    #             cbar=False, vmin=-reg[2][1]/4, vmax=reg[2][1]/4,
+    #             fig_kwargs={'figax' : [fig3, ax3[1, 1]]}, **d_xhat_kwargs)
 
-#     #         tt = (xhat_diff_sect_i.reshape(-1,)*area.reshape(-1,))[c_idx].sum()*1e-6
-#     #         ax3[1, 1].text(0.05, 0.05, f'{tt:.1f} Tg/yr',
-#     #                         fontsize=config.LABEL_FONTSIZE*config.SCALE,
-#     #                         transform=ax3[1, 1].transAxes)
+    #         tt = (xhat_diff_sect_i.reshape(-1,)*area.reshape(-1,))[c_idx].sum()*1e-6
+    #         ax3[1, 1].text(0.05, 0.05, f'{tt:.1f} Tg/yr',
+    #                         fontsize=config.LABEL_FONTSIZE*config.SCALE,
+    #                         transform=ax3[1, 1].transAxes)
 
-#     #         if reg[3] is not None:
-#     #             for label, point in reg[3].items():
-#     #                 for axis3 in ax3.flatten():
-#     #                     axis3.scatter(point[1], point[0], s=10, c='black')
-#     #                     axis3.text(point[1], point[0], r'$~~$'f'{label}',
-#     #                                fontsize=config.LABEL_FONTSIZE*config.SCALE/2)
+    #         if reg[3] is not None:
+    #             for label, point in reg[3].items():
+    #                 for axis3 in ax3.flatten():
+    #                     axis3.scatter(point[1], point[0], s=10, c='black')
+    #                     axis3.text(point[1], point[0], r'$~~$'f'{label}',
+    #                                fontsize=config.LABEL_FONTSIZE*config.SCALE/2)
 
-#     #         for k, axis3 in enumerate(ax3.flatten()):
-#     #             axis3.set_ylim(reg[1][:2])
-#     #             axis3.set_xlim(reg[1][2:])
-#     #             axis3.add_feature(COUNTIES, facecolor='none', 
-#     #                                edgecolor='0.1', linewidth=0.1)
-#     #         cax30 = fp.add_cax(fig3, ax3[1, 0], cbar_pad_inches=0.1)
-#     #         cb30 = fig.colorbar(c30, cax=cax30,
-#     #                             ticks=np.arange(0, 3, 1))
-#     #         cb30 = fp.format_cbar(cb30,
-#     #                              cbar_title='Scale factor', x=4)
+    #         for k, axis3 in enumerate(ax3.flatten()):
+    #             axis3.set_ylim(reg[1][:2])
+    #             axis3.set_xlim(reg[1][2:])
+    #             axis3.add_feature(COUNTIES, facecolor='none', 
+    #                                edgecolor='0.1', linewidth=0.1)
+    #         cax30 = fp.add_cax(fig3, ax3[1, 0], cbar_pad_inches=0.1)
+    #         cb30 = fig.colorbar(c30, cax=cax30,
+    #                             ticks=np.arange(0, 3, 1))
+    #         cb30 = fp.format_cbar(cb30,
+    #                              cbar_title='Scale factor', x=4)
 
-#     #         cax31 = fp.add_cax(fig3, ax3[1, 1], cbar_pad_inches=0.1)
-#     #         cb31 = fig.colorbar(c31, cax=cax31,
-#     #                             ticks=np.arange(-reg[2][1]/4, reg[2][1]/4+1, 
-#     #                                             reg[2][1]/8))
-#     #         cbar_str = r'$\Delta$ Emissions\\(Mg km$^{-2}$ a$^{-1}$)'
-#     #         cb31 = fp.format_cbar(cb31,
-#     #                              cbar_title=cbar_str, x=4)
-#     #         if emis_label == 'total':
-#     #             step = 10
-#     #         else:
-#     #             step = 5
-#     #         cax32 = fp.add_cax(fig3, ax3[0, 1], cbar_pad_inches=0.1)
-#     #         cb32 = fig.colorbar(
-#     #             c32, cax=cax32, 
-#     #             ticks=np.arange(reg[2][0], reg[2][1]+step, step))
-#     #         cb32 = fp.format_cbar(
-#     #             cb32, cbar_title=r'Emissions\\(Mg km$^{-2}$ a$^{-1}$)', x=4)
+    #         cax31 = fp.add_cax(fig3, ax3[1, 1], cbar_pad_inches=0.1)
+    #         cb31 = fig.colorbar(c31, cax=cax31,
+    #                             ticks=np.arange(-reg[2][1]/4, reg[2][1]/4+1, 
+    #                                             reg[2][1]/8))
+    #         cbar_str = r'$\Delta$ Emissions\\(Mg km$^{-2}$ a$^{-1}$)'
+    #         cb31 = fp.format_cbar(cb31,
+    #                              cbar_title=cbar_str, x=4)
+    #         if emis_label == 'total':
+    #             step = 10
+    #         else:
+    #             step = 5
+    #         cax32 = fp.add_cax(fig3, ax3[0, 1], cbar_pad_inches=0.1)
+    #         cb32 = fig.colorbar(
+    #             c32, cax=cax32, 
+    #             ticks=np.arange(reg[2][0], reg[2][1]+step, step))
+    #         cb32 = fp.format_cbar(
+    #             cb32, cbar_title=r'Emissions\\(Mg km$^{-2}$ a$^{-1}$)', x=4)
 
-#     #         fp.save_fig(fig3, plot_dir, 
-#     #                     f'xhat_{emis_label}_reg{j}_{f}')
-#     #         plt.close(fig3)
+    #         fp.save_fig(fig3, plot_dir, 
+    #                     f'xhat_{emis_label}_reg{j}_{f}')
+    #         plt.close(fig3)
 
-# cax = fp.add_cax(fig, ax, cbar_pad_inches=0.3, horizontal=True)
-# cb = fig.colorbar(c, cax=cax, ticks=np.arange(-ul, ul+1, ul/2),
-#                   orientation='horizontal')
-# cb = fp.format_cbar(cb, cbar_title=r'$\Delta$ Emissions (Mg km$^{-2}$ a$^{-1}$)',
-#                     horizontal=True)
-# # axis = fp.add_title(axis, titles[i])
+cax = fp.add_cax(fig, ax, horizontal=True)
+cb = fig.colorbar(c, cax=cax, 
+                  ticks=np.arange(0, 6, 1),
+                  # ticks=np.arange(-ul, ul+1, ul/2),
+                  orientation='horizontal')
+cb = fp.format_cbar(cb, 
+                    cbar_title=r'Optimized methane emissions (Mg km$^2$ a$^{-1}$)',
+                    # cbar_title=r'$\Delta$ Emissions (Mg km$^{-2}$ a$^{-1}$)',
+                    horizontal=True, y=-3)
+# axis = fp.add_title(axis, titles[i])
 
-# fp.save_fig(fig, plot_dir, f'xhat_ensemble_sectoral')
-# plt.close(fig)
+fp.save_fig(fig, plot_dir, f'xhat_ensemble_sectoral')
+plt.close(fig)
 
 # ------------------------------------------------------------------------ ##
 # Plot sectoral error correlation 
