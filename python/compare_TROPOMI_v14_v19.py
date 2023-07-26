@@ -16,6 +16,15 @@ data_dir = '../inversion_data/'
 plot_dir = '../plots/'
 seasons = ['DJF', 'MAM', 'JJA', 'SON']
 
+# Open averaging kernel sensitivities
+clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
+dofs = pd.read_csv(f'{data_dir}ensemble/dofs.csv', index_col=0)
+dofs = dofs.mean(axis=1)
+dofs = ip.match_data_to_clusters(dofs, clusters)
+
+# Open landfill lat lons
+ghgrp = pd.read_csv(f'{data_dir}landfills/ghgrp_processed.csv')
+
 # Open v19
 v19 = {}
 for seas in seasons:
@@ -53,6 +62,11 @@ v14_tot = v14.groupby(['lat', 'lon']).mean()['OBS'].to_xarray()
 # Calculate the annual mean difference
 diff_mean = (v14_tot - v19_tot['mean']).mean().values
 
+# Subset to areas where everyone has data
+v14_tot = v14_tot.sel(lon=slice(-128, -60))
+v19_tot = v19_tot.sel(lon=slice(-128, -60))
+dofs = dofs.sel(lon=slice(-128, -60))
+
 # Compare
 fig, ax = fp.get_figax(rows=2, cols=2, maps=True, 
                        lats=v19['DJF'].lat, lons=v19['DJF'].lon)
@@ -75,19 +89,39 @@ fp.save_fig(fig, plot_dir, 'v14_v19_comparison_seasonal')
 # Compare total
 fig, ax = fp.get_figax(maps=True, lats=v19['DJF'].lat, lons=v19['DJF'].lon,
                        max_width=config.BASE_WIDTH/2)
+
+# Calculate mean adjusted difference
 diff = v14_tot - v19_tot['mean'] - diff_mean
-c = diff.plot(ax=ax, cmap='RdBu_r', vmin=-20, vmax=20, add_colorbar=False)
+
+# Mask for DOFS
+diff = diff.where(dofs > 0, 0)
+
+# Mask for differences of 10 ppb
+diff = diff.where(np.abs(diff) > 10, 0)
+
+# Make diff just for landfills
+diff_lf = diff.to_dataframe(name='diff_trop').reset_index()
+diff_lf = diff_lf.rename(columns={'lat' : 'lat_center', 'lon' : 'lon_center'})
+diff_lf = pd.merge(ghgrp, diff_lf, on=['lat_center', 'lon_center'], how='inner')
+
+# Plot difference
+# c = diff.plot(ax=ax, cmap='RdBu_r', vmin=-20, vmax=20, add_colorbar=False)
+
+# Plot landfills
+c = ax.scatter(diff_lf['lon_center'], diff_lf['lat_center'], 
+               c=diff_lf['diff_trop'], marker='x', s=3,
+               vmin=-20, vmax=20, cmap='RdBu_r')
+
 fp.format_map(ax, lats=diff.lat, lons=diff.lon)
 
 cax = fp.add_cax(fig, ax, horizontal=True)
 cb = fig.colorbar(c, ax=ax, cax=cax, orientation='horizontal')
-cb = fp.format_cbar(cb, r'v14 - v19', horizontal=True)
-fp.add_title(ax, 'v19 - v14 TROPOMI data annual average')
+cb = fp.format_cbar(cb, r'v14 - v19 (ppb)', horizontal=True)
+fp.add_title(ax, 'v14 - v19 TROPOMI data annual average')
 
 fp.save_fig(fig, plot_dir, 'v14_v19_comparison_annual')
 
 # Scatter plot
-clusters = xr.open_dataarray(f'{data_dir}clusters.nc')
 xhat = pd.read_csv(f'{data_dir}ensemble/xhat.csv', index_col=0)
 xhat_mean = xhat.mean(axis=1) # Same as xhat_abs_mean/xa_abs
 xhat_mean = ip.match_data_to_clusters(xhat_mean, clusters, default_value=1)
