@@ -100,6 +100,39 @@ w = dc(w[sectors])
 w['total'] = w.sum(axis=1)
 w = w.T*1e-3
 
+# Also get the W matrix for the hackish 2023 EPA GHGI
+epa = pd.read_csv(f'{data_dir}sectors/epa_ghgi_2023.csv')
+
+## Define various ONG contributions
+epa_postmeter_2019 = 457 # Gg
+epa_gasdist_2019 = 554 # Gg
+
+## Group by sector
+epa = epa.groupby('sector').agg({'mean' : 'sum', 
+                                 'minus' : gc.add_quad, 'plus' : gc.add_quad})
+epa = epa.loc[sectors]['mean']*1e3 # Convert to Gg from Tg
+
+## Remove postmeter emissions before scaling (this probably removes
+## Hawaii and Alaska postmeter emissions twice, but we're assuming 
+## that's negligibly small)
+epa['ong'] -= epa_postmeter_2019
+
+## Calculate the total without post meter since we only add that once
+## we get to the individual city calculations
+epa.loc['total'] = epa.sum(axis=0)
+
+## Create the W matrix
+w2019 = dc(w)
+w2019 = w2019.multiply(epa/w2019.sum(axis=1), axis='rows')
+
+# Add mass to wastewater per recent literature
+# w2019.loc['wastewater'] *= 1.27 # Song
+# w2019.loc['wastewater'] *= 1.30 # Moore
+
+## Recalculate grid cell totals since we've altered the sectors
+## differently
+w2019.loc['total'] = w2019.loc[sectors].sum(axis=0)
+
 # Get the posterior xhat_abs (this is n x 15)
 xhat_abs = (w.loc['total'].values[:, None]*xhat)
 xhat_abs_sect = pd.DataFrame(columns=[f'post_{s}' for s in w.index[:-1]])
@@ -118,7 +151,7 @@ for sect in w.index:
 area_c = (w_airbasin @ area.reshape(-1,)).rename('area')
 
 ## Prior (the same for all ensemble members)
-prior_c = (w_airbasin @ w.T).add_prefix('prior_')
+prior_c = (w_airbasin @ w2019.T).add_prefix('prior_')
 
 ## Posterior (We want a matrix that is ncities x 15)
 post_c = (w_airbasin @ xhat_abs)
@@ -146,6 +179,11 @@ summ_c.to_csv(f'{data_dir}/states/summ_california.csv', header=True,
 ## ------------------------------------------------------------------------ ##
 # Subset
 summ_c = summ_c[summ_c['post_mean'] > 50]
+
+# Sort by posterior
+summ_c = summ_c.sort_values(by='post_mean', ascending=False)
+
+# Save out
 summ_c.to_csv(f'{data_dir}/states/summ_airbasins.csv', header=True, index=True)
 
 # Adjust min/max definitions for error bars
@@ -230,7 +268,7 @@ ax.invert_yaxis()
 ax.tick_params(axis='both', labelsize=config.TICK_FONTSIZE)
 
 # Deal with scales
-ax.set_xlim(0, 1.2e3)
+ax.set_xlim(0, 1.5e3)
 
 # Final aesthetics
 ax.set_yticklabels(labels, ha='right', fontsize=config.TICK_FONTSIZE)
@@ -267,9 +305,18 @@ labels = [labels[i] for i in reorder]
 # handles = [handles[idx] for idx in reorder]
 # labels = [labels[idx] for idx in reorder]
 
+# Add labels
+ax.text((summ_c['prior_total'] + 10)[0], ys[0] - 0.05, 
+       '2023 griddded EPA GHGI for 2019', ha='left',
+        va='bottom', fontsize=config.TICK_FONTSIZE - 2)
+ax.text((summ_c['post_mean'] + summ_c['post_max'])[0] + 10, 
+         ys[0] + 0.08, 'Posterior',
+         ha='left', va='top', 
+         fontsize=config.TICK_FONTSIZE - 2)
+
 # Add legend
 ax = fp.add_legend(ax, handles=handles, labels=labels, ncol=3,
                    fontsize=config.TICK_FONTSIZE, loc='upper center', 
-                   bbox_to_anchor=(0.5, -0.2))
+                   bbox_to_anchor=(0.5, -0.3))
 
 fp.save_fig(fig, plot_dir, f'california_ensemble')
