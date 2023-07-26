@@ -194,12 +194,12 @@ def get_figax(rows=1, cols=1, aspect=1,
     else:
         fig, ax = make_axes(rows, cols, aspect, maps, lats, lons, **fig_kwargs)
 
-    if (rows > 1) or (cols > 1):
-        for axis in ax.flatten():
-            axis.set_facecolor('0.98')
-        # plt.subplots_adjust(hspace=0.1, wspace=0.4)
-    else:
-        ax.set_facecolor('0.98')
+    # if (rows > 1) or (cols > 1):
+    #     for axis in ax.flatten():
+    #         axis.set_facecolor('0.98')
+    #     # plt.subplots_adjust(hspace=0.1, wspace=0.4)
+    # else:
+    #     ax.set_facecolor('0.98')
 
     return fig, ax
 
@@ -306,7 +306,7 @@ def format_map(ax, lats, lons,
     BORDERS = cf.ShapelyFeature([x.geometry for x in BORDERS], 
                                 ccrs.PlateCarree())
 
-    ax.add_feature(cf.OCEAN.with_scale('50m'), facecolor='0.98', linewidth=0.5)
+    ax.add_feature(cf.OCEAN.with_scale('50m'), facecolor='1', linewidth=0.5)
     ax.add_feature(cf.LAND.with_scale('50m'), facecolor='0.98', linewidth=0.5)
     # ax.add_feature(cf.BORDERS.with_scale('50m'), edgecolor='0.2',
     #                linewidth=0.5)
