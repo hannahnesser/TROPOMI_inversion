@@ -92,3 +92,7 @@ scratch/
 # Debug file
 python/debug.py
 python/scratch.py
+
+# Files with unpublished data
+paper/cusworth_inprep.numbers
+python/data_for_methaneair.py
