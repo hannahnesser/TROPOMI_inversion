@@ -377,7 +377,7 @@ for j in range(3):
             ls = '-'
         else:
             ls = ':'
-        ax[j].axvline((k + 1) + 0.5, color='0.75', alpha=1, lw=0.5, ls=ls,
+        ax[j].axvline((k) + 0.5, color='0.75', alpha=1, lw=0.5, ls=ls,
                       zorder=-10)
         # if j == 2:
         #     ax[j].plot(((k + 1) + 0.5, (k + 1) + 0.5), (2.25e3, 2.475e3),
