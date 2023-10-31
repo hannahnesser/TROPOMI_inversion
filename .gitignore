@@ -19,7 +19,7 @@ inversion_data/prior/*
 inversion_data/reduced_rank
 inversion_data/regularization_factor
 inversion_data/sectors/*
-inversion_data/states*
+inversion_data/states/*
 
 # Except for:
 !inversion_data/ensemble/xhat_fr2*
