@@ -9,7 +9,7 @@ inversion_data/counties
 inversion_data/ensemble/*
 inversion_data/ensemble_*
 inversion_data/geos_chem
-inversion_data/landfills
+inversion_data/landfills/*
 inversion_data/livestock
 inversion_data/observations/*
 inversion_data/obspack
@@ -55,6 +55,7 @@ inversion_data/states/*
 paper/drafts/
 paper/coauthors/
 observations/
+paper/submitted*
 
 # sublme settings
 *sublime*
