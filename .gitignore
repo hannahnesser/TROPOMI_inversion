@@ -31,6 +31,7 @@ inversion_data/states/*
 !inversion_data/sectors/w.csv
 !inversion_data/sectors/w_hr.csv
 !inversion_data/states/states_mask.csv
+!inversion_data/states/summ_states.csv
 !inversion_data/prior/xa_abs.nc
 !inversion_data/prior/sa.nc
 !inversion_data/ong/ong_mask.csv
@@ -40,7 +41,11 @@ inversion_data/states/*
 !inversion_data/observations/so_lb.nc
 !inversion_data/observations/so_mb.nc
 !inversion_data/countries/CONUS_mask.npy
+!inversion_data/countries/CONUS.csv
 !inversion_data/cities/urban_areas_mask.csv
+!inversion_data/cities/summ_cities.csv
+!inversion_data/landfills/ghgrp_processed.csv
+!inversion_data/landfills/lmop_processed.csv
 !inversion_data/area.nc
 !inversion_data/clusters.nc
 !paper/figures/fig??.pdf
