@@ -213,23 +213,35 @@ dofs.to_csv(f'{data_dir}ensemble/dofs.csv')
 xhat.to_csv(f'{data_dir}ensemble/xhat.csv')
 xhat_bc.to_csv(f'{data_dir}ensemble/xhat_bc.csv')
 
-# And as a netcdf
-long_name = 'Mean posterior scaling factors from an ensemble of 8 inversions'
-lats = [9.75, 60, 0.25]
-lons = [-130, -60, 0.3125]
-xhat_nc = gc.create_gc_grid(*lats, *lons) + 1
-xhat_nc = xhat_nc.rename({'lats' : 'lat', 'lons' : 'lon'})
-xhat_nc['lat'] = xhat_nc['lat'].astype('float32')
-xhat_nc['lon'] = xhat_nc['lon'].astype('float32')
-xhat_gridded = ip.match_data_to_clusters(xhat_mean, clusters, 1)
-xhat_nc.loc[{'lat' : clusters.lat, 'lon' : clusters.lon}] = xhat_gridded
-xhat_nc = gc.define_HEMCO_std_attributes(xhat_nc, name='posterior_sf')
-xhat_nc = gc.define_HEMCO_var_attributes(xhat_nc, 'posterior_sf',
-                                         long_name=long_name, units='1')
-xhat_nc.attrs = {'Title' : 'Posterior scaling factors',
-                 'Conventions' : 'COARDS',
-                 'History' : datetime.now().strftime('%Y-%m-%d %H:%M')}
-gc.save_HEMCO_netcdf(xhat_nc, f'{data_dir}/ensemble', 'xhat_gridded.nc')
+# # And as a netcdf
+# long_name = 'Mean posterior scaling factors from an ensemble of 8 inversions'
+# lats = [9.75, 60, 0.25]
+# lons = [-130, -60, 0.3125]
+# xhat_nc = gc.create_gc_grid(*lats, *lons) + 1
+# xhat_nc = xhat_nc.rename({'lats' : 'lat', 'lons' : 'lon'})
+# xhat_nc['lat'] = xhat_nc['lat'].astype('float32')
+# xhat_nc['lon'] = xhat_nc['lon'].astype('float32')
+# xhat_gridded = ip.match_data_to_clusters(xhat_abs_mean/area, clusters)
+# xhat_anth_gridded = ip.match_data_to_clusters(xhat_abs_anth.mean(axis=1)/area, clusters)
+# xa_abs_gridded = ip.match_data_to_clusters(xa_abs/area, clusters)
+# xa_abs_anth_gridded = ip.match_data_to_clusters(xa_abs_anth/area, clusters)
+# summary_gridded = xr.Dataset({'initial_total' : xa_abs_gridded,
+#                               'initial_anthropogenic' : xa_abs_anth_gridded,
+#                               'optimized_total' : xhat_gridded,
+#                               'optimized_anthropogenic' : xhat_anth_gridded})
+# xhat_nc.attrs = {'Title' : '2019 average initial and optimized fluxes from TROPOMI inversion',
+#                  'Units' : 'Mg/km2/yr',
+#                  'History' : datetime.now().strftime('%Y-%m-%d %H:%M')}
+# summary_gridded.to_netcdf(f'{data_dir}CONUS_TROPOMI_inversion_2019.nc')
+
+# xhat_nc.loc[{'lat' : clusters.lat, 'lon' : clusters.lon}] = xhat_gridded
+# xhat_nc = gc.define_HEMCO_std_attributes(xhat_nc, name='posterior_sf')
+# xhat_nc = gc.define_HEMCO_var_attributes(xhat_nc, 'posterior_sf',
+#                                          long_name=long_name, units='1')
+# xhat_nc.attrs = {'Title' : 'Posterior scaling factors',
+#                  'Conventions' : 'COARDS',
+#                  'History' : datetime.now().strftime('%Y-%m-%d %H:%M')}
+# gc.save_HEMCO_netcdf(xhat_nc, f'{data_dir}/ensemble', 'xhat_gridded.nc')
 
 # Get BC statistics
 bc_stats = ip.get_ensemble_stats(xhat_bc)
@@ -390,6 +402,7 @@ for country, mask in masks.items():
 
     # Print information 
     print(f'In {country}, we achieve {dofs_c.mean():.1f} ({dofs_c.min():.1f}, {dofs_c.max():.1f}) DOFS. Anthropogenic emissions\nchange by on average {(post_tot_anth - prior_tot).mean():.2f} ({(post_tot_anth - prior_tot).min():.2f}, {(post_tot_anth - prior_tot).max():.2f}) Tg/yr from {prior_tot.mean():.2f} Tg/yr to\n{post_tot_anth.mean():.2f} ({post_tot_anth.min():.2f}, {post_tot_anth.max():.2f}) Tg/yr. Biogenic emissions are {post_tot_bio.mean():.2f} ({post_tot_bio.min():.2f}, {post_tot_bio.max():.2f}). Total\nemissions are {post_tot.mean():.2f} ({post_tot.min():.2f}, {post_tot.max():.2f}).') #{prior_c.sum(axis=1)}')
+
     if country == 'CONUS':
         print(dofs_r)
     print('-'*75)
@@ -706,9 +719,9 @@ plt.close(fig)
 # ------------------------------------------------------------------------ ##
 # Plot sectoral error correlation 
 # ------------------------------------------------------------------------ ##
-# rfile = f'{data_dir}ensemble/r2_ensemble_conus.csv'
-# r = pd.read_csv(rfile, index_col=0, header=0)
-# print(r.round(2))
+rfile = f'{data_dir}ensemble/r2_ensemble_conus.csv'
+r = pd.read_csv(rfile, index_col=0, header=0)
+
 # r = r.loc[anth_cols, anth_cols]
 # labels = [list(s.sectors.keys())[1:][list(s.sectors.values())[1:].index(l)] for l in anth_cols]
 
