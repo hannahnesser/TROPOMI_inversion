@@ -2,6 +2,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import colors
 
 import sys
 sys.path.append('.')
@@ -22,6 +23,15 @@ dofs = pd.read_csv(f'{data_dir}ensemble/dofs.csv', index_col=0)
 dofs = dofs.mean(axis=1)
 dofs = ip.match_data_to_clusters(dofs, clusters)
 
+# Open kw sum
+kw = xr.open_dataarray(f'{data_dir}/reduced_rank/kw_sum.nc')
+
+# Normalize kw (also try log normalizing)
+kw = kw/kw.max()
+
+# kw.where(kw > 0.05).plot(norm=colors.LogNorm(vmin=0.05, vmax=2e4))
+# plt.show()
+
 # Open landfill lat lons
 ghgrp = pd.read_csv(f'{data_dir}landfills/ghgrp_processed.csv')
 
@@ -31,6 +41,11 @@ for seas in seasons:
     data = xr.open_dataset(f'{data_dir}observations/v19_{seas}.nc')
     data = data.sel(lat=slice(s.lat_min ,s.lat_max),
                     lon=slice(s.lon_min, s.lon_max))
+
+    # Set to 0 where kw sum is 0
+    data['obs'] = data['obs'].where(kw > 0.05)
+    data['count'] = data['count'].where(kw > 0.05)
+
     v19[seas] = data
 
 # Calculate a total for the sake of removing the mean bias between the two
@@ -55,12 +70,41 @@ v14['lon'] = np.round(v14['LON']/s.lon_delta)*s.lon_delta
 
 # Group
 gb = ['SEASON', 'lat', 'lon']
-v14_mean = v14.groupby(gb).mean()['OBS'].to_xarray()
-v14_counts = v14.groupby(gb).count()['OBS'].to_xarray()
-v14_tot = v14.groupby(['lat', 'lon']).mean()['OBS'].to_xarray()
+v14_mean = v14.groupby(gb).mean()['OBS']
+v14_counts = v14.groupby(gb).count()['OBS']
+v14_tot = v14.groupby(['lat', 'lon']).mean()['OBS']
+
+# Expand to match clusters
+cdf = clusters.squeeze(drop=True)
+cdf = clusters.to_dataframe()
+cdf = cdf[cdf['Clusters'] > 0]
+
+v14_mean = cdf.join(v14_mean)
+v14_mean = v14_mean.fillna(0)
+v14_mean = v14_mean.sort_values('Clusters')
+v14_mean = v14_mean['OBS'].to_xarray()
+
+v14_counts = cdf.join(v14_counts)
+v14_counts = v14_counts.fillna(0)
+v14_counts = v14_counts.sort_values('Clusters')
+v14_counts = v14_counts['OBS'].to_xarray()
+
+v14_tot = cdf.join(v14_tot)
+v14_tot = v14_tot.fillna(0)
+v14_tot = v14_tot.sort_values('Clusters')
+v14_tot = v14_tot['OBS'].to_xarray()
+
+# Set to 0 where kw = 0
+v14_mean = v14_mean.where(kw > 0.05)
+v14_tot = v14_tot.where(kw > 0.05)
 
 # Calculate the annual mean difference
 diff_mean = (v14_tot - v19_tot['mean']).mean().values
+
+
+(v14_tot - v19_tot['mean']).squeeze(drop=True).plot(vmin=-10, vmax=10, 
+                                                    cmap='RdBu_r')
+plt.show()
 
 # Subset to areas where everyone has data
 v14_tot = v14_tot.sel(lon=slice(-128, -60))
@@ -92,12 +136,22 @@ fig, ax = fp.get_figax(maps=True, lats=v19['DJF'].lat, lons=v19['DJF'].lon,
 
 # Calculate mean adjusted difference
 diff = v14_tot - v19_tot['mean'] - diff_mean
+print('-'*70)
+diff = diff.squeeze(drop=True)
+diff.to_netcdf(f'{data_dir}observations/v14_v19_diff.nc')
+print('-'*70)
+
+# Scale by kw
+# diff = diff*kw
 
 # Mask for DOFS
-diff = diff.where(dofs > 0, 0)
+# diff = diff.where(dofs > 0, 0)
 
 # Mask for differences of 10 ppb
-diff = diff.where(np.abs(diff) > 10, 0)
+# diff = diff.where(np.abs(diff) > 10, 0)
+print((np.abs(diff) > 5).sum().values)
+print((np.abs(diff) > 10).sum().values)
+print((kw > 0.05).sum().values)
 
 # Make diff just for landfills
 diff_lf = diff.to_dataframe(name='diff_trop').reset_index()
@@ -105,12 +159,14 @@ diff_lf = diff_lf.rename(columns={'lat' : 'lat_center', 'lon' : 'lon_center'})
 diff_lf = pd.merge(ghgrp, diff_lf, on=['lat_center', 'lon_center'], how='inner')
 
 # Plot difference
-# c = diff.plot(ax=ax, cmap='RdBu_r', vmin=-20, vmax=20, add_colorbar=False)
+c = diff.plot(ax=ax, cmap='RdBu_r', vmin=-10, vmax=10, add_colorbar=False)
 
-# Plot landfills
-c = ax.scatter(diff_lf['lon_center'], diff_lf['lat_center'], 
-               c=diff_lf['diff_trop'], marker='x', s=3,
-               vmin=-20, vmax=20, cmap='RdBu_r')
+# We could check how large the footprint of each observation is
+
+# # Plot landfills
+# c = ax.scatter(diff_lf['lon_center'], diff_lf['lat_center'], 
+#                c=diff_lf['diff_trop'], marker='x', s=3,
+#                vmin=-20, vmax=20, cmap='RdBu_r')
 
 fp.format_map(ax, lats=diff.lat, lons=diff.lon)
 
@@ -128,15 +184,17 @@ xhat_mean = ip.match_data_to_clusters(xhat_mean, clusters, default_value=1)
 xhat_mean = xhat_mean.to_dataset(name='xhat')
 xhat_mean['diff'] = diff
 mask = (xhat_mean['xhat'] != 1) & (~xhat_mean['diff'].isnull())
+mask = mask.squeeze(drop=True)
 
 fig, ax = fp.get_figax(aspect=1, max_width=config.BASE_WIDTH/3, 
                        max_height=config.BASE_HEIGHT/3)
 xx = xhat_mean['diff'].where(mask, drop=True)
 xx = xx.values[~np.isnan(xx.values)]
+
 yy = xhat_mean['xhat'].where(mask, drop=True)
 yy = yy.values[~np.isnan(yy.values)]
 ax.hexbin(xx, yy, linewidths=0, cmap=fp.cmap_trans('inferno'),
-          vmin=0, vmax=150, gridsize=50)
+          vmin=0, vmax=100, gridsize=50)
 _, _, r, _, _ = gc.comparison_stats(xx, yy)
 ax.text(0.025, 0.925, r'R$^2$ = %.2f' % r**2, transform=ax.transAxes,
         fontsize=config.LABEL_FONTSIZE*config.SCALE)
