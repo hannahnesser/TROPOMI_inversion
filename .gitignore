@@ -30,6 +30,7 @@ inversion_data/states/*
 !inversion_data/ensemble/dofs.csv
 !inversion_data/sectors/w.csv
 !inversion_data/sectors/w_hr.csv
+!inversion_data/sectors/epa_ghgi_2023.csv
 !inversion_data/states/states_mask.csv
 !inversion_data/states/summ_states.csv
 !inversion_data/prior/xa_abs.nc
@@ -48,6 +49,8 @@ inversion_data/states/*
 !inversion_data/landfills/lmop_processed.csv
 !inversion_data/area.nc
 !inversion_data/clusters.nc
+!inversion_data/observations/ya_post.nc
+!inversion_data/observations/2019_corrected.pkl
 !paper/figures/fig??.pdf
 !paper/figures/figS??.pdf
 
@@ -88,6 +91,9 @@ plots/*
 
 # DS store
 **.DS_Store
+
+# Corrupted files
+**~$*
 
 # planeflight files
 observations/plane_logs/*
