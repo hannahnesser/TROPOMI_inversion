@@ -112,3 +112,5 @@ python/scratch.py
 # Files with unpublished data
 paper/cusworth_inprep.numbers
 python/data_for_methaneair.py
+
+TROPOMI_inversion.git/*
