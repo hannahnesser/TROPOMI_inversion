@@ -20,6 +20,7 @@ inversion_data/reduced_rank
 inversion_data/regularization_factor
 inversion_data/sectors/*
 inversion_data/states/*
+inversion_data/CONUS_TROPOMI_inversion_2019.nc
 
 # Except for:
 !inversion_data/ensemble/xhat_fr2*
