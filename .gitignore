@@ -43,7 +43,6 @@ observations/*
 !inversion_data/observations/ya_mb.nc
 !inversion_data/observations/so_lb.nc
 !inversion_data/observations/so_mb.nc
-!inversion_data/observations/y_loc.csv
 !inversion_data/countries/CONUS_mask.npy
 !inversion_data/countries/CONUS.csv
 !inversion_data/cities/urban_areas_mask.csv
