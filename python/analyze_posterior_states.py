@@ -96,7 +96,7 @@ for sect in w.index:
         xhat_abs_sect[f'post_{sect}'] = xx
 
 # Load EPA state estimates
-epa_s = pd.read_csv(f'{data_dir}states/states_epa.csv', header=0, index_col=0)
+epa_s = pd.read_csv(f'{data_dir}states/states_epa_2023.csv', header=0, index_col=0)
 
 # Individual state inventories in Tg/yr
 state_inventories = {
@@ -182,7 +182,7 @@ summ_s = pd.concat([summ_s, dofs_s.loc[summ_s.index]], axis=1)
 summ_s['pop'] = pop.loc[summ_s.index]['2019']
 
 # Add in EPA state estimates
-epa_s = epa_s.add_prefix('epa_')/25*1e3
+epa_s = epa_s.add_prefix('epa_')/28*1e3
 summ_s = summ_s.join(epa_s)
 # summ_s['epa'] = epa_s.loc[summ_s.index][['total']]/25*1e3 # to Gg/yr
 # summ_s['epa'] *= summ_s['post_mean'].sum()/summ_s['epa'].sum()
@@ -195,13 +195,22 @@ summ_s = summ_s.sort_values(by='post_mean', ascending=False)
 
 # Compare the EPA inventory to our posterior
 print((summ_s['post_mean'] - summ_s['epa_total']).mean())
-for n in [10, 25, 50]:
+for n in [10, 25, 29, 50]:
     epa = summ_s['epa_total'][:n]
     gepa = summ_s['prior_total'][:n]
     post = summ_s['post_mean'][:n]
     pct_change = (post - epa)/epa
     pct_change_g = (post - gepa)/gepa
     print(f'{n} states: {100*pct_change.mean():.2f} {100*pct_change_g.mean():.2f}')
+
+print('-'*70)
+for dofs_t in [0, 0.05, 0.2, 0.25, 0.5]:
+    epa = summ_s['epa_total'][summ_s['dofs_mean'] >= dofs_t]
+    gepa = summ_s['prior_total'][summ_s['dofs_mean'] >= dofs_t]
+    post = summ_s['post_mean'][summ_s['dofs_mean'] >= dofs_t]
+    pct_change = (post - epa)/epa
+    pct_change_g = (post - gepa)/gepa
+    print(f'DOFS threshold {dofs_t}: {100*np.median(pct_change):.2f} {100*pct_change.mean():.2f} {100*pct_change_g.mean():.2f}')
 
 print((post - epa).sort_values(ascending=False))
 
@@ -420,7 +429,7 @@ y1 = (ax[1].get_position().y1 + ax[-1].get_position().y0)/2
 ax[1].yaxis.set_label_coords(0.07, y1, transform=fig.transFigure)
 
 # Add labels
-ax[1].text(0.625, summ_s['epa_total'][0], '2022 EPA GHGI for 2019', ha='right',
+ax[1].text(0.625, summ_s['epa_total'][0], '2023 EPA GHGI for 2019', ha='right',
            #summ_s['prior_total'][1] + 100, 'Prior', ha='right', 
            va='top', rotation=90, fontsize=config.TICK_FONTSIZE - 2)
 ax[1].text(1.5, summ_s['post_mean'][0], 'Posterior',
