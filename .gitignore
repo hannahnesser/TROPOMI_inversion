@@ -59,6 +59,9 @@ paper/drafts/
 paper/coauthors/
 observations/
 paper/submitted*
+paper/original_submission/
+paper/archive/
+paper/review/
 
 # sublme settings
 *sublime*
