@@ -296,6 +296,61 @@ cb_c = fp.format_cbar(cb_c, 'Count', y=-3, horizontal='horizontal')
 fp.save_fig(fig, plot_dir, f'observations{suffix}')
 fp.save_fig(fig, paper_dir, 'fig02', for_acp=True)
 
+
+## ------------------------------------------------------------------------ ##
+## Plot seasonally
+## ------------------------------------------------------------------------ ##
+d_p = data.groupby(['LAT_CENTER', 'LON_CENTER', 'SEASON'])
+d_p = d_p.agg({'OBS' : 'mean', 'MOD' : 'count'})
+d_p = d_p.rename(columns={'OBS' : 'AVG_OBS', 'MOD' : 'COUNT'})
+d_p = d_p[['AVG_OBS', 'COUNT']].to_xarray()
+d_p = d_p.rename({'LAT_CENTER' : 'lats', 'LON_CENTER' : 'lons'})
+
+fig, ax = fp.get_figax(rows=2, cols=4, maps=True,
+                       lats=d_p.lats, lons=d_p.lons,
+                       max_width=config.BASE_WIDTH,
+                       max_height=config.BASE_HEIGHT)
+plt.subplots_adjust(hspace=-0.25, wspace=0.1) # wspace=0.05)
+
+for i, seas in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
+    d = d_p.sel(SEASON=seas)
+    print(seas)
+    c = d['AVG_OBS'].plot(ax=ax[0, i], cmap='plasma', vmin=1820, vmax=1880,
+                          add_colorbar=False, snap=True)
+    c_c = d['COUNT'].plot(ax=ax[1, i], cmap='inferno', vmin=0, vmax=1e3/4,
+                          add_colorbar=False, snap=True)
+    ax[0, i] = fp.add_title(ax[0, i], seas)
+    ax[1, i] = fp.add_title(ax[1, i], ' ')
+
+ax[0, 0].text(-0.1, 0.5, '2019 TROPOMI\nmethane\nobservations', 
+              fontsize=config.TITLE_FONTSIZE*config.SCALE, 
+              transform=ax[0, 0].transAxes, rotation='vertical', 
+              verticalalignment='center', 
+              horizontalalignment='right',
+              ma='center')
+ax[1, 0].text(-0.1, 0.5, 'Observational\ndensity', 
+              fontsize=config.TITLE_FONTSIZE*config.SCALE, 
+              transform=ax[1, 0].transAxes, rotation=90, 
+              verticalalignment='center', 
+              horizontalalignment='right',
+              ma='center')
+
+cax = []
+for i in range(2):
+    for j in range(4):
+        ax[i, j] = fp.format_map(ax[i, j], d_p.lats, d_p.lons)
+    caxis = fp.add_cax(fig, ax[i, -1], cbar_pad_inches=0.25)
+    cax.append(caxis)
+
+cb = fig.colorbar(c, ax=ax[0, -1], cax=cax[0])
+cb = fp.format_cbar(cb, 'Methane mixing\nratio (ppb)')
+
+cb_c = fig.colorbar(c_c, ax=ax[1, -1], cax=cax[1])
+cb_c = fp.format_cbar(cb_c, 'Count')
+
+fp.save_fig(fig, plot_dir, f'observations_seas{suffix}')
+fp.save_fig(fig, paper_dir, 'figS01', for_acp=True)
+
 ## ------------------------------------------------------------------------ ##
 ## Analyze data
 ## ------------------------------------------------------------------------ ##
@@ -479,7 +534,7 @@ for mod_suffix in ['_LB', '_MB']:
                       bbox_to_anchor=(1, 0.5), loc='center left', ncol=1)
         fp.save_fig(fig, plot_dir,
                     f'prior_seasonal_latitudinal_bias{suffix}{mod_suffix}')
-        fp.save_fig(fig, paper_dir, 'figS02', for_acp=True)
+        fp.save_fig(fig, paper_dir, 'figS03', for_acp=True)
 
         plt.close()
 
