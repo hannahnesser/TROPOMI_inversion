@@ -20,6 +20,8 @@ inversion_data/reduced_rank
 inversion_data/regularization_factor
 inversion_data/sectors/*
 inversion_data/states/*
+inversion_data/CONUS_TROPOMI_inversion_2019.nc
+observations/*
 
 # Except for:
 !inversion_data/ensemble/xhat_fr2*
@@ -41,6 +43,7 @@ inversion_data/states/*
 !inversion_data/observations/ya_mb.nc
 !inversion_data/observations/so_lb.nc
 !inversion_data/observations/so_mb.nc
+!inversion_data/observations/y_loc.csv
 !inversion_data/countries/CONUS_mask.npy
 !inversion_data/countries/CONUS.csv
 !inversion_data/cities/urban_areas_mask.csv
@@ -50,14 +53,13 @@ inversion_data/states/*
 !inversion_data/area.nc
 !inversion_data/clusters.nc
 !inversion_data/observations/ya_post.nc
-!inversion_data/observations/2019_corrected.pkl
+# !inversion_data/observations/2019_corrected.pkl
 !paper/figures/fig??.pdf
 !paper/figures/figS??.pdf
 
 # Irrelevant paper details
 paper/drafts/
 paper/coauthors/
-observations/
 paper/submitted*
 paper/original_submission/
 paper/archive/
@@ -90,7 +92,7 @@ plots/*
 **.ai
 
 # pkl files
-**.pkl
+# **.pkl
 
 # DS store
 **.DS_Store
