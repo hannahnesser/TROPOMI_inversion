@@ -259,6 +259,9 @@ gc.save_obj(data, f'{output_dir}/observations/{settings.year}_corrected.pkl')
 # Calculate the number of observations
 nobs = data.shape[0]
 
+# Save out lat/lon/date information
+data[['LAT', 'LON', 'MONTH']].to_csv(join(output_dir, 'observations/y_loc.csv'))
+
 ## ------------------------------------------------------------------------ ##
 ## Plot data
 ## ------------------------------------------------------------------------ ##
