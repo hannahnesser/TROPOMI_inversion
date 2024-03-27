@@ -146,6 +146,7 @@ post = (w_ong @ xhat_abs)
 
 ## Posterior ratios
 xhat_ong = post/prior.values
+print(post.loc['permian'])
 
 ## Get statistics
 xhat_stats = ip.get_ensemble_stats(xhat_ong).add_prefix('xhat_')
@@ -153,7 +154,9 @@ post_stats = ip.get_ensemble_stats(post).add_prefix('post_')
 
 ## Aggregate
 summ = pd.concat([area, prior, post_stats, xhat_stats], axis=1)
+print('*'*70)
 print(summ.loc['permian'])
+print('*'*70)
 
 # Sort by posterior anthropogenic emissions
 summ = summ.sort_values(by='post_mean', ascending=False)
@@ -257,7 +260,7 @@ ax = fp.add_legend(ax, ncol=1, fontsize=config.TICK_FONTSIZE,
                    loc='upper right')
 
 fp.save_fig(fig, plot_dir, f'ong_ensemble')
-fp.save_fig(fig, paper_dir, 'figS03', for_acp=True)
+fp.save_fig(fig, paper_dir, 'figS04', for_acp=True)
 
 # ------------------------------------------------------------------------ ##
 # Permian comparison
@@ -295,9 +298,15 @@ area_permian = area_permian[permian_idx, :]
 
 # Calculate total emissions
 tot_prior_permian = xa_abs_permian.sum()
-tot_post_permian = xhat_abs_permian['mean'].sum()
+tot_post_permian = (xhat_abs.values[permian_idx, :].sum(axis=0)).mean()
+min_post_permian = (xhat_abs.values[permian_idx, :].sum(axis=0)).min()
+max_post_permian = (xhat_abs.values[permian_idx, :].sum(axis=0)).max()
+
+# min_post_permian = xhat_abs_permian['min'].sum()
+# max_post_permian = xhat_abs_permian['max'].sum()
+
 print(f'Total prior emissions            : {tot_prior_permian}')
-print(f'Total posterior emissions        : {tot_post_permian}')
+print(f'Total posterior emissions        : {tot_post_permian} ({min_post_permian} - {max_post_permian})')
 print(f'Difference                       : {(tot_post_permian - tot_prior_permian)}')
 
 # Adjust back to kg/km2/hr
